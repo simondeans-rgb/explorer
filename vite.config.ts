@@ -11,8 +11,22 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 5173,
     strictPort: true,
     host: true,
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          firebase: [
+            'firebase/app',
+            'firebase/auth',
+            'firebase/firestore',
+          ],
+          motion: ['framer-motion'],
+        },
+      },
+    },
   },
 });

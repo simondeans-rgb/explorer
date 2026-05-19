@@ -2,6 +2,7 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       fontFamily: {
@@ -15,21 +16,26 @@ const config: Config = {
         ],
         hand: ["Caveat", "Comic Sans MS", "cursive"],
       },
+      colors: {
+        canvas: {
+          light: "#F2EFE6",
+          dark: "#1A1916",
+        },
+      },
       boxShadow: {
-        note: "0 2px 4px rgba(20, 17, 14, 0.08), 0 6px 16px rgba(20, 17, 14, 0.10)",
-        "note-lift":
-          "0 6px 10px rgba(20, 17, 14, 0.14), 0 16px 32px rgba(20, 17, 14, 0.16)",
+        note: "0 1px 2px rgba(20, 17, 14, 0.06), 0 8px 18px rgba(20, 17, 14, 0.10)",
+        "note-hover":
+          "0 2px 4px rgba(20, 17, 14, 0.08), 0 14px 28px rgba(20, 17, 14, 0.14)",
+        "note-drag":
+          "0 8px 16px rgba(20, 17, 14, 0.20), 0 24px 48px rgba(20, 17, 14, 0.24)",
+        "note-dark":
+          "0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 22px rgba(0, 0, 0, 0.45)",
       },
       keyframes: {
         "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
-        "pop-in": {
-          from: { opacity: "0", transform: "scale(0.92) rotate(-2deg)" },
-          to: { opacity: "1", transform: "scale(1) rotate(var(--tilt, 0deg))" },
-        },
       },
       animation: {
         "fade-in": "fade-in 200ms ease-out",
-        "pop-in": "pop-in 220ms cubic-bezier(0.16,1,0.3,1)",
       },
     },
   },
