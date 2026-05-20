@@ -6,15 +6,21 @@ export type NoteColor =
   | 'purple'
   | 'gray';
 
+export type InkColor = 'auto' | 'black';
+
+export const INK_COLORS: InkColor[] = ['auto', 'black'];
+
 export interface Note {
   id: string;
   userId: string;
+  title?: string;
   body: string;
   x: number;
   y: number;
   width: number;
   height: number;
   color: NoteColor;
+  inkColor?: InkColor;
   zIndex: number;
   createdAt: number;
   updatedAt: number;

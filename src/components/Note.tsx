@@ -15,9 +15,11 @@ import { useDebouncedCallback } from '../hooks/useDebouncedCallback';
 import { useTheme } from '../contexts/ThemeContext';
 import {
   COLOR_SPEC,
+  INK_COLORS,
   MIN_HEIGHT,
   MIN_WIDTH,
   NOTE_COLORS,
+  type InkColor,
   type Note as NoteType,
   type NoteColor,
 } from '../types';
@@ -27,7 +29,7 @@ interface NoteProps {
   tilt: number;
   isTop: boolean;
   onUpdate: (
-    patch: Partial<Pick<NoteType, 'body' | 'x' | 'y' | 'width' | 'height' | 'color' | 'zIndex'>>,
+    patch: Partial<Pick<NoteType, 'title' | 'body' | 'x' | 'y' | 'width' | 'height' | 'color' | 'inkColor' | 'zIndex'>>,
   ) => void;
   onFocus: () => void;
   onDelete: () => void;
@@ -44,15 +46,18 @@ export function Note({
   const { theme } = useTheme();
   const spec = COLOR_SPEC[note.color];
   const bg = theme === 'dark' ? spec.dark : spec.light;
-  const ink = theme === 'dark' ? spec.inkDark : spec.ink;
+  const autoInk = theme === 'dark' ? spec.inkDark : spec.ink;
+  const ink = note.inkColor === 'black' ? '#000000' : autoInk;
 
   const x = useMotionValue(note.x);
   const y = useMotionValue(note.y);
   const [size, setSize] = useState({ w: note.width, h: note.height });
 
+  const [title, setTitle] = useState(note.title ?? '');
   const [text, setText] = useState(note.body);
   const [editing, setEditing] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const titleRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -69,9 +74,16 @@ export function Note({
   useEffect(() => {
     if (!editing && text !== note.body) setText(note.body);
   }, [note.body, editing, text]);
+  useEffect(() => {
+    const remote = note.title ?? '';
+    if (!editing && title !== remote) setTitle(remote);
+  }, [note.title, editing, title]);
 
-  const debouncedSave = useDebouncedCallback((body: string) => {
+  const debouncedSaveBody = useDebouncedCallback((body: string) => {
     onUpdate({ body });
+  }, 500);
+  const debouncedSaveTitle = useDebouncedCallback((t: string) => {
+    onUpdate({ title: t });
   }, 500);
 
   function handleDragEnd(_: unknown, info: PanInfo) {
@@ -115,11 +127,12 @@ export function Note({
       if (!rootRef.current?.contains(ev.target as Node)) {
         setEditing(false);
         if (text !== note.body) onUpdate({ body: text });
+        if (title !== (note.title ?? '')) onUpdate({ title });
       }
     }
     document.addEventListener('pointerdown', onDocPointerDown);
     return () => document.removeEventListener('pointerdown', onDocPointerDown);
-  }, [editing, text, note.body, onUpdate]);
+  }, [editing, text, title, note.body, note.title, onUpdate]);
 
   useEffect(() => {
     if (editing) {
@@ -135,6 +148,8 @@ export function Note({
       onFocus();
     }
   }
+
+  const showTitle = editing || title.length > 0;
 
   return (
     <motion.div
@@ -153,6 +168,7 @@ export function Note({
         } else if (e.key === 'Escape' && editing) {
           setEditing(false);
           if (text !== note.body) onUpdate({ body: text });
+          if (title !== (note.title ?? '')) onUpdate({ title });
         }
       }}
       tabIndex={0}
@@ -176,7 +192,7 @@ export function Note({
         touchAction: 'none',
       }}
       className={cn(
-        'group select-none rounded-md',
+        'group select-none rounded-md flex flex-col',
         'shadow-note dark:shadow-note-dark hover:shadow-note-hover',
         editing && 'cursor-text',
         !editing && 'cursor-grab active:cursor-grabbing',
@@ -184,7 +200,7 @@ export function Note({
     >
       <div
         className={cn(
-          'absolute inset-x-0 top-0 h-7 rounded-t-md flex items-center justify-end pr-1.5',
+          'absolute inset-x-0 top-0 h-7 rounded-t-md flex items-center justify-end pr-1.5 z-10',
           'opacity-0 group-hover:opacity-100 transition-opacity',
           isTop && 'opacity-100',
         )}
@@ -220,7 +236,7 @@ export function Note({
 
       {paletteOpen && (
         <div
-          className="absolute top-8 right-1.5 z-10 flex gap-1 p-2 rounded-lg shadow-note"
+          className="absolute top-8 right-1.5 z-20 flex flex-col gap-2 p-2 rounded-lg shadow-note"
           style={{
             backgroundColor:
               theme === 'dark' ? 'rgba(30,29,26,0.95)' : 'rgba(255,255,255,0.95)',
@@ -228,27 +244,91 @@ export function Note({
           }}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          {NOTE_COLORS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              aria-label={`Set color to ${c}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onUpdate({ color: c });
-                setPaletteOpen(false);
-              }}
+          <div className="flex gap-1">
+            {NOTE_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                aria-label={`Set background to ${c}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUpdate({ color: c });
+                }}
+                style={{
+                  backgroundColor:
+                    theme === 'dark' ? COLOR_SPEC[c].dark : COLOR_SPEC[c].light,
+                }}
+                className={cn(
+                  'h-5 w-5 rounded-full border border-black/10 dark:border-white/15',
+                  c === note.color && 'ring-2 ring-offset-1 ring-black/40 dark:ring-white/40',
+                )}
+              />
+            ))}
+          </div>
+          <div
+            className="h-px"
+            style={{
+              backgroundColor:
+                theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+            }}
+          />
+          <div className="flex items-center gap-2">
+            <span
+              className="text-[10px] font-medium uppercase tracking-wider"
               style={{
-                backgroundColor:
-                  theme === 'dark' ? COLOR_SPEC[c].dark : COLOR_SPEC[c].light,
+                color: theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)',
               }}
-              className={cn(
-                'h-5 w-5 rounded-full border border-black/10 dark:border-white/15',
-                c === note.color && 'ring-2 ring-offset-1 ring-black/40 dark:ring-white/40',
-              )}
-            />
-          ))}
+            >
+              Text
+            </span>
+            <div className="flex gap-1">
+              {INK_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  aria-label={c === 'auto' ? 'Auto text colour' : 'Black text'}
+                  title={c === 'auto' ? 'Auto' : 'Black'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onUpdate({ inkColor: c });
+                  }}
+                  style={{
+                    backgroundColor: c === 'black' ? '#000000' : autoInk,
+                  }}
+                  className={cn(
+                    'h-5 w-5 rounded-full border border-black/10 dark:border-white/15',
+                    (note.inkColor ?? 'auto') === c &&
+                      'ring-2 ring-offset-1 ring-black/40 dark:ring-white/40',
+                  )}
+                />
+              ))}
+            </div>
+          </div>
         </div>
+      )}
+
+      {showTitle && (
+        <input
+          ref={titleRef}
+          value={title}
+          readOnly={!editing}
+          onChange={(e) => {
+            const v = e.target.value;
+            setTitle(v);
+            debouncedSaveTitle(v);
+          }}
+          onPointerDown={(e) => {
+            if (editing) e.stopPropagation();
+          }}
+          placeholder={editing ? 'Title…' : ''}
+          maxLength={120}
+          className={cn(
+            'mt-7 mx-4 bg-transparent border-0 outline-none',
+            'font-hand font-bold text-2xl leading-tight placeholder:opacity-40',
+            'truncate',
+          )}
+          style={{ color: ink }}
+        />
       )}
 
       <textarea
@@ -258,15 +338,16 @@ export function Note({
         onChange={(e) => {
           const v = e.target.value;
           setText(v);
-          debouncedSave(v);
+          debouncedSaveBody(v);
         }}
         onPointerDown={(e) => {
           if (editing) e.stopPropagation();
         }}
         placeholder={editing ? 'Type something…' : ''}
         className={cn(
-          'w-full h-full pt-8 px-4 pb-6 bg-transparent border-0 outline-none',
+          'flex-1 w-full px-4 pb-6 bg-transparent border-0 outline-none',
           'font-hand text-2xl leading-snug placeholder:opacity-40',
+          showTitle ? 'pt-2' : 'pt-8',
           editing ? 'cursor-text' : 'cursor-inherit',
         )}
         style={{ color: ink }}

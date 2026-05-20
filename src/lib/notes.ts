@@ -28,12 +28,14 @@ export function subscribeNotes(
       return {
         id: d.id,
         userId: data.userId,
+        title: data.title ?? '',
         body: data.body ?? '',
         x: data.x ?? 0,
         y: data.y ?? 0,
         width: data.width ?? DEFAULT_WIDTH,
         height: data.height ?? DEFAULT_HEIGHT,
         color: data.color ?? 'yellow',
+        inkColor: data.inkColor ?? 'auto',
         zIndex: data.zIndex ?? 1,
         createdAt:
           (data.createdAt?.toMillis?.() as number | undefined) ?? Date.now(),
