@@ -18,18 +18,20 @@ body,
 
 body {
   margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui,
-    sans-serif;
-  background-color: #f5efe1;
-  color: #1c1a14;
+  /* Body & interface — DM Sans (Brand Book §05). */
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    system-ui, sans-serif;
+  /* Cartridge — the app background. */
+  background-color: #f8f4ec;
+  color: #1c1a17;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
 }
 
 .dark body {
-  background-color: #1a1916;
-  color: #e9e4d6;
+  background-color: #0b1422;
+  color: #f8f4ec;
 }
 
 #root {
@@ -52,36 +54,41 @@ textarea {
   resize: none;
 }
 
-/* The Passport surface — warm parchment with a faint engraved grid. */
+/* The app surface — Cartridge with a faint cartographic dot grid in gold. */
 .passport-bg {
-  background-color: #f5efe1;
+  background-color: #f8f4ec;
   background-image:
     radial-gradient(
       circle at 18px 18px,
-      rgba(28, 26, 20, 0.045) 1px,
+      rgba(201, 168, 76, 0.07) 1px,
       transparent 1.6px
     );
   background-size: 36px 36px;
 }
 
 .dark .passport-bg {
-  background-color: #1a1916;
+  background-color: #0b1422;
   background-image:
     radial-gradient(
       circle at 18px 18px,
-      rgba(255, 255, 255, 0.04) 1px,
+      rgba(201, 168, 76, 0.06) 1px,
       transparent 1.6px
     );
 }
 
-/* Embossed gold rule used under section headings. */
+/* Gold rule used beneath section headings (Gold Seal, sparing). */
 .gold-rule {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(192, 151, 74, 0.7),
-    rgba(192, 151, 74, 0)
+    rgba(201, 168, 76, 0.75),
+    rgba(201, 168, 76, 0)
   );
+}
+
+/* Dashed divider used inside passport page bodies — never solid. */
+.page-divide {
+  border-bottom: 0.5px dashed rgba(13, 27, 46, 0.18);
 }
 
 .no-scrollbar::-webkit-scrollbar {

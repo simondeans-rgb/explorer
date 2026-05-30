@@ -21,7 +21,7 @@ export function ExpeditionsView() {
     <div className="animate-fade-in space-y-6">
       <header className="text-center">
         <MapPinned size={26} className="mx-auto text-passport-gold mb-2" />
-        <h1 className="font-display text-3xl text-passport-navy dark:text-white/90">
+        <h1 className="font-display text-3xl font-semibold text-passport-navy dark:text-white/90">
           Expeditions
         </h1>
         <p className="text-sm text-black/55 dark:text-white/55 mt-1 max-w-md mx-auto">
@@ -42,7 +42,7 @@ export function ExpeditionsView() {
       </div>
 
       <section className="space-y-3">
-        <h2 className="font-display text-xl text-passport-navy dark:text-white/90">
+        <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
           Journeys — how you travelled
         </h2>
         <div className="gold-rule w-24" />

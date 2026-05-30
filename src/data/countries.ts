@@ -237,8 +237,48 @@ const ROWS: Row[] = [
   ['AQ', 'Antarctica', 'Antarctica'],
 ];
 
+// ISO 3166-1 alpha-2 → alpha-3, for the three-letter codes pressed onto
+// passport stamps (JPN, ITA, PER…) per the Brand Book stamp system.
+const ALPHA3: Record<string, string> = {
+  AL: 'ALB', AD: 'AND', AT: 'AUT', BY: 'BLR', BE: 'BEL', BA: 'BIH', BG: 'BGR',
+  HR: 'HRV', CY: 'CYP', CZ: 'CZE', DK: 'DNK', EE: 'EST', FO: 'FRO', FI: 'FIN',
+  FR: 'FRA', DE: 'DEU', GI: 'GIB', GR: 'GRC', GG: 'GGY', HU: 'HUN', IS: 'ISL',
+  IE: 'IRL', IM: 'IMN', IT: 'ITA', JE: 'JEY', XK: 'XKX', LV: 'LVA', LI: 'LIE',
+  LT: 'LTU', LU: 'LUX', MT: 'MLT', MD: 'MDA', MC: 'MCO', ME: 'MNE', NL: 'NLD',
+  MK: 'MKD', NO: 'NOR', PL: 'POL', PT: 'PRT', RO: 'ROU', RU: 'RUS', SM: 'SMR',
+  RS: 'SRB', SK: 'SVK', SI: 'SVN', ES: 'ESP', SE: 'SWE', CH: 'CHE', UA: 'UKR',
+  GB: 'GBR', VA: 'VAT',
+  AF: 'AFG', AM: 'ARM', AZ: 'AZE', BH: 'BHR', BD: 'BGD', BT: 'BTN', BN: 'BRN',
+  KH: 'KHM', CN: 'CHN', GE: 'GEO', HK: 'HKG', IN: 'IND', ID: 'IDN', IR: 'IRN',
+  IQ: 'IRQ', IL: 'ISR', JP: 'JPN', JO: 'JOR', KZ: 'KAZ', KW: 'KWT', KG: 'KGZ',
+  LA: 'LAO', LB: 'LBN', MO: 'MAC', MY: 'MYS', MV: 'MDV', MN: 'MNG', MM: 'MMR',
+  NP: 'NPL', KP: 'PRK', OM: 'OMN', PK: 'PAK', PS: 'PSE', PH: 'PHL', QA: 'QAT',
+  SA: 'SAU', SG: 'SGP', KR: 'KOR', LK: 'LKA', SY: 'SYR', TW: 'TWN', TJ: 'TJK',
+  TH: 'THA', TL: 'TLS', TR: 'TUR', TM: 'TKM', AE: 'ARE', UZ: 'UZB', VN: 'VNM',
+  YE: 'YEM',
+  DZ: 'DZA', AO: 'AGO', BJ: 'BEN', BW: 'BWA', BF: 'BFA', BI: 'BDI', CV: 'CPV',
+  CM: 'CMR', CF: 'CAF', TD: 'TCD', KM: 'COM', CG: 'COG', CD: 'COD', CI: 'CIV',
+  DJ: 'DJI', EG: 'EGY', GQ: 'GNQ', ER: 'ERI', SZ: 'SWZ', ET: 'ETH', GA: 'GAB',
+  GM: 'GMB', GH: 'GHA', GN: 'GIN', GW: 'GNB', KE: 'KEN', LS: 'LSO', LR: 'LBR',
+  LY: 'LBY', MG: 'MDG', MW: 'MWI', ML: 'MLI', MR: 'MRT', MU: 'MUS', MA: 'MAR',
+  MZ: 'MOZ', NA: 'NAM', NE: 'NER', NG: 'NGA', RW: 'RWA', ST: 'STP', SN: 'SEN',
+  SC: 'SYC', SL: 'SLE', SO: 'SOM', ZA: 'ZAF', SS: 'SSD', SD: 'SDN', TZ: 'TZA',
+  TG: 'TGO', TN: 'TUN', UG: 'UGA', ZM: 'ZMB', ZW: 'ZWE',
+  AG: 'ATG', BS: 'BHS', BB: 'BRB', BZ: 'BLZ', BM: 'BMU', CA: 'CAN', CR: 'CRI',
+  CU: 'CUB', DM: 'DMA', DO: 'DOM', SV: 'SLV', GL: 'GRL', GD: 'GRD', GT: 'GTM',
+  HT: 'HTI', HN: 'HND', JM: 'JAM', MX: 'MEX', NI: 'NIC', PA: 'PAN', PR: 'PRI',
+  KN: 'KNA', LC: 'LCA', VC: 'VCT', TT: 'TTO', US: 'USA',
+  AR: 'ARG', BO: 'BOL', BR: 'BRA', CL: 'CHL', CO: 'COL', EC: 'ECU', FK: 'FLK',
+  GF: 'GUF', GY: 'GUY', PY: 'PRY', PE: 'PER', SR: 'SUR', UY: 'URY', VE: 'VEN',
+  AS: 'ASM', AU: 'AUS', CK: 'COK', FJ: 'FJI', PF: 'PYF', GU: 'GUM', KI: 'KIR',
+  MH: 'MHL', FM: 'FSM', NR: 'NRU', NC: 'NCL', NZ: 'NZL', PW: 'PLW', PG: 'PNG',
+  WS: 'WSM', SB: 'SLB', TO: 'TON', TV: 'TUV', VU: 'VUT',
+  AQ: 'ATA',
+};
+
 export const COUNTRIES: Country[] = ROWS.map(([code, name, continent]) => ({
   code,
+  alpha3: ALPHA3[code] ?? code,
   name,
   continent,
 })).sort((a, b) => a.name.localeCompare(b.name));
@@ -249,6 +289,10 @@ export const COUNTRY_BY_CODE: Record<string, Country> = Object.fromEntries(
 
 export function countryName(code: string): string {
   return COUNTRY_BY_CODE[code]?.name ?? code;
+}
+
+export function alpha3Of(code: string): string {
+  return COUNTRY_BY_CODE[code]?.alpha3 ?? code.toUpperCase();
 }
 
 export function continentOf(code: string): Continent | undefined {

@@ -174,19 +174,35 @@ No Redux/Zustand. Firestore is the state manager.
 
 ## 8. UI design system
 
-The Society of Discovery house style — classic, archival, not gamified.
+Implements the **Explorer's Passport Brand Book (First Edition)** — classic,
+archival, prestigious, never gamified. All tokens live in `tailwind.config.ts`
+under the `passport.*` namespace; base styles in `src/index.css`.
 
-- **Surfaces**: warm parchment (`#F5EFE1`) / dark (`#1A1916`) with a faint
-  engraved dot-grid (`.passport-bg`); navy header (`#15233F`); gold accent
-  (`#C0974A`). Cards in `passport-card` / `passport-carddark`.
-- **Typography**: Fraunces (display serif) for headings and figures; Inter for
-  UI text; a mono treatment for the passport "data page" line.
-- **Components**: passport identity card, stat strip, flag wall, country cards
-  with a circular Discovery Score gauge and inked stamps, recognition seals.
+- **Colour — Palette A "Navigator" (primary)**: Midnight `#0D1B2E`,
+  Admiralty `#1A2E4A`, Chart Blue `#2A4568`, Gold Seal `#C9A84C` (accent only,
+  never a large fill), Pale Gold `#E8C97A`, Cartridge `#F8F4EC` (app
+  background). **Interior — Parchment** `#F2EDE0` is used for passport page
+  bodies (never white/cream), with Aged Parchment `#E6DFC8` for MRZ strips and
+  Field Label `#8B7B4E` / Field Text `#6B5E3E`. Palette B "Cartographer"
+  (burgundy/brass) is reserved for stamps and special editions.
+- **Typography**: **Cormorant Garamond** (display serif, 600/500/italic) for
+  all headings, figures, country names and serif page values; **DM Sans**
+  (300/400/500) for all interface text, labels and stats; a mono treatment for
+  the MRZ strip.
+- **Passport pages**: the Member Bio Page (`BioPage` in `PassportView`) follows
+  §08 — navy header band with gold type, parchment body, spaced-caps field
+  labels, a gold globe-crest seal (`Crest`) bottom-right, and an MRZ strip.
+- **Stamps** (`Stamp`): per §07, a stamped tile carrying the country name, its
+  ISO-3 code (Cormorant), the year and the relationship, coloured by stamp
+  type (Discovered → navy/gold, Lived → burgundy/amber, Worked → chart/gold,
+  Studied → green). ISO-3 codes are in `src/data/countries.ts`.
+- **Recognitions**: the brand's canonical six, surfaced only once earned, as
+  gold seals carrying their glyph.
+- **Voice**: Society vocabulary throughout — Members, Expeditions, Journeys,
+  Discoveries, Recognitions, Almanacs. Measured, specific, never breathless;
+  no emoji in copy.
 - **Motion**: `fade-in` / `rise-in` on mount; the add/edit sheet rises from the
-  bottom on mobile and centres on desktop.
-
-Tokens live in `tailwind.config.ts`; base styles in `src/index.css`.
+  bottom on mobile, centres on desktop.
 
 ## 9. Environment variables
 
