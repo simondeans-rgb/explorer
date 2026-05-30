@@ -31,6 +31,7 @@ if (isFirebaseConfigured) {
   app = initializeApp(config);
   authInstance = getAuth(app);
   dbInstance = initializeFirestore(app, {
+    ignoreUndefinedProperties: true,
     localCache: persistentLocalCache({
       tabManager: persistentMultipleTabManager(),
     }),

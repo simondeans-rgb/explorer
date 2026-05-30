@@ -167,16 +167,20 @@ function airportLabel(iata: string): string {
 }
 function toJourney(f: FlightyFlight): Journey {
   const seat = [f.cabin, f.seat].filter(Boolean).join(' · ');
-  return {
+  const operator = airlineName(f.airline);
+  const reference = `${f.airline} ${f.flightNo}`.trim();
+  // Only assign defined fields — Firestore rejects `undefined` in arrays.
+  const j: Journey = {
     id: `fl_${f.id}`,
     mode: 'flight',
-    operator: airlineName(f.airline),
     from: airportLabel(f.from),
     to: airportLabel(f.to),
-    reference: `${f.airline} ${f.flightNo}`.trim(),
-    seat: seat || undefined,
-    date: f.date,
   };
+  if (operator) j.operator = operator;
+  if (reference) j.reference = reference;
+  if (seat) j.seat = seat;
+  if (f.date) j.date = f.date;
+  return j;
 }
 
 function destinationTitle(cities: string[]): string {
@@ -444,11 +448,16 @@ export function buildImportPlan(
   };
 }
 
+export interface ImportResult {
+  total: number;
+  failed: number;
+}
+
 export async function applyImportPlan(
   userId: string,
   plan: ImportPlan,
   onProgress?: (done: number, total: number) => void,
-): Promise<void> {
+): Promise<ImportResult> {
   const tasks: Array<() => Promise<unknown>> = [
     ...plan.placeCreates.map((input) => () => createPlace(userId, input)),
     ...plan.placeUpdates.map(({ id, input }) => () => updatePlace(id, input)),
@@ -456,19 +465,26 @@ export async function applyImportPlan(
   ];
   const total = tasks.length;
   let done = 0;
+  let failed = 0;
 
   // Run with bounded concurrency so a large import doesn't fire hundreds of
-  // simultaneous writes, but still completes quickly.
+  // simultaneous writes, but still completes quickly. A single failed write
+  // must never stall the whole import, so each task is caught individually.
   const CONCURRENCY = 8;
   let cursor = 0;
   async function worker() {
     while (cursor < tasks.length) {
       const task = tasks[cursor++];
-      await task();
+      try {
+        await task();
+      } catch {
+        failed++;
+      }
       onProgress?.(++done, total);
     }
   }
   await Promise.all(
     Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, worker),
   );
+  return { total, failed };
 }

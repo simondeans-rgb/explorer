@@ -28,6 +28,7 @@ export function ImportFlightyModal({
   const [stage, setStage] = useState<Stage>('pick');
   const [plan, setPlan] = useState<ImportPlan | null>(null);
   const [error, setError] = useState('');
+  const [failed, setFailed] = useState(0);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -63,10 +64,16 @@ export function ImportFlightyModal({
     if (!plan) return;
     setStage('importing');
     setProgress({ done: 0, total: 0 });
-    await applyImportPlan(userId, plan, (done, total) =>
-      setProgress({ done, total }),
-    );
-    setStage('done');
+    try {
+      const result = await applyImportPlan(userId, plan, (done, total) =>
+        setProgress({ done, total }),
+      );
+      setFailed(result.failed);
+      setStage('done');
+    } catch {
+      setError('The import couldn’t be completed. Please try again.');
+      setStage('preview');
+    }
   }
 
   const foreignTrips = plan?.expeditions.filter((e) => !e.title.includes('domestic flights')) ?? [];
@@ -141,6 +148,9 @@ export function ImportFlightyModal({
 
           {stage === 'preview' && plan && (
             <div className="space-y-4">
+              {error && (
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              )}
               {nothingNew ? (
                 <p className="text-sm text-black/65 dark:text-white/65">
                   Every flight in this file has already been imported — nothing
@@ -257,6 +267,12 @@ export function ImportFlightyModal({
                 {plan.expeditions.length} trips and {plan.stats.countries}{' '}
                 countries added to your Passport.
               </p>
+              {failed > 0 && (
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  {failed} item{failed === 1 ? '' : 's'} couldn’t be saved. You
+                  can run the import again to retry them.
+                </p>
+              )}
             </div>
           )}
         </div>
