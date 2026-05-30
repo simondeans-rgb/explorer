@@ -1,26 +1,41 @@
 import { useMemo, useState } from 'react';
 import { ScrollText } from 'lucide-react';
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
+import type { DiscoveryStats } from '../../lib/discoveryStats';
 import { evaluateRecognitions } from '../../lib/recognitions';
 import { flagEmoji } from '../../lib/flags';
-import { CONTINENTS, type Continent, type Place } from '../../types';
+import {
+  CONTINENTS,
+  type Continent,
+  type Discovery,
+  type Place,
+} from '../../types';
 import { cn } from '../../lib/cn';
 
 interface Props {
   places: Place[];
   aggregates: CountryAggregate[];
   stats: PassportStats;
+  discoveries: Discovery[];
+  discoveryStats: DiscoveryStats;
 }
 
-export function AlmanacView({ places, aggregates, stats }: Props) {
+export function AlmanacView({
+  places,
+  aggregates,
+  stats,
+  discoveries,
+  discoveryStats,
+}: Props) {
   const currentYear = new Date().getFullYear();
   const [edition, setEdition] = useState<'lifetime' | number>('lifetime');
 
   const years = useMemo(() => {
     const set = new Set<number>();
     for (const p of places) if (p.firstYear) set.add(p.firstYear);
+    for (const d of discoveries) set.add(new Date(d.createdAt).getFullYear());
     return [...set].sort((a, b) => b - a);
-  }, [places]);
+  }, [places, discoveries]);
 
   const discovered = aggregates.filter((a) => a.discovered);
   const byContinent = useMemo(() => {
@@ -38,7 +53,12 @@ export function AlmanacView({ places, aggregates, stats }: Props) {
   const yearPlaces = yearView
     ? places.filter((p) => p.firstYear === edition)
     : [];
-  const earned = evaluateRecognitions(stats).filter((r) => r.earned);
+  const yearDiscoveries = yearView
+    ? discoveries.filter((d) => new Date(d.createdAt).getFullYear() === edition)
+    : [];
+  const earned = evaluateRecognitions(stats, discoveryStats).filter(
+    (r) => r.earned,
+  );
 
   return (
     <div className="animate-fade-in space-y-7">
@@ -80,9 +100,9 @@ export function AlmanacView({ places, aggregates, stats }: Props) {
             items={[
               ['Countries discovered', stats.countriesDiscovered],
               ['Cities discovered', stats.citiesDiscovered],
+              ['Discoveries made', discoveryStats.total],
               ['Continents reached', stats.continentsDiscovered],
               ['Countries lived in', stats.countriesLived],
-              ['Stamps pressed', stats.totalStamps],
               ['Recognitions earned', earned.length],
             ]}
           />
@@ -149,23 +169,53 @@ export function AlmanacView({ places, aggregates, stats }: Props) {
             The year {edition}
           </h2>
           <div className="gold-rule w-24" />
-          {yearPlaces.length === 0 ? (
+          {yearPlaces.length === 0 && yearDiscoveries.length === 0 ? (
             <p className="text-sm text-black/50 dark:text-white/50">
               Nothing dated to this year yet.
             </p>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {yearPlaces.map((p) => (
-                <span
-                  key={p.id}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10"
-                >
-                  <span className="text-base leading-none">
-                    {flagEmoji(p.countryCode)}
-                  </span>
-                  {p.name}
-                </span>
-              ))}
+            <div className="space-y-4">
+              {yearPlaces.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {yearPlaces.map((p) => (
+                    <span
+                      key={p.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10"
+                    >
+                      <span className="text-base leading-none">
+                        {flagEmoji(p.countryCode)}
+                      </span>
+                      {p.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {yearDiscoveries.length > 0 && (
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.16em] text-passport-fieldlabel mb-2">
+                    {yearDiscoveries.length}{' '}
+                    {yearDiscoveries.length === 1
+                      ? 'discovery'
+                      : 'discoveries'}{' '}
+                    recorded
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {yearDiscoveries.map((d) => (
+                      <span
+                        key={d.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10"
+                      >
+                        {d.countryCode && (
+                          <span className="text-base leading-none">
+                            {flagEmoji(d.countryCode)}
+                          </span>
+                        )}
+                        {d.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </section>

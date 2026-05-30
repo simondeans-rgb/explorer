@@ -181,12 +181,70 @@ export type DiscoveryCategory =
   | 'experience'
   | 'nature';
 
+export const DISCOVERY_CATEGORIES: DiscoveryCategory[] = [
+  'food',
+  'accommodation',
+  'culture',
+  'experience',
+  'nature',
+];
+
+export const DISCOVERY_CATEGORY_META: Record<
+  DiscoveryCategory,
+  { label: string; hint: string; icon: string }
+> = {
+  food: {
+    label: 'Food & Drink',
+    hint: 'Restaurants, cafés, bars, bakeries, wineries.',
+    icon: 'UtensilsCrossed',
+  },
+  accommodation: {
+    label: 'Accommodation',
+    hint: 'Hotels, resorts, apartments, cruise ships.',
+    icon: 'BedDouble',
+  },
+  culture: {
+    label: 'Culture',
+    hint: 'Museums, galleries, historic sites, monuments.',
+    icon: 'Landmark',
+  },
+  experience: {
+    label: 'Experiences',
+    hint: 'Tours, activities, shows, concerts, festivals.',
+    icon: 'Ticket',
+  },
+  nature: {
+    label: 'Nature',
+    hint: 'Beaches, parks, viewpoints, national parks.',
+    icon: 'Mountain',
+  },
+};
+
 export type RecommendationVerdict =
   | 'recommend'
   | 'hidden-gem'
   | 'worth-visiting'
   | 'overrated'
   | 'avoid';
+
+export const RECOMMENDATION_VERDICTS: RecommendationVerdict[] = [
+  'recommend',
+  'hidden-gem',
+  'worth-visiting',
+  'overrated',
+  'avoid',
+];
+
+export const VERDICT_META: Record<
+  RecommendationVerdict,
+  { label: string; hint: string }
+> = {
+  recommend: { label: 'Recommend', hint: 'Must visit.' },
+  'hidden-gem': { label: 'Hidden Gem', hint: 'Underappreciated.' },
+  'worth-visiting': { label: 'Worth Visiting', hint: 'A good option.' },
+  overrated: { label: 'Overrated', hint: 'Not as good as expected.' },
+  avoid: { label: 'Avoid', hint: "Wouldn't recommend." },
+};
 
 /** Any place or experience worth remembering. */
 export interface Discovery {

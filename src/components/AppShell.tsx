@@ -12,7 +12,9 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePlaces } from '../hooks/usePlaces';
+import { useDiscoveries } from '../hooks/useDiscoveries';
 import { aggregateByCountry, computeStats } from '../lib/stats';
+import { computeDiscoveryStats } from '../lib/discoveryStats';
 import { cn } from '../lib/cn';
 import { PassportView } from './passport/PassportView';
 import { AlmanacView } from './almanac/AlmanacView';
@@ -31,10 +33,17 @@ const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
 export function AppShell() {
   const { user } = useAuth();
   const { places, loading } = usePlaces(user?.uid);
+  const { discoveries, loading: discoveriesLoading } = useDiscoveries(
+    user?.uid,
+  );
   const [section, setSection] = useState<Section>('passport');
 
   const aggregates = useMemo(() => aggregateByCountry(places), [places]);
   const stats = useMemo(() => computeStats(aggregates), [aggregates]);
+  const discoveryStats = useMemo(
+    () => computeDiscoveryStats(discoveries),
+    [discoveries],
+  );
 
   return (
     <div className="passport-bg fixed inset-0 flex flex-col">
@@ -47,13 +56,26 @@ export function AppShell() {
               userId={user?.uid ?? ''}
               aggregates={aggregates}
               stats={stats}
+              discoveryStats={discoveryStats}
               loading={loading}
             />
           )}
           {section === 'expeditions' && <ExpeditionsView />}
-          {section === 'discoveries' && <DiscoveriesView />}
+          {section === 'discoveries' && (
+            <DiscoveriesView
+              userId={user?.uid ?? ''}
+              discoveries={discoveries}
+              loading={discoveriesLoading}
+            />
+          )}
           {section === 'almanac' && (
-            <AlmanacView places={places} aggregates={aggregates} stats={stats} />
+            <AlmanacView
+              places={places}
+              aggregates={aggregates}
+              stats={stats}
+              discoveries={discoveries}
+              discoveryStats={discoveryStats}
+            />
           )}
         </div>
       </main>
