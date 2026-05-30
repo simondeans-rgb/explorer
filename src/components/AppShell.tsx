@@ -62,7 +62,7 @@ export function AppShell() {
 }
 
 function Header() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, demo } = useAuth();
   const { theme, toggle } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -99,6 +99,11 @@ function Header() {
       </div>
 
       <div className="flex items-center gap-1">
+        {demo && (
+          <span className="mr-1 hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-[0.18em] bg-passport-gold/20 text-passport-goldsoft border border-passport-gold/40">
+            Demo
+          </span>
+        )}
         <button
           type="button"
           aria-label="Toggle theme"

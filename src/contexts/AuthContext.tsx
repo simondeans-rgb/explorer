@@ -11,32 +11,57 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut as fbSignOut,
-  type User,
 } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../lib/firebase';
+import { seedDemoIfEmpty } from '../lib/localPlaces';
+
+/** Minimal session identity shared by Firebase auth and the local demo. */
+export interface SessionUser {
+  uid: string;
+  email: string | null;
+}
+
+const DEMO_USER: SessionUser = {
+  uid: 'demo-explorer',
+  email: 'demo@societyofdiscovery.app',
+};
+const DEMO_FLAG = 'explorer:demo';
 
 interface AuthContextValue {
-  user: User | null;
+  user: SessionUser | null;
   loading: boolean;
   configured: boolean;
+  demo: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
+  signInDemo: () => void;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [demo, setDemo] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // No Firebase → offer the local demo, restoring it across refreshes.
     if (!auth) {
+      try {
+        if (localStorage.getItem(DEMO_FLAG)) {
+          seedDemoIfEmpty(DEMO_USER.uid);
+          setUser(DEMO_USER);
+          setDemo(true);
+        }
+      } catch {
+        /* ignore */
+      }
       setLoading(false);
       return;
     }
     const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
+      setUser(u ? { uid: u.uid, email: u.email } : null);
       setLoading(false);
     });
     return unsub;
@@ -47,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       configured: isFirebaseConfigured,
+      demo,
       signIn: async (email, password) => {
         if (!auth) throw new Error('Firebase is not configured');
         await signInWithEmailAndPassword(auth, email, password);
@@ -55,12 +81,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!auth) throw new Error('Firebase is not configured');
         await createUserWithEmailAndPassword(auth, email, password);
       },
+      signInDemo: () => {
+        seedDemoIfEmpty(DEMO_USER.uid);
+        try {
+          localStorage.setItem(DEMO_FLAG, '1');
+        } catch {
+          /* ignore */
+        }
+        setUser(DEMO_USER);
+        setDemo(true);
+      },
       signOut: async () => {
+        if (demo) {
+          try {
+            localStorage.removeItem(DEMO_FLAG);
+          } catch {
+            /* ignore */
+          }
+          setDemo(false);
+          setUser(null);
+          return;
+        }
         if (!auth) return;
         await fbSignOut(auth);
       },
     }),
-    [user, loading],
+    [user, loading, demo],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

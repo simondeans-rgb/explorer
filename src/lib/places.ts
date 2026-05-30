@@ -11,6 +11,7 @@ import {
   type QuerySnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
+import * as local from './localPlaces';
 import type { Place, PlaceKind, Relationship } from '../types';
 
 const COLLECTION = 'places';
@@ -23,7 +24,7 @@ export function subscribePlaces(
   userId: string,
   onChange: (places: Place[]) => void,
 ): () => void {
-  if (!db) return () => undefined;
+  if (!db) return local.subscribePlaces(userId, onChange);
   const q = query(collection(db, COLLECTION), where('userId', '==', userId));
   return onSnapshot(q, (snap: QuerySnapshot) => {
     const places: Place[] = snap.docs.map((d) => {
@@ -76,7 +77,7 @@ export async function createPlace(
   userId: string,
   input: PlaceInput,
 ): Promise<string | null> {
-  if (!db) return null;
+  if (!db) return local.createPlace(userId, input);
   const ref = await addDoc(collection(db, COLLECTION), {
     userId,
     ...toDoc(input),
@@ -90,7 +91,7 @@ export async function updatePlace(
   id: string,
   input: PlaceInput,
 ): Promise<void> {
-  if (!db) return;
+  if (!db) return local.updatePlace(id, input);
   await updateDoc(doc(db, COLLECTION, id), {
     ...toDoc(input),
     updatedAt: serverTimestamp(),
@@ -98,6 +99,6 @@ export async function updatePlace(
 }
 
 export async function deletePlace(id: string): Promise<void> {
-  if (!db) return;
+  if (!db) return local.deletePlace(id);
   await deleteDoc(doc(db, COLLECTION, id));
 }

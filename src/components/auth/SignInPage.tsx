@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Compass, Moon, Sun } from 'lucide-react';
+import { ArrowRight, Compass, Moon, Sun } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { cn } from '../../lib/cn';
@@ -27,7 +27,7 @@ function friendlyError(code: string): string {
 }
 
 export function SignInPage() {
-  const { signIn, signUp, configured } = useAuth();
+  const { signIn, signUp, signInDemo, configured } = useAuth();
   const { theme, toggle } = useTheme();
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
@@ -85,9 +85,33 @@ export function SignInPage() {
           </p>
 
           {!configured && (
-            <div className="mb-4 px-4 py-3 rounded-xl bg-amber-100/80 dark:bg-amber-300/15 text-amber-900 dark:text-amber-200 text-sm">
-              Firebase isn&rsquo;t configured yet. Copy <code>.env.example</code>{' '}
-              to <code>.env.local</code> and fill in your project values.
+            <div className="mb-5">
+              <button
+                type="button"
+                onClick={signInDemo}
+                className={cn(
+                  'group w-full px-4 py-3 rounded-xl font-medium transition-all',
+                  'inline-flex items-center justify-center gap-2',
+                  'bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink',
+                  'hover:opacity-90 active:scale-[0.99]',
+                )}
+              >
+                Explore the demo
+                <ArrowRight
+                  size={16}
+                  className="transition-transform group-hover:translate-x-0.5"
+                />
+              </button>
+              <p className="mt-2 text-center text-xs text-black/45 dark:text-white/45">
+                A sample Passport, stored only on this device — no account
+                needed. Add your Firebase keys in <code>.env.local</code> for
+                real cross-device sync.
+              </p>
+              <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-black/35 dark:text-white/35">
+                <span className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+                or
+                <span className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+              </div>
             </div>
           )}
 
