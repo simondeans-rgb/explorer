@@ -58,6 +58,14 @@ published.)
 every relationship), journeys (by mode), and discoveries (by category) —
 computed live from your Passport.
 
+**Import from Flighty** (in Expeditions) turns a [Flighty](https://flighty.com)
+CSV export into your record: every flight becomes a journey, contiguous flights
+are reconstructed into trips (Expeditions), and the countries and cities you
+passed through are added to your Passport — with the earliest year for each.
+It runs entirely client-side, merges into existing places, is safe to re-run
+(flights already imported are skipped), and shows a preview with an advisory
+that non-flight travel and unlogged flights must be added manually.
+
 **The AI Travel Historian** (in the Almanac) composes a written narrative of
 your travels — lifetime or for a chosen year — from the record of your
 Passport, streamed live in the Society's voice. It runs through a server-side
