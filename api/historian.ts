@@ -1,9 +1,9 @@
-import Anthropic from '@anthropic-ai/sdk';
-
 // Runs on Vercel's Edge runtime so it can stream the narrative back to the
-// browser. The ANTHROPIC_API_KEY is a server-side secret — it must NOT be a
+// browser. GEMINI_API_KEY is a server-side secret — it must NOT be a
 // VITE_-prefixed variable, so it never reaches the client bundle.
 export const config = { runtime: 'edge' };
+
+const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
 const SYSTEM = `You are the Historian of the Society of Discovery, composing a passage for a Member's Explorer's Passport.
 
@@ -33,7 +33,7 @@ function json(body: unknown, status: number): Response {
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) return json({ error: 'not_configured' }, 503);
 
   let body: { context?: unknown };
@@ -47,27 +47,54 @@ export default async function handler(req: Request): Promise<Response> {
     typeof body.context === 'string' ? body.context.slice(0, 20000) : '';
   if (!context.trim()) return json({ error: 'empty' }, 400);
 
-  const client = new Anthropic({ apiKey });
-  const stream = client.messages.stream({
-    model: 'claude-opus-4-8',
-    max_tokens: 4096,
-    thinking: { type: 'disabled' },
-    system: [
-      { type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } },
-    ],
-    messages: [{ role: 'user', content: USER_PREFIX + context }],
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:streamGenerateContent?alt=sse&key=${apiKey}`;
+  const upstream = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: SYSTEM }] },
+      contents: [{ role: 'user', parts: [{ text: USER_PREFIX + context }] }],
+      generationConfig: { maxOutputTokens: 2048, temperature: 0.9 },
+    }),
   });
 
+  if (!upstream.ok || !upstream.body) {
+    return json({ error: 'upstream', status: upstream.status }, 502);
+  }
+
+  const reader = upstream.body.getReader();
+  const decoder = new TextDecoder();
   const encoder = new TextEncoder();
+  let buffer = '';
+
   const readable = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        for await (const event of stream) {
-          if (
-            event.type === 'content_block_delta' &&
-            event.delta.type === 'text_delta'
-          ) {
-            controller.enqueue(encoder.encode(event.delta.text));
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          let nl: number;
+          while ((nl = buffer.indexOf('\n')) >= 0) {
+            const line = buffer.slice(0, nl).trim();
+            buffer = buffer.slice(nl + 1);
+            if (!line.startsWith('data:')) continue;
+            const payload = line.slice(5).trim();
+            if (!payload || payload === '[DONE]') continue;
+            try {
+              const obj = JSON.parse(payload);
+              const parts = obj?.candidates?.[0]?.content?.parts;
+              if (Array.isArray(parts)) {
+                for (const p of parts) {
+                  if (typeof p?.text === 'string') {
+                    controller.enqueue(encoder.encode(p.text));
+                  }
+                }
+              }
+            } catch {
+              /* partial or non-JSON keep-alive line — ignore */
+            }
           }
         }
       } catch {
@@ -79,7 +106,7 @@ export default async function handler(req: Request): Promise<Response> {
       }
     },
     cancel() {
-      void stream.abort();
+      void reader.cancel();
     },
   });
 
