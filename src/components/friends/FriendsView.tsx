@@ -6,24 +6,48 @@ import {
   sendRequest,
   type Connection,
 } from '../../lib/connections';
+import type { FriendPresence } from '../../lib/friends';
+import { countryName } from '../../data/countries';
+import { flagEmoji } from '../../lib/flags';
+import { VERDICT_META, type RecommendationVerdict } from '../../types';
 import { cn } from '../../lib/cn';
 import { inputClass } from '../../lib/formClass';
+import { VERDICT_STYLE } from '../discoveries/verdictStyle';
 
 interface Props {
   userId: string;
   myName: string;
   code: string | null;
   connections: Connection[];
+  friendCountryMap: Map<string, FriendPresence[]>;
   demo: boolean;
 }
 
-export function FriendsView({ userId, myName, code, connections, demo }: Props) {
+interface Pick {
+  code: string;
+  friend: string;
+  name: string;
+  verdict?: RecommendationVerdict;
+}
+
+export function FriendsView({
+  userId,
+  myName,
+  code,
+  connections,
+  friendCountryMap,
+  demo,
+}: Props) {
   const [entry, setEntry] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(
     null,
   );
   const [copied, setCopied] = useState(false);
+
+  const [pickFilter, setPickFilter] = useState<'all' | RecommendationVerdict>(
+    'all',
+  );
 
   const { incoming, outgoing, friends } = useMemo(() => {
     const incoming = connections.filter(
@@ -35,6 +59,40 @@ export function FriendsView({ userId, myName, code, connections, demo }: Props) 
     const friends = connections.filter((c) => c.status === 'accepted');
     return { incoming, outgoing, friends };
   }, [connections, userId]);
+
+  const picks = useMemo(() => {
+    const out: Pick[] = [];
+    for (const [code, presences] of friendCountryMap) {
+      for (const p of presences) {
+        for (const d of p.discoveries) {
+          out.push({ code, friend: p.name, name: d.name, verdict: d.verdict });
+        }
+      }
+    }
+    return out;
+  }, [friendCountryMap]);
+
+  const presentVerdicts = useMemo(() => {
+    const set = new Set<RecommendationVerdict>();
+    for (const p of picks) if (p.verdict) set.add(p.verdict);
+    return set;
+  }, [picks]);
+
+  const groupedPicks = useMemo(() => {
+    const filtered =
+      pickFilter === 'all'
+        ? picks
+        : picks.filter((p) => p.verdict === pickFilter);
+    const m = new Map<string, Pick[]>();
+    for (const p of filtered) {
+      const list = m.get(p.code) ?? [];
+      list.push(p);
+      m.set(p.code, list);
+    }
+    return [...m.entries()].sort((a, b) =>
+      countryName(a[0]).localeCompare(countryName(b[0])),
+    );
+  }, [picks, pickFilter]);
 
   const otherName = (c: Connection) => {
     const other = c.members.find((m) => m !== userId) ?? '';
@@ -198,9 +256,72 @@ export function FriendsView({ userId, myName, code, connections, demo }: Props) 
             </Section>
           )}
 
+          {picks.length > 0 && (
+            <Section title="Friends’ picks">
+              <div className="flex flex-wrap gap-2">
+                <PickChip
+                  label="All"
+                  active={pickFilter === 'all'}
+                  onClick={() => setPickFilter('all')}
+                />
+                {(
+                  [
+                    'recommend',
+                    'hidden-gem',
+                    'worth-visiting',
+                    'overrated',
+                    'avoid',
+                  ] as RecommendationVerdict[]
+                )
+                  .filter((v) => presentVerdicts.has(v))
+                  .map((v) => (
+                    <PickChip
+                      key={v}
+                      label={VERDICT_META[v].label}
+                      active={pickFilter === v}
+                      onClick={() => setPickFilter(v)}
+                    />
+                  ))}
+              </div>
+              {groupedPicks.map(([countryCode, list]) => (
+                <div
+                  key={countryCode}
+                  className="rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 shadow-page p-4"
+                >
+                  <div className="flex items-center gap-2 mb-2 font-display text-lg font-semibold text-passport-navy dark:text-white/90">
+                    <span className="text-2xl leading-none">
+                      {flagEmoji(countryCode)}
+                    </span>
+                    {countryName(countryCode)}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {list.map((p, i) => (
+                      <span
+                        key={i}
+                        className={cn(
+                          'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] border',
+                          p.verdict
+                            ? VERDICT_STYLE[p.verdict].chip
+                            : 'bg-passport-navy/[0.04] dark:bg-white/[0.06] text-passport-ink2 dark:text-white/65 border-black/10 dark:border-white/10',
+                        )}
+                      >
+                        {p.name}
+                        <span className="opacity-70">
+                          · {p.friend}
+                          {p.verdict ? ` · ${VERDICT_META[p.verdict].label}` : ''}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </Section>
+          )}
+
           {incoming.length === 0 &&
             outgoing.length === 0 &&
-            friends.length === 0 && (
+            friends.length === 0 &&
+            picks.length === 0 && (
               <p className="text-sm text-center text-black/45 dark:text-white/45">
                 No connections yet. Share your code, or add a Member above.
               </p>
@@ -208,6 +329,31 @@ export function FriendsView({ userId, myName, code, connections, demo }: Props) 
         </>
       )}
     </div>
+  );
+}
+
+function PickChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'px-3 py-1.5 rounded-full text-sm border transition-colors',
+        active
+          ? 'bg-passport-navy text-passport-parchment border-passport-navy dark:bg-passport-gold dark:text-passport-ink dark:border-passport-gold'
+          : 'border-black/15 dark:border-white/15 text-black/60 dark:text-white/60 hover:border-passport-gold/60',
+      )}
+    >
+      {label}
+    </button>
   );
 }
 

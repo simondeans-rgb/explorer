@@ -13,6 +13,8 @@ import {
 } from '../../types';
 import type { FriendPresence } from '../../lib/friends';
 import { memberName } from '../../lib/memberName';
+import { cn } from '../../lib/cn';
+import { VERDICT_STYLE } from '../discoveries/verdictStyle';
 import { AddPlaceModal, type ModalInitial } from './AddPlaceModal';
 import { DiscoveryRing } from './DiscoveryRing';
 import { Stamp } from './Stamp';
@@ -192,6 +194,23 @@ export function PassportView({
               </button>
             ))}
           </div>
+
+          {aspiring
+            .filter((a) => (friendCountryMap.get(a.code)?.length ?? 0) > 0)
+            .map((a) => (
+              <div
+                key={a.code}
+                className="rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 shadow-page p-4"
+              >
+                <div className="flex items-center gap-2 font-display text-lg font-semibold text-passport-navy dark:text-white/90">
+                  <span className="text-2xl leading-none">
+                    {flagEmoji(a.code)}
+                  </span>
+                  Planning {a.name}?
+                </div>
+                <FriendsHere friends={friendCountryMap.get(a.code) ?? []} />
+              </div>
+            ))}
         </div>
       )}
 
@@ -528,11 +547,16 @@ function FriendsHere({ friends }: { friends: FriendPresence[] }) {
                   {f.discoveries.map((d, i) => (
                     <span
                       key={i}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-passport-gold/10 text-passport-ink2 dark:text-white/65 border border-passport-gold/30"
+                      className={cn(
+                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border',
+                        d.verdict
+                          ? VERDICT_STYLE[d.verdict].chip
+                          : 'bg-passport-navy/[0.04] dark:bg-white/[0.06] text-passport-ink2 dark:text-white/65 border-black/10 dark:border-white/10',
+                      )}
                     >
                       {d.name}
                       {d.verdict && (
-                        <span className="text-passport-gold">
+                        <span className="opacity-70">
                           · {VERDICT_META[d.verdict].label}
                         </span>
                       )}
