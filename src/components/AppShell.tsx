@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  BarChart3,
   BookMarked,
   Compass,
   LogOut,
@@ -29,12 +30,14 @@ import { AlmanacView } from './almanac/AlmanacView';
 import { ExpeditionsView } from './expeditions/ExpeditionsView';
 import { DiscoveriesView } from './discoveries/DiscoveriesView';
 import { FriendsView } from './friends/FriendsView';
+import { StatisticsView } from './statistics/StatisticsView';
 
 type Section =
   | 'passport'
   | 'expeditions'
   | 'discoveries'
   | 'friends'
+  | 'statistics'
   | 'almanac';
 
 const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
@@ -42,6 +45,7 @@ const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
   { id: 'expeditions', label: 'Expeditions', icon: MapPinned },
   { id: 'discoveries', label: 'Discoveries', icon: Compass },
   { id: 'friends', label: 'Friends', icon: Users },
+  { id: 'statistics', label: 'Statistics', icon: BarChart3 },
   { id: 'almanac', label: 'Almanac', icon: ScrollText },
 ];
 
@@ -120,7 +124,17 @@ export function AppShell() {
               myName={myName}
               code={profile?.code ?? null}
               connections={connections}
+              friendCountryMap={friendCountryMap}
               demo={demo}
+            />
+          )}
+          {section === 'statistics' && (
+            <StatisticsView
+              aggregates={aggregates}
+              stats={stats}
+              discoveryStats={discoveryStats}
+              journeyStats={journeyStats}
+              expeditionCount={expeditions.length}
             />
           )}
           {section === 'almanac' && (

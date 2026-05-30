@@ -46,10 +46,17 @@ ferries). Attach Discoveries to an Expedition, and your journey counts feed the
 Almanac.
 
 **Friend Recommendations** is live — connect with fellow Members by share code,
-and on any country you'll see which friends have visited or lived there and the
-discoveries they recommend. Friends get read-only access to your Passport and
-Discoveries once a connection is accepted. (This needs a real account, not the
-demo, and the latest [`firestore.rules`](firestore.rules) published.)
+and on any country (including ones you're only *planning*) you'll see which
+friends have visited or lived there and the discoveries they recommend, with
+hidden gems and warnings colour-coded. The Friends tab also has a browsable
+"friends' picks" digest, filterable by verdict. Friends get read-only access to
+your Passport and Discoveries once a connection is accepted. (Needs a real
+account, not the demo, and the latest [`firestore.rules`](firestore.rules)
+published.)
+
+**Statistics** gives the full tally — travel (countries, cities, continents and
+every relationship), journeys (by mode), and discoveries (by category) —
+computed live from your Passport.
 
 > **Upgrading an existing project?** The Friends feature changed the Firestore
 > rules (new `profiles`, `codes`, `connections` collections and friend reads).
