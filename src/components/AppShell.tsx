@@ -13,8 +13,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePlaces } from '../hooks/usePlaces';
 import { useDiscoveries } from '../hooks/useDiscoveries';
+import { useExpeditions } from '../hooks/useExpeditions';
 import { aggregateByCountry, computeStats } from '../lib/stats';
 import { computeDiscoveryStats } from '../lib/discoveryStats';
+import { computeJourneyStats } from '../lib/journeyStats';
 import { cn } from '../lib/cn';
 import { PassportView } from './passport/PassportView';
 import { AlmanacView } from './almanac/AlmanacView';
@@ -36,6 +38,9 @@ export function AppShell() {
   const { discoveries, loading: discoveriesLoading } = useDiscoveries(
     user?.uid,
   );
+  const { expeditions, loading: expeditionsLoading } = useExpeditions(
+    user?.uid,
+  );
   const [section, setSection] = useState<Section>('passport');
 
   const aggregates = useMemo(() => aggregateByCountry(places), [places]);
@@ -43,6 +48,10 @@ export function AppShell() {
   const discoveryStats = useMemo(
     () => computeDiscoveryStats(discoveries),
     [discoveries],
+  );
+  const journeyStats = useMemo(
+    () => computeJourneyStats(expeditions),
+    [expeditions],
   );
 
   return (
@@ -57,14 +66,23 @@ export function AppShell() {
               aggregates={aggregates}
               stats={stats}
               discoveryStats={discoveryStats}
+              expeditionCount={expeditions.length}
               loading={loading}
             />
           )}
-          {section === 'expeditions' && <ExpeditionsView />}
+          {section === 'expeditions' && (
+            <ExpeditionsView
+              userId={user?.uid ?? ''}
+              expeditions={expeditions}
+              discoveries={discoveries}
+              loading={expeditionsLoading}
+            />
+          )}
           {section === 'discoveries' && (
             <DiscoveriesView
               userId={user?.uid ?? ''}
               discoveries={discoveries}
+              expeditions={expeditions}
               loading={discoveriesLoading}
             />
           )}
@@ -75,6 +93,8 @@ export function AppShell() {
               stats={stats}
               discoveries={discoveries}
               discoveryStats={discoveryStats}
+              expeditions={expeditions}
+              journeyStats={journeyStats}
             />
           )}
         </div>

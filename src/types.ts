@@ -161,6 +161,37 @@ export interface Place {
 
 export type JourneyMode = 'flight' | 'rail' | 'cruise' | 'road' | 'ferry';
 
+export const JOURNEY_MODES: JourneyMode[] = [
+  'flight',
+  'rail',
+  'cruise',
+  'road',
+  'ferry',
+];
+
+/** Mode-aware labels for the generic operator / from / to fields. */
+export const JOURNEY_MODE_META: Record<
+  JourneyMode,
+  { label: string; icon: string; operator: string; from: string; to: string }
+> = {
+  flight: { label: 'Flight', icon: 'Plane', operator: 'Airline', from: 'From airport', to: 'To airport' },
+  rail: { label: 'Rail', icon: 'TrainFront', operator: 'Operator', from: 'From station', to: 'To station' },
+  cruise: { label: 'Cruise', icon: 'Ship', operator: 'Cruise line', from: 'From port', to: 'To port' },
+  road: { label: 'Road trip', icon: 'Car', operator: 'Vehicle', from: 'Start', to: 'End' },
+  ferry: { label: 'Ferry', icon: 'Anchor', operator: 'Operator', from: 'From', to: 'To' },
+};
+
+/** How a Member travelled within an Expedition. */
+export interface Journey {
+  id: string;
+  mode: JourneyMode;
+  operator?: string;
+  from?: string;
+  to?: string;
+  date?: string;
+  note?: string;
+}
+
 /** A trip. The container for journeys, discoveries, photos and notes. */
 export interface Expedition {
   id: string;
@@ -168,7 +199,8 @@ export interface Expedition {
   title: string;
   startDate?: string; // ISO date
   endDate?: string; // ISO date
-  countryCodes?: string[];
+  countryCodes: string[];
+  journeys: Journey[];
   note?: string;
   createdAt: number;
   updatedAt: number;

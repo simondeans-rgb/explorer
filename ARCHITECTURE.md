@@ -272,11 +272,11 @@ The foundation is deliberately shaped so each area is additive:
   `localDiscoveries.ts` for demo mode), `useDiscoveries`, and
   `computeDiscoveryStats`. Feeds the Bio Page, the Almanac and the
   Culinary Explorer / Master Cartographer Recognitions.
-- **Expeditions**: an `expeditions` collection (rules already in place). A
-  place/discovery references an `expeditionId`; an Expedition view groups them
-  by trip.
-- **Journeys**: sub-documents of an Expedition (`flight` / `rail` / `cruise` /
-  `road` / `ferry`) that feed Journey statistics.
+- **Expeditions** *(shipped)*: an `expeditions` collection — `lib/expeditions.ts`
+  (+ `localExpeditions.ts`), `useExpeditions`. Each Expedition embeds its
+  **Journeys** (`flight` / `rail` / `cruise` / `road` / `ferry`); Discoveries
+  reference an `expeditionId`. `computeJourneyStats` feeds the Almanac's
+  Journeys-taken figures, and the Bio Page shows an Expeditions count.
 - **Friend recommendations**: a social graph + shared read access; "friends
   who have been here" surfaces from the same place/discovery data.
 - **Almanac printing, Travel DNA, AI Travel Historian, Family & Legacy

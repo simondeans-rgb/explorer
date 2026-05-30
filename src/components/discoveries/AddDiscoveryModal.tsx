@@ -11,6 +11,7 @@ import {
   RECOMMENDATION_VERDICTS,
   VERDICT_META,
   type DiscoveryCategory,
+  type Expedition,
   type RecommendationVerdict,
 } from '../../types';
 import { cn } from '../../lib/cn';
@@ -25,6 +26,7 @@ export interface DiscoveryModalInitial {
   category?: DiscoveryCategory;
   countryCode?: string;
   city?: string;
+  expeditionId?: string;
   verdict?: RecommendationVerdict;
   note?: string;
 }
@@ -32,10 +34,16 @@ export interface DiscoveryModalInitial {
 interface Props {
   userId: string;
   initial: DiscoveryModalInitial;
+  expeditions: Expedition[];
   onClose: () => void;
 }
 
-export function AddDiscoveryModal({ userId, initial, onClose }: Props) {
+export function AddDiscoveryModal({
+  userId,
+  initial,
+  expeditions,
+  onClose,
+}: Props) {
   const editing = Boolean(initial.id);
   const [name, setName] = useState(initial.name ?? '');
   const [category, setCategory] = useState<DiscoveryCategory>(
@@ -43,6 +51,7 @@ export function AddDiscoveryModal({ userId, initial, onClose }: Props) {
   );
   const [countryCode, setCountryCode] = useState(initial.countryCode ?? '');
   const [city, setCity] = useState(initial.city ?? '');
+  const [expeditionId, setExpeditionId] = useState(initial.expeditionId ?? '');
   const [verdict, setVerdict] = useState<RecommendationVerdict | undefined>(
     initial.verdict,
   );
@@ -67,6 +76,7 @@ export function AddDiscoveryModal({ userId, initial, onClose }: Props) {
       category,
       countryCode: countryCode || undefined,
       city: city.trim() || undefined,
+      expeditionId: expeditionId || undefined,
       verdict,
       note: note.trim() || undefined,
     };
@@ -172,6 +182,23 @@ export function AddDiscoveryModal({ userId, initial, onClose }: Props) {
               />
             </Field>
           </div>
+
+          {expeditions.length > 0 && (
+            <Field label="Expedition">
+              <select
+                value={expeditionId}
+                onChange={(e) => setExpeditionId(e.target.value)}
+                className={inputClass}
+              >
+                <option value="">None</option>
+                {expeditions.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.title}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
 
           <Field label="Your verdict">
             <div className="flex flex-wrap gap-2">

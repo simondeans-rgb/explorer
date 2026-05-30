@@ -15,10 +15,12 @@ import {
 import { auth, isFirebaseConfigured } from '../lib/firebase';
 import { seedDemoIfEmpty } from '../lib/localPlaces';
 import { seedDemoDiscoveriesIfEmpty } from '../lib/localDiscoveries';
+import { seedDemoExpeditionsIfEmpty } from '../lib/localExpeditions';
 
 function seedDemo(uid: string) {
   seedDemoIfEmpty(uid);
   seedDemoDiscoveriesIfEmpty(uid);
+  seedDemoExpeditionsIfEmpty(uid);
 }
 
 /** Minimal session identity shared by Firebase auth and the local demo. */
