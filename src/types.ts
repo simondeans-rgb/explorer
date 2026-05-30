@@ -1,57 +1,203 @@
-export type NoteColor =
-  | 'yellow'
-  | 'blue'
-  | 'green'
-  | 'pink'
-  | 'purple'
-  | 'gray';
+// Explorer's Passport — domain model
+//
+// The Passport records a Member's relationship with places (countries and
+// cities). Trips (Expeditions), how you travelled (Journeys) and the things
+// you found (Discoveries) build on the same user-scoped Firestore pattern and
+// are stubbed below so the architecture is in place to grow into them.
 
-export type InkColor = 'auto' | 'black';
+export type Continent =
+  | 'Africa'
+  | 'Asia'
+  | 'Europe'
+  | 'North America'
+  | 'South America'
+  | 'Oceania'
+  | 'Antarctica';
 
-export const INK_COLORS: InkColor[] = ['auto', 'black'];
+export const CONTINENTS: Continent[] = [
+  'Africa',
+  'Asia',
+  'Europe',
+  'North America',
+  'South America',
+  'Oceania',
+  'Antarctica',
+];
 
-export interface Note {
+/** A place in the world the Society knows about. */
+export interface Country {
+  code: string; // ISO 3166-1 alpha-2
+  name: string;
+  continent: Continent;
+}
+
+export type PlaceKind = 'country' | 'city';
+
+/**
+ * The seven relationships a Member can have with a place. Six of them count as
+ * a genuine discovery; `aspiring` is a wish-list relationship for somewhere not
+ * yet discovered.
+ */
+export type Relationship =
+  | 'visited'
+  | 'lived'
+  | 'worked'
+  | 'studied'
+  | 'based'
+  | 'born'
+  | 'aspiring';
+
+export const RELATIONSHIPS: Relationship[] = [
+  'visited',
+  'lived',
+  'worked',
+  'studied',
+  'based',
+  'born',
+  'aspiring',
+];
+
+/** Relationships that represent an actual discovery (everything but aspiring). */
+export const DISCOVERY_RELATIONSHIPS: Relationship[] = [
+  'visited',
+  'lived',
+  'worked',
+  'studied',
+  'based',
+  'born',
+];
+
+export interface RelationshipMeta {
+  id: Relationship;
+  label: string;
+  description: string;
+  icon: string; // lucide-react icon name, resolved where rendered
+}
+
+export const RELATIONSHIP_META: Record<Relationship, RelationshipMeta> = {
+  visited: {
+    id: 'visited',
+    label: 'Visited',
+    description: 'Travelled there.',
+    icon: 'Plane',
+  },
+  lived: {
+    id: 'lived',
+    label: 'Lived',
+    description: 'Made a home there.',
+    icon: 'Home',
+  },
+  worked: {
+    id: 'worked',
+    label: 'Worked',
+    description: 'Worked there.',
+    icon: 'Briefcase',
+  },
+  studied: {
+    id: 'studied',
+    label: 'Studied',
+    description: 'Studied there.',
+    icon: 'GraduationCap',
+  },
+  based: {
+    id: 'based',
+    label: 'Based',
+    description: 'Regularly spend time there.',
+    icon: 'Anchor',
+  },
+  born: {
+    id: 'born',
+    label: 'Born',
+    description: 'Place of origin.',
+    icon: 'Sparkles',
+  },
+  aspiring: {
+    id: 'aspiring',
+    label: 'Aspiring',
+    description: 'Want to discover there.',
+    icon: 'Compass',
+  },
+};
+
+/** Stamps are pressed into the Passport, derived from relationships. */
+export type StampKind = 'discovery' | 'residency' | 'work' | 'study';
+
+export const STAMP_FOR_RELATIONSHIP: Partial<Record<Relationship, StampKind>> = {
+  visited: 'discovery',
+  lived: 'residency',
+  worked: 'work',
+  studied: 'study',
+};
+
+export const STAMP_LABEL: Record<StampKind, string> = {
+  discovery: 'Discovery',
+  residency: 'Residency',
+  work: 'Work',
+  study: 'Study',
+};
+
+/**
+ * A Member's relationship record with one place. A country place uses the
+ * country's own name + code; a city place stores the city name and the code of
+ * the country it belongs to.
+ */
+export interface Place {
   id: string;
   userId: string;
-  title?: string;
-  body: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  color: NoteColor;
-  inkColor?: InkColor;
-  zIndex: number;
+  kind: PlaceKind;
+  countryCode: string;
+  name: string;
+  relationships: Relationship[];
+  firstYear?: number;
+  note?: string;
   createdAt: number;
   updatedAt: number;
 }
 
-export const NOTE_COLORS: NoteColor[] = [
-  'yellow',
-  'blue',
-  'green',
-  'pink',
-  'purple',
-  'gray',
-];
+// ---------------------------------------------------------------------------
+// Forward-looking domain (architecture in place; full UI lands in later passes)
+// ---------------------------------------------------------------------------
 
-interface ColorSpec {
-  light: string;
-  dark: string;
-  ink: string;
-  inkDark: string;
+export type JourneyMode = 'flight' | 'rail' | 'cruise' | 'road' | 'ferry';
+
+/** A trip. The container for journeys, discoveries, photos and notes. */
+export interface Expedition {
+  id: string;
+  userId: string;
+  title: string;
+  startDate?: string; // ISO date
+  endDate?: string; // ISO date
+  countryCodes?: string[];
+  note?: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
-export const COLOR_SPEC: Record<NoteColor, ColorSpec> = {
-  yellow: { light: '#FFE9A3', dark: '#C9A646', ink: '#3a2a05', inkDark: '#f6e9c5' },
-  blue:   { light: '#BFE3F7', dark: '#5C9DC8', ink: '#0c2a3c', inkDark: '#e3f1fa' },
-  green:  { light: '#C9E8C2', dark: '#6FA068', ink: '#143018', inkDark: '#e7f3e4' },
-  pink:   { light: '#FFC9D8', dark: '#C97D93', ink: '#3a0b1d', inkDark: '#fbe2ea' },
-  purple: { light: '#DCCBFA', dark: '#9377C9', ink: '#1f0e3d', inkDark: '#ece2fb' },
-  gray:   { light: '#E4E3DE', dark: '#7C7B76', ink: '#1e1d1a', inkDark: '#ebeae6' },
-};
+export type DiscoveryCategory =
+  | 'food'
+  | 'accommodation'
+  | 'culture'
+  | 'experience'
+  | 'nature';
 
-export const DEFAULT_WIDTH = 220;
-export const DEFAULT_HEIGHT = 220;
-export const MIN_WIDTH = 140;
-export const MIN_HEIGHT = 120;
+export type RecommendationVerdict =
+  | 'recommend'
+  | 'hidden-gem'
+  | 'worth-visiting'
+  | 'overrated'
+  | 'avoid';
+
+/** Any place or experience worth remembering. */
+export interface Discovery {
+  id: string;
+  userId: string;
+  name: string;
+  category: DiscoveryCategory;
+  countryCode?: string;
+  city?: string;
+  expeditionId?: string;
+  verdict?: RecommendationVerdict;
+  note?: string;
+  createdAt: number;
+  updatedAt: number;
+}

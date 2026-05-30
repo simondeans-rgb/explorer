@@ -1,26 +1,42 @@
-# Stickies
+# Explorer's Passport
 
-A cloud-synced sticky-notes board — a modern evolution of Apple Stickies that
-runs in any browser and syncs every change in real time across signed-in
-devices.
+**Issued by the Society of Discovery.**
 
-Built with **Vite + React 18 + TypeScript + Tailwind CSS** for the UI, **Framer
-Motion** for fluid drag interactions, and **Firebase** (Auth + Firestore +
-IndexedDB offline cache) for sync and persistence. Deployed via Vercel from
-this GitHub repo.
+A lifelong personal travel archive that helps you document, preserve and
+celebrate a lifetime of discovery. Where other apps plan trips or track
+flights, Explorer's Passport is designed to become _the permanent record of
+your travel life_ — places visited and lived in, the journeys between them,
+the things you discovered, and how your story connects to the world.
 
-For the deep dive on architecture, schema, sync strategy, and mobile/desktop
-roadmap, see [ARCHITECTURE.md](ARCHITECTURE.md).
+Built with **Vite + React 18 + TypeScript + Tailwind CSS**, **Framer Motion**
+for motion, and **Firebase** (Auth + Firestore + IndexedDB offline cache) for
+real-time sync. Deployed via Vercel.
 
-## What it does
+For the deep dive on architecture, the data model and the roadmap, see
+[ARCHITECTURE.md](ARCHITECTURE.md).
 
-- Create, edit, drag, resize, recolour, and delete sticky notes on a freeform
-  canvas.
-- Auto-saves as you type (debounced).
-- Real-time sync across every signed-in device.
-- Works offline — changes queue and flush automatically when you reconnect.
-- Light and dark mode, responsive to system preference and persisted.
-- Email + password sign-in (Apple / Google can be wired up later).
+## What's in this build (MVP foundation)
+
+The **Passport** — the heart of the product — is fully working:
+
+- **Countries & Cities** with the Society's seven **relationships**: Visited,
+  Lived, Worked, Studied, Based, Born and Aspiring.
+- **Flags** — every country you discover adds its flag to your collection.
+- **Stamps** — Discovery, Residency, Work and Study seals, pressed
+  automatically from your relationships.
+- **Discovery Score** — a per-country gauge of _how deeply_ you experienced a
+  place, not merely whether you visited.
+- **Travel statistics** — countries, cities, continents, places lived, stamps
+  and average depth, computed live.
+- **Society Recognitions** — meaningful milestones (First Discovery,
+  Continental Explorer, Citizen of Elsewhere, Master Cartographer…).
+- **The Almanac** — a Lifetime edition and per-year editions, published from
+  your Passport.
+- Everything syncs in real time across signed-in devices and works offline.
+
+**Expeditions** (trips & journeys) and **Discoveries** (restaurants, culture,
+recommendations) ship as framed previews — the data model and Firestore rules
+are already in place for them to grow into.
 
 ## Setup
 
@@ -33,18 +49,15 @@ npm install
 ### 2. Create a Firebase project
 
 1. Open the [Firebase console](https://console.firebase.google.com) and create
-   a new project (no Google Analytics needed).
+   a project.
 2. **Authentication → Sign-in method**: enable **Email/Password**.
-3. **Firestore Database → Create database**: start in **production mode**, pick
-   your region.
-4. **Firestore Database → Rules**: paste the contents of
-   [`firestore.rules`](firestore.rules) and publish.
+3. **Firestore Database → Create database** in production mode.
+4. **Firestore Database → Rules**: paste [`firestore.rules`](firestore.rules)
+   and publish.
 5. **Project settings → Your apps → Add app → Web**: register a web app and
    copy the config values.
 
 ### 3. Wire up env vars
-
-Copy `.env.example` to `.env.local` and paste the values from step 5:
 
 ```bash
 cp .env.example .env.local
@@ -65,23 +78,23 @@ VITE_FIREBASE_APP_ID=...
 npm run dev        # http://localhost:5173
 npm run build      # type-check + production build
 npm run preview    # preview the production build
+npm run lint       # eslint
 ```
 
 ## Deploy (Vercel)
 
-1. Import this GitHub repo at [vercel.com/new](https://vercel.com/new).
-2. Vercel auto-detects the Vite framework — no overrides needed.
-3. In **Project Settings → Environment Variables**, add the same six
-   `VITE_FIREBASE_*` keys from `.env.local`.
-4. Every push to `main` triggers an automatic redeploy.
+1. Import this repo at [vercel.com/new](https://vercel.com/new) — Vite is
+   auto-detected.
+2. Add the six `VITE_FIREBASE_*` env vars in **Project Settings**.
+3. Add your Vercel domain to **Firebase Authentication → Settings → Authorized
+   domains**.
 
-Once deployed, add your Vercel domain to **Firebase Authentication →
-Settings → Authorized domains**.
+## Using your Passport
 
-## Keyboard / interaction
-
-- **Double-click** a note to start editing. **Click outside** or press
-  **Escape** to commit and exit.
-- **Drag** anywhere on a note to move it.
-- **Drag the bottom-right corner** to resize.
-- **Hover** to reveal the color palette and delete buttons.
+- **Add** a country from the Passport tab, choose your relationship(s) to it,
+  and optionally a first-discovered year and a detail worth remembering.
+- Tap a country card to edit it, **+ City** to add cities within it, or a city
+  chip to edit that city.
+- Mark somewhere you haven't been yet as **Aspiring** to build a wish list.
+- Watch your flags, stamps, statistics and Recognitions fill in, then read it
+  back as an **Almanac**.

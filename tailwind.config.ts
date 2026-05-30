@@ -14,28 +14,39 @@ const config: Config = {
           "system-ui",
           "sans-serif",
         ],
-        hand: ["Caveat", "Comic Sans MS", "cursive"],
+        display: ["Fraunces", "Georgia", "Cambria", "Times New Roman", "serif"],
       },
       colors: {
-        canvas: {
-          light: "#F2EFE6",
-          dark: "#1A1916",
+        // The Society of Discovery house palette.
+        passport: {
+          navy: "#15233f",
+          ink: "#1c1a14",
+          gold: "#c0974a",
+          goldsoft: "#d8b970",
+          parchment: "#f5efe1",
+          parchmentdark: "#1a1916",
+          card: "#fbf7ec",
+          carddark: "#23211b",
         },
       },
       boxShadow: {
-        note: "0 1px 2px rgba(20, 17, 14, 0.06), 0 8px 18px rgba(20, 17, 14, 0.10)",
-        "note-hover":
-          "0 2px 4px rgba(20, 17, 14, 0.08), 0 14px 28px rgba(20, 17, 14, 0.14)",
-        "note-drag":
-          "0 8px 16px rgba(20, 17, 14, 0.20), 0 24px 48px rgba(20, 17, 14, 0.24)",
-        "note-dark":
-          "0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 22px rgba(0, 0, 0, 0.45)",
+        page: "0 1px 2px rgba(20, 17, 14, 0.06), 0 10px 30px rgba(20, 17, 14, 0.08)",
+        "page-hover":
+          "0 2px 4px rgba(20, 17, 14, 0.08), 0 16px 40px rgba(20, 17, 14, 0.14)",
+        "page-dark":
+          "0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 30px rgba(0, 0, 0, 0.5)",
+        stamp: "inset 0 0 0 2px currentColor",
       },
       keyframes: {
         "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
+        "rise-in": {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
-        "fade-in": "fade-in 200ms ease-out",
+        "fade-in": "fade-in 220ms ease-out",
+        "rise-in": "rise-in 260ms ease-out both",
       },
     },
   },

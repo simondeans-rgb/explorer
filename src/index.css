@@ -20,17 +20,16 @@ body {
   margin: 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui,
     sans-serif;
-  background-color: #f2efe6;
-  color: #14110e;
+  background-color: #f5efe1;
+  color: #1c1a14;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
   overscroll-behavior: none;
 }
 
 .dark body {
   background-color: #1a1916;
-  color: #e9e6df;
+  color: #e9e4d6;
 }
 
 #root {
@@ -43,26 +42,46 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
-textarea {
+textarea,
+input,
+select {
   font: inherit;
+}
+
+textarea {
   resize: none;
 }
 
-input {
-  font: inherit;
-}
-
-.canvas-bg {
-  background-color: #f2efe6;
+/* The Passport surface — warm parchment with a faint engraved grid. */
+.passport-bg {
+  background-color: #f5efe1;
   background-image:
-    radial-gradient(circle at 14px 14px, rgba(20, 17, 14, 0.06) 1px, transparent 1.6px);
-  background-size: 28px 28px;
+    radial-gradient(
+      circle at 18px 18px,
+      rgba(28, 26, 20, 0.045) 1px,
+      transparent 1.6px
+    );
+  background-size: 36px 36px;
 }
 
-.dark .canvas-bg {
+.dark .passport-bg {
   background-color: #1a1916;
   background-image:
-    radial-gradient(circle at 14px 14px, rgba(255, 255, 255, 0.05) 1px, transparent 1.6px);
+    radial-gradient(
+      circle at 18px 18px,
+      rgba(255, 255, 255, 0.04) 1px,
+      transparent 1.6px
+    );
+}
+
+/* Embossed gold rule used under section headings. */
+.gold-rule {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(192, 151, 74, 0.7),
+    rgba(192, 151, 74, 0)
+  );
 }
 
 .no-scrollbar::-webkit-scrollbar {
