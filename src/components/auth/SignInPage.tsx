@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { StickyNote, Sun, Moon } from 'lucide-react';
+import { Compass, Moon, Sun } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { cn } from '../../lib/cn';
@@ -14,7 +14,7 @@ function friendlyError(code: string): string {
     case 'auth/weak-password':
       return 'Password needs to be at least 6 characters.';
     case 'auth/email-already-in-use':
-      return 'An account already exists for that email — try signing in.';
+      return 'A Member already exists for that email — try signing in.';
     case 'auth/invalid-credential':
     case 'auth/wrong-password':
     case 'auth/user-not-found':
@@ -44,8 +44,7 @@ export function SignInPage() {
       if (mode === 'signin') await signIn(email, password);
       else await signUp(email, password);
     } catch (err) {
-      const code =
-        (err as { code?: string })?.code ?? 'auth/unknown';
+      const code = (err as { code?: string })?.code ?? 'auth/unknown';
       setError(friendlyError(code));
     } finally {
       setBusy(false);
@@ -53,17 +52,19 @@ export function SignInPage() {
   }
 
   return (
-    <div className="canvas-bg fixed inset-0 flex flex-col">
+    <div className="passport-bg fixed inset-0 flex flex-col">
       <header className="flex items-center justify-between px-5 py-4">
-        <div className="flex items-center gap-2 text-black/80 dark:text-white/80">
-          <StickyNote size={18} />
-          <span className="font-semibold tracking-tight">Stickies</span>
+        <div className="flex items-center gap-2 text-passport-navy dark:text-passport-goldsoft">
+          <Compass size={18} />
+          <span className="font-display font-semibold tracking-tight">
+            Explorer&rsquo;s Passport
+          </span>
         </div>
         <button
           type="button"
           aria-label="Toggle theme"
           onClick={toggle}
-          className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-black/70 dark:text-white/70 transition-colors"
+          className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-black/60 dark:text-white/60 transition-colors"
         >
           {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
         </button>
@@ -71,19 +72,22 @@ export function SignInPage() {
 
       <main className="flex-1 flex items-center justify-center px-5">
         <div className="w-full max-w-sm animate-fade-in">
-          <h1 className="font-hand text-5xl text-center mb-2 text-black/85 dark:text-white/90">
-            {mode === 'signin' ? 'Welcome back.' : 'Make your board.'}
+          <p className="text-center text-[11px] uppercase tracking-[0.32em] text-passport-gold mb-3">
+            The Society of Discovery
+          </p>
+          <h1 className="font-display text-4xl text-center mb-2 text-passport-navy dark:text-white/90">
+            {mode === 'signin' ? 'Welcome back, Member.' : 'Begin your archive.'}
           </h1>
           <p className="text-center text-sm text-black/55 dark:text-white/55 mb-8">
             {mode === 'signin'
-              ? 'Sign in to see your notes on every device.'
-              : 'Create an account to start syncing.'}
+              ? 'Sign in to open your lifelong travel archive.'
+              : 'Create a Membership and receive your Explorer’s Passport.'}
           </p>
 
           {!configured && (
             <div className="mb-4 px-4 py-3 rounded-xl bg-amber-100/80 dark:bg-amber-300/15 text-amber-900 dark:text-amber-200 text-sm">
-              Firebase isn't configured yet. Copy <code>.env.example</code> to{' '}
-              <code>.env.local</code> and fill in your project values.
+              Firebase isn&rsquo;t configured yet. Copy <code>.env.example</code>{' '}
+              to <code>.env.local</code> and fill in your project values.
             </div>
           )}
 
@@ -98,7 +102,7 @@ export function SignInPage() {
               className={cn(
                 'w-full px-4 py-3 rounded-xl outline-none transition-colors',
                 'bg-white/70 dark:bg-white/5 border border-black/10 dark:border-white/10',
-                'focus:border-black/30 dark:focus:border-white/30',
+                'focus:border-passport-gold/70 dark:focus:border-passport-gold/70',
                 'text-black/85 dark:text-white/90 placeholder:text-black/40 dark:placeholder:text-white/40',
               )}
             />
@@ -115,7 +119,7 @@ export function SignInPage() {
               className={cn(
                 'w-full px-4 py-3 rounded-xl outline-none transition-colors',
                 'bg-white/70 dark:bg-white/5 border border-black/10 dark:border-white/10',
-                'focus:border-black/30 dark:focus:border-white/30',
+                'focus:border-passport-gold/70 dark:focus:border-passport-gold/70',
                 'text-black/85 dark:text-white/90 placeholder:text-black/40 dark:placeholder:text-white/40',
               )}
             />
@@ -129,7 +133,7 @@ export function SignInPage() {
               disabled={busy || !configured}
               className={cn(
                 'w-full px-4 py-3 rounded-xl font-medium transition-all',
-                'bg-black text-white dark:bg-white dark:text-black',
+                'bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink',
                 'hover:opacity-90 active:scale-[0.99]',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
               )}
@@ -138,20 +142,20 @@ export function SignInPage() {
                 ? 'Working…'
                 : mode === 'signin'
                   ? 'Sign in'
-                  : 'Create account'}
+                  : 'Become a Member'}
             </button>
           </form>
 
           <p className="text-center text-sm text-black/55 dark:text-white/55 mt-6">
-            {mode === 'signin' ? 'New here?' : 'Have an account?'}{' '}
+            {mode === 'signin' ? 'Not yet a Member?' : 'Already a Member?'}{' '}
             <button
               type="button"
               onClick={() =>
                 setMode((m) => (m === 'signin' ? 'signup' : 'signin'))
               }
-              className="font-medium text-black/85 dark:text-white/90 hover:underline"
+              className="font-medium text-passport-navy dark:text-passport-goldsoft hover:underline"
             >
-              {mode === 'signin' ? 'Create account' : 'Sign in'}
+              {mode === 'signin' ? 'Join the Society' : 'Sign in'}
             </button>
           </p>
         </div>

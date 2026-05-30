@@ -16,7 +16,7 @@ interface ThemeContextValue {
   setTheme: (t: Theme) => void;
 }
 
-const STORAGE_KEY = 'stickies:theme';
+const STORAGE_KEY = 'explorer:theme';
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function readInitialTheme(): Theme {
