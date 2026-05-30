@@ -287,8 +287,14 @@ The foundation is deliberately shaped so each area is additive:
   […]`), and `friendsByCountry` powers the "friends who've been here" panel on
   each country. Expeditions stay private. Requires real Firebase (not the
   local demo).
-- **Almanac printing, Travel DNA, AI Travel Historian, Family & Legacy
-  passports**: all read from the existing derived-stats engine.
+- **AI Travel Historian** *(shipped)*: a Vercel Edge function
+  (`api/historian.ts`) calls the Claude API (`claude-opus-4-8`, streaming) to
+  compose a narrative from a compact record built client-side
+  (`lib/historian.ts` → `buildHistorianContext`). The `ANTHROPIC_API_KEY` is a
+  server-only secret; the SDK never enters the client bundle. Surfaced in the
+  Almanac (`TravelHistorian`), keyed per edition.
+- **Almanac printing, Travel DNA, Family & Legacy passports**: all read from
+  the existing derived-stats engine.
 
 ## 12. Going native
 
