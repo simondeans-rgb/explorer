@@ -27,6 +27,7 @@ export const CONTINENTS: Continent[] = [
 /** A place in the world the Society knows about. */
 export interface Country {
   code: string; // ISO 3166-1 alpha-2
+  alpha3: string; // ISO 3166-1 alpha-3 (used on passport stamps)
   name: string;
   continent: Continent;
 }

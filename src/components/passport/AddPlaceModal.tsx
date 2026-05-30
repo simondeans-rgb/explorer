@@ -124,7 +124,7 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
         )}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/10">
-          <h2 className="font-display text-lg text-passport-navy dark:text-white/90">
+          <h2 className="font-display text-lg font-semibold text-passport-navy dark:text-white/90">
             {title}
           </h2>
           <button

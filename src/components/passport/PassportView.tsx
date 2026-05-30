@@ -1,17 +1,14 @@
 import { useMemo, useState } from 'react';
-import { Award, MapPin, Plus } from 'lucide-react';
+import { MapPin, Plus } from 'lucide-react';
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
-import { evaluateRecognitions } from '../../lib/recognitions';
+import { evaluateRecognitions, type Recognition } from '../../lib/recognitions';
 import { flagEmoji } from '../../lib/flags';
 import { useAuth } from '../../contexts/AuthContext';
-import {
-  RELATIONSHIP_META,
-  type Place,
-  type Relationship,
-} from '../../types';
+import { RELATIONSHIP_META, type Place, type Relationship } from '../../types';
 import { AddPlaceModal, type ModalInitial } from './AddPlaceModal';
 import { DiscoveryRing } from './DiscoveryRing';
 import { Stamp } from './Stamp';
+import { Crest } from './Crest';
 import { RELATIONSHIP_ICON } from './relationshipIcons';
 
 interface Props {
@@ -21,11 +18,35 @@ interface Props {
   loading: boolean;
 }
 
-function passportNumber(uid: string): string {
+function hashOf(s: string): number {
   let hash = 0;
-  for (let i = 0; i < uid.length; i++) hash = (hash * 31 + uid.charCodeAt(i)) | 0;
-  const base = Math.abs(hash).toString(36).toUpperCase().padStart(6, '0');
-  return `SD-${base.slice(0, 6)}`;
+  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(hash);
+}
+
+function memberNo(uid: string): string {
+  return String(hashOf(uid || 'guest') % 1_000_000).padStart(6, '0');
+}
+
+function displayName(email: string): string {
+  const local = (email.split('@')[0] || 'Explorer').replace(/[._-]+/g, ' ');
+  return local
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+function pad(s: string, n: number): string {
+  return (s + '<'.repeat(n)).slice(0, n);
+}
+
+function mrzLines(name: string, no: string): [string, string] {
+  const clean = name.toUpperCase().replace(/[^A-Z]+/g, '<');
+  return [
+    pad(`P<SOD<${clean}`, 36),
+    pad(`SOD${no}<<EXP000000`, 36),
+  ];
 }
 
 export function PassportView({ userId, aggregates, stats, loading }: Props) {
@@ -46,10 +67,8 @@ export function PassportView({ userId, aggregates, stats, loading }: Props) {
     () => aggregates.filter((a) => a.aspiring),
     [aggregates],
   );
-  const recognitions = useMemo(
-    () => evaluateRecognitions(stats),
-    [stats],
-  );
+  const recognitions = useMemo(() => evaluateRecognitions(stats), [stats]);
+  const earned = recognitions.filter((r) => r.earned);
 
   const memberSinceYear = useMemo(() => {
     let min = Infinity;
@@ -74,12 +93,7 @@ export function PassportView({ userId, aggregates, stats, loading }: Props) {
   }
 
   function addCity(a: CountryAggregate) {
-    setModal({
-      kind: 'city',
-      countryCode: a.code,
-      lockKind: true,
-      lockCountry: true,
-    });
+    setModal({ kind: 'city', countryCode: a.code, lockKind: true, lockCountry: true });
   }
 
   function editCity(place: Place) {
@@ -100,21 +114,20 @@ export function PassportView({ userId, aggregates, stats, loading }: Props) {
 
   return (
     <div className="animate-fade-in space-y-8">
-      <IdentityCard
-        name={user?.email?.split('@')[0] ?? 'Explorer'}
-        email={user?.email ?? ''}
-        number={passportNumber(userId || 'guest')}
+      <BioPage
+        name={displayName(user?.email ?? '')}
+        no={memberNo(userId)}
         sinceYear={memberSinceYear}
+        stats={stats}
+        recognitionsEarned={earned.length}
       />
-
-      <StatStrip stats={stats} />
 
       <div className="flex items-center justify-between">
         <SectionHeading>Your Passport</SectionHeading>
         <button
           type="button"
           onClick={() => setModal({ kind: 'country' })}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink hover:opacity-90 active:scale-[0.98]"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-passport-navy text-passport-parchment hover:opacity-90 active:scale-[0.98]"
         >
           <Plus size={15} /> Add
         </button>
@@ -122,15 +135,16 @@ export function PassportView({ userId, aggregates, stats, loading }: Props) {
 
       {isEmpty && <EmptyState onAdd={() => setModal({ kind: 'country' })} />}
 
-      {recognitions.some((r) => r.earned) && (
-        <RecognitionsStrip recognitions={recognitions} />
-      )}
+      {earned.length > 0 && <RecognitionsStrip recognitions={earned} />}
 
       {stats.flagCodes.length > 0 && (
-        <FlagWall codes={stats.flagCodes} onPick={(code) => {
-          const a = discovered.find((d) => d.code === code);
-          if (a) editCountry(a);
-        }} />
+        <FlagWall
+          codes={stats.flagCodes}
+          onPick={(code) => {
+            const a = discovered.find((d) => d.code === code);
+            if (a) editCountry(a);
+          }}
+        />
       )}
 
       {discovered.length > 0 && (
@@ -156,11 +170,9 @@ export function PassportView({ userId, aggregates, stats, loading }: Props) {
                 key={a.code}
                 type="button"
                 onClick={() => editCountry(a)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border border-dashed border-passport-gold/50 text-black/70 dark:text-white/70 hover:bg-passport-gold/10"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border border-dashed border-passport-gold/50 text-passport-ink2 dark:text-white/70 hover:bg-passport-gold/10"
               >
-                <span className="text-base leading-none">
-                  {flagEmoji(a.code)}
-                </span>
+                <span className="text-base leading-none">{flagEmoji(a.code)}</span>
                 {a.name}
               </button>
             ))}
@@ -182,7 +194,7 @@ export function PassportView({ userId, aggregates, stats, loading }: Props) {
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
     <div>
-      <h2 className="font-display text-xl text-passport-navy dark:text-white/90">
+      <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
         {children}
       </h2>
       <div className="gold-rule mt-1.5 w-24" />
@@ -190,99 +202,159 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-function IdentityCard({
+const FIELD_LABEL =
+  'text-[10px] font-medium uppercase tracking-[0.18em] text-passport-fieldlabel';
+
+function BioPage({
   name,
-  email,
-  number,
+  no,
   sinceYear,
+  stats,
+  recognitionsEarned,
 }: {
   name: string;
-  email: string;
-  number: string;
+  no: string;
   sinceYear: number | null;
+  stats: PassportStats;
+  recognitionsEarned: number;
 }) {
+  const [mrz1, mrz2] = mrzLines(name, no);
+  const figures: [string, number][] = [
+    ['Countries', stats.countriesDiscovered],
+    ['Cities', stats.citiesDiscovered],
+    ['Continents', stats.continentsDiscovered],
+    ['Lived In', stats.countriesLived],
+    ['Stamps', stats.totalStamps],
+    ['Recognitions', recognitionsEarned],
+  ];
+
   return (
-    <div className="rounded-2xl overflow-hidden shadow-page bg-passport-navy text-passport-parchment">
-      <div className="flex items-center justify-between px-5 pt-4">
-        <span className="text-[10px] uppercase tracking-[0.3em] text-passport-goldsoft">
-          Society of Discovery
-        </span>
-        <span className="text-[10px] uppercase tracking-[0.3em] text-passport-goldsoft/70">
-          Explorer&rsquo;s Passport
-        </span>
-      </div>
-      <div className="px-5 py-4 flex items-center gap-4">
-        <div className="h-14 w-14 rounded-full border-2 border-passport-gold/60 flex items-center justify-center text-2xl font-display text-passport-goldsoft">
-          {name[0]?.toUpperCase() ?? 'E'}
-        </div>
-        <div className="min-w-0">
-          <div className="font-display text-2xl capitalize truncate">{name}</div>
-          <div className="text-xs text-passport-parchment/60 truncate">
-            {email}
+    <div className="rounded-xl overflow-hidden shadow-page border border-black/10 dark:border-white/10">
+      {/* Header band — always navy with gold type (Brand Book §08). */}
+      <div className="bg-passport-navy px-5 py-3 flex items-center justify-between">
+        <div className="leading-tight">
+          <div className="text-[9px] font-medium uppercase tracking-[0.22em] text-passport-gold">
+            Explorer&rsquo;s Passport
+          </div>
+          <div className="text-[9px] uppercase tracking-[0.22em] text-passport-gold/60">
+            Society of Discovery
           </div>
         </div>
+        <div className="text-[9px] font-medium uppercase tracking-[0.2em] text-passport-gold/80">
+          Member Record
+        </div>
       </div>
-      <div className="px-5 pb-4 flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-passport-parchment/70 font-mono">
-        <span>No. {number}</span>
-        <span>Member since {sinceYear ?? '—'}</span>
+      <div className="h-px bg-passport-gold/40" />
+
+      {/* Body — parchment. */}
+      <div className="bg-passport-card text-passport-ink px-5 pt-4">
+        <div className="page-divide pb-2 mb-4 flex items-center justify-between text-[9px] tracking-[0.14em] text-passport-fieldlabel uppercase">
+          <span>Type · M&nbsp;&nbsp; Code · SOD&nbsp;&nbsp; No. {no}</span>
+          <span>Page 1 / 1</span>
+        </div>
+
+        <div className="flex gap-4">
+          <div className="relative w-[68px] h-[84px] shrink-0 rounded-sm bg-passport-paged border border-black/10 flex items-center justify-center">
+            <span className="font-display text-3xl font-semibold text-passport-fieldlabel">
+              {name[0]?.toUpperCase() ?? 'E'}
+            </span>
+            <Corner className="top-1 left-1 border-t border-l" />
+            <Corner className="top-1 right-1 border-t border-r" />
+            <Corner className="bottom-1 left-1 border-b border-l" />
+            <Corner className="bottom-1 right-1 border-b border-r" />
+          </div>
+
+          <div className="flex-1 min-w-0 flex flex-col gap-2.5">
+            <div>
+              <div className={FIELD_LABEL}>Member</div>
+              <div className="font-display text-2xl font-semibold leading-tight truncate text-passport-navy">
+                {name}
+              </div>
+            </div>
+            <div className="relative">
+              <div className={FIELD_LABEL}>Nationality</div>
+              <div className="font-display text-[15px] text-passport-ink">
+                Member · Society of Discovery
+              </div>
+              <div className="absolute right-0 -top-1 border-[1.5px] border-passport-navy/30 rounded px-1.5 py-0.5 rotate-[-9deg]">
+                <span className="text-[7px] font-medium uppercase tracking-[0.16em] text-passport-navy/40">
+                  Verified
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="page-divide grid grid-cols-2 gap-3 mt-4 pb-4">
+          <div>
+            <div className={FIELD_LABEL}>Member Since</div>
+            <div className="text-sm font-medium uppercase tracking-wide">
+              {sinceYear ?? '—'}
+            </div>
+          </div>
+          <div>
+            <div className={FIELD_LABEL}>Standing</div>
+            <div className="font-display text-[15px]">Known to us</div>
+          </div>
+        </div>
+
+        <div className="page-divide grid grid-cols-3 gap-y-3 gap-x-2 mt-4 pb-4">
+          {figures.map(([label, value]) => (
+            <div key={label}>
+              <div className={FIELD_LABEL}>{label}</div>
+              <div className="font-display text-2xl font-semibold text-passport-navy leading-none">
+                {value}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-end justify-between mt-4 pb-4">
+          <div>
+            <div className={`${FIELD_LABEL} mb-1.5`}>Signature of Bearer</div>
+            <div className="font-display text-lg italic text-passport-ink">
+              {name}
+            </div>
+            <div className="h-px bg-black/20 mt-1.5 w-36" />
+          </div>
+          <Crest />
+        </div>
+      </div>
+
+      {/* MRZ strip — aged parchment, monospace (Brand Book §08). */}
+      <div className="bg-passport-paged px-5 py-2 font-mono text-[8px] leading-relaxed tracking-[0.1em] text-passport-fieldtext/70 break-all">
+        <div>{mrz1}</div>
+        <div>{mrz2}</div>
       </div>
     </div>
   );
 }
 
-const STAT_ITEMS: {
-  key: keyof PassportStats;
-  label: string;
-}[] = [
-  { key: 'countriesDiscovered', label: 'Countries' },
-  { key: 'citiesDiscovered', label: 'Cities' },
-  { key: 'continentsDiscovered', label: 'Continents' },
-  { key: 'countriesLived', label: 'Lived in' },
-  { key: 'totalStamps', label: 'Stamps' },
-  { key: 'avgDiscoveryScore', label: 'Avg. depth' },
-];
-
-function StatStrip({ stats }: { stats: PassportStats }) {
+function Corner({ className }: { className: string }) {
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-      {STAT_ITEMS.map((item) => (
-        <div
-          key={item.key}
-          className="rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 px-3 py-3 text-center shadow-page"
-        >
-          <div className="font-display text-2xl text-passport-navy dark:text-passport-goldsoft">
-            {stats[item.key] as number}
-          </div>
-          <div className="text-[10px] uppercase tracking-[0.14em] text-black/45 dark:text-white/45 mt-0.5">
-            {item.label}
-          </div>
-        </div>
-      ))}
-    </div>
+    <span
+      className={`absolute w-2 h-2 border-passport-fieldlabel/70 ${className}`}
+    />
   );
 }
 
-function RecognitionsStrip({
-  recognitions,
-}: {
-  recognitions: ReturnType<typeof evaluateRecognitions>;
-}) {
+function RecognitionsStrip({ recognitions }: { recognitions: Recognition[] }) {
   return (
     <div className="space-y-3">
       <SectionHeading>Recognitions</SectionHeading>
       <div className="flex flex-wrap gap-2">
-        {recognitions
-          .filter((r) => r.earned)
-          .map((r) => (
-            <span
-              key={r.id}
-              title={r.description}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-passport-gold/15 text-passport-navy dark:text-passport-goldsoft border border-passport-gold/40"
-            >
-              <Award size={14} />
-              {r.title}
+        {recognitions.map((r) => (
+          <span
+            key={r.id}
+            title={r.description}
+            className="inline-flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full text-sm bg-passport-gold/10 text-passport-navy dark:text-passport-goldsoft border border-passport-gold/40"
+          >
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-passport-gold/60 text-passport-gold text-xs">
+              {r.symbol}
             </span>
-          ))}
+            {r.title}
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -327,7 +399,7 @@ function CountryCard({
   onEditCity: (place: Place) => void;
 }) {
   return (
-    <div className="rounded-2xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 shadow-page p-4">
+    <div className="rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 shadow-page p-4">
       <div className="flex items-start gap-3">
         <button
           type="button"
@@ -336,15 +408,11 @@ function CountryCard({
         >
           {flagEmoji(agg.code)}
         </button>
-        <button
-          type="button"
-          onClick={onEdit}
-          className="flex-1 min-w-0 text-left"
-        >
-          <div className="font-display text-lg text-passport-navy dark:text-white/90 truncate">
+        <button type="button" onClick={onEdit} className="flex-1 min-w-0 text-left">
+          <div className="font-display text-lg font-semibold text-passport-navy dark:text-white/90 truncate">
             {agg.name}
           </div>
-          <div className="text-xs text-black/45 dark:text-white/45">
+          <div className="text-xs text-passport-ink3 dark:text-white/45">
             {agg.continent}
             {agg.firstYear ? ` · since ${agg.firstYear}` : ''}
           </div>
@@ -356,7 +424,7 @@ function CountryCard({
                 return (
                   <span
                     key={r}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-black/[0.04] dark:bg-white/[0.06] text-black/65 dark:text-white/65"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-passport-navy/[0.06] dark:bg-white/[0.06] text-passport-ink2 dark:text-white/65"
                   >
                     <Icon size={11} />
                     {RELATIONSHIP_META[r].label}
@@ -369,26 +437,32 @@ function CountryCard({
       </div>
 
       {agg.stamps.length > 0 && (
-        <div className="mt-3 flex gap-1.5 pl-1">
+        <div className="mt-4 flex flex-wrap gap-2">
           {agg.stamps.map((s, i) => (
-            <Stamp key={s} kind={s} seed={i + agg.code.charCodeAt(0)} />
+            <Stamp
+              key={s}
+              kind={s}
+              code={agg.code}
+              year={agg.firstYear}
+              seed={i + agg.code.charCodeAt(0)}
+            />
           ))}
         </div>
       )}
 
       {agg.note && (
-        <p className="mt-3 text-sm text-black/65 dark:text-white/65 italic border-l-2 border-passport-gold/40 pl-3">
+        <p className="mt-4 font-display text-[15px] italic text-passport-ink2 dark:text-white/65 border-l-2 border-passport-gold/50 pl-3">
           {agg.note}
         </p>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+      <div className="mt-4 flex flex-wrap items-center gap-1.5">
         {agg.cities.map((c) => (
           <button
             key={c.id}
             type="button"
             onClick={() => onEditCity(c)}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-passport-navy/5 dark:bg-white/5 text-black/70 dark:text-white/70 hover:bg-passport-navy/10"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-passport-navy/5 dark:bg-white/5 text-passport-ink2 dark:text-white/70 hover:bg-passport-navy/10"
           >
             <MapPin size={11} />
             {c.name}
@@ -397,7 +471,7 @@ function CountryCard({
         <button
           type="button"
           onClick={onAddCity}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border border-dashed border-black/15 dark:border-white/15 text-black/50 dark:text-white/50 hover:border-passport-gold/60"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border border-dashed border-black/15 dark:border-white/15 text-passport-ink3 dark:text-white/50 hover:border-passport-gold/60"
         >
           <Plus size={11} /> City
         </button>
@@ -408,18 +482,18 @@ function CountryCard({
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="rounded-2xl border border-dashed border-black/15 dark:border-white/15 p-10 text-center">
-      <p className="font-display text-2xl text-passport-navy dark:text-white/90 mb-1">
+    <div className="rounded-xl border border-dashed border-black/15 dark:border-white/15 p-10 text-center">
+      <p className="font-display text-2xl font-semibold text-passport-navy dark:text-white/90 mb-1">
         Your Passport is blank.
       </p>
-      <p className="text-sm text-black/50 dark:text-white/50 mb-5">
-        Add the first country you&rsquo;ve discovered — its flag and stamps
-        begin your archive.
+      <p className="text-sm text-passport-ink2 dark:text-white/50 mb-5 max-w-sm mx-auto">
+        Record the first country you have discovered. Its flag and stamps begin
+        the archive.
       </p>
       <button
         type="button"
         onClick={onAdd}
-        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink font-medium hover:opacity-90"
+        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-passport-navy text-passport-parchment font-medium hover:opacity-90"
       >
         <Plus size={16} /> Add a country
       </button>

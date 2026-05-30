@@ -1,28 +1,64 @@
-import { STAMP_LABEL, type StampKind } from '../../types';
-import { cn } from '../../lib/cn';
+import { alpha3Of } from '../../data/countries';
+import type { StampKind } from '../../types';
 
-const TINTS: Record<StampKind, string> = {
-  discovery: 'text-passport-navy dark:text-passport-goldsoft',
-  residency: 'text-rose-700 dark:text-rose-300',
-  work: 'text-emerald-700 dark:text-emerald-300',
-  study: 'text-indigo-700 dark:text-indigo-300',
+// Passport stamps follow the Brand Book §07 system: a stamped tile carrying the
+// country name, its ISO-3 code, the year, and the relationship — coloured from
+// the Navigator / Cartographer palettes by stamp type.
+interface StampStyle {
+  bg: string;
+  accent: string;
+  code: string; // colour of the large ISO-3 code
+  status: string;
+}
+
+const STAMP_STYLE: Record<StampKind, StampStyle> = {
+  discovery: { bg: '#0D1B2E', accent: '#C9A84C', code: '#F8F4EC', status: 'Discovered' },
+  residency: { bg: '#5C1A28', accent: '#D4955A', code: '#F0E8DC', status: 'Lived' },
+  work: { bg: '#2A4568', accent: '#E8C97A', code: '#F8F4EC', status: 'Worked' },
+  study: { bg: '#1C3A2C', accent: '#7EC8A0', code: '#F8F4EC', status: 'Studied' },
 };
 
-/** A small inked passport seal, derived from a relationship. */
-export function Stamp({ kind, seed = 0 }: { kind: StampKind; seed?: number }) {
-  const rotate = ((seed % 5) - 2) * 4;
+export function Stamp({
+  kind,
+  code,
+  year,
+  seed = 0,
+}: {
+  kind: StampKind;
+  code: string;
+  year?: number;
+  seed?: number;
+}) {
+  const s = STAMP_STYLE[kind];
+  const rotate = ((seed % 5) - 2) * 3;
   return (
     <span
-      title={`${STAMP_LABEL[kind]} stamp`}
-      style={{ rotate: `${rotate}deg` }}
-      className={cn(
-        'inline-flex h-12 w-12 items-center justify-center rounded-full',
-        'border-2 border-current opacity-80 select-none',
-        'text-[8px] font-semibold uppercase tracking-wider text-center leading-tight',
-        TINTS[kind],
-      )}
+      title={`${s.status} · ${alpha3Of(code)}`}
+      style={{ backgroundColor: s.bg, rotate: `${rotate}deg` }}
+      className="relative inline-flex h-[84px] w-[84px] flex-col items-center justify-center gap-0.5 rounded-md select-none"
     >
-      {STAMP_LABEL[kind]}
+      <span
+        className="absolute inset-[6px] rounded border-[1.5px] border-dashed"
+        style={{ borderColor: s.accent, opacity: 0.4 }}
+      />
+      <span
+        className="relative z-10 text-[7.5px] font-medium uppercase tracking-[0.16em]"
+        style={{ color: s.accent }}
+      >
+        {s.status}
+      </span>
+      <span
+        className="relative z-10 font-display text-xl font-semibold leading-none"
+        style={{ color: s.code }}
+      >
+        {alpha3Of(code)}
+      </span>
+      <span
+        className="relative z-10 text-[8px]"
+        style={{ color: s.accent, opacity: 0.8 }}
+      >
+        {year ?? '—'}
+      </span>
     </span>
   );
 }

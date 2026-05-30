@@ -50,7 +50,7 @@ export function AlmanacView({ places, aggregates, stats }: Props) {
         <p className="text-[11px] uppercase tracking-[0.32em] text-passport-gold">
           Society of Discovery
         </p>
-        <h1 className="font-display text-3xl text-passport-navy dark:text-white/90">
+        <h1 className="font-display text-3xl font-semibold text-passport-navy dark:text-white/90">
           The Almanac
         </h1>
         <p className="text-sm text-black/50 dark:text-white/50 mt-1">
@@ -88,7 +88,7 @@ export function AlmanacView({ places, aggregates, stats }: Props) {
           />
 
           <section className="space-y-3">
-            <h2 className="font-display text-xl text-passport-navy dark:text-white/90">
+            <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
               The world, by continent
             </h2>
             <div className="gold-rule w-24" />
@@ -100,7 +100,7 @@ export function AlmanacView({ places, aggregates, stats }: Props) {
                   className="rounded-2xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 shadow-page p-4"
                 >
                   <div className="flex items-baseline justify-between mb-2">
-                    <span className="font-display text-lg text-passport-navy dark:text-white/90">
+                    <span className="font-display text-lg font-semibold text-passport-navy dark:text-white/90">
                       {c}
                     </span>
                     <span className="text-xs text-black/45 dark:text-white/45">
@@ -122,7 +122,7 @@ export function AlmanacView({ places, aggregates, stats }: Props) {
 
           {earned.length > 0 && (
             <section className="space-y-3">
-              <h2 className="font-display text-xl text-passport-navy dark:text-white/90">
+              <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
                 Recognitions
               </h2>
               <div className="gold-rule w-24" />
@@ -132,7 +132,7 @@ export function AlmanacView({ places, aggregates, stats }: Props) {
                     key={r.id}
                     className="flex items-baseline gap-2 text-sm text-black/70 dark:text-white/70"
                   >
-                    <span className="text-passport-gold">◆</span>
+                    <span className="text-passport-gold">{r.symbol}</span>
                     <span className="font-medium">{r.title}</span>
                     <span className="text-black/45 dark:text-white/45">
                       {r.description}
@@ -145,7 +145,7 @@ export function AlmanacView({ places, aggregates, stats }: Props) {
         </>
       ) : (
         <section className="space-y-3">
-          <h2 className="font-display text-xl text-passport-navy dark:text-white/90">
+          <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
             The year {edition}
           </h2>
           <div className="gold-rule w-24" />
@@ -207,7 +207,7 @@ function Figures({ items }: { items: [string, number][] }) {
           key={label}
           className="rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 px-4 py-4 shadow-page"
         >
-          <div className="font-display text-3xl text-passport-navy dark:text-passport-goldsoft">
+          <div className="font-display text-3xl font-semibold text-passport-navy dark:text-passport-goldsoft">
             {value}
           </div>
           <div className="text-[11px] uppercase tracking-[0.12em] text-black/45 dark:text-white/45 mt-1">
