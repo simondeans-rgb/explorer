@@ -288,10 +288,11 @@ The foundation is deliberately shaped so each area is additive:
   each country. Expeditions stay private. Requires real Firebase (not the
   local demo).
 - **AI Travel Historian** *(shipped)*: a Vercel Edge function
-  (`api/historian.ts`) calls the Claude API (`claude-opus-4-8`, streaming) to
-  compose a narrative from a compact record built client-side
-  (`lib/historian.ts` → `buildHistorianContext`). The `ANTHROPIC_API_KEY` is a
-  server-only secret; the SDK never enters the client bundle. Surfaced in the
+  (`api/historian.ts`) calls Google's Gemini API (`gemini-2.5-flash`, streaming
+  via the REST `streamGenerateContent` endpoint, transformed to a plain-text
+  stream) to compose a narrative from a compact record built client-side
+  (`lib/historian.ts` → `buildHistorianContext`). The `GEMINI_API_KEY` is a
+  server-only secret; no AI SDK is shipped to the client. Surfaced in the
   Almanac (`TravelHistorian`), keyed per edition.
 - **Almanac printing, Travel DNA, Family & Legacy passports**: all read from
   the existing derived-stats engine.

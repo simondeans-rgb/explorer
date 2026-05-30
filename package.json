@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.100.1",
     "clsx": "^2.1.1",
     "firebase": "^10.12.2",
     "framer-motion": "^11.2.10",

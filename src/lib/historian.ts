@@ -133,7 +133,7 @@ export async function streamStory(
     }
     if (res.status === 503 || code === 'not_configured') {
       throw new Error(
-        'The Travel Historian isn’t configured yet — the server needs an ANTHROPIC_API_KEY.',
+        'The Travel Historian isn’t configured yet — the server needs a GEMINI_API_KEY.',
       );
     }
     throw new Error('The Travel Historian is unavailable right now.');
