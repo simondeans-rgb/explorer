@@ -7,9 +7,11 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  GoogleAuthProvider,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut as fbSignOut,
 } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../lib/firebase';
@@ -42,6 +44,7 @@ interface AuthContextValue {
   demo: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signInDemo: () => void;
   signOut: () => Promise<void>;
 }
@@ -88,6 +91,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp: async (email, password) => {
         if (!auth) throw new Error('Firebase is not configured');
         await createUserWithEmailAndPassword(auth, email, password);
+      },
+      signInWithGoogle: async () => {
+        if (!auth) throw new Error('Firebase is not configured');
+        await signInWithPopup(auth, new GoogleAuthProvider());
       },
       signInDemo: () => {
         seedDemo(DEMO_USER.uid);

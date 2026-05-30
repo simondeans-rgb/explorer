@@ -90,6 +90,8 @@ export function AddExpeditionModal({ userId, initial, onClose }: Props) {
         operator: j.operator?.trim() || undefined,
         from: j.from?.trim() || undefined,
         to: j.to?.trim() || undefined,
+        reference: j.reference?.trim() || undefined,
+        seat: j.seat?.trim() || undefined,
         date: j.date || undefined,
         note: j.note?.trim() || undefined,
       })),
@@ -335,6 +337,20 @@ function JourneyRow({
           value={journey.to ?? ''}
           onChange={(e) => onChange({ to: e.target.value })}
           placeholder={meta.to}
+          className={inputClass}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <input
+          value={journey.reference ?? ''}
+          onChange={(e) => onChange({ reference: e.target.value })}
+          placeholder={meta.reference}
+          className={inputClass}
+        />
+        <input
+          value={journey.seat ?? ''}
+          onChange={(e) => onChange({ seat: e.target.value })}
+          placeholder={meta.seat}
           className={inputClass}
         />
       </div>

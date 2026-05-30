@@ -58,7 +58,9 @@ npm install
 
 1. Open the [Firebase console](https://console.firebase.google.com) and create
    a project.
-2. **Authentication → Sign-in method**: enable **Email/Password**.
+2. **Authentication → Sign-in method**: enable **Email/Password**. Optionally
+   also enable **Google** to get the "Continue with Google" button (no extra
+   config needed beyond toggling the provider on).
 3. **Firestore Database → Create database** in production mode.
 4. **Firestore Database → Rules**: paste [`firestore.rules`](firestore.rules)
    and publish.

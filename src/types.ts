@@ -169,16 +169,25 @@ export const JOURNEY_MODES: JourneyMode[] = [
   'ferry',
 ];
 
-/** Mode-aware labels for the generic operator / from / to fields. */
+/** Mode-aware labels for the generic operator / from / to / reference / seat
+ *  fields, so one editor serves every mode (Brand Book Journeys spec). */
 export const JOURNEY_MODE_META: Record<
   JourneyMode,
-  { label: string; icon: string; operator: string; from: string; to: string }
+  {
+    label: string;
+    icon: string;
+    operator: string;
+    from: string;
+    to: string;
+    reference: string;
+    seat: string;
+  }
 > = {
-  flight: { label: 'Flight', icon: 'Plane', operator: 'Airline', from: 'From airport', to: 'To airport' },
-  rail: { label: 'Rail', icon: 'TrainFront', operator: 'Operator', from: 'From station', to: 'To station' },
-  cruise: { label: 'Cruise', icon: 'Ship', operator: 'Cruise line', from: 'From port', to: 'To port' },
-  road: { label: 'Road trip', icon: 'Car', operator: 'Vehicle', from: 'Start', to: 'End' },
-  ferry: { label: 'Ferry', icon: 'Anchor', operator: 'Operator', from: 'From', to: 'To' },
+  flight: { label: 'Flight', icon: 'Plane', operator: 'Airline', from: 'From airport', to: 'To airport', reference: 'Flight number', seat: 'Cabin & seat' },
+  rail: { label: 'Rail', icon: 'TrainFront', operator: 'Operator', from: 'From station', to: 'To station', reference: 'Service / route', seat: 'Class' },
+  cruise: { label: 'Cruise', icon: 'Ship', operator: 'Cruise line', from: 'From port', to: 'To port', reference: 'Ship', seat: 'Cabin' },
+  road: { label: 'Road trip', icon: 'Car', operator: 'Vehicle', from: 'Start', to: 'End', reference: 'Route', seat: 'Distance' },
+  ferry: { label: 'Ferry', icon: 'Anchor', operator: 'Operator', from: 'From', to: 'To', reference: 'Route', seat: 'Class' },
 };
 
 /** How a Member travelled within an Expedition. */
@@ -188,6 +197,8 @@ export interface Journey {
   operator?: string;
   from?: string;
   to?: string;
+  reference?: string; // flight number / ship / service
+  seat?: string; // cabin & seat / class
   date?: string;
   note?: string;
 }

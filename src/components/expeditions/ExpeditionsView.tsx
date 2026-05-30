@@ -6,7 +6,6 @@ import {
   JOURNEY_MODE_META,
   type Discovery,
   type Expedition,
-  type Journey,
 } from '../../types';
 import { AddExpeditionModal, type ExpeditionModalInitial } from './AddExpeditionModal';
 import { JOURNEY_ICON } from './journeyIcons';
@@ -134,10 +133,6 @@ function ExpeditionCard({
   onEdit: () => void;
 }) {
   const range = formatRange(e.startDate, e.endDate);
-  const byMode = e.journeys.reduce<Record<string, number>>((acc, j) => {
-    acc[j.mode] = (acc[j.mode] ?? 0) + 1;
-    return acc;
-  }, {});
 
   return (
     <button
@@ -167,25 +162,41 @@ function ExpeditionCard({
         )}
       </div>
 
-      {(e.journeys.length > 0 || discoveryCount > 0) && (
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-passport-ink2 dark:text-white/65">
-          {Object.entries(byMode).map(([mode, n]) => {
-            const Icon = JOURNEY_ICON[mode as Journey['mode']];
+      {e.journeys.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          {e.journeys.map((j) => {
+            const Icon = JOURNEY_ICON[j.mode];
+            const route = [j.from, j.to].filter(Boolean).join(' → ');
+            const label =
+              j.operator?.trim() || JOURNEY_MODE_META[j.mode].label;
+            const tail = [route, j.reference, j.seat]
+              .filter(Boolean)
+              .join(' · ');
             return (
-              <span key={mode} className="inline-flex items-center gap-1">
-                <Icon size={13} className="text-passport-gold" />
-                {n} {JOURNEY_MODE_META[mode as Journey['mode']].label}
-                {n > 1 ? 's' : ''}
-              </span>
+              <div
+                key={j.id}
+                className="flex items-baseline gap-2 text-xs text-passport-ink2 dark:text-white/65"
+              >
+                <Icon
+                  size={13}
+                  className="text-passport-gold shrink-0 translate-y-0.5"
+                />
+                <span className="font-medium">{label}</span>
+                {tail && (
+                  <span className="text-passport-ink3 dark:text-white/45 truncate">
+                    {tail}
+                  </span>
+                )}
+              </div>
             );
           })}
-          {discoveryCount > 0 && (
-            <span className="inline-flex items-center gap-1">
-              <Compass size={13} className="text-passport-gold" />
-              {discoveryCount}{' '}
-              {discoveryCount === 1 ? 'discovery' : 'discoveries'}
-            </span>
-          )}
+        </div>
+      )}
+
+      {discoveryCount > 0 && (
+        <div className="mt-2 inline-flex items-center gap-1 text-xs text-passport-ink2 dark:text-white/65">
+          <Compass size={13} className="text-passport-gold" />
+          {discoveryCount} {discoveryCount === 1 ? 'discovery' : 'discoveries'}
         </div>
       )}
 
