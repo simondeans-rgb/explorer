@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Compass, Plus } from 'lucide-react';
+import { Compass, MapPinned, Plus } from 'lucide-react';
 import { countryName } from '../../data/countries';
 import { flagEmoji } from '../../lib/flags';
 import {
@@ -40,6 +40,12 @@ export function DiscoveriesView({
     }
     return c;
   }, [discoveries]);
+
+  const expeditionTitle = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const e of expeditions) m.set(e.id, e.title);
+    return m;
+  }, [expeditions]);
 
   const visible = useMemo(() => {
     const list =
@@ -108,6 +114,11 @@ export function DiscoveriesView({
               <DiscoveryCard
                 key={d.id}
                 discovery={d}
+                expeditionTitle={
+                  d.expeditionId
+                    ? expeditionTitle.get(d.expeditionId)
+                    : undefined
+                }
                 onEdit={() =>
                   setModal({
                     id: d.id,
@@ -168,9 +179,11 @@ function FilterChip({
 
 function DiscoveryCard({
   discovery: d,
+  expeditionTitle,
   onEdit,
 }: {
   discovery: Discovery;
+  expeditionTitle?: string;
   onEdit: () => void;
 }) {
   const Icon = CATEGORY_ICON[d.category];
@@ -214,6 +227,12 @@ function DiscoveryCard({
               {place ? ` · ${DISCOVERY_CATEGORY_META[d.category].label}` : ''}
             </span>
           </div>
+          {expeditionTitle && (
+            <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-passport-ink3 dark:text-white/45">
+              <MapPinned size={11} className="text-passport-gold" />
+              {expeditionTitle}
+            </div>
+          )}
           {d.note && (
             <p className="mt-2 font-display text-[15px] italic text-passport-ink2 dark:text-white/65 border-l-2 border-passport-gold/50 pl-3">
               {d.note}
