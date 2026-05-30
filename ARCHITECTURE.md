@@ -277,8 +277,16 @@ The foundation is deliberately shaped so each area is additive:
   **Journeys** (`flight` / `rail` / `cruise` / `road` / `ferry`); Discoveries
   reference an `expeditionId`. `computeJourneyStats` feeds the Almanac's
   Journeys-taken figures, and the Bio Page shows an Expeditions count.
-- **Friend recommendations**: a social graph + shared read access; "friends
-  who have been here" surfaces from the same place/discovery data.
+- **Friend recommendations** *(shipped, Phase 1)*: Members connect by share
+  code. A `profiles/{uid}` holds the Member's name + code; `codes/{code}` maps a
+  code to a uid (fetched by exact id only — no enumeration); `connections/{pair}`
+  (a sorted-uid id) holds the friendship + status. Security rules let an
+  **accepted** friend read your `places`/`discoveries` via an `exists()`/`get()`
+  lookup on the deterministic connection id (`sharedRead`). The client
+  (`useFriendsData`) subscribes to friends' places/discoveries (`where userId in
+  […]`), and `friendsByCountry` powers the "friends who've been here" panel on
+  each country. Expeditions stay private. Requires real Firebase (not the
+  local demo).
 - **Almanac printing, Travel DNA, AI Travel Historian, Family & Legacy
   passports**: all read from the existing derived-stats engine.
 
