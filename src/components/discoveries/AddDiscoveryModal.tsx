@@ -1,49 +1,50 @@
 import { useEffect, useState } from 'react';
 import { Check, Trash2, X } from 'lucide-react';
-import { countryName } from '../../data/countries';
-import { flagEmoji } from '../../lib/flags';
-import { createPlace, deletePlace, updatePlace } from '../../lib/places';
 import {
-  RELATIONSHIPS,
-  RELATIONSHIP_META,
-  type PlaceKind,
-  type Relationship,
+  createDiscovery,
+  deleteDiscovery,
+  updateDiscovery,
+} from '../../lib/discoveries';
+import {
+  DISCOVERY_CATEGORIES,
+  DISCOVERY_CATEGORY_META,
+  RECOMMENDATION_VERDICTS,
+  VERDICT_META,
+  type DiscoveryCategory,
+  type RecommendationVerdict,
 } from '../../types';
 import { cn } from '../../lib/cn';
 import { inputClass } from '../../lib/formClass';
 import { CountryPicker, Field } from '../forms';
-import { RELATIONSHIP_ICON } from './relationshipIcons';
+import { CATEGORY_ICON } from './categoryIcons';
+import { VERDICT_STYLE } from './verdictStyle';
 
-export interface ModalInitial {
+export interface DiscoveryModalInitial {
   id?: string;
-  kind: PlaceKind;
-  countryCode?: string;
   name?: string;
-  relationships?: Relationship[];
-  firstYear?: number;
+  category?: DiscoveryCategory;
+  countryCode?: string;
+  city?: string;
+  verdict?: RecommendationVerdict;
   note?: string;
-  lockKind?: boolean;
-  lockCountry?: boolean;
 }
 
 interface Props {
   userId: string;
-  initial: ModalInitial;
+  initial: DiscoveryModalInitial;
   onClose: () => void;
 }
 
-export function AddPlaceModal({ userId, initial, onClose }: Props) {
+export function AddDiscoveryModal({ userId, initial, onClose }: Props) {
   const editing = Boolean(initial.id);
-  const [kind, setKind] = useState<PlaceKind>(initial.kind);
+  const [name, setName] = useState(initial.name ?? '');
+  const [category, setCategory] = useState<DiscoveryCategory>(
+    initial.category ?? 'food',
+  );
   const [countryCode, setCountryCode] = useState(initial.countryCode ?? '');
-  const [cityName, setCityName] = useState(
-    initial.kind === 'city' ? (initial.name ?? '') : '',
-  );
-  const [relationships, setRelationships] = useState<Set<Relationship>>(
-    new Set(initial.relationships ?? (initial.kind === 'city' ? ['visited'] : [])),
-  );
-  const [year, setYear] = useState(
-    initial.firstYear ? String(initial.firstYear) : '',
+  const [city, setCity] = useState(initial.city ?? '');
+  const [verdict, setVerdict] = useState<RecommendationVerdict | undefined>(
+    initial.verdict,
   );
   const [note, setNote] = useState(initial.note ?? '');
   const [busy, setBusy] = useState(false);
@@ -56,36 +57,22 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  function toggleRel(r: Relationship) {
-    setRelationships((prev) => {
-      const next = new Set(prev);
-      if (next.has(r)) next.delete(r);
-      else next.add(r);
-      return next;
-    });
-  }
-
-  const canSave =
-    countryCode &&
-    relationships.size > 0 &&
-    (kind === 'country' || cityName.trim().length > 0);
+  const canSave = name.trim().length > 0;
 
   async function handleSave() {
     if (!canSave || busy) return;
     setBusy(true);
-    const parsedYear = year ? Number.parseInt(year, 10) : undefined;
     const input = {
-      kind,
-      countryCode,
-      name: kind === 'country' ? countryName(countryCode) : cityName,
-      relationships: [...relationships],
-      firstYear:
-        parsedYear && !Number.isNaN(parsedYear) ? parsedYear : undefined,
+      name: name.trim(),
+      category,
+      countryCode: countryCode || undefined,
+      city: city.trim() || undefined,
+      verdict,
       note: note.trim() || undefined,
     };
     try {
-      if (initial.id) await updatePlace(initial.id, input);
-      else await createPlace(userId, input);
+      if (initial.id) await updateDiscovery(initial.id, input);
+      else await createDiscovery(userId, input);
       onClose();
     } finally {
       setBusy(false);
@@ -96,20 +83,12 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
     if (!initial.id || busy) return;
     setBusy(true);
     try {
-      await deletePlace(initial.id);
+      await deleteDiscovery(initial.id);
       onClose();
     } finally {
       setBusy(false);
     }
   }
-
-  const title = editing
-    ? kind === 'city'
-      ? 'Edit city'
-      : `Edit ${countryName(countryCode)}`
-    : kind === 'city'
-      ? 'Add a city'
-      : 'Add to your Passport';
 
   return (
     <div
@@ -127,7 +106,7 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/10">
           <h2 className="font-display text-lg font-semibold text-passport-navy dark:text-white/90">
-            {title}
+            {editing ? 'Edit discovery' : 'Record a discovery'}
           </h2>
           <button
             type="button"
@@ -140,45 +119,27 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
         </div>
 
         <div className="px-5 py-4 space-y-5">
-          {!initial.lockKind && !editing && (
-            <KindToggle kind={kind} onChange={setKind} />
-          )}
-
-          <Field label={kind === 'city' ? 'Country' : 'Country'}>
-            {initial.lockCountry || editing ? (
-              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/10 dark:border-white/10">
-                <span className="text-xl leading-none">
-                  {flagEmoji(countryCode)}
-                </span>
-                <span className="text-sm">{countryName(countryCode)}</span>
-              </div>
-            ) : (
-              <CountryPicker value={countryCode} onChange={setCountryCode} />
-            )}
+          <Field label="Name">
+            <input
+              autoFocus={!editing}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Belcanto"
+              className={inputClass}
+            />
           </Field>
 
-          {kind === 'city' && (
-            <Field label="City">
-              <input
-                value={cityName}
-                onChange={(e) => setCityName(e.target.value)}
-                placeholder="e.g. Lisbon"
-                className={inputClass}
-              />
-            </Field>
-          )}
-
-          <Field label="Your relationship">
+          <Field label="Category">
             <div className="flex flex-wrap gap-2">
-              {RELATIONSHIPS.map((r) => {
-                const Icon = RELATIONSHIP_ICON[r];
-                const active = relationships.has(r);
+              {DISCOVERY_CATEGORIES.map((c) => {
+                const Icon = CATEGORY_ICON[c];
+                const active = category === c;
                 return (
                   <button
-                    key={r}
+                    key={c}
                     type="button"
-                    onClick={() => toggleRel(r)}
-                    title={RELATIONSHIP_META[r].description}
+                    onClick={() => setCategory(c)}
+                    title={DISCOVERY_CATEGORY_META[c].hint}
                     className={cn(
                       'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors',
                       active
@@ -187,7 +148,7 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
                     )}
                   >
                     <Icon size={14} />
-                    {RELATIONSHIP_META[r].label}
+                    {DISCOVERY_CATEGORY_META[c].label}
                   </button>
                 );
               })}
@@ -195,25 +156,54 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="First discovered">
+            <Field label="Country">
+              <CountryPicker
+                value={countryCode}
+                onChange={setCountryCode}
+                placeholder="Optional"
+              />
+            </Field>
+            <Field label="City">
               <input
-                value={year}
-                onChange={(e) =>
-                  setYear(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))
-                }
-                inputMode="numeric"
-                placeholder="Year"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Optional"
                 className={inputClass}
               />
             </Field>
           </div>
+
+          <Field label="Your verdict">
+            <div className="flex flex-wrap gap-2">
+              {RECOMMENDATION_VERDICTS.map((v) => {
+                const active = verdict === v;
+                const style = VERDICT_STYLE[v];
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setVerdict(active ? undefined : v)}
+                    title={VERDICT_META[v].hint}
+                    className={cn(
+                      'px-3 py-1.5 rounded-full text-sm border transition-colors',
+                      active
+                        ? style.active
+                        : 'border-black/15 dark:border-white/15 text-black/70 dark:text-white/70 hover:border-passport-gold/60',
+                    )}
+                  >
+                    {VERDICT_META[v].label}
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
 
           <Field label="A detail worth remembering">
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={3}
-              placeholder="A meal, a view, a moment…"
+              placeholder="Why it stayed with you…"
               className={cn(inputClass, 'resize-none')}
             />
           </Field>
@@ -244,39 +234,10 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
             )}
           >
             <Check size={16} />
-            {busy ? 'Saving…' : editing ? 'Save' : 'Add to Passport'}
+            {busy ? 'Saving…' : editing ? 'Save' : 'Record discovery'}
           </button>
         </div>
       </div>
     </div>
   );
 }
-
-function KindToggle({
-  kind,
-  onChange,
-}: {
-  kind: PlaceKind;
-  onChange: (k: PlaceKind) => void;
-}) {
-  return (
-    <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-black/[0.04] dark:bg-white/[0.06]">
-      {(['country', 'city'] as PlaceKind[]).map((k) => (
-        <button
-          key={k}
-          type="button"
-          onClick={() => onChange(k)}
-          className={cn(
-            'py-2 rounded-lg text-sm font-medium capitalize transition-colors',
-            kind === k
-              ? 'bg-white dark:bg-passport-navy text-passport-navy dark:text-passport-goldsoft shadow-sm'
-              : 'text-black/55 dark:text-white/55',
-          )}
-        >
-          {k}
-        </button>
-      ))}
-    </div>
-  );
-}
-

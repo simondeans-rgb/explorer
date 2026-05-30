@@ -1,4 +1,14 @@
 import type { PassportStats } from './stats';
+import type { DiscoveryStats } from './discoveryStats';
+
+/** Discovery-derived counts needed by some Recognitions. Defaults to zero so
+ *  callers without Discoveries loaded still evaluate the Passport ones. */
+export type RecognitionContext = Pick<
+  DiscoveryStats,
+  'total' | 'restaurants'
+>;
+
+const NO_DISCOVERIES: RecognitionContext = { total: 0, restaurants: 0 };
 
 // Society Recognitions — meaningful milestones, never badges, achievements or
 // trophies (Brand Book §06/§07). The canonical six from the brand book. Two of
@@ -18,7 +28,7 @@ interface RecognitionDef {
   title: string;
   description: string;
   symbol: string;
-  test: (s: PassportStats) => boolean;
+  test: (s: PassportStats, d: RecognitionContext) => boolean;
 }
 
 const DEFS: RecognitionDef[] = [
@@ -48,14 +58,14 @@ const DEFS: RecognitionDef[] = [
     title: 'Culinary Explorer',
     description: 'Fifty restaurants discovered.',
     symbol: '◈',
-    test: () => false, // awaits the Discoveries area
+    test: (_s, d) => d.restaurants >= 50,
   },
   {
     id: 'master-cartographer',
     title: 'Master Cartographer',
     description: 'One hundred Discoveries mapped.',
     symbol: '⊗',
-    test: () => false, // awaits the Discoveries area
+    test: (_s, d) => d.total >= 100,
   },
   {
     id: 'society-laureate',
@@ -66,12 +76,15 @@ const DEFS: RecognitionDef[] = [
   },
 ];
 
-export function evaluateRecognitions(stats: PassportStats): Recognition[] {
+export function evaluateRecognitions(
+  stats: PassportStats,
+  discovery: RecognitionContext = NO_DISCOVERIES,
+): Recognition[] {
   return DEFS.map(({ id, title, description, symbol, test }) => ({
     id,
     title,
     description,
     symbol,
-    earned: test(stats),
+    earned: test(stats, discovery),
   }));
 }

@@ -34,9 +34,14 @@ The **Passport** — the heart of the product — is fully working:
   your Passport.
 - Everything syncs in real time across signed-in devices and works offline.
 
-**Expeditions** (trips & journeys) and **Discoveries** (restaurants, culture,
-recommendations) ship as framed previews — the data model and Firestore rules
-are already in place for them to grow into.
+**Discoveries** is live too — record restaurants, culture, accommodation,
+experiences and nature, attach them to the countries/cities in your Passport,
+and mark a recommendation verdict (Recommend, Hidden Gem, Worth Visiting,
+Overrated, Avoid). Discoveries feed your statistics and unlock the Culinary
+Explorer and Master Cartographer Recognitions.
+
+**Expeditions** (trips & journeys) ships as a framed preview — the data model
+and Firestore rules are already in place for it to grow into.
 
 ## Setup
 

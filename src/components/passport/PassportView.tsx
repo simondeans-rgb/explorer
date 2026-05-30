@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { MapPin, Plus } from 'lucide-react';
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
+import type { DiscoveryStats } from '../../lib/discoveryStats';
 import { evaluateRecognitions, type Recognition } from '../../lib/recognitions';
 import { flagEmoji } from '../../lib/flags';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,6 +16,7 @@ interface Props {
   userId: string;
   aggregates: CountryAggregate[];
   stats: PassportStats;
+  discoveryStats: DiscoveryStats;
   loading: boolean;
 }
 
@@ -49,7 +51,13 @@ function mrzLines(name: string, no: string): [string, string] {
   ];
 }
 
-export function PassportView({ userId, aggregates, stats, loading }: Props) {
+export function PassportView({
+  userId,
+  aggregates,
+  stats,
+  discoveryStats,
+  loading,
+}: Props) {
   const { user } = useAuth();
   const [modal, setModal] = useState<ModalInitial | null>(null);
 
@@ -67,7 +75,10 @@ export function PassportView({ userId, aggregates, stats, loading }: Props) {
     () => aggregates.filter((a) => a.aspiring),
     [aggregates],
   );
-  const recognitions = useMemo(() => evaluateRecognitions(stats), [stats]);
+  const recognitions = useMemo(
+    () => evaluateRecognitions(stats, discoveryStats),
+    [stats, discoveryStats],
+  );
   const earned = recognitions.filter((r) => r.earned);
 
   const memberSinceYear = useMemo(() => {
@@ -119,6 +130,7 @@ export function PassportView({ userId, aggregates, stats, loading }: Props) {
         no={memberNo(userId)}
         sinceYear={memberSinceYear}
         stats={stats}
+        discoveriesTotal={discoveryStats.total}
         recognitionsEarned={earned.length}
       />
 
@@ -210,21 +222,23 @@ function BioPage({
   no,
   sinceYear,
   stats,
+  discoveriesTotal,
   recognitionsEarned,
 }: {
   name: string;
   no: string;
   sinceYear: number | null;
   stats: PassportStats;
+  discoveriesTotal: number;
   recognitionsEarned: number;
 }) {
   const [mrz1, mrz2] = mrzLines(name, no);
   const figures: [string, number][] = [
     ['Countries', stats.countriesDiscovered],
     ['Cities', stats.citiesDiscovered],
+    ['Discoveries', discoveriesTotal],
     ['Continents', stats.continentsDiscovered],
     ['Lived In', stats.countriesLived],
-    ['Stamps', stats.totalStamps],
     ['Recognitions', recognitionsEarned],
   ];
 

@@ -14,6 +14,12 @@ import {
 } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../lib/firebase';
 import { seedDemoIfEmpty } from '../lib/localPlaces';
+import { seedDemoDiscoveriesIfEmpty } from '../lib/localDiscoveries';
+
+function seedDemo(uid: string) {
+  seedDemoIfEmpty(uid);
+  seedDemoDiscoveriesIfEmpty(uid);
+}
 
 /** Minimal session identity shared by Firebase auth and the local demo. */
 export interface SessionUser {
@@ -50,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!auth) {
       try {
         if (localStorage.getItem(DEMO_FLAG)) {
-          seedDemoIfEmpty(DEMO_USER.uid);
+          seedDemo(DEMO_USER.uid);
           setUser(DEMO_USER);
           setDemo(true);
         }
@@ -82,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await createUserWithEmailAndPassword(auth, email, password);
       },
       signInDemo: () => {
-        seedDemoIfEmpty(DEMO_USER.uid);
+        seedDemo(DEMO_USER.uid);
         try {
           localStorage.setItem(DEMO_FLAG, '1');
         } catch {
