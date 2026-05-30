@@ -40,8 +40,11 @@ and mark a recommendation verdict (Recommend, Hidden Gem, Worth Visiting,
 Overrated, Avoid). Discoveries feed your statistics and unlock the Culinary
 Explorer and Master Cartographer Recognitions.
 
-**Expeditions** (trips & journeys) ships as a framed preview — the data model
-and Firestore rules are already in place for it to grow into.
+**Expeditions** is live — log each trip with its dates, the countries it
+crossed, and the **journeys** within it (flights, rail, cruises, road trips,
+ferries). Attach Discoveries to an Expedition, and your journey counts feed the
+Almanac. The remaining areas from the brief (Friend Recommendations, printing,
+Travel DNA) build on the same foundation.
 
 ## Setup
 

@@ -2,15 +2,20 @@ import { useMemo, useState } from 'react';
 import { ScrollText } from 'lucide-react';
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
 import type { DiscoveryStats } from '../../lib/discoveryStats';
+import type { JourneyStats } from '../../lib/journeyStats';
 import { evaluateRecognitions } from '../../lib/recognitions';
 import { flagEmoji } from '../../lib/flags';
 import {
   CONTINENTS,
+  JOURNEY_MODES,
+  JOURNEY_MODE_META,
   type Continent,
   type Discovery,
+  type Expedition,
   type Place,
 } from '../../types';
 import { cn } from '../../lib/cn';
+import { JOURNEY_ICON } from '../expeditions/journeyIcons';
 
 interface Props {
   places: Place[];
@@ -18,6 +23,14 @@ interface Props {
   stats: PassportStats;
   discoveries: Discovery[];
   discoveryStats: DiscoveryStats;
+  expeditions: Expedition[];
+  journeyStats: JourneyStats;
+}
+
+function expeditionYear(e: Expedition): number {
+  return e.startDate
+    ? new Date(e.startDate).getFullYear()
+    : new Date(e.createdAt).getFullYear();
 }
 
 export function AlmanacView({
@@ -26,6 +39,8 @@ export function AlmanacView({
   stats,
   discoveries,
   discoveryStats,
+  expeditions,
+  journeyStats,
 }: Props) {
   const currentYear = new Date().getFullYear();
   const [edition, setEdition] = useState<'lifetime' | number>('lifetime');
@@ -34,8 +49,9 @@ export function AlmanacView({
     const set = new Set<number>();
     for (const p of places) if (p.firstYear) set.add(p.firstYear);
     for (const d of discoveries) set.add(new Date(d.createdAt).getFullYear());
+    for (const e of expeditions) set.add(expeditionYear(e));
     return [...set].sort((a, b) => b - a);
-  }, [places, discoveries]);
+  }, [places, discoveries, expeditions]);
 
   const discovered = aggregates.filter((a) => a.discovered);
   const byContinent = useMemo(() => {
@@ -55,6 +71,9 @@ export function AlmanacView({
     : [];
   const yearDiscoveries = yearView
     ? discoveries.filter((d) => new Date(d.createdAt).getFullYear() === edition)
+    : [];
+  const yearExpeditions = yearView
+    ? expeditions.filter((e) => expeditionYear(e) === edition)
     : [];
   const earned = evaluateRecognitions(stats, discoveryStats).filter(
     (r) => r.earned,
@@ -100,12 +119,45 @@ export function AlmanacView({
             items={[
               ['Countries discovered', stats.countriesDiscovered],
               ['Cities discovered', stats.citiesDiscovered],
+              ['Expeditions completed', expeditions.length],
               ['Discoveries made', discoveryStats.total],
               ['Continents reached', stats.continentsDiscovered],
-              ['Countries lived in', stats.countriesLived],
               ['Recognitions earned', earned.length],
             ]}
           />
+
+          {journeyStats.total > 0 && (
+            <section className="space-y-3">
+              <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
+                Journeys taken
+              </h2>
+              <div className="gold-rule w-24" />
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {JOURNEY_MODES.filter((m) => journeyStats.byMode[m] > 0).map(
+                  (m) => {
+                    const Icon = JOURNEY_ICON[m];
+                    return (
+                      <div
+                        key={m}
+                        className="rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 px-3 py-3 shadow-page text-center"
+                      >
+                        <Icon
+                          size={16}
+                          className="mx-auto text-passport-gold mb-1"
+                        />
+                        <div className="font-display text-2xl font-semibold text-passport-navy dark:text-passport-goldsoft leading-none">
+                          {journeyStats.byMode[m]}
+                        </div>
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-black/45 dark:text-white/45 mt-1">
+                          {JOURNEY_MODE_META[m].label}
+                        </div>
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+            </section>
+          )}
 
           <section className="space-y-3">
             <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
@@ -169,12 +221,36 @@ export function AlmanacView({
             The year {edition}
           </h2>
           <div className="gold-rule w-24" />
-          {yearPlaces.length === 0 && yearDiscoveries.length === 0 ? (
+          {yearPlaces.length === 0 &&
+          yearDiscoveries.length === 0 &&
+          yearExpeditions.length === 0 ? (
             <p className="text-sm text-black/50 dark:text-white/50">
               Nothing dated to this year yet.
             </p>
           ) : (
             <div className="space-y-4">
+              {yearExpeditions.length > 0 && (
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.16em] text-passport-fieldlabel mb-2">
+                    Expeditions of record
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {yearExpeditions.map((e) => (
+                      <span
+                        key={e.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10"
+                      >
+                        {e.countryCodes[0] && (
+                          <span className="text-base leading-none">
+                            {flagEmoji(e.countryCodes[0])}
+                          </span>
+                        )}
+                        {e.title}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
               {yearPlaces.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {yearPlaces.map((p) => (

@@ -36,6 +36,7 @@ function normalize(input: DiscoveryInput) {
     category: input.category,
     countryCode: input.countryCode || undefined,
     city: input.city?.trim() || undefined,
+    expeditionId: input.expeditionId || undefined,
     verdict: input.verdict || undefined,
     note: input.note?.trim() || undefined,
   };

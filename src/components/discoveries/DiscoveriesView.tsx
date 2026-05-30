@@ -8,6 +8,7 @@ import {
   VERDICT_META,
   type Discovery,
   type DiscoveryCategory,
+  type Expedition,
 } from '../../types';
 import { cn } from '../../lib/cn';
 import { AddDiscoveryModal, type DiscoveryModalInitial } from './AddDiscoveryModal';
@@ -17,12 +18,18 @@ import { VERDICT_STYLE } from './verdictStyle';
 interface Props {
   userId: string;
   discoveries: Discovery[];
+  expeditions: Expedition[];
   loading: boolean;
 }
 
 type Filter = DiscoveryCategory | 'all';
 
-export function DiscoveriesView({ userId, discoveries, loading }: Props) {
+export function DiscoveriesView({
+  userId,
+  discoveries,
+  expeditions,
+  loading,
+}: Props) {
   const [modal, setModal] = useState<DiscoveryModalInitial | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
 
@@ -108,6 +115,7 @@ export function DiscoveriesView({ userId, discoveries, loading }: Props) {
                     category: d.category,
                     countryCode: d.countryCode,
                     city: d.city,
+                    expeditionId: d.expeditionId,
                     verdict: d.verdict,
                     note: d.note,
                   })
@@ -122,6 +130,7 @@ export function DiscoveriesView({ userId, discoveries, loading }: Props) {
         <AddDiscoveryModal
           userId={userId}
           initial={modal}
+          expeditions={expeditions}
           onClose={() => setModal(null)}
         />
       )}

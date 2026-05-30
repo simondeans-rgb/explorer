@@ -17,6 +17,7 @@ interface Props {
   aggregates: CountryAggregate[];
   stats: PassportStats;
   discoveryStats: DiscoveryStats;
+  expeditionCount: number;
   loading: boolean;
 }
 
@@ -56,6 +57,7 @@ export function PassportView({
   aggregates,
   stats,
   discoveryStats,
+  expeditionCount,
   loading,
 }: Props) {
   const { user } = useAuth();
@@ -131,7 +133,7 @@ export function PassportView({
         sinceYear={memberSinceYear}
         stats={stats}
         discoveriesTotal={discoveryStats.total}
-        recognitionsEarned={earned.length}
+        expeditionCount={expeditionCount}
       />
 
       <div className="flex items-center justify-between">
@@ -223,23 +225,23 @@ function BioPage({
   sinceYear,
   stats,
   discoveriesTotal,
-  recognitionsEarned,
+  expeditionCount,
 }: {
   name: string;
   no: string;
   sinceYear: number | null;
   stats: PassportStats;
   discoveriesTotal: number;
-  recognitionsEarned: number;
+  expeditionCount: number;
 }) {
   const [mrz1, mrz2] = mrzLines(name, no);
   const figures: [string, number][] = [
     ['Countries', stats.countriesDiscovered],
     ['Cities', stats.citiesDiscovered],
     ['Discoveries', discoveriesTotal],
+    ['Expeditions', expeditionCount],
     ['Continents', stats.continentsDiscovered],
     ['Lived In', stats.countriesLived],
-    ['Recognitions', recognitionsEarned],
   ];
 
   return (

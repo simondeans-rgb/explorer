@@ -58,6 +58,7 @@ export interface DiscoveryInput {
   category: DiscoveryCategory;
   countryCode?: string;
   city?: string;
+  expeditionId?: string;
   verdict?: RecommendationVerdict;
   note?: string;
 }
@@ -69,6 +70,7 @@ function toDoc(input: DiscoveryInput) {
     category: input.category,
     countryCode: input.countryCode || null,
     city: input.city?.trim() || null,
+    expeditionId: input.expeditionId || null,
     verdict: input.verdict || null,
     note: input.note?.trim() || null,
   };
