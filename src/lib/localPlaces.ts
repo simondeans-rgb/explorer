@@ -44,6 +44,8 @@ function normalize(input: PlaceInput) {
     name: input.name.trim(),
     relationships: input.relationships,
     firstYear: year,
+    livedFrom: input.livedFrom || undefined,
+    livedTo: input.livedTo || undefined,
     note: input.note?.trim() ? input.note.trim() : undefined,
   };
 }

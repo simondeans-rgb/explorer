@@ -150,6 +150,9 @@ export interface Place {
   name: string;
   relationships: Relationship[];
   firstYear?: number;
+  /** Residence period (when `lived` is among the relationships). ISO dates. */
+  livedFrom?: string;
+  livedTo?: string;
   note?: string;
   createdAt: number;
   updatedAt: number;

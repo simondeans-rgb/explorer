@@ -21,6 +21,8 @@ export interface ModalInitial {
   name?: string;
   relationships?: Relationship[];
   firstYear?: number;
+  livedFrom?: string;
+  livedTo?: string;
   note?: string;
   lockKind?: boolean;
   lockCountry?: boolean;
@@ -45,6 +47,8 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
   const [year, setYear] = useState(
     initial.firstYear ? String(initial.firstYear) : '',
   );
+  const [livedFrom, setLivedFrom] = useState(initial.livedFrom ?? '');
+  const [livedTo, setLivedTo] = useState(initial.livedTo ?? '');
   const [note, setNote] = useState(initial.note ?? '');
   const [busy, setBusy] = useState(false);
 
@@ -74,6 +78,7 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
     if (!canSave || busy) return;
     setBusy(true);
     const parsedYear = year ? Number.parseInt(year, 10) : undefined;
+    const lived = relationships.has('lived');
     const input = {
       kind,
       countryCode,
@@ -81,6 +86,8 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
       relationships: [...relationships],
       firstYear:
         parsedYear && !Number.isNaN(parsedYear) ? parsedYear : undefined,
+      livedFrom: lived ? livedFrom || undefined : undefined,
+      livedTo: lived ? livedTo || undefined : undefined,
       note: note.trim() || undefined,
     };
     try {
@@ -193,6 +200,33 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
               })}
             </div>
           </Field>
+
+          {relationships.has('lived') && (
+            <div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Lived from">
+                  <input
+                    type="month"
+                    value={livedFrom}
+                    onChange={(e) => setLivedFrom(e.target.value)}
+                    className={inputClass}
+                  />
+                </Field>
+                <Field label="Lived until">
+                  <input
+                    type="month"
+                    value={livedTo}
+                    onChange={(e) => setLivedTo(e.target.value)}
+                    className={inputClass}
+                  />
+                </Field>
+              </div>
+              <p className="text-xs text-black/45 dark:text-white/45 mt-1.5">
+                Dates let the Flighty importer work out which trips were home and
+                which were away. Leave “until” empty if you live here now.
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="First discovered">

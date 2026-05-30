@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Compass, MapPinned, Plane, Plus } from 'lucide-react';
+import { Compass, MapPinned, Plane, Plus, RefreshCw } from 'lucide-react';
 import { countryName } from '../../data/countries';
 import { flagEmoji } from '../../lib/flags';
 import {
@@ -45,6 +45,15 @@ export function ExpeditionsView({
 }: Props) {
   const [modal, setModal] = useState<ExpeditionModalInitial | null>(null);
   const [importing, setImporting] = useState(false);
+  const [reevaluating, setReevaluating] = useState(false);
+
+  const hasImported = useMemo(
+    () =>
+      expeditions.some((e) =>
+        e.journeys.some((j) => j.id?.startsWith('fl_')),
+      ),
+    [expeditions],
+  );
 
   const sorted = useMemo(
     () =>
@@ -84,6 +93,16 @@ export function ExpeditionsView({
           {expeditions.length === 1 ? 'expedition' : 'expeditions'}
         </div>
         <div className="flex items-center gap-2">
+          {hasImported && (
+            <button
+              type="button"
+              onClick={() => setReevaluating(true)}
+              title="Rebuild imported trips from your residence history"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border border-black/15 dark:border-white/15 text-passport-navy dark:text-white/80 hover:border-passport-gold/60 active:scale-[0.98]"
+            >
+              <RefreshCw size={15} /> Re-evaluate
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setImporting(true)}
@@ -140,6 +159,16 @@ export function ExpeditionsView({
           places={places}
           expeditions={expeditions}
           onClose={() => setImporting(false)}
+        />
+      )}
+
+      {reevaluating && (
+        <ImportFlightyModal
+          userId={userId}
+          places={places}
+          expeditions={expeditions}
+          mode="reevaluate"
+          onClose={() => setReevaluating(false)}
         />
       )}
     </div>

@@ -2,8 +2,13 @@ import { airportInfo } from '../data/airports';
 import { countryName } from '../data/countries';
 import { DISCOVERY_RELATIONSHIPS, type Journey, type Relationship } from '../types';
 import type { Expedition, Place } from '../types';
-import { createExpedition, type ExpeditionInput } from './expeditions';
+import {
+  createExpedition,
+  deleteExpedition,
+  type ExpeditionInput,
+} from './expeditions';
 import { createPlace, updatePlace, type PlaceInput } from './places';
+import { homeOn, residenceTimeline } from './residences';
 
 // ── Airlines (ICAO code → name; falls back to the raw code) ────────────────
 const AIRLINES: Record<string, string> = {
@@ -222,6 +227,25 @@ export function buildImportPlan(
     }
   }
 
+  // Time-aware home, from the Member's residence history. When we know the home
+  // *city* on a date, trips are anchored to that city (returning to it ends a
+  // trip, so a domestic hop elsewhere becomes a trip). Otherwise we fall back to
+  // the home country — which keeps behaviour identical when no residence dates
+  // are set.
+  const timeline = residenceTimeline(existingPlaces);
+  const homeCountryAt = (date: string): string =>
+    homeOn(timeline, date)?.countryCode ?? homeCountry;
+  const homeCityAt = (date: string): string | undefined =>
+    homeOn(timeline, date)?.city;
+  const isAway = (iata: string, date: string): boolean => {
+    const info = airportInfo(iata);
+    if (!info) return false;
+    const city = homeCityAt(date);
+    return city ? info.city !== city : info.country !== homeCountryAt(date);
+  };
+  const atHome = (f: FlightyFlight): boolean =>
+    !!airportInfo(f.to) && !isAway(f.to, f.date);
+
   // Already-imported flights (idempotent re-import) — journeys we wrote carry
   // an `fl_<flightId>` id.
   const imported = new Set<string>();
@@ -232,11 +256,12 @@ export function buildImportPlan(
   const sorted = [...valid].sort((a, b) => ms(a.depAt) - ms(b.depAt));
 
   // Segment into trips. A trip ends after flight `f` when any of:
-  //  • home dwell — you landed back in the home country and the next flight is
-  //    more than a day later (a connection through home stays in the trip);
+  //  • home dwell — you landed back at home (your home city on that date, or
+  //    home country if the city is unknown) and didn't immediately fly on. The
+  //    threshold is short (6h) once a home city is known, so landing home ends
+  //    the trip even if you fly onward the same week;
   //  • discontinuity — the next flight departs a different country than the one
-  //    you just landed in, with a multi-day gap (a return leg wasn't logged, so
-  //    you didn't actually fly from where the data claims);
+  //    you just landed in, with a multi-day gap (a return leg wasn't logged);
   //  • a very long gap regardless, as a safety net for missing legs.
   const segments: FlightyFlight[][] = [];
   let cur: FlightyFlight[] = [];
@@ -252,7 +277,8 @@ export function buildImportPlan(
     const arrCountry = airportInfo(f.to)?.country;
     const nextDepCountry = airportInfo(next.from)?.country;
     const gap = gapHours(f.arrAt, next.depAt);
-    const homeDwell = arrCountry === homeCountry && gap > 24;
+    const homeThreshold = homeCityAt(f.date) ? 6 : 24;
+    const homeDwell = atHome(f) && gap > homeThreshold;
     const discontinuity =
       !!arrCountry &&
       !!nextDepCountry &&
@@ -274,34 +300,32 @@ export function buildImportPlan(
     const fresh = seg.filter((f) => !imported.has(`fl_${f.id}`));
     if (fresh.length === 0) continue;
 
-    const foreignCountries = [
-      ...new Set(
-        fresh
-          .flatMap((f) => [airportInfo(f.from)?.country, airportInfo(f.to)?.country])
-          .filter((c): c is string => Boolean(c) && c !== homeCountry),
-      ),
-    ];
+    // Airports that were away from home (city-aware), with their cities and
+    // countries, in order — these define the destinations and the title.
+    const awayCities: string[] = [];
+    const awayCountries: string[] = [];
+    for (const f of fresh) {
+      for (const iata of [f.from, f.to]) {
+        if (!isAway(iata, f.date)) continue;
+        const info = airportInfo(iata);
+        if (!info) continue;
+        awayCities.push(info.city);
+        awayCountries.push(info.country);
+      }
+    }
 
-    if (foreignCountries.length === 0) {
-      // Domestic / home-country movement — bucket by year.
+    if (awayCities.length === 0) {
+      // Never left home — bucket by year.
       const y = yearOf(fresh[0].date);
       domesticByYear.set(y, [...(domesticByYear.get(y) ?? []), ...fresh]);
       continue;
     }
 
-    // Destinations = every foreign city touched (departure or arrival), in
-    // order — so a return leg like Amsterdam→London still titles "Amsterdam".
-    const cities = fresh
-      .flatMap((f) => [f.from, f.to])
-      .map((iata) => airportInfo(iata))
-      .filter((i) => i && i.country !== homeCountry)
-      .map((i) => i!.city);
-
     expeditions.push({
-      title: destinationTitle(cities),
+      title: destinationTitle(awayCities),
       startDate: fresh[0].date,
       endDate: fresh[fresh.length - 1].date,
-      countryCodes: foreignCountries,
+      countryCodes: [...new Set(awayCountries)],
       journeys: fresh.map(toJourney),
       note: 'Imported from Flighty.',
     });
@@ -451,6 +475,65 @@ export function buildImportPlan(
 export interface ImportResult {
   total: number;
   failed: number;
+}
+
+// ── Re-evaluation ────────────────────────────────────────────────────────
+// Reconstruct flights from previously-imported expeditions so trips can be
+// re-segmented when residence history changes.
+function iataFromLabel(label?: string): string {
+  if (!label) return '';
+  const m = label.match(/\(([A-Z]{3})\)/);
+  return (m ? m[1] : label.trim()).toUpperCase();
+}
+
+export interface Reconstructed {
+  flights: FlightyFlight[];
+  expeditionIds: string[];
+}
+
+export function flightsFromExpeditions(
+  expeditions: Expedition[],
+): Reconstructed {
+  const flights: FlightyFlight[] = [];
+  const expeditionIds: string[] = [];
+  for (const e of expeditions) {
+    const flightJourneys = e.journeys.filter(
+      (j) => j.mode === 'flight' && j.id?.startsWith('fl_'),
+    );
+    if (flightJourneys.length === 0) continue;
+    expeditionIds.push(e.id);
+    for (const j of flightJourneys) {
+      const from = iataFromLabel(j.from);
+      const to = iataFromLabel(j.to);
+      const date = j.date || e.startDate || '';
+      if (from.length !== 3 || to.length !== 3 || !date) continue;
+      const ref = (j.reference ?? '').trim();
+      const sp = ref.indexOf(' ');
+      flights.push({
+        id: j.id.slice(3),
+        date,
+        depAt: `${date}T00:00`,
+        arrAt: `${date}T00:00`,
+        airline: sp > 0 ? ref.slice(0, sp) : ref,
+        flightNo: sp > 0 ? ref.slice(sp + 1) : '',
+        from,
+        to,
+        cabin: j.seat,
+        canceled: false,
+      });
+    }
+  }
+  return { flights, expeditionIds };
+}
+
+export async function deleteExpeditions(ids: string[]): Promise<void> {
+  for (const id of ids) {
+    try {
+      await deleteExpedition(id);
+    } catch {
+      /* keep going */
+    }
+  }
 }
 
 export async function applyImportPlan(

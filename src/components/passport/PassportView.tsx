@@ -41,6 +41,16 @@ function memberNo(uid: string): string {
   return String(hashOf(uid || 'guest') % 1_000_000).padStart(6, '0');
 }
 
+const MONTHS = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+function formatMonth(iso: string): string {
+  const [y, m] = iso.split('-');
+  const mi = m ? Number(m) - 1 : -1;
+  return mi >= 0 && mi < 12 ? `${MONTHS[mi]} ${y}` : y;
+}
+
 function pad(s: string, n: number): string {
   return (s + '<'.repeat(n)).slice(0, n);
 }
@@ -102,6 +112,8 @@ export function PassportView({
       name: a.name,
       relationships: a.countryPlace?.relationships,
       firstYear: a.countryPlace?.firstYear,
+      livedFrom: a.countryPlace?.livedFrom,
+      livedTo: a.countryPlace?.livedTo,
       note: a.countryPlace?.note,
       lockCountry: true,
     });
@@ -119,6 +131,8 @@ export function PassportView({
       name: place.name,
       relationships: place.relationships,
       firstYear: place.firstYear,
+      livedFrom: place.livedFrom,
+      livedTo: place.livedTo,
       note: place.note,
       lockKind: true,
       lockCountry: true,
@@ -470,6 +484,19 @@ function CountryCard({
                 );
               })}
           </div>
+          {(() => {
+            const residences = [agg.countryPlace, ...agg.cities]
+              .filter((p): p is Place => Boolean(p?.livedFrom))
+              .map(
+                (p) =>
+                  `${p.name} (${formatMonth(p.livedFrom!)}–${p.livedTo ? formatMonth(p.livedTo) : 'now'})`,
+              );
+            return residences.length ? (
+              <div className="mt-1.5 text-[11px] text-passport-ink3 dark:text-white/45">
+                Lived: {residences.join(', ')}
+              </div>
+            ) : null;
+          })()}
         </button>
         <DiscoveryRing score={agg.discoveryScore} />
       </div>
