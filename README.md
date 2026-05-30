@@ -58,6 +58,15 @@ published.)
 every relationship), journeys (by mode), and discoveries (by category) —
 computed live from your Passport.
 
+**The AI Travel Historian** (in the Almanac) composes a written narrative of
+your travels — lifetime or for a chosen year — from the record of your
+Passport, streamed live in the Society's voice. It runs through a server-side
+Vercel Edge function (`api/historian.ts`) using the Claude API, so the API key
+stays off the client. Set **`ANTHROPIC_API_KEY`** in your Vercel project
+(Environment Variables) to enable it; without it the feature reports that it
+isn't configured. It requires the deployed app (or `vercel dev`) — a plain
+`npm run dev` won't serve the `/api` function.
+
 > **Upgrading an existing project?** The Friends feature changed the Firestore
 > rules (new `profiles`, `codes`, `connections` collections and friend reads).
 > Re-paste [`firestore.rules`](firestore.rules) into the Firebase console and

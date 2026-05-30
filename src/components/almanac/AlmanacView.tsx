@@ -15,7 +15,9 @@ import {
   type Place,
 } from '../../types';
 import { cn } from '../../lib/cn';
+import { buildHistorianContext } from '../../lib/historian';
 import { JOURNEY_ICON } from '../expeditions/journeyIcons';
+import { TravelHistorian } from './TravelHistorian';
 
 interface Props {
   places: Place[];
@@ -25,6 +27,7 @@ interface Props {
   discoveryStats: DiscoveryStats;
   expeditions: Expedition[];
   journeyStats: JourneyStats;
+  memberName: string;
 }
 
 function expeditionYear(e: Expedition): number {
@@ -41,6 +44,7 @@ export function AlmanacView({
   discoveryStats,
   expeditions,
   journeyStats,
+  memberName,
 }: Props) {
   const currentYear = new Date().getFullYear();
   const [edition, setEdition] = useState<'lifetime' | number>('lifetime');
@@ -79,6 +83,19 @@ export function AlmanacView({
     (r) => r.earned,
   );
 
+  const historianContext = useMemo(
+    () =>
+      buildHistorianContext({
+        memberName,
+        scope: edition,
+        aggregates,
+        discoveries,
+        expeditions,
+        stats,
+      }),
+    [memberName, edition, aggregates, discoveries, expeditions, stats],
+  );
+
   return (
     <div className="animate-fade-in space-y-7">
       <div className="text-center">
@@ -112,6 +129,12 @@ export function AlmanacView({
           />
         ))}
       </div>
+
+      <TravelHistorian
+        key={String(edition)}
+        context={historianContext}
+        scopeLabel={yearView ? `${edition} story` : 'lifetime story'}
+      />
 
       {!yearView ? (
         <>

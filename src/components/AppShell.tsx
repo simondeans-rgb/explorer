@@ -146,6 +146,7 @@ export function AppShell() {
               discoveryStats={discoveryStats}
               expeditions={expeditions}
               journeyStats={journeyStats}
+              memberName={myName}
             />
           )}
         </div>
