@@ -43,8 +43,18 @@ Explorer and Master Cartographer Recognitions.
 **Expeditions** is live — log each trip with its dates, the countries it
 crossed, and the **journeys** within it (flights, rail, cruises, road trips,
 ferries). Attach Discoveries to an Expedition, and your journey counts feed the
-Almanac. The remaining areas from the brief (Friend Recommendations, printing,
-Travel DNA) build on the same foundation.
+Almanac.
+
+**Friend Recommendations** is live — connect with fellow Members by share code,
+and on any country you'll see which friends have visited or lived there and the
+discoveries they recommend. Friends get read-only access to your Passport and
+Discoveries once a connection is accepted. (This needs a real account, not the
+demo, and the latest [`firestore.rules`](firestore.rules) published.)
+
+> **Upgrading an existing project?** The Friends feature changed the Firestore
+> rules (new `profiles`, `codes`, `connections` collections and friend reads).
+> Re-paste [`firestore.rules`](firestore.rules) into the Firebase console and
+> publish, or connecting will be denied.
 
 ## Setup
 

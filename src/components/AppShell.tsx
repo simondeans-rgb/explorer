@@ -8,32 +8,46 @@ import {
   Moon,
   ScrollText,
   Sun,
+  Users,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePlaces } from '../hooks/usePlaces';
 import { useDiscoveries } from '../hooks/useDiscoveries';
 import { useExpeditions } from '../hooks/useExpeditions';
+import { useConnections } from '../hooks/useConnections';
+import { useProfile } from '../hooks/useProfile';
+import { useFriendsData } from '../hooks/useFriendsData';
 import { aggregateByCountry, computeStats } from '../lib/stats';
 import { computeDiscoveryStats } from '../lib/discoveryStats';
 import { computeJourneyStats } from '../lib/journeyStats';
+import { acceptedFriends, friendsByCountry } from '../lib/friends';
+import { memberName } from '../lib/memberName';
 import { cn } from '../lib/cn';
 import { PassportView } from './passport/PassportView';
 import { AlmanacView } from './almanac/AlmanacView';
 import { ExpeditionsView } from './expeditions/ExpeditionsView';
 import { DiscoveriesView } from './discoveries/DiscoveriesView';
+import { FriendsView } from './friends/FriendsView';
 
-type Section = 'passport' | 'expeditions' | 'discoveries' | 'almanac';
+type Section =
+  | 'passport'
+  | 'expeditions'
+  | 'discoveries'
+  | 'friends'
+  | 'almanac';
 
 const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
   { id: 'passport', label: 'Passport', icon: BookMarked },
   { id: 'expeditions', label: 'Expeditions', icon: MapPinned },
   { id: 'discoveries', label: 'Discoveries', icon: Compass },
+  { id: 'friends', label: 'Friends', icon: Users },
   { id: 'almanac', label: 'Almanac', icon: ScrollText },
 ];
 
 export function AppShell() {
-  const { user } = useAuth();
+  const { user, demo } = useAuth();
+  const myName = memberName(user?.email ?? '');
   const { places, loading } = usePlaces(user?.uid);
   const { discoveries, loading: discoveriesLoading } = useDiscoveries(
     user?.uid,
@@ -41,6 +55,8 @@ export function AppShell() {
   const { expeditions, loading: expeditionsLoading } = useExpeditions(
     user?.uid,
   );
+  const { connections } = useConnections(user?.uid);
+  const profile = useProfile(user?.uid, myName);
   const [section, setSection] = useState<Section>('passport');
 
   const aggregates = useMemo(() => aggregateByCountry(places), [places]);
@@ -52,6 +68,17 @@ export function AppShell() {
   const journeyStats = useMemo(
     () => computeJourneyStats(expeditions),
     [expeditions],
+  );
+
+  const friends = useMemo(
+    () => acceptedFriends(connections, user?.uid ?? ''),
+    [connections, user?.uid],
+  );
+  const friendUids = useMemo(() => friends.map((f) => f.uid), [friends]);
+  const friendsData = useFriendsData(friendUids);
+  const friendCountryMap = useMemo(
+    () => friendsByCountry(friends, friendsData.places, friendsData.discoveries),
+    [friends, friendsData],
   );
 
   return (
@@ -67,6 +94,7 @@ export function AppShell() {
               stats={stats}
               discoveryStats={discoveryStats}
               expeditionCount={expeditions.length}
+              friendCountryMap={friendCountryMap}
               loading={loading}
             />
           )}
@@ -84,6 +112,15 @@ export function AppShell() {
               discoveries={discoveries}
               expeditions={expeditions}
               loading={discoveriesLoading}
+            />
+          )}
+          {section === 'friends' && (
+            <FriendsView
+              userId={user?.uid ?? ''}
+              myName={myName}
+              code={profile?.code ?? null}
+              connections={connections}
+              demo={demo}
             />
           )}
           {section === 'almanac' && (

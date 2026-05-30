@@ -1,11 +1,18 @@
 import { useMemo, useState } from 'react';
-import { MapPin, Plus } from 'lucide-react';
+import { MapPin, Plus, Users } from 'lucide-react';
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
 import type { DiscoveryStats } from '../../lib/discoveryStats';
 import { evaluateRecognitions, type Recognition } from '../../lib/recognitions';
 import { flagEmoji } from '../../lib/flags';
 import { useAuth } from '../../contexts/AuthContext';
-import { RELATIONSHIP_META, type Place, type Relationship } from '../../types';
+import {
+  RELATIONSHIP_META,
+  VERDICT_META,
+  type Place,
+  type Relationship,
+} from '../../types';
+import type { FriendPresence } from '../../lib/friends';
+import { memberName } from '../../lib/memberName';
 import { AddPlaceModal, type ModalInitial } from './AddPlaceModal';
 import { DiscoveryRing } from './DiscoveryRing';
 import { Stamp } from './Stamp';
@@ -18,6 +25,7 @@ interface Props {
   stats: PassportStats;
   discoveryStats: DiscoveryStats;
   expeditionCount: number;
+  friendCountryMap: Map<string, FriendPresence[]>;
   loading: boolean;
 }
 
@@ -29,15 +37,6 @@ function hashOf(s: string): number {
 
 function memberNo(uid: string): string {
   return String(hashOf(uid || 'guest') % 1_000_000).padStart(6, '0');
-}
-
-function displayName(email: string): string {
-  const local = (email.split('@')[0] || 'Explorer').replace(/[._-]+/g, ' ');
-  return local
-    .split(' ')
-    .filter(Boolean)
-    .map((w) => w[0].toUpperCase() + w.slice(1))
-    .join(' ');
 }
 
 function pad(s: string, n: number): string {
@@ -58,6 +57,7 @@ export function PassportView({
   stats,
   discoveryStats,
   expeditionCount,
+  friendCountryMap,
   loading,
 }: Props) {
   const { user } = useAuth();
@@ -128,7 +128,7 @@ export function PassportView({
   return (
     <div className="animate-fade-in space-y-8">
       <BioPage
-        name={displayName(user?.email ?? '')}
+        name={memberName(user?.email ?? '')}
         no={memberNo(userId)}
         sinceYear={memberSinceYear}
         stats={stats}
@@ -167,6 +167,7 @@ export function PassportView({
             <CountryCard
               key={a.code}
               agg={a}
+              friendsHere={friendCountryMap.get(a.code) ?? []}
               onEdit={() => editCountry(a)}
               onAddCity={() => addCity(a)}
               onEditCity={editCity}
@@ -405,11 +406,13 @@ function FlagWall({
 
 function CountryCard({
   agg,
+  friendsHere,
   onEdit,
   onAddCity,
   onEditCity,
 }: {
   agg: CountryAggregate;
+  friendsHere: FriendPresence[];
   onEdit: () => void;
   onAddCity: () => void;
   onEditCity: (place: Place) => void;
@@ -491,6 +494,55 @@ function CountryCard({
         >
           <Plus size={11} /> City
         </button>
+      </div>
+
+      {friendsHere.length > 0 && <FriendsHere friends={friendsHere} />}
+    </div>
+  );
+}
+
+function FriendsHere({ friends }: { friends: FriendPresence[] }) {
+  return (
+    <div className="mt-4 pt-3 border-t border-black/10 dark:border-white/10">
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-passport-gold mb-2">
+        <Users size={12} /> Friends who&rsquo;ve been here
+      </div>
+      <div className="space-y-2">
+        {friends.map((f) => {
+          const rels = f.relationships
+            .map((r) => RELATIONSHIP_META[r].label)
+            .join(' · ');
+          return (
+            <div key={f.uid} className="text-sm">
+              <span className="font-medium text-passport-navy dark:text-white/90 capitalize">
+                {f.name}
+              </span>
+              {rels && (
+                <span className="text-passport-ink3 dark:text-white/45">
+                  {' '}
+                  — {rels.toLowerCase()}
+                </span>
+              )}
+              {f.discoveries.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {f.discoveries.map((d, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-passport-gold/10 text-passport-ink2 dark:text-white/65 border border-passport-gold/30"
+                    >
+                      {d.name}
+                      {d.verdict && (
+                        <span className="text-passport-gold">
+                          · {VERDICT_META[d.verdict].label}
+                        </span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
