@@ -66,6 +66,15 @@ It runs entirely client-side, merges into existing places, is safe to re-run
 (flights already imported are skipped), and shows a preview with an advisory
 that non-flight travel and unlogged flights must be added manually.
 
+**Residence history makes trips smarter.** When you mark a place as *lived*, you
+can record the dates you lived there. The importer uses this **home timeline**:
+a flight home to the city you lived in at the time ends a trip, so a domestic
+hop somewhere else becomes a proper trip — and as your home changes over the
+years, trip boundaries follow it. If you correct your residence history later,
+**Re-evaluate** (in Expeditions) rebuilds your imported trips from their flights
+against the updated timeline. With no residence dates set, trips fall back to
+home-country segmentation.
+
 **The AI Travel Historian** (in the Almanac) composes a written narrative of
 your travels — lifetime or for a chosen year — from the record of your
 Passport, streamed live in the Society's voice. It runs through a server-side

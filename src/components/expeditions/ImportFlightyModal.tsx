@@ -4,6 +4,8 @@ import { flagEmoji } from '../../lib/flags';
 import {
   applyImportPlan,
   buildImportPlan,
+  deleteExpeditions,
+  flightsFromExpeditions,
   parseFlightyCsv,
   type ImportPlan,
 } from '../../lib/flightyImport';
@@ -14,6 +16,7 @@ interface Props {
   userId: string;
   places: Place[];
   expeditions: Expedition[];
+  mode?: 'file' | 'reevaluate';
   onClose: () => void;
 }
 
@@ -23,9 +26,12 @@ export function ImportFlightyModal({
   userId,
   places,
   expeditions,
+  mode = 'file',
   onClose,
 }: Props) {
-  const [stage, setStage] = useState<Stage>('pick');
+  const reevaluate = mode === 'reevaluate';
+  const [stage, setStage] = useState<Stage>(reevaluate ? 'preview' : 'pick');
+  const [replaceIds, setReplaceIds] = useState<string[]>([]);
   const [plan, setPlan] = useState<ImportPlan | null>(null);
   const [error, setError] = useState('');
   const [failed, setFailed] = useState(0);
@@ -39,6 +45,20 @@ export function ImportFlightyModal({
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose, stage]);
+
+  // Re-evaluate mode: rebuild trips from the flights already imported, using
+  // the current residence history. Nothing is written until the user confirms.
+  useEffect(() => {
+    if (!reevaluate) return;
+    const { flights, expeditionIds } = flightsFromExpeditions(expeditions);
+    if (flights.length === 0) {
+      setError('No imported flights found to re-evaluate.');
+      return;
+    }
+    setReplaceIds(expeditionIds);
+    setPlan(buildImportPlan(flights, places, []));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function onFile(file: File) {
     setError('');
@@ -65,13 +85,20 @@ export function ImportFlightyModal({
     setStage('importing');
     setProgress({ done: 0, total: 0 });
     try {
+      // In re-evaluate mode, remove the old imported trips first so they're
+      // replaced rather than duplicated.
+      if (reevaluate && replaceIds.length) await deleteExpeditions(replaceIds);
       const result = await applyImportPlan(userId, plan, (done, total) =>
         setProgress({ done, total }),
       );
       setFailed(result.failed);
       setStage('done');
     } catch {
-      setError('The import couldn’t be completed. Please try again.');
+      setError(
+        reevaluate
+          ? 'Re-evaluation couldn’t be completed. Please try again.'
+          : 'The import couldn’t be completed. Please try again.',
+      );
       setStage('preview');
     }
   }
@@ -96,7 +123,7 @@ export function ImportFlightyModal({
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/10">
           <h2 className="font-display text-lg font-semibold text-passport-navy dark:text-white/90">
-            Import from Flighty
+            {reevaluate ? 'Re-evaluate trips' : 'Import from Flighty'}
           </h2>
           <button
             type="button"
@@ -158,6 +185,13 @@ export function ImportFlightyModal({
                 </p>
               ) : (
                 <>
+                  {reevaluate && (
+                    <p className="text-sm text-black/60 dark:text-white/60">
+                      Your {plan.expeditions.length} imported trips, rebuilt from
+                      your flights using your current residence history.
+                      Confirming replaces the existing imported trips.
+                    </p>
+                  )}
                   <div className="grid grid-cols-4 gap-2 text-center">
                     <Stat n={plan.stats.newFlights} label="Flights" />
                     <Stat n={plan.expeditions.length} label="Trips" />
@@ -298,7 +332,10 @@ export function ImportFlightyModal({
                     'hover:opacity-90 disabled:opacity-40',
                   )}
                 >
-                  <Check size={16} /> Import {plan?.stats.newFlights} flights
+                  <Check size={16} />{' '}
+                  {reevaluate
+                    ? `Replace with ${plan?.expeditions.length} trips`
+                    : `Import ${plan?.stats.newFlights} flights`}
                 </button>
               </>
             ) : (

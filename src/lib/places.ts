@@ -38,6 +38,8 @@ export function subscribePlaces(
         relationships: (data.relationships ?? []) as Relationship[],
         firstYear:
           typeof data.firstYear === 'number' ? data.firstYear : undefined,
+        livedFrom: data.livedFrom || undefined,
+        livedTo: data.livedTo || undefined,
         note: data.note || undefined,
         createdAt: millis(data.createdAt),
         updatedAt: millis(data.updatedAt),
@@ -53,6 +55,8 @@ export interface PlaceInput {
   name: string;
   relationships: Relationship[];
   firstYear?: number;
+  livedFrom?: string;
+  livedTo?: string;
   note?: string;
 }
 
@@ -69,6 +73,8 @@ function toDoc(input: PlaceInput) {
   } else {
     out.firstYear = null;
   }
+  out.livedFrom = input.livedFrom || null;
+  out.livedTo = input.livedTo || null;
   out.note = input.note?.trim() ? input.note.trim() : null;
   return out;
 }
