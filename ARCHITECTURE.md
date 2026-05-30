@@ -287,6 +287,14 @@ The foundation is deliberately shaped so each area is additive:
   […]`), and `friendsByCountry` powers the "friends who've been here" panel on
   each country. Expeditions stay private. Requires real Firebase (not the
   local demo).
+- **Flighty import** *(shipped)*: `lib/flightyImport.ts` parses a Flighty CSV
+  client-side, infers the home country, and segments flights into trips —
+  bounded by returns home, splitting on cross-country discontinuities with a
+  multi-day gap (so an unlogged return leg doesn't merge two trips). Each trip
+  becomes an Expedition of flight Journeys; remaining domestic flights bucket
+  by year. Every airport's city/country is marked visited (earliest year),
+  merging into existing places. Journey ids carry the Flighty flight id, making
+  re-import idempotent. `data/airports.ts` maps IATA → city + country.
 - **AI Travel Historian** *(shipped)*: a Vercel Edge function
   (`api/historian.ts`) calls Google's Gemini API (`gemini-2.5-flash`, streaming
   via the REST `streamGenerateContent` endpoint, transformed to a plain-text

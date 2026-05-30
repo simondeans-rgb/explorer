@@ -107,6 +107,7 @@ export function AppShell() {
               userId={user?.uid ?? ''}
               expeditions={expeditions}
               discoveries={discoveries}
+              places={places}
               loading={expeditionsLoading}
             />
           )}

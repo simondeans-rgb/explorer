@@ -1,19 +1,22 @@
 import { useMemo, useState } from 'react';
-import { Compass, MapPinned, Plus } from 'lucide-react';
+import { Compass, MapPinned, Plane, Plus } from 'lucide-react';
 import { countryName } from '../../data/countries';
 import { flagEmoji } from '../../lib/flags';
 import {
   JOURNEY_MODE_META,
   type Discovery,
   type Expedition,
+  type Place,
 } from '../../types';
 import { AddExpeditionModal, type ExpeditionModalInitial } from './AddExpeditionModal';
+import { ImportFlightyModal } from './ImportFlightyModal';
 import { JOURNEY_ICON } from './journeyIcons';
 
 interface Props {
   userId: string;
   expeditions: Expedition[];
   discoveries: Discovery[];
+  places: Place[];
   loading: boolean;
 }
 
@@ -37,9 +40,11 @@ export function ExpeditionsView({
   userId,
   expeditions,
   discoveries,
+  places,
   loading,
 }: Props) {
   const [modal, setModal] = useState<ExpeditionModalInitial | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const sorted = useMemo(
     () =>
@@ -78,13 +83,22 @@ export function ExpeditionsView({
           {expeditions.length}{' '}
           {expeditions.length === 1 ? 'expedition' : 'expeditions'}
         </div>
-        <button
-          type="button"
-          onClick={() => setModal({})}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-passport-navy text-passport-parchment hover:opacity-90 active:scale-[0.98]"
-        >
-          <Plus size={15} /> New
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setImporting(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border border-black/15 dark:border-white/15 text-passport-navy dark:text-white/80 hover:border-passport-gold/60 active:scale-[0.98]"
+          >
+            <Plane size={15} /> Import
+          </button>
+          <button
+            type="button"
+            onClick={() => setModal({})}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-passport-navy text-passport-parchment hover:opacity-90 active:scale-[0.98]"
+          >
+            <Plus size={15} /> New
+          </button>
+        </div>
       </div>
 
       {isEmpty ? (
@@ -117,6 +131,15 @@ export function ExpeditionsView({
           userId={userId}
           initial={modal}
           onClose={() => setModal(null)}
+        />
+      )}
+
+      {importing && (
+        <ImportFlightyModal
+          userId={userId}
+          places={places}
+          expeditions={expeditions}
+          onClose={() => setImporting(false)}
         />
       )}
     </div>
