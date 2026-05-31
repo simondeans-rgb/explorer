@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ScrollText } from 'lucide-react';
+import { ScrollText, type LucideIcon } from 'lucide-react';
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
 import type { DiscoveryStats } from '../../lib/discoveryStats';
 import type { JourneyStats } from '../../lib/journeyStats';
@@ -9,14 +9,19 @@ import {
   CONTINENTS,
   JOURNEY_MODES,
   JOURNEY_MODE_META,
+  RELATIONSHIPS,
+  RELATIONSHIP_META,
   type Continent,
   type Discovery,
   type Expedition,
   type Place,
+  type Relationship,
 } from '../../types';
 import { cn } from '../../lib/cn';
 import { buildHistorianContext } from '../../lib/historian';
 import { JOURNEY_ICON } from '../expeditions/journeyIcons';
+import { RELATIONSHIP_ICON } from '../passport/relationshipIcons';
+import { CATEGORY_ICON } from '../discoveries/categoryIcons';
 import { TravelHistorian } from './TravelHistorian';
 
 interface Props {
@@ -56,6 +61,18 @@ export function AlmanacView({
     for (const e of expeditions) set.add(expeditionYear(e));
     return [...set].sort((a, b) => b - a);
   }, [places, discoveries, expeditions]);
+
+  const relationshipCounts = useMemo(() => {
+    const counts = {} as Record<Relationship, number>;
+    for (const r of RELATIONSHIPS) {
+      counts[r] =
+        r === 'aspiring'
+          ? aggregates.filter((a) => a.aspiring).length
+          : aggregates.filter((a) => a.discovered && a.relationships.includes(r))
+              .length;
+    }
+    return counts;
+  }, [aggregates]);
 
   const discovered = aggregates.filter((a) => a.discovered);
   const byContinent = useMemo(() => {
@@ -149,6 +166,23 @@ export function AlmanacView({
             ]}
           />
 
+          <section className="space-y-3">
+            <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
+              Relationships with places
+            </h2>
+            <div className="gold-rule w-24" />
+            <StatGrid>
+              {RELATIONSHIPS.map((r) => (
+                <Stat
+                  key={r}
+                  value={relationshipCounts[r]}
+                  label={RELATIONSHIP_META[r].label}
+                  icon={RELATIONSHIP_ICON[r]}
+                />
+              ))}
+            </StatGrid>
+          </section>
+
           {journeyStats.total > 0 && (
             <section className="space-y-3">
               <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
@@ -179,6 +213,47 @@ export function AlmanacView({
                   },
                 )}
               </div>
+            </section>
+          )}
+
+          {discoveryStats.total > 0 && (
+            <section className="space-y-3">
+              <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
+                Discoveries
+              </h2>
+              <div className="gold-rule w-24" />
+              <StatGrid>
+                <Stat value={discoveryStats.total} label="Total" />
+                <Stat
+                  value={discoveryStats.recommended}
+                  label="Recommended"
+                />
+                <Stat
+                  value={discoveryStats.byCategory.food}
+                  label="Food & Drink"
+                  icon={CATEGORY_ICON.food}
+                />
+                <Stat
+                  value={discoveryStats.byCategory.accommodation}
+                  label="Stays"
+                  icon={CATEGORY_ICON.accommodation}
+                />
+                <Stat
+                  value={discoveryStats.byCategory.culture}
+                  label="Culture"
+                  icon={CATEGORY_ICON.culture}
+                />
+                <Stat
+                  value={discoveryStats.byCategory.experience}
+                  label="Experiences"
+                  icon={CATEGORY_ICON.experience}
+                />
+                <Stat
+                  value={discoveryStats.byCategory.nature}
+                  label="Nature"
+                  icon={CATEGORY_ICON.nature}
+                />
+              </StatGrid>
             </section>
           )}
 
@@ -345,6 +420,34 @@ function EditionChip({
     >
       {label}
     </button>
+  );
+}
+
+function StatGrid({ children }: { children: React.ReactNode }) {
+  return <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">{children}</div>;
+}
+
+function Stat({
+  value,
+  label,
+  icon: Icon,
+}: {
+  value: number;
+  label: string;
+  icon?: LucideIcon;
+}) {
+  return (
+    <div className="min-w-0 rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 px-2 py-3 text-center shadow-page">
+      {Icon && (
+        <Icon size={14} className="mx-auto text-passport-gold mb-1" />
+      )}
+      <div className="font-display text-2xl font-semibold text-passport-navy dark:text-passport-goldsoft leading-none">
+        {value}
+      </div>
+      <div className="text-[10px] uppercase tracking-[0.1em] text-black/45 dark:text-white/45 mt-1 break-words hyphens-auto">
+        {label}
+      </div>
+    </div>
   );
 }
 

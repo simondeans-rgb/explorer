@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BarChart3,
   BookMarked,
   Compass,
   LogOut,
@@ -30,22 +29,18 @@ import { AlmanacView } from './almanac/AlmanacView';
 import { ExpeditionsView } from './expeditions/ExpeditionsView';
 import { DiscoveriesView } from './discoveries/DiscoveriesView';
 import { FriendsView } from './friends/FriendsView';
-import { StatisticsView } from './statistics/StatisticsView';
 
 type Section =
   | 'passport'
   | 'expeditions'
   | 'discoveries'
   | 'friends'
-  | 'statistics'
   | 'almanac';
 
 const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
   { id: 'passport', label: 'Passport', icon: BookMarked },
   { id: 'expeditions', label: 'Expeditions', icon: MapPinned },
   { id: 'discoveries', label: 'Discoveries', icon: Compass },
-  { id: 'friends', label: 'Friends', icon: Users },
-  { id: 'statistics', label: 'Statistics', icon: BarChart3 },
   { id: 'almanac', label: 'Almanac', icon: ScrollText },
 ];
 
@@ -87,7 +82,7 @@ export function AppShell() {
 
   return (
     <div className="passport-bg fixed inset-0 flex flex-col">
-      <Header />
+      <Header section={section} onChange={setSection} />
       <Nav section={section} onChange={setSection} />
       <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
         <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-6 sm:py-8 min-w-0">
@@ -129,15 +124,6 @@ export function AppShell() {
               demo={demo}
             />
           )}
-          {section === 'statistics' && (
-            <StatisticsView
-              aggregates={aggregates}
-              stats={stats}
-              discoveryStats={discoveryStats}
-              journeyStats={journeyStats}
-              expeditionCount={expeditions.length}
-            />
-          )}
           {section === 'almanac' && (
             <AlmanacView
               places={places}
@@ -156,7 +142,13 @@ export function AppShell() {
   );
 }
 
-function Header() {
+function Header({
+  section,
+  onChange,
+}: {
+  section: Section;
+  onChange: (s: Section) => void;
+}) {
   const { user, signOut, demo } = useAuth();
   const { theme, toggle } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -206,6 +198,21 @@ function Header() {
           className="p-2 rounded-full hover:bg-white/10 text-passport-parchment/80"
         >
           {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+
+        <button
+          type="button"
+          aria-label="Friends"
+          aria-pressed={section === 'friends'}
+          onClick={() => onChange(section === 'friends' ? 'passport' : 'friends')}
+          className={cn(
+            'p-2 rounded-full hover:bg-white/10',
+            section === 'friends'
+              ? 'text-passport-goldsoft bg-white/10'
+              : 'text-passport-parchment/80',
+          )}
+        >
+          <Users size={16} />
         </button>
 
         <div ref={menuRef} className="relative">
