@@ -159,7 +159,7 @@ export function AlmanacView({
             items={[
               ['Countries discovered', stats.countriesDiscovered],
               ['Cities discovered', stats.citiesDiscovered],
-              ['Expeditions completed', expeditions.length],
+              ['Journeys completed', expeditions.length],
               ['Discoveries made', discoveryStats.total],
               ['Continents reached', stats.continentsDiscovered],
               ['Recognitions earned', earned.length],
@@ -330,7 +330,7 @@ export function AlmanacView({
               {yearExpeditions.length > 0 && (
                 <div>
                   <div className="text-[11px] uppercase tracking-[0.16em] text-passport-fieldlabel mb-2">
-                    Expeditions of record
+                    Journeys of record
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {yearExpeditions.map((e) => (

@@ -133,7 +133,7 @@ export function AddExpeditionModal({ userId, initial, onClose }: Props) {
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/10">
           <h2 className="font-display text-lg font-semibold text-passport-navy dark:text-white/90">
-            {editing ? 'Edit expedition' : 'New expedition'}
+            {editing ? 'Edit journey' : 'New journey'}
           </h2>
           <button
             type="button"
@@ -268,7 +268,7 @@ export function AddExpeditionModal({ userId, initial, onClose }: Props) {
             )}
           >
             <Check size={16} />
-            {busy ? 'Saving…' : editing ? 'Save' : 'Create expedition'}
+            {busy ? 'Saving…' : editing ? 'Save' : 'Create journey'}
           </button>
         </div>
       </div>
