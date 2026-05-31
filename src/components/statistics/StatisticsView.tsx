@@ -199,14 +199,14 @@ function Stat({
   icon?: LucideIcon;
 }) {
   return (
-    <div className="rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 px-3 py-3 text-center shadow-page">
+    <div className="min-w-0 rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 px-2 py-3 text-center shadow-page">
       {Icon && (
         <Icon size={14} className="mx-auto text-passport-gold mb-1" />
       )}
       <div className="font-display text-2xl font-semibold text-passport-navy dark:text-passport-goldsoft leading-none">
         {value}
       </div>
-      <div className="text-[10px] uppercase tracking-[0.12em] text-black/45 dark:text-white/45 mt-1">
+      <div className="text-[10px] uppercase tracking-[0.1em] text-black/45 dark:text-white/45 mt-1 break-words hyphens-auto">
         {label}
       </div>
     </div>

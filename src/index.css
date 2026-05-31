@@ -16,6 +16,15 @@ body,
   height: 100%;
 }
 
+/* Never let a stray wide child make the whole page horizontally scrollable
+   (which on mobile triggers a zoomed-out "fit" view). Content is constrained
+   to the viewport; individual scrollers opt in explicitly. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   /* Body & interface — DM Sans (Brand Book §05). */

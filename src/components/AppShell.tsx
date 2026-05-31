@@ -89,8 +89,8 @@ export function AppShell() {
     <div className="passport-bg fixed inset-0 flex flex-col">
       <Header />
       <Nav section={section} onChange={setSection} />
-      <main className="flex-1 overflow-y-auto no-scrollbar">
-        <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-6 sm:py-8">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
+        <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-6 sm:py-8 min-w-0">
           {section === 'passport' && (
             <PassportView
               userId={user?.uid ?? ''}

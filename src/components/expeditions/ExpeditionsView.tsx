@@ -87,12 +87,12 @@ export function ExpeditionsView({
         </p>
       </header>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm text-black/50 dark:text-white/50">
           {expeditions.length}{' '}
           {expeditions.length === 1 ? 'expedition' : 'expeditions'}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {hasImported && (
             <button
               type="button"
@@ -227,15 +227,15 @@ function ExpeditionCard({
             return (
               <div
                 key={j.id}
-                className="flex items-baseline gap-2 text-xs text-passport-ink2 dark:text-white/65"
+                className="flex items-baseline gap-2 text-xs text-passport-ink2 dark:text-white/65 min-w-0"
               >
                 <Icon
                   size={13}
                   className="text-passport-gold shrink-0 translate-y-0.5"
                 />
-                <span className="font-medium">{label}</span>
+                <span className="font-medium shrink-0">{label}</span>
                 {tail && (
-                  <span className="text-passport-ink3 dark:text-white/45 truncate">
+                  <span className="text-passport-ink3 dark:text-white/45 truncate min-w-0">
                     {tail}
                   </span>
                 )}

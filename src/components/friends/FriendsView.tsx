@@ -175,7 +175,7 @@ export function FriendsView({
                 value={entry}
                 onChange={(e) => setEntry(e.target.value.toUpperCase())}
                 placeholder="SD-XXXXXX"
-                className={inputClass}
+                className={cn(inputClass, 'flex-1 min-w-0')}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               />
               <button

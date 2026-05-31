@@ -222,12 +222,12 @@ export function ImportFlightyModal({
                         {foreignTrips.map((e, i) => (
                           <div
                             key={i}
-                            className="flex items-center gap-2 text-sm"
+                            className="flex items-center gap-2 text-sm min-w-0"
                           >
-                            <span className="text-base leading-none shrink-0">
+                            <span className="text-base leading-none shrink-0 max-w-[35%] truncate">
                               {e.countryCodes.map((c) => flagEmoji(c)).join('')}
                             </span>
-                            <span className="font-medium text-passport-ink dark:text-white/85 truncate">
+                            <span className="font-medium text-passport-ink dark:text-white/85 truncate min-w-0">
                               {e.title}
                             </span>
                             <span className="text-xs text-passport-ink3 dark:text-white/45 ml-auto shrink-0">
@@ -356,11 +356,11 @@ export function ImportFlightyModal({
 
 function Stat({ n, label }: { n: number; label: string }) {
   return (
-    <div className="rounded-xl bg-passport-navy/[0.04] dark:bg-white/[0.05] py-2.5">
+    <div className="min-w-0 rounded-xl bg-passport-navy/[0.04] dark:bg-white/[0.05] px-1 py-2.5">
       <div className="font-display text-xl font-semibold text-passport-navy dark:text-passport-goldsoft">
         {n}
       </div>
-      <div className="text-[10px] uppercase tracking-[0.12em] text-black/45 dark:text-white/45">
+      <div className="text-[10px] uppercase tracking-[0.1em] text-black/45 dark:text-white/45 break-words">
         {label}
       </div>
     </div>

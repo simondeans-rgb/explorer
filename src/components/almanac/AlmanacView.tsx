@@ -162,7 +162,7 @@ export function AlmanacView({
                     return (
                       <div
                         key={m}
-                        className="rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 px-3 py-3 shadow-page text-center"
+                        className="min-w-0 rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 px-2 py-3 shadow-page text-center"
                       >
                         <Icon
                           size={16}
@@ -171,7 +171,7 @@ export function AlmanacView({
                         <div className="font-display text-2xl font-semibold text-passport-navy dark:text-passport-goldsoft leading-none">
                           {journeyStats.byMode[m]}
                         </div>
-                        <div className="text-[10px] uppercase tracking-[0.12em] text-black/45 dark:text-white/45 mt-1">
+                        <div className="text-[10px] uppercase tracking-[0.1em] text-black/45 dark:text-white/45 mt-1 break-words">
                           {JOURNEY_MODE_META[m].label}
                         </div>
                       </div>
@@ -354,12 +354,12 @@ function Figures({ items }: { items: [string, number][] }) {
       {items.map(([label, value]) => (
         <div
           key={label}
-          className="rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 px-4 py-4 shadow-page"
+          className="min-w-0 rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 px-4 py-4 shadow-page"
         >
           <div className="font-display text-3xl font-semibold text-passport-navy dark:text-passport-goldsoft">
             {value}
           </div>
-          <div className="text-[11px] uppercase tracking-[0.12em] text-black/45 dark:text-white/45 mt-1">
+          <div className="text-[11px] uppercase tracking-[0.12em] text-black/45 dark:text-white/45 mt-1 break-words">
             {label}
           </div>
         </div>
