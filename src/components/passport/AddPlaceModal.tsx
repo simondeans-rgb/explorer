@@ -209,7 +209,7 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
                     type="month"
                     value={livedFrom}
                     onChange={(e) => setLivedFrom(e.target.value)}
-                    className={inputClass}
+                    className={cn(inputClass, 'min-w-0 appearance-none')}
                   />
                 </Field>
                 <Field label="Lived until">
@@ -217,7 +217,7 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
                     type="month"
                     value={livedTo}
                     onChange={(e) => setLivedTo(e.target.value)}
-                    className={inputClass}
+                    className={cn(inputClass, 'min-w-0 appearance-none')}
                   />
                 </Field>
               </div>
