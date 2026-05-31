@@ -6,6 +6,7 @@ import {
   Line,
   Marker,
 } from 'react-simple-maps';
+import { geoInterpolate } from 'd3-geo';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   geoAlpha2,
@@ -201,7 +202,7 @@ export function PassportMap({ aggregates }: { aggregates: CountryAggregate[] }) 
       <WorldMapCanvas isVisited={(c) => !!c && current.has(c)}>
         {markers.map((c, i) => (
           <Marker key={i} coordinates={c}>
-            <circle r={1.8} fill="#C9A84C" stroke="#0D1B2E" strokeWidth={0.3} />
+            <circle r={2.4} fill="#C9A84C" stroke="#0D1B2E" strokeWidth={0.6} />
           </Marker>
         ))}
       </WorldMapCanvas>
@@ -213,6 +214,19 @@ export function PassportMap({ aggregates }: { aggregates: CountryAggregate[] }) 
 // ── Expedition map — visited fill + route lines, filterable by year & mode ──
 function iataOf(label: string | undefined): string | undefined {
   return label?.match(/\(([A-Z]{3})\)/)?.[1];
+}
+
+// Sample points along the great circle, so each route renders as a smooth arc
+// (the airline route-map look) rather than a straight segment.
+function greatCircle(
+  from: [number, number],
+  to: [number, number],
+): [number, number][] {
+  const interp = geoInterpolate(from, to);
+  const n = 48;
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= n; i++) pts.push(interp(i / n) as [number, number]);
+  return pts;
 }
 
 export function ExpeditionMap({ expeditions }: { expeditions: Expedition[] }) {
@@ -305,18 +319,22 @@ export function ExpeditionMap({ expeditions }: { expeditions: Expedition[] }) {
         {routes.map((r, i) => (
           <Line
             key={i}
-            from={r.from}
-            to={r.to}
+            coordinates={greatCircle(r.from, r.to)}
             stroke="#C9A84C"
-            strokeWidth={0.8}
+            strokeWidth={2.2}
             strokeLinecap="round"
-            strokeOpacity={0.65}
+            strokeOpacity={0.85}
             fill="none"
           />
         ))}
         {points.map((c, i) => (
           <Marker key={i} coordinates={c}>
-            <circle r={1.6} fill="#C9A84C" stroke="#0D1B2E" strokeWidth={0.3} />
+            <circle
+              r={2.6}
+              fill="#C9A84C"
+              stroke="#0D1B2E"
+              strokeWidth={0.6}
+            />
           </Marker>
         ))}
       </WorldMapCanvas>
