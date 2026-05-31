@@ -55,11 +55,14 @@ account, not the demo, and the latest [`firestore.rules`](firestore.rules)
 published.)
 
 **World maps** sit on the Passport and Expeditions pages. The Passport map
-shades every country you've discovered in pale gold (unvisited stays cartridge),
-filterable by all-time or a single year. The Expeditions map adds route lines
-across the globe, filterable by year and by journey type. The map and its
-geographic dependencies are lazy-loaded, so they don't weigh down the rest of
-the app.
+shades every country you've discovered in pale gold (unvisited stays cartridge)
+and drops a gold marker on each visited city — so places without their own
+country shape (Hong Kong, Singapore…) still appear. The Expeditions map adds
+city-to-city route lines (so domestic hops like London→Aberdeen show too),
+filterable by year and by journey type. Both are filterable by all-time or a
+single year. Per-airport coordinates are baked in (no runtime data dependency),
+and the map plus its geographic libraries are lazy-loaded so they don't weigh
+down the rest of the app.
 
 **Statistics** gives the full tally — travel (countries, cities, continents and
 every relationship), journeys (by mode), and discoveries (by category) —

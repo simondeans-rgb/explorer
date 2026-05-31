@@ -4,10 +4,10 @@ import {
   Geographies,
   Geography,
   Line,
+  Marker,
 } from 'react-simple-maps';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
-  centroidByAlpha2,
   geoAlpha2,
   MAP_FILL_UNVISITED_DARK,
   MAP_FILL_UNVISITED_LIGHT,
@@ -17,7 +17,7 @@ import {
   worldTopology,
 } from '../../lib/worldGeo';
 import type { CountryAggregate } from '../../lib/stats';
-import { airportInfo } from '../../data/airports';
+import { AIRPORT_COORDS, CITY_COORDS } from '../../data/airportCoords';
 import {
   JOURNEY_MODE_META,
   type Expedition,
@@ -174,23 +174,45 @@ export function PassportMap({ aggregates }: { aggregates: CountryAggregate[] }) 
     );
   }, [discovered, scope]);
 
+  // City markers — precise points for visited cities, so places without their
+  // own country shape (Hong Kong, Singapore…) still appear.
+  const markers = useMemo(() => {
+    const out = new Map<string, [number, number]>();
+    for (const a of discovered) {
+      for (const c of a.cities) {
+        if (
+          scope !== 'all' &&
+          c.firstYear !== scope &&
+          a.firstYear !== scope
+        )
+          continue;
+        const co = CITY_COORDS[`${c.countryCode}|${c.name.toLowerCase()}`];
+        if (co) out.set(co.join(','), co);
+      }
+    }
+    return [...out.values()];
+  }, [discovered, scope]);
+
   if (discovered.length === 0) return null;
 
   return (
     <div className="space-y-2.5">
       <ScopeChips scope={scope} years={years} onChange={setScope} />
-      <WorldMapCanvas isVisited={(c) => !!c && current.has(c)} />
+      <WorldMapCanvas isVisited={(c) => !!c && current.has(c)}>
+        {markers.map((c, i) => (
+          <Marker key={i} coordinates={c}>
+            <circle r={1.8} fill="#C9A84C" stroke="#0D1B2E" strokeWidth={0.3} />
+          </Marker>
+        ))}
+      </WorldMapCanvas>
       <Legend count={current.size} />
     </div>
   );
 }
 
 // ── Expedition map — visited fill + route lines, filterable by year & mode ──
-function resolveCountry(label: string | undefined): string | undefined {
-  if (!label) return undefined;
-  const m = label.match(/\(([A-Z]{3})\)/);
-  if (!m) return undefined;
-  return airportInfo(m[1])?.country;
+function iataOf(label: string | undefined): string | undefined {
+  return label?.match(/\(([A-Z]{3})\)/)?.[1];
 }
 
 export function ExpeditionMap({ expeditions }: { expeditions: Expedition[] }) {
@@ -236,11 +258,11 @@ export function ExpeditionMap({ expeditions }: { expeditions: Expedition[] }) {
     for (const e of scoped) {
       for (const j of e.journeys) {
         if (mode !== 'all' && j.mode !== mode) continue;
-        const a = resolveCountry(j.from);
-        const b = resolveCountry(j.to);
+        const a = iataOf(j.from);
+        const b = iataOf(j.to);
         if (!a || !b || a === b) continue;
-        const from = centroidByAlpha2[a];
-        const to = centroidByAlpha2[b];
+        const from = AIRPORT_COORDS[a];
+        const to = AIRPORT_COORDS[b];
         if (!from || !to) continue;
         const key = a < b ? `${a}-${b}` : `${b}-${a}`;
         if (seen.has(key)) continue;
@@ -250,6 +272,15 @@ export function ExpeditionMap({ expeditions }: { expeditions: Expedition[] }) {
     }
     return segments;
   }, [scoped, mode]);
+
+  const points = useMemo(() => {
+    const out = new Map<string, [number, number]>();
+    for (const r of routes) {
+      out.set(r.from.join(','), r.from);
+      out.set(r.to.join(','), r.to);
+    }
+    return [...out.values()];
+  }, [routes]);
 
   if (expeditions.length === 0) return null;
 
@@ -277,11 +308,16 @@ export function ExpeditionMap({ expeditions }: { expeditions: Expedition[] }) {
             from={r.from}
             to={r.to}
             stroke="#C9A84C"
-            strokeWidth={1}
+            strokeWidth={0.8}
             strokeLinecap="round"
-            strokeOpacity={0.7}
+            strokeOpacity={0.65}
             fill="none"
           />
+        ))}
+        {points.map((c, i) => (
+          <Marker key={i} coordinates={c}>
+            <circle r={1.6} fill="#C9A84C" stroke="#0D1B2E" strokeWidth={0.3} />
+          </Marker>
         ))}
       </WorldMapCanvas>
       <div className="flex items-center justify-between gap-2">
