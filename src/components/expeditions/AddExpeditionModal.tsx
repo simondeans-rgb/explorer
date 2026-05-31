@@ -204,7 +204,7 @@ export function AddExpeditionModal({ userId, initial, onClose }: Props) {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[11px] uppercase tracking-[0.16em] text-black/45 dark:text-white/45">
-                Journeys
+                Legs
               </span>
               <button
                 type="button"
@@ -225,7 +225,7 @@ export function AddExpeditionModal({ userId, initial, onClose }: Props) {
               ))}
               {journeys.length === 0 && (
                 <p className="text-xs text-black/40 dark:text-white/40">
-                  No journeys yet — add flights, rail, cruises, road trips or
+                  No legs yet — add flights, rail, cruises, road trips or
                   ferries.
                 </p>
               )}
