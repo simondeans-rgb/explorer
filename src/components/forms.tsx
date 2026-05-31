@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, Search } from 'lucide-react';
 import { COUNTRIES, countryName } from '../data/countries';
+import { ALL_AIRPORTS } from '../data/airports';
 import { flagEmoji } from '../lib/flags';
 import { inputClass } from '../lib/formClass';
 import { cn } from '../lib/cn';
@@ -49,7 +50,11 @@ export function CountryPicker({
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return COUNTRIES;
-    return COUNTRIES.filter((c) => c.name.toLowerCase().includes(needle));
+    return COUNTRIES.filter(
+      (c) =>
+        c.name.toLowerCase().includes(needle) ||
+        c.code.toLowerCase() === needle,
+    );
   }, [q]);
 
   return (
@@ -73,7 +78,7 @@ export function CountryPicker({
       </button>
 
       {open && (
-        <div className="absolute z-10 mt-1 w-full rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-passport-carddark shadow-page overflow-hidden">
+        <div className="absolute z-20 mt-1 w-full rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-passport-carddark shadow-page overflow-hidden">
           <div className="flex items-center gap-2 px-3 py-2 border-b border-black/5 dark:border-white/10">
             <Search size={14} className="opacity-50" />
             <input
@@ -89,7 +94,10 @@ export function CountryPicker({
               <li key={c.code}>
                 <button
                   type="button"
-                  onClick={() => {
+                  // pointer/mousedown (not click) so selection registers even
+                  // if a tap on a scrolling list never produces a click.
+                  onMouseDown={(e) => {
+                    e.preventDefault();
                     onChange(c.code);
                     setOpen(false);
                     setQ('');
@@ -111,6 +119,97 @@ export function CountryPicker({
             )}
           </ul>
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Airport field that accepts an IATA code (e.g. "LHR") or a city/airport name
+ * (e.g. "London") and stores a friendly "City (IATA)" label. Free text is kept
+ * as-is, so non-airport entries still work.
+ */
+export function AirportPicker({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onClick(e: MouseEvent) {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [open]);
+
+  const results = useMemo(() => {
+    const n = value.trim().toLowerCase();
+    if (n.length < 2) return [];
+    const scored = ALL_AIRPORTS.filter(
+      (a) =>
+        a.iata.toLowerCase().startsWith(n) ||
+        a.city.toLowerCase().includes(n),
+    );
+    // Exact IATA matches first.
+    scored.sort((a, b) => {
+      const ai = a.iata.toLowerCase() === n ? 0 : 1;
+      const bi = b.iata.toLowerCase() === n ? 0 : 1;
+      return ai - bi;
+    });
+    return scored.slice(0, 8);
+  }, [value]);
+
+  function pick(iata: string, city: string) {
+    onChange(`${city} (${iata})`);
+    setOpen(false);
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        placeholder={placeholder}
+        className={cn(inputClass, 'min-w-0')}
+        autoComplete="off"
+      />
+      {open && results.length > 0 && (
+        <ul className="absolute z-20 mt-1 w-full rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-passport-carddark shadow-page overflow-hidden max-h-52 overflow-y-auto no-scrollbar py-1">
+          {results.map((a) => (
+            <li key={a.iata}>
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  pick(a.iata, a.city);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-black/5 dark:hover:bg-white/10"
+              >
+                <span className="font-mono text-xs font-semibold text-passport-gold w-8 shrink-0">
+                  {a.iata}
+                </span>
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-base leading-none">
+                    {flagEmoji(a.country)}
+                  </span>
+                  <span className="truncate">{a.city}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

@@ -360,3 +360,13 @@ const AIRPORTS: Record<string, AirportInfo> = {
 export function airportInfo(iata: string): AirportInfo | undefined {
   return AIRPORTS[iata?.trim().toUpperCase()];
 }
+
+export interface AirportRow extends AirportInfo {
+  iata: string;
+}
+
+/** Flat, searchable list of all known airports (by IATA code or city name). */
+export const ALL_AIRPORTS: AirportRow[] = Object.entries(AIRPORTS)
+  .map(([iata, info]) => ({ iata, ...info }))
+  .sort((a, b) => a.city.localeCompare(b.city));
+

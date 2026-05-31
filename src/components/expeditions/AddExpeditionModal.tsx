@@ -10,7 +10,7 @@ import { flagEmoji } from '../../lib/flags';
 import { JOURNEY_MODES, JOURNEY_MODE_META, type Journey } from '../../types';
 import { cn } from '../../lib/cn';
 import { inputClass } from '../../lib/formClass';
-import { CountryPicker, Field } from '../forms';
+import { AirportPicker, CountryPicker, Field } from '../forms';
 import { JOURNEY_ICON } from './journeyIcons';
 
 export interface ExpeditionModalInitial {
@@ -327,18 +327,35 @@ function JourneyRow({
         className={inputClass}
       />
       <div className="grid grid-cols-2 gap-2">
-        <input
-          value={journey.from ?? ''}
-          onChange={(e) => onChange({ from: e.target.value })}
-          placeholder={meta.from}
-          className={inputClass}
-        />
-        <input
-          value={journey.to ?? ''}
-          onChange={(e) => onChange({ to: e.target.value })}
-          placeholder={meta.to}
-          className={inputClass}
-        />
+        {journey.mode === 'flight' ? (
+          <>
+            <AirportPicker
+              value={journey.from ?? ''}
+              onChange={(v) => onChange({ from: v })}
+              placeholder="From — code or city"
+            />
+            <AirportPicker
+              value={journey.to ?? ''}
+              onChange={(v) => onChange({ to: v })}
+              placeholder="To — code or city"
+            />
+          </>
+        ) : (
+          <>
+            <input
+              value={journey.from ?? ''}
+              onChange={(e) => onChange({ from: e.target.value })}
+              placeholder={meta.from}
+              className={inputClass}
+            />
+            <input
+              value={journey.to ?? ''}
+              onChange={(e) => onChange({ to: e.target.value })}
+              placeholder={meta.to}
+              className={inputClass}
+            />
+          </>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-2">
         <input
