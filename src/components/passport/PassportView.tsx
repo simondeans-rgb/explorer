@@ -1,11 +1,21 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
-import { MapPin, Plus, Users } from 'lucide-react';
+import {
+  lazy,
+  Suspense,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from 'react';
+import { Camera, MapPin, Plus, Users, X } from 'lucide-react';
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
 import type { DiscoveryStats } from '../../lib/discoveryStats';
 import { evaluateRecognitions, type Recognition } from '../../lib/recognitions';
 import { flagEmoji } from '../../lib/flags';
 import { useAuth } from '../../contexts/AuthContext';
+import { useProfilePhoto } from '../../hooks/useProfilePhoto';
+import { COUNTRIES } from '../../data/countries';
 import {
+  CONTINENTS,
   RELATIONSHIP_META,
   VERDICT_META,
   type Place,
@@ -60,6 +70,35 @@ function pad(s: string, n: number): string {
   return (s + '<'.repeat(n)).slice(0, n);
 }
 
+/** Resize/crop a chosen image to the passport photo aspect (68:84) and return
+ *  a compact JPEG data URL small enough to store on the profile document. */
+async function fileToPassportPhoto(file: File): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = () => reject(new Error('image decode failed'));
+    i.src = dataUrl;
+  });
+  const W = 204; // 68 × 3
+  const H = 252; // 84 × 3 — same portrait ratio as the photo frame
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return dataUrl;
+  const scale = Math.max(W / img.width, H / img.height);
+  const dw = img.width * scale;
+  const dh = img.height * scale;
+  ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  return canvas.toDataURL('image/jpeg', 0.82);
+}
+
 function mrzLines(name: string, no: string): [string, string] {
   const clean = name.toUpperCase().replace(/[^A-Z]+/g, '<');
   return [
@@ -78,6 +117,7 @@ export function PassportView({
   loading,
 }: Props) {
   const { user } = useAuth();
+  const { photo, setPhoto } = useProfilePhoto(userId || undefined);
   const [modal, setModal] = useState<ModalInitial | null>(null);
 
   const discovered = useMemo(
@@ -155,6 +195,8 @@ export function PassportView({
         stats={stats}
         discoveriesTotal={discoveryStats.total}
         expeditionCount={expeditionCount}
+        photo={photo}
+        onChangePhoto={setPhoto}
       />
 
       {discovered.length > 0 && (
@@ -274,6 +316,8 @@ function BioPage({
   stats,
   discoveriesTotal,
   expeditionCount,
+  photo,
+  onChangePhoto,
 }: {
   name: string;
   no: string;
@@ -281,15 +325,42 @@ function BioPage({
   stats: PassportStats;
   discoveriesTotal: number;
   expeditionCount: number;
+  photo: string | null;
+  onChangePhoto: (dataUrl: string | null) => void;
 }) {
   const [mrz1, mrz2] = mrzLines(name, no);
-  const figures: [string, number][] = [
-    ['Countries', stats.countriesDiscovered],
-    ['Cities', stats.citiesDiscovered],
-    ['Discoveries', discoveriesTotal],
-    ['Expeditions', expeditionCount],
-    ['Continents', stats.continentsDiscovered],
-    ['Lived In', stats.countriesLived],
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      onChangePhoto(await fileToPassportPhoto(file));
+    } catch {
+      /* ignore unreadable / undecodable images */
+    }
+  }
+
+  const totalCountries = COUNTRIES.length;
+  const rawPct = totalCountries
+    ? (stats.countriesDiscovered / totalCountries) * 100
+    : 0;
+  const worldSeen =
+    rawPct === 0 ? '0' : rawPct < 1 ? rawPct.toFixed(1) : String(Math.round(rawPct));
+
+  const figures: {
+    label: string;
+    value: string | number;
+    total?: number;
+    suffix?: string;
+  }[] = [
+    { label: 'Countries', value: stats.countriesDiscovered, total: totalCountries },
+    { label: 'Cities', value: stats.citiesDiscovered },
+    { label: 'Discoveries', value: discoveriesTotal },
+    { label: 'Expeditions', value: expeditionCount },
+    { label: 'Continents', value: stats.continentsDiscovered, total: CONTINENTS.length },
+    { label: 'World Seen', value: worldSeen, suffix: '%' },
   ];
 
   return (
@@ -318,14 +389,61 @@ function BioPage({
         </div>
 
         <div className="flex gap-4">
-          <div className="relative w-[68px] h-[84px] shrink-0 rounded-sm bg-passport-paged border border-black/10 flex items-center justify-center">
-            <span className="font-display text-3xl font-semibold text-passport-fieldlabel">
-              {name[0]?.toUpperCase() ?? 'E'}
-            </span>
-            <Corner className="top-1 left-1 border-t border-l" />
-            <Corner className="top-1 right-1 border-t border-r" />
-            <Corner className="bottom-1 left-1 border-b border-l" />
-            <Corner className="bottom-1 right-1 border-b border-r" />
+          <div className="relative w-[68px] h-[84px] shrink-0 rounded-sm bg-passport-paged border border-black/10 overflow-hidden">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFile}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              aria-label={photo ? 'Change passport photo' : 'Add passport photo'}
+              className="group absolute inset-0 flex items-center justify-center"
+            >
+              {photo ? (
+                <img
+                  src={photo}
+                  alt="Passport portrait"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="font-display text-3xl font-semibold text-passport-fieldlabel">
+                  {name[0]?.toUpperCase() ?? 'E'}
+                </span>
+              )}
+              <span
+                className={cn(
+                  'absolute inset-x-0 bottom-0 flex items-center justify-center gap-0.5 py-0.5',
+                  'bg-passport-navy/80 text-passport-gold',
+                  'text-[7px] uppercase tracking-[0.12em]',
+                  photo ? 'opacity-0 group-hover:opacity-100 transition-opacity' : '',
+                )}
+              >
+                <Camera size={8} />
+                {photo ? 'Change' : 'Add photo'}
+              </span>
+            </button>
+            {photo && (
+              <button
+                type="button"
+                onClick={() => onChangePhoto(null)}
+                aria-label="Remove passport photo"
+                className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-passport-navy/80 text-passport-parchment hover:bg-passport-navy"
+              >
+                <X size={9} />
+              </button>
+            )}
+            {!photo && (
+              <>
+                <Corner className="top-1 left-1 border-t border-l" />
+                <Corner className="top-1 right-1 border-t border-r" />
+                <Corner className="bottom-1 left-1 border-b border-l" />
+                <Corner className="bottom-1 right-1 border-b border-r" />
+              </>
+            )}
           </div>
 
           <div className="flex-1 min-w-0 flex flex-col gap-2.5">
@@ -363,11 +481,18 @@ function BioPage({
         </div>
 
         <div className="page-divide grid grid-cols-3 gap-y-3 gap-x-2 mt-4 pb-4">
-          {figures.map(([label, value]) => (
+          {figures.map(({ label, value, total, suffix }) => (
             <div key={label}>
               <div className={FIELD_LABEL}>{label}</div>
               <div className="font-display text-2xl font-semibold text-passport-navy leading-none">
                 {value}
+                {suffix}
+                {total != null && (
+                  <span className="text-sm font-normal text-passport-fieldlabel">
+                    {' / '}
+                    {total}
+                  </span>
+                )}
               </div>
             </div>
           ))}

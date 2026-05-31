@@ -30,6 +30,43 @@ export interface MemberProfile {
   name: string;
 }
 
+const photoKey = (uid: string) => `explorer:photo:${uid}`;
+
+/** Read the Member's passport photo (a small data URL), if any. Stored on the
+ *  profile doc when signed in, or in localStorage for the offline/demo mode. */
+export async function loadProfilePhoto(uid: string): Promise<string | null> {
+  if (!db) {
+    try {
+      return localStorage.getItem(photoKey(uid));
+    } catch {
+      return null;
+    }
+  }
+  try {
+    const snap = await getDoc(doc(db, 'profiles', uid));
+    return snap.exists() ? ((snap.data().photo as string | undefined) ?? null) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Save (or clear, with null) the Member's passport photo. */
+export async function saveProfilePhoto(
+  uid: string,
+  photo: string | null,
+): Promise<void> {
+  if (!db) {
+    try {
+      if (photo) localStorage.setItem(photoKey(uid), photo);
+      else localStorage.removeItem(photoKey(uid));
+    } catch {
+      /* ignore quota / private-mode failures */
+    }
+    return;
+  }
+  await setDoc(doc(db, 'profiles', uid), { photo }, { merge: true });
+}
+
 /** Ensure the Member has a profile + a unique code registered, returning it. */
 export async function ensureProfile(
   uid: string,
