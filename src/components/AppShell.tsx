@@ -89,6 +89,7 @@ export function AppShell() {
           {section === 'passport' && (
             <PassportView
               userId={user?.uid ?? ''}
+              places={places}
               aggregates={aggregates}
               stats={stats}
               discoveryStats={discoveryStats}
