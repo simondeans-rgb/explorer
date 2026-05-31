@@ -39,7 +39,7 @@ type Section =
 
 const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
   { id: 'passport', label: 'Passport', icon: BookMarked },
-  { id: 'expeditions', label: 'Expeditions', icon: MapPinned },
+  { id: 'expeditions', label: 'Journeys', icon: MapPinned },
   { id: 'discoveries', label: 'Discoveries', icon: Compass },
   { id: 'almanac', label: 'Almanac', icon: ScrollText },
 ];

@@ -17,6 +17,12 @@ const ExpeditionMap = lazy(() =>
   import('../map/WorldMaps').then((m) => ({ default: m.ExpeditionMap })),
 );
 
+// Lazy — pulls in the airport/city coordinate tables for distance maths, which
+// shouldn't weigh down the initial load.
+const TravelStatsPanel = lazy(() =>
+  import('./TravelStatsPanel').then((m) => ({ default: m.TravelStatsPanel })),
+);
+
 interface Props {
   userId: string;
   expeditions: Expedition[];
@@ -84,18 +90,19 @@ export function ExpeditionsView({
       <header className="text-center">
         <MapPinned size={26} className="mx-auto text-passport-gold mb-2" />
         <h1 className="font-display text-3xl font-semibold text-passport-navy dark:text-white/90">
-          Expeditions
+          Journeys
         </h1>
         <p className="text-sm text-black/55 dark:text-white/55 mt-1 max-w-md mx-auto">
-          Every trip — a weekend in Rome, a gap year across Asia — is an
-          Expedition: a container for your journeys, discoveries and notes.
+          Every trip — a weekend in Rome, a gap year across Asia — is a
+          Journey: a record of how you travelled, what you discovered and your
+          notes.
         </p>
       </header>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm text-black/50 dark:text-white/50">
           {expeditions.length}{' '}
-          {expeditions.length === 1 ? 'expedition' : 'expeditions'}
+          {expeditions.length === 1 ? 'journey' : 'journeys'}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {hasImported && (
@@ -128,6 +135,12 @@ export function ExpeditionsView({
       {expeditions.length > 0 && (
         <Suspense fallback={<MapSkeleton />}>
           <ExpeditionMap expeditions={expeditions} />
+        </Suspense>
+      )}
+
+      {expeditions.length > 0 && (
+        <Suspense fallback={null}>
+          <TravelStatsPanel expeditions={expeditions} />
         </Suspense>
       )}
 
@@ -276,7 +289,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="rounded-xl border border-dashed border-black/15 dark:border-white/15 p-10 text-center">
       <p className="font-display text-2xl font-semibold text-passport-navy dark:text-white/90 mb-1">
-        No expeditions yet.
+        No journeys yet.
       </p>
       <p className="text-sm text-black/50 dark:text-white/50 mb-5 max-w-sm mx-auto">
         Log your first trip — its dates, the countries it crossed, and how you
@@ -287,7 +300,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         onClick={onAdd}
         className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-passport-navy text-passport-parchment font-medium hover:opacity-90"
       >
-        <Plus size={16} /> New expedition
+        <Plus size={16} /> New journey
       </button>
     </div>
   );

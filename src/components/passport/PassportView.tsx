@@ -386,7 +386,7 @@ function BioPage({
     { label: 'Countries', value: stats.countriesDiscovered, total: totalCountries },
     { label: 'Cities', value: stats.citiesDiscovered },
     { label: 'Discoveries', value: discoveriesTotal },
-    { label: 'Expeditions', value: expeditionCount },
+    { label: 'Journeys', value: expeditionCount },
     { label: 'Continents', value: stats.continentsDiscovered, total: CONTINENTS.length },
     { label: 'World Seen', value: worldSeen, suffix: '%' },
   ];
