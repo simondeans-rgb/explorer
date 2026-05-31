@@ -6,7 +6,7 @@ import {
   useState,
   type ChangeEvent,
 } from 'react';
-import { Camera, MapPin, Plus, Users, X } from 'lucide-react';
+import { Camera, Images, MapPin, Plus, Users, X } from 'lucide-react';
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
 import type { DiscoveryStats } from '../../lib/discoveryStats';
 import { evaluateRecognitions, type Recognition } from '../../lib/recognitions';
@@ -28,6 +28,12 @@ import { VERDICT_STYLE } from '../discoveries/verdictStyle';
 import { MapSkeleton } from '../map/MapSkeleton';
 import { AddPlaceModal, type ModalInitial } from './AddPlaceModal';
 
+// Lazy — pulls in d3-geo + the world atlas for offline reverse-geocoding, which
+// shouldn't weigh down the initial Passport load.
+const ImportPhotosModal = lazy(() =>
+  import('./ImportPhotosModal').then((m) => ({ default: m.ImportPhotosModal })),
+);
+
 const PassportMap = lazy(() =>
   import('../map/WorldMaps').then((m) => ({ default: m.PassportMap })),
 );
@@ -38,6 +44,7 @@ import { RELATIONSHIP_ICON } from './relationshipIcons';
 
 interface Props {
   userId: string;
+  places: Place[];
   aggregates: CountryAggregate[];
   stats: PassportStats;
   discoveryStats: DiscoveryStats;
@@ -109,6 +116,7 @@ function mrzLines(name: string, no: string): [string, string] {
 
 export function PassportView({
   userId,
+  places,
   aggregates,
   stats,
   discoveryStats,
@@ -119,6 +127,7 @@ export function PassportView({
   const { user } = useAuth();
   const { photo, setPhoto } = useProfilePhoto(userId || undefined);
   const [modal, setModal] = useState<ModalInitial | null>(null);
+  const [photoImport, setPhotoImport] = useState(false);
 
   const discovered = useMemo(
     () =>
@@ -208,15 +217,24 @@ export function PassportView({
         </div>
       )}
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <SectionHeading>Your Passport</SectionHeading>
-        <button
-          type="button"
-          onClick={() => setModal({ kind: 'country' })}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-passport-navy text-passport-parchment hover:opacity-90 active:scale-[0.98]"
-        >
-          <Plus size={15} /> Add
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setPhotoImport(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border border-passport-navy/20 dark:border-white/20 text-passport-navy dark:text-white/80 hover:bg-passport-navy/5 dark:hover:bg-white/10 active:scale-[0.98]"
+          >
+            <Images size={15} /> Scan photos
+          </button>
+          <button
+            type="button"
+            onClick={() => setModal({ kind: 'country' })}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-passport-navy text-passport-parchment hover:opacity-90 active:scale-[0.98]"
+          >
+            <Plus size={15} /> Add
+          </button>
+        </div>
       </div>
 
       {isEmpty && <EmptyState onAdd={() => setModal({ kind: 'country' })} />}
@@ -290,6 +308,16 @@ export function PassportView({
           initial={modal}
           onClose={() => setModal(null)}
         />
+      )}
+
+      {photoImport && (
+        <Suspense fallback={null}>
+          <ImportPhotosModal
+            userId={userId}
+            places={places}
+            onClose={() => setPhotoImport(false)}
+          />
+        </Suspense>
       )}
     </div>
   );
