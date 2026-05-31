@@ -162,7 +162,7 @@ export function AddExpeditionModal({ userId, initial, onClose }: Props) {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className={inputClass}
+                className={cn(inputClass, 'min-w-0 appearance-none')}
               />
             </Field>
             <Field label="End">
@@ -170,7 +170,7 @@ export function AddExpeditionModal({ userId, initial, onClose }: Props) {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className={inputClass}
+                className={cn(inputClass, 'min-w-0 appearance-none')}
               />
             </Field>
           </div>

@@ -15,7 +15,7 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="block">
+    <label className="block min-w-0">
       <span className="block text-[11px] uppercase tracking-[0.16em] text-black/45 dark:text-white/45 mb-1.5">
         {label}
       </span>

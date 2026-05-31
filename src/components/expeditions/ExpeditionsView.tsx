@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { Compass, MapPinned, Plane, Plus, RefreshCw } from 'lucide-react';
 import { countryName } from '../../data/countries';
 import { flagEmoji } from '../../lib/flags';
@@ -10,7 +10,12 @@ import {
 } from '../../types';
 import { AddExpeditionModal, type ExpeditionModalInitial } from './AddExpeditionModal';
 import { ImportFlightyModal } from './ImportFlightyModal';
+import { MapSkeleton } from '../map/MapSkeleton';
 import { JOURNEY_ICON } from './journeyIcons';
+
+const ExpeditionMap = lazy(() =>
+  import('../map/WorldMaps').then((m) => ({ default: m.ExpeditionMap })),
+);
 
 interface Props {
   userId: string;
@@ -119,6 +124,12 @@ export function ExpeditionsView({
           </button>
         </div>
       </div>
+
+      {expeditions.length > 0 && (
+        <Suspense fallback={<MapSkeleton />}>
+          <ExpeditionMap expeditions={expeditions} />
+        </Suspense>
+      )}
 
       {isEmpty ? (
         <EmptyState onAdd={() => setModal({})} />

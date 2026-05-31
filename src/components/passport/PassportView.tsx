@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { MapPin, Plus, Users } from 'lucide-react';
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
 import type { DiscoveryStats } from '../../lib/discoveryStats';
@@ -15,7 +15,12 @@ import type { FriendPresence } from '../../lib/friends';
 import { memberName } from '../../lib/memberName';
 import { cn } from '../../lib/cn';
 import { VERDICT_STYLE } from '../discoveries/verdictStyle';
+import { MapSkeleton } from '../map/MapSkeleton';
 import { AddPlaceModal, type ModalInitial } from './AddPlaceModal';
+
+const PassportMap = lazy(() =>
+  import('../map/WorldMaps').then((m) => ({ default: m.PassportMap })),
+);
 import { DiscoveryRing } from './DiscoveryRing';
 import { Stamp } from './Stamp';
 import { Crest } from './Crest';
@@ -151,6 +156,15 @@ export function PassportView({
         discoveriesTotal={discoveryStats.total}
         expeditionCount={expeditionCount}
       />
+
+      {discovered.length > 0 && (
+        <div className="space-y-3">
+          <SectionHeading>Your world</SectionHeading>
+          <Suspense fallback={<MapSkeleton />}>
+            <PassportMap aggregates={aggregates} />
+          </Suspense>
+        </div>
+      )}
 
       <div className="flex items-center justify-between">
         <SectionHeading>Your Passport</SectionHeading>
