@@ -129,8 +129,8 @@ export function SignInPage() {
               : 'Create a Membership and receive your Explorer’s Passport.'}
           </p>
 
-          {!configured && (
-            <div className="mb-5">
+          {!configured ? (
+            <div>
               <button
                 type="button"
                 onClick={signInDemo}
@@ -147,110 +147,112 @@ export function SignInPage() {
                   className="transition-transform group-hover:translate-x-0.5"
                 />
               </button>
-              <p className="mt-2 text-center text-xs text-black/45 dark:text-white/45">
+              <p className="mt-3 text-center text-xs text-black/45 dark:text-white/45">
                 A sample Passport, stored only on this device — no account
-                needed. Add your Firebase keys in <code>.env.local</code> for
-                real cross-device sync.
+                needed.
               </p>
-              <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-black/35 dark:text-white/35">
-                <span className="h-px flex-1 bg-black/10 dark:bg-white/10" />
-                or
-                <span className="h-px flex-1 bg-black/10 dark:bg-white/10" />
-              </div>
+              <p className="mt-2 text-center text-xs text-black/45 dark:text-white/45">
+                Account sign-in is unavailable here because Firebase isn&rsquo;t
+                configured. Set the <code>VITE_FIREBASE_*</code> environment
+                variables (Vercel → Settings → Environment Variables) and
+                redeploy to sign in and sync across devices.
+              </p>
             </div>
-          )}
+          ) : (
+            <>
+              <div className="mb-5">
+                <button
+                  type="button"
+                  onClick={handleGoogle}
+                  disabled={busy}
+                  className={cn(
+                    'w-full px-4 py-3 rounded-xl font-medium transition-all',
+                    'inline-flex items-center justify-center gap-2.5',
+                    'bg-white text-passport-ink border border-black/10',
+                    'hover:bg-black/[0.03] active:scale-[0.99] disabled:opacity-50',
+                  )}
+                >
+                  <GoogleMark />
+                  Continue with Google
+                </button>
+                <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-black/35 dark:text-white/35">
+                  <span className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+                  or
+                  <span className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+                </div>
+              </div>
 
-          {configured && (
-            <div className="mb-5">
-              <button
-                type="button"
-                onClick={handleGoogle}
-                disabled={busy}
-                className={cn(
-                  'w-full px-4 py-3 rounded-xl font-medium transition-all',
-                  'inline-flex items-center justify-center gap-2.5',
-                  'bg-white text-passport-ink border border-black/10',
-                  'hover:bg-black/[0.03] active:scale-[0.99] disabled:opacity-50',
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <input
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={cn(
+                    'w-full px-4 py-3 rounded-xl outline-none transition-colors',
+                    'bg-white/70 dark:bg-white/5 border border-black/10 dark:border-white/10',
+                    'focus:border-passport-gold/70 dark:focus:border-passport-gold/70',
+                    'text-black/85 dark:text-white/90 placeholder:text-black/40 dark:placeholder:text-white/40',
+                  )}
+                />
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  autoComplete={
+                    mode === 'signin' ? 'current-password' : 'new-password'
+                  }
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={cn(
+                    'w-full px-4 py-3 rounded-xl outline-none transition-colors',
+                    'bg-white/70 dark:bg-white/5 border border-black/10 dark:border-white/10',
+                    'focus:border-passport-gold/70 dark:focus:border-passport-gold/70',
+                    'text-black/85 dark:text-white/90 placeholder:text-black/40 dark:placeholder:text-white/40',
+                  )}
+                />
+
+                {error && (
+                  <p className="text-sm text-red-600 dark:text-red-400">
+                    {error}
+                  </p>
                 )}
-              >
-                <GoogleMark />
-                Continue with Google
-              </button>
-              <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-black/35 dark:text-white/35">
-                <span className="h-px flex-1 bg-black/10 dark:bg-white/10" />
-                or
-                <span className="h-px flex-1 bg-black/10 dark:bg-white/10" />
-              </div>
-            </div>
+
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className={cn(
+                    'w-full px-4 py-3 rounded-xl font-medium transition-all',
+                    'bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink',
+                    'hover:opacity-90 active:scale-[0.99]',
+                    'disabled:opacity-50 disabled:cursor-not-allowed',
+                  )}
+                >
+                  {busy
+                    ? 'Working…'
+                    : mode === 'signin'
+                      ? 'Sign in'
+                      : 'Become a Member'}
+                </button>
+              </form>
+
+              <p className="text-center text-sm text-black/55 dark:text-white/55 mt-6">
+                {mode === 'signin' ? 'Not yet a Member?' : 'Already a Member?'}{' '}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMode((m) => (m === 'signin' ? 'signup' : 'signin'))
+                  }
+                  className="font-medium text-passport-navy dark:text-passport-goldsoft hover:underline"
+                >
+                  {mode === 'signin' ? 'Join the Society' : 'Sign in'}
+                </button>
+              </p>
+            </>
           )}
-
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={cn(
-                'w-full px-4 py-3 rounded-xl outline-none transition-colors',
-                'bg-white/70 dark:bg-white/5 border border-black/10 dark:border-white/10',
-                'focus:border-passport-gold/70 dark:focus:border-passport-gold/70',
-                'text-black/85 dark:text-white/90 placeholder:text-black/40 dark:placeholder:text-white/40',
-              )}
-            />
-            <input
-              type="password"
-              required
-              minLength={6}
-              autoComplete={
-                mode === 'signin' ? 'current-password' : 'new-password'
-              }
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={cn(
-                'w-full px-4 py-3 rounded-xl outline-none transition-colors',
-                'bg-white/70 dark:bg-white/5 border border-black/10 dark:border-white/10',
-                'focus:border-passport-gold/70 dark:focus:border-passport-gold/70',
-                'text-black/85 dark:text-white/90 placeholder:text-black/40 dark:placeholder:text-white/40',
-              )}
-            />
-
-            {error && (
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={busy || !configured}
-              className={cn(
-                'w-full px-4 py-3 rounded-xl font-medium transition-all',
-                'bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink',
-                'hover:opacity-90 active:scale-[0.99]',
-                'disabled:opacity-50 disabled:cursor-not-allowed',
-              )}
-            >
-              {busy
-                ? 'Working…'
-                : mode === 'signin'
-                  ? 'Sign in'
-                  : 'Become a Member'}
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-black/55 dark:text-white/55 mt-6">
-            {mode === 'signin' ? 'Not yet a Member?' : 'Already a Member?'}{' '}
-            <button
-              type="button"
-              onClick={() =>
-                setMode((m) => (m === 'signin' ? 'signup' : 'signin'))
-              }
-              className="font-medium text-passport-navy dark:text-passport-goldsoft hover:underline"
-            >
-              {mode === 'signin' ? 'Join the Society' : 'Sign in'}
-            </button>
-          </p>
         </div>
       </main>
     </div>
