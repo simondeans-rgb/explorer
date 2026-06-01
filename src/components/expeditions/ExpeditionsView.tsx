@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Compass, MapPinned, Plane, Plus, RefreshCw } from 'lucide-react';
 import { countryName } from '../../data/countries';
 import { flagEmoji } from '../../lib/flags';
@@ -28,6 +28,9 @@ interface Props {
   expeditions: Expedition[];
   discoveries: Discovery[];
   places: Place[];
+  /** When set (from Explore's "Add a trip"), opens a pre-filled new journey. */
+  newTripCountry?: string | null;
+  onNewTripConsumed?: () => void;
   loading: boolean;
 }
 
@@ -52,11 +55,20 @@ export function ExpeditionsView({
   expeditions,
   discoveries,
   places,
+  newTripCountry,
+  onNewTripConsumed,
   loading,
 }: Props) {
   const [modal, setModal] = useState<ExpeditionModalInitial | null>(null);
   const [importing, setImporting] = useState(false);
   const [reevaluating, setReevaluating] = useState(false);
+
+  // Arriving from Explore's "Add a trip" — open a new journey for that country.
+  useEffect(() => {
+    if (!newTripCountry) return;
+    setModal({ countryCodes: [newTripCountry] });
+    onNewTripConsumed?.();
+  }, [newTripCountry, onNewTripConsumed]);
 
   const hasImported = useMemo(
     () =>

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Compass, MapPinned, Plus } from 'lucide-react';
+import { lazy, Suspense, useMemo, useState } from 'react';
+import { Compass, Globe2, MapPinned, Plus } from 'lucide-react';
 import { countryName } from '../../data/countries';
 import { flagEmoji } from '../../lib/flags';
 import {
@@ -10,28 +10,43 @@ import {
   type DiscoveryCategory,
   type Expedition,
 } from '../../types';
+import type { CountryPresence } from '../../lib/explore';
 import { cn } from '../../lib/cn';
 import { AddDiscoveryModal, type DiscoveryModalInitial } from './AddDiscoveryModal';
 import { CATEGORY_ICON } from './categoryIcons';
+
+// Lazy — carries the baked country facts dataset + the detail modal, so it only
+// loads when the Explore tab is actually used.
+const ExploreView = lazy(() =>
+  import('./ExploreView').then((m) => ({ default: m.ExploreView })),
+);
 import { VERDICT_STYLE } from './verdictStyle';
 
 interface Props {
   userId: string;
   discoveries: Discovery[];
   expeditions: Expedition[];
+  presenceByCountry: Map<string, CountryPresence>;
+  friendDiscoveries: Discovery[];
+  onAddTrip: (code: string) => void;
   loading: boolean;
 }
 
 type Filter = DiscoveryCategory | 'all';
+type Tab = 'explore' | 'recorded';
 
 export function DiscoveriesView({
   userId,
   discoveries,
   expeditions,
+  presenceByCountry,
+  friendDiscoveries,
+  onAddTrip,
   loading,
 }: Props) {
   const [modal, setModal] = useState<DiscoveryModalInitial | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
+  const [tab, setTab] = useState<Tab>('explore');
 
   const counts = useMemo(() => {
     const c = { all: discoveries.length } as Record<Filter, number>;
@@ -68,72 +83,114 @@ export function DiscoveriesView({
           Discoveries
         </h1>
         <p className="text-sm text-black/55 dark:text-white/55 mt-1 max-w-md mx-auto">
-          Any place or experience worth remembering — and the recommendations
-          that become the most valuable guide your friends will ever have.
+          Explore the world country by country, and record the places worth
+          remembering — the most valuable guide your friends will ever have.
         </p>
       </header>
 
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-black/50 dark:text-white/50">
-          {discoveries.length}{' '}
-          {discoveries.length === 1 ? 'discovery' : 'discoveries'} recorded
-        </div>
-        <button
-          type="button"
-          onClick={() => setModal({})}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-passport-navy text-passport-parchment hover:opacity-90 active:scale-[0.98]"
-        >
-          <Plus size={15} /> Record
-        </button>
+      <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-black/[0.04] dark:bg-white/[0.06]">
+        {(
+          [
+            ['explore', 'Explore', Globe2],
+            ['recorded', 'Recorded', Compass],
+          ] as [Tab, string, typeof Globe2][]
+        ).map(([id, label, Icon]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setTab(id)}
+            className={cn(
+              'inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors',
+              tab === id
+                ? 'bg-white dark:bg-passport-navy text-passport-navy dark:text-passport-goldsoft shadow-sm'
+                : 'text-black/55 dark:text-white/55',
+            )}
+          >
+            <Icon size={15} /> {label}
+          </button>
+        ))}
       </div>
 
-      {isEmpty ? (
-        <EmptyState onAdd={() => setModal({})} />
+      {tab === 'explore' ? (
+        <Suspense
+          fallback={
+            <div className="py-10 text-center text-sm text-black/40 dark:text-white/40">
+              Loading the world…
+            </div>
+          }
+        >
+          <ExploreView
+            userId={userId}
+            presenceByCountry={presenceByCountry}
+            friendDiscoveries={friendDiscoveries}
+            onAddTrip={onAddTrip}
+          />
+        </Suspense>
       ) : (
         <>
-          <div className="flex flex-wrap gap-2">
-            <FilterChip
-              label="All"
-              count={counts.all}
-              active={filter === 'all'}
-              onClick={() => setFilter('all')}
-            />
-            {DISCOVERY_CATEGORIES.filter((c) => counts[c] > 0).map((c) => (
-              <FilterChip
-                key={c}
-                label={DISCOVERY_CATEGORY_META[c].label}
-                count={counts[c]}
-                active={filter === c}
-                onClick={() => setFilter(c)}
-              />
-            ))}
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-black/50 dark:text-white/50">
+              {discoveries.length}{' '}
+              {discoveries.length === 1 ? 'discovery' : 'discoveries'} recorded
+            </div>
+            <button
+              type="button"
+              onClick={() => setModal({})}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-passport-navy text-passport-parchment hover:opacity-90 active:scale-[0.98]"
+            >
+              <Plus size={15} /> Record
+            </button>
           </div>
 
-          <div className="space-y-3">
-            {visible.map((d) => (
-              <DiscoveryCard
-                key={d.id}
-                discovery={d}
-                expeditionTitle={
-                  d.expeditionId
-                    ? expeditionTitle.get(d.expeditionId)
-                    : undefined
-                }
-                onEdit={() =>
-                  setModal({
-                    id: d.id,
-                    name: d.name,
-                    category: d.category,
-                    countryCode: d.countryCode,
-                    city: d.city,
-                    expeditionId: d.expeditionId,
-                    verdict: d.verdict,
-                    note: d.note,
-                  })
-                }
-              />
-            ))}
-          </div>
+          {isEmpty ? (
+            <EmptyState onAdd={() => setModal({})} />
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-2">
+                <FilterChip
+                  label="All"
+                  count={counts.all}
+                  active={filter === 'all'}
+                  onClick={() => setFilter('all')}
+                />
+                {DISCOVERY_CATEGORIES.filter((c) => counts[c] > 0).map((c) => (
+                  <FilterChip
+                    key={c}
+                    label={DISCOVERY_CATEGORY_META[c].label}
+                    count={counts[c]}
+                    active={filter === c}
+                    onClick={() => setFilter(c)}
+                  />
+                ))}
+              </div>
+
+              <div className="space-y-3">
+                {visible.map((d) => (
+                  <DiscoveryCard
+                    key={d.id}
+                    discovery={d}
+                    expeditionTitle={
+                      d.expeditionId
+                        ? expeditionTitle.get(d.expeditionId)
+                        : undefined
+                    }
+                    onEdit={() =>
+                      setModal({
+                        id: d.id,
+                        name: d.name,
+                        category: d.category,
+                        countryCode: d.countryCode,
+                        city: d.city,
+                        expeditionId: d.expeditionId,
+                        verdict: d.verdict,
+                        note: d.note,
+                      })
+                    }
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </>
       )}
 
