@@ -31,6 +31,9 @@ interface Props {
   /** When set (from Explore's "Add a trip"), opens a pre-filled new journey. */
   newTripCountry?: string | null;
   onNewTripConsumed?: () => void;
+  /** One-shot: open the Flighty importer on mount (from the first-run welcome). */
+  openImport?: boolean;
+  onImportConsumed?: () => void;
   loading: boolean;
 }
 
@@ -57,6 +60,8 @@ export function ExpeditionsView({
   places,
   newTripCountry,
   onNewTripConsumed,
+  openImport,
+  onImportConsumed,
   loading,
 }: Props) {
   const [modal, setModal] = useState<ExpeditionModalInitial | null>(null);
@@ -69,6 +74,13 @@ export function ExpeditionsView({
     setModal({ countryCodes: [newTripCountry] });
     onNewTripConsumed?.();
   }, [newTripCountry, onNewTripConsumed]);
+
+  // Arriving from the first-run welcome — open the Flighty importer.
+  useEffect(() => {
+    if (!openImport) return;
+    setImporting(true);
+    onImportConsumed?.();
+  }, [openImport, onImportConsumed]);
 
   const hasImported = useMemo(
     () =>
