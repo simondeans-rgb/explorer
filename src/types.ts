@@ -150,12 +150,23 @@ export interface Place {
   name: string;
   relationships: Relationship[];
   firstYear?: number;
-  /** Residence period (when `lived` is among the relationships). ISO dates. */
+  /** Primary residence period (when `lived`). ISO dates. Kept as the earliest
+   *  start / latest end for backward compatibility; see `residencePeriods` for
+   *  the full set when a Member lived somewhere across several spells. */
   livedFrom?: string;
   livedTo?: string;
+  /** All distinct periods the Member lived here (e.g. moved away and back).
+   *  When present this is the source of truth; absent ⇒ use livedFrom/livedTo. */
+  residencePeriods?: ResidencePeriod[];
   note?: string;
   createdAt: number;
   updatedAt: number;
+}
+
+/** One spell of living somewhere. ISO dates (YYYY-MM[-DD]); `to` open ⇒ present. */
+export interface ResidencePeriod {
+  from: string;
+  to?: string;
 }
 
 // ---------------------------------------------------------------------------
