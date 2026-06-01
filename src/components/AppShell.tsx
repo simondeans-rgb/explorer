@@ -159,6 +159,8 @@ export function AppShell() {
             <PassportView
               userId={user?.uid ?? ''}
               places={places}
+              discoveries={discoveries}
+              expeditions={expeditions}
               aggregates={aggregates}
               stats={stats}
               discoveryStats={discoveryStats}
