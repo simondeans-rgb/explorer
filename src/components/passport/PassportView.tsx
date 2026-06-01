@@ -250,7 +250,12 @@ export function PassportView({
         </div>
       </div>
 
-      {isEmpty && <EmptyState onAdd={() => setModal({ kind: 'country' })} />}
+      {isEmpty && (
+        <EmptyState
+          onAdd={() => setModal({ kind: 'country' })}
+          onImport={() => setCountryImport(true)}
+        />
+      )}
 
       {earned.length > 0 && <RecognitionsStrip recognitions={earned} />}
 
@@ -789,23 +794,38 @@ function FriendsHere({ friends }: { friends: FriendPresence[] }) {
   );
 }
 
-function EmptyState({ onAdd }: { onAdd: () => void }) {
+function EmptyState({
+  onAdd,
+  onImport,
+}: {
+  onAdd: () => void;
+  onImport: () => void;
+}) {
   return (
     <div className="rounded-xl border border-dashed border-black/15 dark:border-white/15 p-10 text-center">
       <p className="font-display text-2xl font-semibold text-passport-navy dark:text-white/90 mb-1">
         Your Passport is blank.
       </p>
       <p className="text-sm text-passport-ink2 dark:text-white/50 mb-5 max-w-sm mx-auto">
-        Record the first country you have discovered. Its flag and stamps begin
-        the archive.
+        Record the first country you have discovered — or bring your travels
+        across from another app to begin the archive in seconds.
       </p>
-      <button
-        type="button"
-        onClick={onAdd}
-        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-passport-navy text-passport-parchment font-medium hover:opacity-90"
-      >
-        <Plus size={16} /> Add a country
-      </button>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <button
+          type="button"
+          onClick={onAdd}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-passport-navy text-passport-parchment font-medium hover:opacity-90"
+        >
+          <Plus size={16} /> Add a country
+        </button>
+        <button
+          type="button"
+          onClick={onImport}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-passport-navy/20 dark:border-white/20 text-passport-navy dark:text-white/80 font-medium hover:bg-passport-navy/5 dark:hover:bg-white/10"
+        >
+          <Globe2 size={16} /> Import your countries
+        </button>
+      </div>
     </div>
   );
 }
