@@ -22,6 +22,7 @@ import { aggregateByCountry, computeStats } from '../lib/stats';
 import { computeDiscoveryStats } from '../lib/discoveryStats';
 import { computeJourneyStats } from '../lib/journeyStats';
 import { acceptedFriends, friendsByCountry } from '../lib/friends';
+import { buildCountryPresence } from '../lib/explore';
 import { memberName } from '../lib/memberName';
 import { cn } from '../lib/cn';
 import { PassportView } from './passport/PassportView';
@@ -79,6 +80,26 @@ export function AppShell() {
     () => friendsByCountry(friends, friendsData.places, friendsData.discoveries),
     [friends, friendsData],
   );
+  const presenceByCountry = useMemo(
+    () =>
+      buildCountryPresence(
+        user?.uid ?? '',
+        friends,
+        places,
+        discoveries,
+        friendsData.places,
+        friendsData.discoveries,
+      ),
+    [user?.uid, friends, places, discoveries, friendsData],
+  );
+
+  // Set when "Add a trip" is tapped on a country in Explore; routes to the
+  // Journeys section and opens a pre-filled new-journey form.
+  const [tripCountry, setTripCountry] = useState<string | null>(null);
+  function startTrip(code: string) {
+    setTripCountry(code);
+    setSection('expeditions');
+  }
 
   return (
     <div className="passport-bg fixed inset-0 flex flex-col">
@@ -104,6 +125,8 @@ export function AppShell() {
               expeditions={expeditions}
               discoveries={discoveries}
               places={places}
+              newTripCountry={tripCountry}
+              onNewTripConsumed={() => setTripCountry(null)}
               loading={expeditionsLoading}
             />
           )}
@@ -112,6 +135,9 @@ export function AppShell() {
               userId={user?.uid ?? ''}
               discoveries={discoveries}
               expeditions={expeditions}
+              presenceByCountry={presenceByCountry}
+              friendDiscoveries={friendsData.discoveries}
+              onAddTrip={startTrip}
               loading={discoveriesLoading}
             />
           )}
