@@ -49,6 +49,7 @@ function mapDiscovery(d: {
     category: (data.category ?? 'food') as DiscoveryCategory,
     countryCode: (data.countryCode as string) || undefined,
     city: (data.city as string) || undefined,
+    landmark: (data.landmark as string) || undefined,
     verdict: (data.verdict as RecommendationVerdict) || undefined,
     note: (data.note as string) || undefined,
     createdAt: 0,

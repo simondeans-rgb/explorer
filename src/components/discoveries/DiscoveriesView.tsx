@@ -122,8 +122,32 @@ export function DiscoveriesView({
           <ExploreView
             userId={userId}
             presenceByCountry={presenceByCountry}
+            myDiscoveries={discoveries}
             friendDiscoveries={friendDiscoveries}
             onAddTrip={onAddTrip}
+            onOpenDiscovery={(id) => {
+              const d = discoveries.find((x) => x.id === id);
+              if (d)
+                setModal({
+                  id: d.id,
+                  name: d.name,
+                  category: d.category,
+                  countryCode: d.countryCode,
+                  city: d.city,
+                  landmark: d.landmark,
+                  expeditionId: d.expeditionId,
+                  verdict: d.verdict,
+                  note: d.note,
+                });
+            }}
+            onRecordLandmark={(countryCode, landmark) =>
+              setModal({
+                countryCode,
+                landmark,
+                name: landmark,
+                category: 'culture',
+              })
+            }
           />
         </Suspense>
       ) : (

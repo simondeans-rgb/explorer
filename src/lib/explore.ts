@@ -11,6 +11,18 @@ import {
 } from '../types';
 import type { AcceptedFriend } from './friends';
 
+/** A discovery is "about" a landmark if it's explicitly tagged with it, or (for
+ *  legacy/untagged records) its name matches the landmark in the same country. */
+export function discoveryMatchesLandmark(
+  d: Pick<Discovery, 'landmark' | 'name' | 'countryCode'>,
+  landmark: string,
+  countryCode: string,
+): boolean {
+  if (d.countryCode && d.countryCode !== countryCode) return false;
+  if (d.landmark) return d.landmark === landmark;
+  return d.name.trim().toLowerCase() === landmark.trim().toLowerCase();
+}
+
 function isDiscovery(rels: Iterable<Relationship>): boolean {
   for (const r of rels) if (DISCOVERY_RELATIONSHIPS.includes(r)) return true;
   return false;

@@ -11,15 +11,21 @@ import { CountryDetailModal } from './CountryDetailModal';
 interface Props {
   userId: string;
   presenceByCountry: Map<string, CountryPresence>;
+  myDiscoveries: Discovery[];
   friendDiscoveries: Discovery[];
   onAddTrip: (code: string) => void;
+  onOpenDiscovery: (id: string) => void;
+  onRecordLandmark: (countryCode: string, landmark: string) => void;
 }
 
 export function ExploreView({
   userId,
   presenceByCountry,
+  myDiscoveries,
   friendDiscoveries,
   onAddTrip,
+  onOpenDiscovery,
+  onRecordLandmark,
 }: Props) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<Continent | null>('Europe');
@@ -106,10 +112,19 @@ export function ExploreView({
           userId={userId}
           code={detail}
           presence={presenceByCountry.get(detail)}
+          myDiscoveries={myDiscoveries}
           friendDiscoveries={friendDiscoveries}
           onAddTrip={(code) => {
             setDetail(null);
             onAddTrip(code);
+          }}
+          onOpenDiscovery={(id) => {
+            setDetail(null);
+            onOpenDiscovery(id);
+          }}
+          onRecordLandmark={(code, landmark) => {
+            setDetail(null);
+            onRecordLandmark(code, landmark);
           }}
           onClose={() => setDetail(null)}
         />

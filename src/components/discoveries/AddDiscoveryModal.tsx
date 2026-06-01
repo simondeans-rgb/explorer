@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Check, Trash2, X } from 'lucide-react';
+import { Check, Landmark, Trash2, X } from 'lucide-react';
 import {
   createDiscovery,
   deleteDiscovery,
   updateDiscovery,
 } from '../../lib/discoveries';
+import { countryFacts } from '../../data/countryFacts';
 import {
   DISCOVERY_CATEGORIES,
   DISCOVERY_CATEGORY_META,
@@ -26,6 +27,7 @@ export interface DiscoveryModalInitial {
   category?: DiscoveryCategory;
   countryCode?: string;
   city?: string;
+  landmark?: string;
   expeditionId?: string;
   verdict?: RecommendationVerdict;
   note?: string;
@@ -51,6 +53,7 @@ export function AddDiscoveryModal({
   );
   const [countryCode, setCountryCode] = useState(initial.countryCode ?? '');
   const [city, setCity] = useState(initial.city ?? '');
+  const [landmark, setLandmark] = useState(initial.landmark ?? '');
   const [expeditionId, setExpeditionId] = useState(initial.expeditionId ?? '');
   const [verdict, setVerdict] = useState<RecommendationVerdict | undefined>(
     initial.verdict,
@@ -68,6 +71,22 @@ export function AddDiscoveryModal({
 
   const canSave = name.trim().length > 0;
 
+  const landmarkOptions = countryCode
+    ? (countryFacts(countryCode)?.landmarks ?? [])
+    : [];
+
+  function pickLandmark(l: string) {
+    if (landmark === l) {
+      // Toggle off — keep the name but unlink.
+      setLandmark('');
+      return;
+    }
+    setLandmark(l);
+    if (!name.trim()) setName(l);
+    // Landmarks are sights — nudge the category unless the user already chose.
+    if (category === 'food') setCategory('culture');
+  }
+
   async function handleSave() {
     if (!canSave || busy) return;
     setBusy(true);
@@ -76,6 +95,7 @@ export function AddDiscoveryModal({
       category,
       countryCode: countryCode || undefined,
       city: city.trim() || undefined,
+      landmark: landmark.trim() || undefined,
       expeditionId: expeditionId || undefined,
       verdict,
       note: note.trim() || undefined,
@@ -182,6 +202,36 @@ export function AddDiscoveryModal({
               />
             </Field>
           </div>
+
+          {landmarkOptions.length > 0 && (
+            <Field label="Is this a well-known landmark?">
+              <div className="flex flex-wrap gap-2">
+                {landmarkOptions.map((l) => {
+                  const active = landmark === l;
+                  return (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => pickLandmark(l)}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors',
+                        active
+                          ? 'bg-passport-navy text-passport-parchment border-passport-navy dark:bg-passport-gold dark:text-passport-ink dark:border-passport-gold'
+                          : 'border-black/15 dark:border-white/15 text-black/70 dark:text-white/70 hover:border-passport-gold/60',
+                      )}
+                    >
+                      <Landmark size={13} />
+                      {l}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1.5 text-xs text-black/45 dark:text-white/45">
+                Linking your record to a landmark connects it to the country
+                card — and lets friends see what you said about it.
+              </p>
+            </Field>
+          )}
 
           {expeditions.length > 0 && (
             <Field label="Expedition">

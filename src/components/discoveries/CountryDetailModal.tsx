@@ -19,6 +19,7 @@ import { flagEmoji } from '../../lib/flags';
 import { createPlace } from '../../lib/places';
 import {
   friendRecommendationsInCountry,
+  discoveryMatchesLandmark,
   type CountryPresence,
   type FriendInCountry,
 } from '../../lib/explore';
@@ -37,8 +38,11 @@ interface Props {
   userId: string;
   code: string;
   presence?: CountryPresence;
+  myDiscoveries: Discovery[];
   friendDiscoveries: Discovery[];
   onAddTrip: (code: string) => void;
+  onOpenDiscovery: (id: string) => void;
+  onRecordLandmark: (countryCode: string, landmark: string) => void;
   onClose: () => void;
 }
 
@@ -52,8 +56,11 @@ export function CountryDetailModal({
   userId,
   code,
   presence,
+  myDiscoveries,
   friendDiscoveries,
   onAddTrip,
+  onOpenDiscovery,
+  onRecordLandmark,
   onClose,
 }: Props) {
   const facts = countryFacts(code);
@@ -74,6 +81,11 @@ export function CountryDetailModal({
   }, [onClose, drill]);
 
   const visited = (presence?.mine.length ?? 0) > 0;
+
+  const friendNames = useMemo(
+    () => new Map((presence?.friends ?? []).map((f) => [f.uid, f.name])),
+    [presence],
+  );
 
   async function addToWishlist() {
     if (wishBusy || visited || wished) return;
@@ -221,14 +233,18 @@ export function CountryDetailModal({
                 <SubHeading icon={Landmark}>
                   Landmarks &amp; sights
                 </SubHeading>
-                <div className="flex flex-wrap gap-2">
+                <div className="space-y-2">
                   {facts.landmarks.map((l) => (
-                    <span
+                    <LandmarkRow
                       key={l}
-                      className="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-passport-navy/[0.05] dark:bg-white/[0.06] text-passport-ink2 dark:text-white/75"
-                    >
-                      {l}
-                    </span>
+                      landmark={l}
+                      countryCode={code}
+                      myDiscoveries={myDiscoveries}
+                      friendDiscoveries={friendDiscoveries}
+                      friendNames={friendNames}
+                      onOpenDiscovery={onOpenDiscovery}
+                      onRecord={() => onRecordLandmark(code, l)}
+                    />
                   ))}
                 </div>
               </section>
@@ -380,6 +396,116 @@ function FriendRow({
         </div>
       )}
     </button>
+  );
+}
+
+function LandmarkRow({
+  landmark,
+  countryCode,
+  myDiscoveries,
+  friendDiscoveries,
+  friendNames,
+  onOpenDiscovery,
+  onRecord,
+}: {
+  landmark: string;
+  countryCode: string;
+  myDiscoveries: Discovery[];
+  friendDiscoveries: Discovery[];
+  friendNames: Map<string, string>;
+  onOpenDiscovery: (id: string) => void;
+  onRecord: () => void;
+}) {
+  const [openFriend, setOpenFriend] = useState<string | null>(null);
+
+  const mine = useMemo(
+    () => myDiscoveries.find((d) => discoveryMatchesLandmark(d, landmark, countryCode)),
+    [myDiscoveries, landmark, countryCode],
+  );
+  const friendRecs = useMemo(
+    () =>
+      friendDiscoveries
+        .filter((d) => discoveryMatchesLandmark(d, landmark, countryCode))
+        .map((d) => ({
+          id: d.id,
+          name: friendNames.get(d.userId) ?? 'Member',
+          verdict: d.verdict,
+          note: d.note,
+        })),
+    [friendDiscoveries, landmark, countryCode, friendNames],
+  );
+
+  return (
+    <div className="rounded-xl bg-passport-navy/[0.04] dark:bg-white/[0.05] px-3 py-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-medium text-sm text-passport-navy dark:text-white/90 min-w-0 truncate">
+          {landmark}
+        </span>
+        {mine ? (
+          <button
+            type="button"
+            onClick={() => onOpenDiscovery(mine.id)}
+            className={cn(
+              'shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] border',
+              mine.verdict
+                ? VERDICT_STYLE[mine.verdict].chip
+                : 'bg-passport-gold/15 text-passport-navy dark:text-passport-goldsoft border-passport-gold/40',
+            )}
+          >
+            <Check size={11} />
+            {mine.verdict ? VERDICT_META[mine.verdict].label : 'Your record'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onRecord}
+            className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] border border-dashed border-black/20 dark:border-white/20 text-passport-ink3 dark:text-white/55 hover:border-passport-gold/60"
+          >
+            <Plus size={11} /> Record
+          </button>
+        )}
+      </div>
+
+      {friendRecs.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {friendRecs.map((r) => {
+            const open = openFriend === r.id;
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => setOpenFriend(open ? null : r.id)}
+                className={cn(
+                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border transition-colors',
+                  r.verdict
+                    ? VERDICT_STYLE[r.verdict].chip
+                    : 'bg-passport-navy/[0.05] dark:bg-white/[0.06] text-passport-ink2 dark:text-white/70 border-black/10 dark:border-white/10',
+                )}
+              >
+                <Users size={10} />
+                <span className="capitalize">{r.name}</span>
+                {r.verdict && (
+                  <span className="opacity-70">· {VERDICT_META[r.verdict].label}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {(() => {
+        const open = friendRecs.find((r) => r.id === openFriend);
+        if (!open) return null;
+        return (
+          <p className="mt-2 font-display text-sm italic text-passport-ink2 dark:text-white/65 border-l-2 border-passport-gold/50 pl-2.5">
+            <span className="capitalize not-italic font-medium text-passport-navy dark:text-white/85">
+              {open.name}:
+            </span>{' '}
+            {open.note || 'No note left.'}
+          </p>
+        );
+      })()}
+    </div>
   );
 }
 
