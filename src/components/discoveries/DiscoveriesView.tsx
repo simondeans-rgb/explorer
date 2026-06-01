@@ -29,6 +29,7 @@ interface Props {
   presenceByCountry: Map<string, CountryPresence>;
   friendDiscoveries: Discovery[];
   onAddTrip: (code: string) => void;
+  onGoToPlace: (countryCode: string, city?: string) => void;
   loading: boolean;
 }
 
@@ -42,6 +43,7 @@ export function DiscoveriesView({
   presenceByCountry,
   friendDiscoveries,
   onAddTrip,
+  onGoToPlace,
   loading,
 }: Props) {
   const [modal, setModal] = useState<DiscoveryModalInitial | null>(null);
@@ -205,11 +207,13 @@ export function DiscoveriesView({
                         category: d.category,
                         countryCode: d.countryCode,
                         city: d.city,
+                        landmark: d.landmark,
                         expeditionId: d.expeditionId,
                         verdict: d.verdict,
                         note: d.note,
                       })
                     }
+                    onGoToPlace={onGoToPlace}
                   />
                 ))}
               </div>
@@ -262,20 +266,29 @@ function DiscoveryCard({
   discovery: d,
   expeditionTitle,
   onEdit,
+  onGoToPlace,
 }: {
   discovery: Discovery;
   expeditionTitle?: string;
   onEdit: () => void;
+  onGoToPlace: (countryCode: string, city?: string) => void;
 }) {
   const Icon = CATEGORY_ICON[d.category];
   const place = [d.city, d.countryCode ? countryName(d.countryCode) : null]
     .filter(Boolean)
     .join(', ');
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onEdit}
-      className="w-full text-left rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 shadow-page p-4"
+      onKeyDown={(e) => {
+        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onEdit();
+        }
+      }}
+      className="w-full text-left rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 shadow-page p-4 cursor-pointer"
     >
       <div className="flex items-start gap-3">
         <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-passport-navy/[0.06] dark:bg-white/[0.06] text-passport-navy dark:text-passport-goldsoft shrink-0">
@@ -297,17 +310,30 @@ function DiscoveryCard({
               </span>
             )}
           </div>
-          <div className="text-xs text-passport-ink3 dark:text-white/45 mt-0.5 flex items-center gap-1.5">
-            {d.countryCode && (
+          {d.countryCode ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onGoToPlace(d.countryCode!, d.city);
+              }}
+              title="View in your Passport"
+              className="text-xs text-passport-ink3 dark:text-white/45 mt-0.5 flex items-center gap-1.5 hover:text-passport-navy dark:hover:text-passport-goldsoft hover:underline"
+            >
               <span className="text-sm leading-none">
                 {flagEmoji(d.countryCode)}
               </span>
-            )}
-            <span>
-              {place || DISCOVERY_CATEGORY_META[d.category].label}
-              {place ? ` · ${DISCOVERY_CATEGORY_META[d.category].label}` : ''}
-            </span>
-          </div>
+              <span>
+                {place}
+                {' · '}
+                {DISCOVERY_CATEGORY_META[d.category].label}
+              </span>
+            </button>
+          ) : (
+            <div className="text-xs text-passport-ink3 dark:text-white/45 mt-0.5">
+              {DISCOVERY_CATEGORY_META[d.category].label}
+            </div>
+          )}
           {expeditionTitle && (
             <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-passport-ink3 dark:text-white/45">
               <MapPinned size={11} className="text-passport-gold" />
@@ -321,7 +347,7 @@ function DiscoveryCard({
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 

@@ -103,6 +103,17 @@ export function AppShell() {
     setSection('expeditions');
   }
 
+  // Set when a discovery's place is tapped; routes to the Passport and focuses
+  // that country (opening the city, if given).
+  const [focusPlace, setFocusPlace] = useState<{
+    code: string;
+    city?: string;
+  } | null>(null);
+  function goToPlace(code: string, city?: string) {
+    setFocusPlace({ code, city });
+    setSection('passport');
+  }
+
   // First-run welcome: shown once per Member when their Passport is empty,
   // surfacing the import options. The choice opens the right importer by setting
   // a one-shot flag the relevant view consumes on mount.
@@ -168,6 +179,8 @@ export function AppShell() {
               friendCountryMap={friendCountryMap}
               openImport={openImport}
               onImportConsumed={() => setOpenImport(null)}
+              focusPlace={focusPlace}
+              onFocusConsumed={() => setFocusPlace(null)}
               loading={loading}
             />
           )}
@@ -192,6 +205,7 @@ export function AppShell() {
               presenceByCountry={presenceByCountry}
               friendDiscoveries={friendsData.discoveries}
               onAddTrip={startTrip}
+              onGoToPlace={goToPlace}
               loading={discoveriesLoading}
             />
           )}

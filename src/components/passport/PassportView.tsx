@@ -78,6 +78,9 @@ interface Props {
   /** One-shot: open an importer on mount (from the first-run welcome). */
   openImport?: 'countries' | 'photos' | null;
   onImportConsumed?: () => void;
+  /** One-shot: scroll to a country card (and open a city), from a discovery. */
+  focusPlace?: { code: string; city?: string } | null;
+  onFocusConsumed?: () => void;
   loading: boolean;
 }
 
@@ -154,6 +157,8 @@ export function PassportView({
   friendCountryMap,
   openImport,
   onImportConsumed,
+  focusPlace,
+  onFocusConsumed,
   loading,
 }: Props) {
   const { user } = useAuth();
@@ -171,6 +176,24 @@ export function PassportView({
     else if (openImport === 'photos') setPhotoImport(true);
     onImportConsumed?.();
   }, [openImport, onImportConsumed]);
+
+  // Country card refs + the place to focus when arriving from a discovery.
+  const cardRefs = useRef(new Map<string, HTMLDivElement>());
+  const [focus, setFocus] = useState<{ code: string; city?: string } | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!focusPlace) return;
+    setFocus(focusPlace);
+    onFocusConsumed?.();
+    // Let the card render, then scroll it into view.
+    const code = focusPlace.code;
+    requestAnimationFrame(() => {
+      cardRefs.current
+        .get(code)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [focusPlace, onFocusConsumed]);
 
   const discovered = useMemo(
     () =>
@@ -341,6 +364,11 @@ export function PassportView({
               agg={a}
               friendsHere={friendCountryMap.get(a.code) ?? []}
               discoveriesHere={discoveriesByCountry.get(a.code) ?? []}
+              focusCity={focus?.code === a.code ? (focus.city ?? null) : null}
+              cardRef={(el) => {
+                if (el) cardRefs.current.set(a.code, el);
+                else cardRefs.current.delete(a.code);
+              }}
               onEdit={() => editCountry(a)}
               onAddCity={() => addCity(a)}
               onEditCity={editCity}
@@ -711,6 +739,8 @@ function CountryCard({
   agg,
   friendsHere,
   discoveriesHere,
+  focusCity,
+  cardRef,
   onEdit,
   onAddCity,
   onEditCity,
@@ -719,6 +749,8 @@ function CountryCard({
   agg: CountryAggregate;
   friendsHere: FriendPresence[];
   discoveriesHere: Discovery[];
+  focusCity?: string | null;
+  cardRef?: (el: HTMLDivElement | null) => void;
   onEdit: () => void;
   onAddCity: () => void;
   onEditCity: (place: Place) => void;
@@ -733,8 +765,24 @@ function CountryCard({
   const countryLevelDiscoveries = discoveriesHere.filter(
     (d) => !d.city || !cityNames.has(norm(d.city)),
   );
+
+  // Arriving from a discovery: open the matching city (highlight the card).
+  useEffect(() => {
+    if (focusCity == null) return;
+    const match = agg.cities.find((c) => norm(c.name) === norm(focusCity));
+    if (match) setOpenCity(match.id);
+  }, [focusCity, agg.cities]);
+
   return (
-    <div className="rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 shadow-page p-4">
+    <div
+      ref={cardRef}
+      className={cn(
+        'rounded-xl bg-passport-card dark:bg-passport-carddark border shadow-page p-4 transition-colors',
+        focusCity != null
+          ? 'border-passport-gold/70'
+          : 'border-black/10 dark:border-white/10',
+      )}
+    >
       <div className="flex items-start gap-3">
         <button
           type="button"
