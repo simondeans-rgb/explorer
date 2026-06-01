@@ -300,6 +300,9 @@ export interface Discovery {
   category: DiscoveryCategory;
   countryCode?: string;
   city?: string;
+  /** Canonical name of a well-known landmark this record is about, linking it
+   *  to the country card's landmark list (see data/countryFacts.ts). */
+  landmark?: string;
   expeditionId?: string;
   verdict?: RecommendationVerdict;
   note?: string;
