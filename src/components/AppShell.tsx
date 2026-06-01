@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BookMarked,
   Compass,
+  Globe2,
   LogOut,
   type LucideIcon,
   MapPinned,
@@ -146,7 +147,11 @@ export function AppShell() {
 
   return (
     <div className="passport-bg fixed inset-0 flex flex-col">
-      <Header section={section} onChange={setSection} />
+      <Header
+        section={section}
+        onChange={setSection}
+        onImport={() => setShowWelcome(true)}
+      />
       <Nav section={section} onChange={setSection} />
       <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
         <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-6 sm:py-8 min-w-0">
@@ -223,9 +228,11 @@ export function AppShell() {
 function Header({
   section,
   onChange,
+  onImport,
 }: {
   section: Section;
   onChange: (s: Section) => void;
+  onImport: () => void;
 }) {
   const { user, signOut, demo } = useAuth();
   const { theme, toggle } = useTheme();
@@ -318,6 +325,20 @@ function Header({
                 </div>
                 <div className="truncate">{user?.email ?? 'Signed in'}</div>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onImport();
+                }}
+                className={cn(
+                  'w-full inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
+                  'hover:bg-black/5 dark:hover:bg-white/10',
+                )}
+              >
+                <Globe2 size={14} />
+                Import travels
+              </button>
               <button
                 type="button"
                 onClick={() => {

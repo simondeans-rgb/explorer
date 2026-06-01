@@ -23,6 +23,7 @@ import {
   type Relationship,
 } from '../../types';
 import type { FriendPresence } from '../../lib/friends';
+import { placePeriods } from '../../lib/residences';
 import { memberName } from '../../lib/memberName';
 import { cn } from '../../lib/cn';
 import { VERDICT_STYLE } from '../discoveries/verdictStyle';
@@ -188,6 +189,7 @@ export function PassportView({
       firstYear: a.countryPlace?.firstYear,
       livedFrom: a.countryPlace?.livedFrom,
       livedTo: a.countryPlace?.livedTo,
+      residencePeriods: a.countryPlace?.residencePeriods,
       note: a.countryPlace?.note,
       lockCountry: true,
     });
@@ -207,6 +209,7 @@ export function PassportView({
       firstYear: place.firstYear,
       livedFrom: place.livedFrom,
       livedTo: place.livedTo,
+      residencePeriods: place.residencePeriods,
       note: place.note,
       lockKind: true,
       lockCountry: true,
@@ -695,11 +698,14 @@ function CountryCard({
           </div>
           {(() => {
             const residences = [agg.countryPlace, ...agg.cities]
-              .filter((p): p is Place => Boolean(p?.livedFrom))
-              .map(
-                (p) =>
-                  `${p.name} (${formatMonth(p.livedFrom!)}–${p.livedTo ? formatMonth(p.livedTo) : 'now'})`,
-              );
+              .filter((p): p is Place => Boolean(p))
+              .flatMap((p) => {
+                const periods = placePeriods(p);
+                return periods.map(
+                  (period) =>
+                    `${p.name} (${formatMonth(period.from)}–${period.to ? formatMonth(period.to) : 'now'})`,
+                );
+              });
             return residences.length ? (
               <div className="mt-1.5 text-[11px] text-passport-ink3 dark:text-white/45">
                 Lived: {residences.join(', ')}

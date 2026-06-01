@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, Trash2, X } from 'lucide-react';
+import { Check, Plus, Trash2, X } from 'lucide-react';
 import { countryName } from '../../data/countries';
 import { flagEmoji } from '../../lib/flags';
 import { createPlace, deletePlace, updatePlace } from '../../lib/places';
@@ -8,6 +8,7 @@ import {
   RELATIONSHIP_META,
   type PlaceKind,
   type Relationship,
+  type ResidencePeriod,
 } from '../../types';
 import { cn } from '../../lib/cn';
 import { inputClass } from '../../lib/formClass';
@@ -23,6 +24,7 @@ export interface ModalInitial {
   firstYear?: number;
   livedFrom?: string;
   livedTo?: string;
+  residencePeriods?: ResidencePeriod[];
   note?: string;
   lockKind?: boolean;
   lockCountry?: boolean;
@@ -47,8 +49,15 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
   const [year, setYear] = useState(
     initial.firstYear ? String(initial.firstYear) : '',
   );
-  const [livedFrom, setLivedFrom] = useState(initial.livedFrom ?? '');
-  const [livedTo, setLivedTo] = useState(initial.livedTo ?? '');
+  const [periods, setPeriods] = useState<ResidencePeriod[]>(() => {
+    if (initial.residencePeriods && initial.residencePeriods.length > 0) {
+      return initial.residencePeriods.map((p) => ({ from: p.from, to: p.to }));
+    }
+    if (initial.livedFrom) {
+      return [{ from: initial.livedFrom, to: initial.livedTo }];
+    }
+    return [];
+  });
   const [note, setNote] = useState(initial.note ?? '');
   const [busy, setBusy] = useState(false);
 
@@ -65,8 +74,22 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
       const next = new Set(prev);
       if (next.has(r)) next.delete(r);
       else next.add(r);
+      // Starting a residence with no periods yet — seed an empty one to fill in.
+      if (r === 'lived' && !prev.has(r)) {
+        setPeriods((ps) => (ps.length === 0 ? [{ from: '', to: '' }] : ps));
+      }
       return next;
     });
+  }
+
+  function setPeriod(i: number, patch: Partial<ResidencePeriod>) {
+    setPeriods((ps) => ps.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
+  }
+  function addPeriod() {
+    setPeriods((ps) => [...ps, { from: '', to: '' }]);
+  }
+  function removePeriod(i: number) {
+    setPeriods((ps) => ps.filter((_, idx) => idx !== i));
   }
 
   const canSave =
@@ -79,6 +102,9 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
     setBusy(true);
     const parsedYear = year ? Number.parseInt(year, 10) : undefined;
     const lived = relationships.has('lived');
+    const cleanPeriods = lived
+      ? periods.filter((p) => p.from).map((p) => ({ from: p.from, to: p.to || undefined }))
+      : [];
     const input = {
       kind,
       countryCode,
@@ -86,8 +112,7 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
       relationships: [...relationships],
       firstYear:
         parsedYear && !Number.isNaN(parsedYear) ? parsedYear : undefined,
-      livedFrom: lived ? livedFrom || undefined : undefined,
-      livedTo: lived ? livedTo || undefined : undefined,
+      residencePeriods: cleanPeriods.length > 0 ? cleanPeriods : undefined,
       note: note.trim() || undefined,
     };
     try {
@@ -203,27 +228,58 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
 
           {relationships.has('lived') && (
             <div>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Lived from">
-                  <input
-                    type="month"
-                    value={livedFrom}
-                    onChange={(e) => setLivedFrom(e.target.value)}
-                    className={cn(inputClass, 'min-w-0 appearance-none')}
-                  />
-                </Field>
-                <Field label="Lived until">
-                  <input
-                    type="month"
-                    value={livedTo}
-                    onChange={(e) => setLivedTo(e.target.value)}
-                    className={cn(inputClass, 'min-w-0 appearance-none')}
-                  />
-                </Field>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11px] uppercase tracking-[0.16em] text-passport-fieldlabel">
+                  Periods lived here
+                </span>
+                <button
+                  type="button"
+                  onClick={addPeriod}
+                  className="inline-flex items-center gap-1 text-xs text-passport-navy dark:text-passport-goldsoft hover:underline"
+                >
+                  <Plus size={13} /> Add period
+                </button>
+              </div>
+              <div className="space-y-2">
+                {periods.length === 0 && (
+                  <p className="text-xs text-black/40 dark:text-white/40">
+                    No periods yet — add one with the dates you lived here.
+                  </p>
+                )}
+                {periods.map((p, i) => (
+                  <div key={i} className="flex items-end gap-2">
+                    <Field label="From">
+                      <input
+                        type="month"
+                        value={p.from}
+                        onChange={(e) => setPeriod(i, { from: e.target.value })}
+                        className={cn(inputClass, 'min-w-0 appearance-none')}
+                      />
+                    </Field>
+                    <Field label="Until">
+                      <input
+                        type="month"
+                        value={p.to ?? ''}
+                        onChange={(e) => setPeriod(i, { to: e.target.value })}
+                        className={cn(inputClass, 'min-w-0 appearance-none')}
+                      />
+                    </Field>
+                    <button
+                      type="button"
+                      aria-label="Remove period"
+                      onClick={() => removePeriod(i)}
+                      className="mb-1.5 p-2 rounded-lg text-black/40 dark:text-white/40 hover:text-red-600 dark:hover:text-red-400 hover:bg-black/5 dark:hover:bg-white/10"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
               </div>
               <p className="text-xs text-black/45 dark:text-white/45 mt-1.5">
-                Dates let the Flighty importer work out which trips were home and
-                which were away. Leave “until” empty if you live here now.
+                Add a period for each spell you lived here — moving away and back
+                is fine. Leave “until” empty for where you live now. These dates
+                let the Flighty importer tell which trips were home and which
+                were away.
               </p>
             </div>
           )}

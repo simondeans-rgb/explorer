@@ -12,7 +12,13 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import * as local from './localPlaces';
-import type { Place, PlaceKind, Relationship } from '../types';
+import type {
+  Place,
+  PlaceKind,
+  Relationship,
+  ResidencePeriod,
+} from '../types';
+import { deriveLivedRange, normalizePeriods } from './residencePeriods';
 
 const COLLECTION = 'places';
 
@@ -40,6 +46,9 @@ export function subscribePlaces(
           typeof data.firstYear === 'number' ? data.firstYear : undefined,
         livedFrom: data.livedFrom || undefined,
         livedTo: data.livedTo || undefined,
+        residencePeriods: Array.isArray(data.residencePeriods)
+          ? (data.residencePeriods as ResidencePeriod[])
+          : undefined,
         note: data.note || undefined,
         createdAt: millis(data.createdAt),
         updatedAt: millis(data.updatedAt),
@@ -57,6 +66,7 @@ export interface PlaceInput {
   firstYear?: number;
   livedFrom?: string;
   livedTo?: string;
+  residencePeriods?: ResidencePeriod[];
   note?: string;
 }
 
@@ -73,8 +83,19 @@ function toDoc(input: PlaceInput) {
   } else {
     out.firstYear = null;
   }
-  out.livedFrom = input.livedFrom || null;
-  out.livedTo = input.livedTo || null;
+  // Residence periods are the source of truth; derive the legacy single range
+  // from them when present, else fall back to the supplied livedFrom/livedTo.
+  const periods = normalizePeriods(input.residencePeriods);
+  if (periods.length > 0) {
+    const { livedFrom, livedTo } = deriveLivedRange(periods);
+    out.residencePeriods = periods;
+    out.livedFrom = livedFrom ?? null;
+    out.livedTo = livedTo ?? null;
+  } else {
+    out.residencePeriods = null;
+    out.livedFrom = input.livedFrom || null;
+    out.livedTo = input.livedTo || null;
+  }
   out.note = input.note?.trim() ? input.note.trim() : null;
   return out;
 }

@@ -4,6 +4,7 @@
 // never know which backend is live. Single-Member by design — keyed globally.
 import type { Place } from '../types';
 import type { PlaceInput } from './places';
+import { deriveLivedRange, normalizePeriods } from './residencePeriods';
 
 const STORAGE_KEY = 'explorer:demo-places';
 const EVENT = 'explorer:demo-places-changed';
@@ -38,14 +39,17 @@ function normalize(input: PlaceInput) {
     typeof input.firstYear === 'number' && !Number.isNaN(input.firstYear)
       ? input.firstYear
       : undefined;
+  const periods = normalizePeriods(input.residencePeriods);
+  const derived = periods.length > 0 ? deriveLivedRange(periods) : null;
   return {
     kind: input.kind,
     countryCode: input.countryCode,
     name: input.name.trim(),
     relationships: input.relationships,
     firstYear: year,
-    livedFrom: input.livedFrom || undefined,
-    livedTo: input.livedTo || undefined,
+    livedFrom: derived ? derived.livedFrom : input.livedFrom || undefined,
+    livedTo: derived ? derived.livedTo : input.livedTo || undefined,
+    residencePeriods: periods.length > 0 ? periods : undefined,
     note: input.note?.trim() ? input.note.trim() : undefined,
   };
 }
