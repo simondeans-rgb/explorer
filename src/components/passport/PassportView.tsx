@@ -6,7 +6,7 @@ import {
   useState,
   type ChangeEvent,
 } from 'react';
-import { Camera, Images, MapPin, Plus, Users, X } from 'lucide-react';
+import { Camera, Globe2, Images, MapPin, Plus, Users, X } from 'lucide-react';
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
 import type { DiscoveryStats } from '../../lib/discoveryStats';
 import { evaluateRecognitions, type Recognition } from '../../lib/recognitions';
@@ -32,6 +32,11 @@ import { AddPlaceModal, type ModalInitial } from './AddPlaceModal';
 // shouldn't weigh down the initial Passport load.
 const ImportPhotosModal = lazy(() =>
   import('./ImportPhotosModal').then((m) => ({ default: m.ImportPhotosModal })),
+);
+const ImportCountriesModal = lazy(() =>
+  import('./ImportCountriesModal').then((m) => ({
+    default: m.ImportCountriesModal,
+  })),
 );
 
 const PassportMap = lazy(() =>
@@ -128,6 +133,7 @@ export function PassportView({
   const { photo, setPhoto } = useProfilePhoto(userId || undefined);
   const [modal, setModal] = useState<ModalInitial | null>(null);
   const [photoImport, setPhotoImport] = useState(false);
+  const [countryImport, setCountryImport] = useState(false);
 
   const discovered = useMemo(
     () =>
@@ -220,6 +226,13 @@ export function PassportView({
       <div className="flex items-center justify-between gap-2">
         <SectionHeading>Your Passport</SectionHeading>
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setCountryImport(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border border-passport-navy/20 dark:border-white/20 text-passport-navy dark:text-white/80 hover:bg-passport-navy/5 dark:hover:bg-white/10 active:scale-[0.98]"
+          >
+            <Globe2 size={15} /> Import
+          </button>
           <button
             type="button"
             onClick={() => setPhotoImport(true)}
@@ -316,6 +329,16 @@ export function PassportView({
             userId={userId}
             places={places}
             onClose={() => setPhotoImport(false)}
+          />
+        </Suspense>
+      )}
+
+      {countryImport && (
+        <Suspense fallback={null}>
+          <ImportCountriesModal
+            userId={userId}
+            places={places}
+            onClose={() => setCountryImport(false)}
           />
         </Suspense>
       )}
