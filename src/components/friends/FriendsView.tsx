@@ -103,13 +103,18 @@ export function FriendsView({
     if (busy || !entry.trim()) return;
     setBusy(true);
     setMessage(null);
-    const res = await sendRequest({ uid: userId, name: myName }, entry);
-    setMessage({
-      ok: res.ok,
-      text: res.ok ? 'Request sent.' : (res.error ?? 'Something went wrong.'),
-    });
-    if (res.ok) setEntry('');
-    setBusy(false);
+    try {
+      const res = await sendRequest({ uid: userId, name: myName }, entry);
+      setMessage({
+        ok: res.ok,
+        text: res.ok ? 'Request sent.' : (res.error ?? 'Something went wrong.'),
+      });
+      if (res.ok) setEntry('');
+    } catch {
+      setMessage({ ok: false, text: 'Couldn’t send the request. Please try again.' });
+    } finally {
+      setBusy(false);
+    }
   }
 
   function copyCode() {

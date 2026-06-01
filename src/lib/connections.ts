@@ -74,33 +74,62 @@ export async function sendRequest(
   code: string,
 ): Promise<RequestResult> {
   if (!db) return { ok: false, error: 'Connecting requires signing in.' };
-  const otherUid = await resolveCode(code);
-  if (!otherUid) return { ok: false, error: 'No Member found for that code.' };
-  if (otherUid === me.uid) return { ok: false, error: 'That’s your own code.' };
+  try {
+    const otherUid = await resolveCode(code);
+    if (!otherUid) return { ok: false, error: 'No Member found for that code.' };
+    if (otherUid === me.uid) {
+      return { ok: false, error: 'That’s your own code.' };
+    }
 
-  const id = pairId(me.uid, otherUid);
-  const ref = doc(db, 'connections', id);
-  const existing = await getDoc(ref);
-  if (existing.exists()) {
-    return {
-      ok: false,
-      error:
-        existing.data().status === 'accepted'
-          ? 'You’re already connected.'
-          : 'A request is already pending with this Member.',
-    };
+    const id = pairId(me.uid, otherUid);
+    const ref = doc(db, 'connections', id);
+
+    // Check for an existing connection. Reading a not-yet-existing doc can be
+    // rejected by stricter rules, so a failure here is treated as "none yet"
+    // rather than aborting the whole request.
+    try {
+      const existing = await getDoc(ref);
+      if (existing.exists()) {
+        return {
+          ok: false,
+          error:
+            existing.data().status === 'accepted'
+              ? 'You’re already connected.'
+              : 'A request is already pending with this Member.',
+        };
+      }
+    } catch {
+      /* fall through and attempt to create the request */
+    }
+
+    let otherName = 'Member';
+    try {
+      otherName = await getProfileName(otherUid);
+    } catch {
+      /* name is best-effort */
+    }
+
+    await setDoc(ref, {
+      members: [me.uid, otherUid],
+      status: 'pending',
+      requestedBy: me.uid,
+      names: { [me.uid]: me.name, [otherUid]: otherName },
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return { ok: true };
+  } catch (e) {
+    const code =
+      typeof e === 'object' && e && 'code' in e ? String(e.code) : '';
+    if (code.includes('permission-denied')) {
+      return {
+        ok: false,
+        error:
+          'Couldn’t send the request — the database rules may need updating. Please try again later.',
+      };
+    }
+    return { ok: false, error: 'Couldn’t send the request. Please try again.' };
   }
-
-  const otherName = await getProfileName(otherUid);
-  await setDoc(ref, {
-    members: [me.uid, otherUid],
-    status: 'pending',
-    requestedBy: me.uid,
-    names: { [me.uid]: me.name, [otherUid]: otherName },
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-  return { ok: true };
 }
 
 export async function acceptConnection(id: string): Promise<void> {
