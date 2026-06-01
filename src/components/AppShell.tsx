@@ -30,6 +30,7 @@ import { AlmanacView } from './almanac/AlmanacView';
 import { ExpeditionsView } from './expeditions/ExpeditionsView';
 import { DiscoveriesView } from './discoveries/DiscoveriesView';
 import { FriendsView } from './friends/FriendsView';
+import { WelcomeModal, type WelcomeChoice } from './WelcomeModal';
 
 type Section =
   | 'passport'
@@ -101,6 +102,48 @@ export function AppShell() {
     setSection('expeditions');
   }
 
+  // First-run welcome: shown once per Member when their Passport is empty,
+  // surfacing the import options. The choice opens the right importer by setting
+  // a one-shot flag the relevant view consumes on mount.
+  const welcomeKey = user?.uid ? `explorer:welcomed:${user.uid}` : null;
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [openImport, setOpenImport] = useState<'countries' | 'photos' | null>(
+    null,
+  );
+  const [openFlighty, setOpenFlighty] = useState(false);
+
+  useEffect(() => {
+    if (!welcomeKey || loading) return;
+    const fresh =
+      places.length === 0 &&
+      discoveries.length === 0 &&
+      expeditions.length === 0;
+    if (fresh && !localStorage.getItem(welcomeKey)) setShowWelcome(true);
+  }, [welcomeKey, loading, places.length, discoveries.length, expeditions.length]);
+
+  function dismissWelcome() {
+    if (welcomeKey) {
+      try {
+        localStorage.setItem(welcomeKey, '1');
+      } catch {
+        /* ignore */
+      }
+    }
+    setShowWelcome(false);
+  }
+
+  function chooseWelcome(choice: WelcomeChoice) {
+    dismissWelcome();
+    if (choice === 'flighty') {
+      setSection('expeditions');
+      setOpenFlighty(true);
+    } else if (choice === 'countries' || choice === 'photos') {
+      setSection('passport');
+      setOpenImport(choice);
+    }
+    // 'fresh' just closes the welcome.
+  }
+
   return (
     <div className="passport-bg fixed inset-0 flex flex-col">
       <Header section={section} onChange={setSection} />
@@ -116,6 +159,8 @@ export function AppShell() {
               discoveryStats={discoveryStats}
               expeditionCount={expeditions.length}
               friendCountryMap={friendCountryMap}
+              openImport={openImport}
+              onImportConsumed={() => setOpenImport(null)}
               loading={loading}
             />
           )}
@@ -127,6 +172,8 @@ export function AppShell() {
               places={places}
               newTripCountry={tripCountry}
               onNewTripConsumed={() => setTripCountry(null)}
+              openImport={openFlighty}
+              onImportConsumed={() => setOpenFlighty(false)}
               loading={expeditionsLoading}
             />
           )}
@@ -165,6 +212,10 @@ export function AppShell() {
           )}
         </div>
       </main>
+
+      {showWelcome && (
+        <WelcomeModal onChoose={chooseWelcome} onClose={dismissWelcome} />
+      )}
     </div>
   );
 }

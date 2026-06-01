@@ -1,6 +1,7 @@
 import {
   lazy,
   Suspense,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -55,6 +56,9 @@ interface Props {
   discoveryStats: DiscoveryStats;
   expeditionCount: number;
   friendCountryMap: Map<string, FriendPresence[]>;
+  /** One-shot: open an importer on mount (from the first-run welcome). */
+  openImport?: 'countries' | 'photos' | null;
+  onImportConsumed?: () => void;
   loading: boolean;
 }
 
@@ -127,6 +131,8 @@ export function PassportView({
   discoveryStats,
   expeditionCount,
   friendCountryMap,
+  openImport,
+  onImportConsumed,
   loading,
 }: Props) {
   const { user } = useAuth();
@@ -134,6 +140,14 @@ export function PassportView({
   const [modal, setModal] = useState<ModalInitial | null>(null);
   const [photoImport, setPhotoImport] = useState(false);
   const [countryImport, setCountryImport] = useState(false);
+
+  // Open an importer when routed here from the first-run welcome.
+  useEffect(() => {
+    if (!openImport) return;
+    if (openImport === 'countries') setCountryImport(true);
+    else if (openImport === 'photos') setPhotoImport(true);
+    onImportConsumed?.();
+  }, [openImport, onImportConsumed]);
 
   const discovered = useMemo(
     () =>
