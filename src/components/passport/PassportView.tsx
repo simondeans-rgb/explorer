@@ -7,7 +7,16 @@ import {
   useState,
   type ChangeEvent,
 } from 'react';
-import { Camera, Globe2, Images, MapPin, Plus, Users, X } from 'lucide-react';
+import {
+  Camera,
+  Compass,
+  Globe2,
+  Images,
+  MapPin,
+  Plus,
+  Users,
+  X,
+} from 'lucide-react';
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
 import type { DiscoveryStats } from '../../lib/discoveryStats';
 import { evaluateRecognitions, type Recognition } from '../../lib/recognitions';
@@ -19,6 +28,8 @@ import {
   CONTINENTS,
   RELATIONSHIP_META,
   VERDICT_META,
+  type Discovery,
+  type Expedition,
   type Place,
   type Relationship,
 } from '../../types';
@@ -27,6 +38,11 @@ import { placePeriods } from '../../lib/residences';
 import { memberName } from '../../lib/memberName';
 import { cn } from '../../lib/cn';
 import { VERDICT_STYLE } from '../discoveries/verdictStyle';
+import { CATEGORY_ICON } from '../discoveries/categoryIcons';
+import {
+  AddDiscoveryModal,
+  type DiscoveryModalInitial,
+} from '../discoveries/AddDiscoveryModal';
 import { MapSkeleton } from '../map/MapSkeleton';
 import { AddPlaceModal, type ModalInitial } from './AddPlaceModal';
 
@@ -52,6 +68,8 @@ import { RELATIONSHIP_ICON } from './relationshipIcons';
 interface Props {
   userId: string;
   places: Place[];
+  discoveries: Discovery[];
+  expeditions: Expedition[];
   aggregates: CountryAggregate[];
   stats: PassportStats;
   discoveryStats: DiscoveryStats;
@@ -127,6 +145,8 @@ function mrzLines(name: string, no: string): [string, string] {
 export function PassportView({
   userId,
   places,
+  discoveries,
+  expeditions,
   aggregates,
   stats,
   discoveryStats,
@@ -139,6 +159,8 @@ export function PassportView({
   const { user } = useAuth();
   const { photo, setPhoto } = useProfilePhoto(userId || undefined);
   const [modal, setModal] = useState<ModalInitial | null>(null);
+  const [discoveryModal, setDiscoveryModal] =
+    useState<DiscoveryModalInitial | null>(null);
   const [photoImport, setPhotoImport] = useState(false);
   const [countryImport, setCountryImport] = useState(false);
 
@@ -164,6 +186,17 @@ export function PassportView({
     () => aggregates.filter((a) => a.aspiring),
     [aggregates],
   );
+  // Recorded discoveries grouped by country, for cross-linking into the card.
+  const discoveriesByCountry = useMemo(() => {
+    const m = new Map<string, Discovery[]>();
+    for (const d of discoveries) {
+      if (!d.countryCode) continue;
+      const list = m.get(d.countryCode) ?? [];
+      list.push(d);
+      m.set(d.countryCode, list);
+    }
+    return m;
+  }, [discoveries]);
   const recognitions = useMemo(
     () => evaluateRecognitions(stats, discoveryStats),
     [stats, discoveryStats],
@@ -213,6 +246,20 @@ export function PassportView({
       note: place.note,
       lockKind: true,
       lockCountry: true,
+    });
+  }
+
+  function editDiscovery(d: Discovery) {
+    setDiscoveryModal({
+      id: d.id,
+      name: d.name,
+      category: d.category,
+      countryCode: d.countryCode,
+      city: d.city,
+      landmark: d.landmark,
+      expeditionId: d.expeditionId,
+      verdict: d.verdict,
+      note: d.note,
     });
   }
 
@@ -293,9 +340,11 @@ export function PassportView({
               key={a.code}
               agg={a}
               friendsHere={friendCountryMap.get(a.code) ?? []}
+              discoveriesHere={discoveriesByCountry.get(a.code) ?? []}
               onEdit={() => editCountry(a)}
               onAddCity={() => addCity(a)}
               onEditCity={editCity}
+              onEditDiscovery={editDiscovery}
             />
           ))}
         </div>
@@ -342,6 +391,15 @@ export function PassportView({
           userId={userId}
           initial={modal}
           onClose={() => setModal(null)}
+        />
+      )}
+
+      {discoveryModal && (
+        <AddDiscoveryModal
+          userId={userId}
+          initial={discoveryModal}
+          expeditions={expeditions}
+          onClose={() => setDiscoveryModal(null)}
         />
       )}
 
@@ -652,16 +710,29 @@ function FlagWall({
 function CountryCard({
   agg,
   friendsHere,
+  discoveriesHere,
   onEdit,
   onAddCity,
   onEditCity,
+  onEditDiscovery,
 }: {
   agg: CountryAggregate;
   friendsHere: FriendPresence[];
+  discoveriesHere: Discovery[];
   onEdit: () => void;
   onAddCity: () => void;
   onEditCity: (place: Place) => void;
+  onEditDiscovery: (d: Discovery) => void;
 }) {
+  const [openCity, setOpenCity] = useState<string | null>(null);
+  const norm = (s: string) => s.trim().toLowerCase();
+  const discoveriesInCity = (city: string) =>
+    discoveriesHere.filter((d) => d.city && norm(d.city) === norm(city));
+  // Discoveries recorded for this country but not tied to one of its cities.
+  const cityNames = new Set(agg.cities.map((c) => norm(c.name)));
+  const countryLevelDiscoveries = discoveriesHere.filter(
+    (d) => !d.city || !cityNames.has(norm(d.city)),
+  );
   return (
     <div className="rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 shadow-page p-4">
       <div className="flex items-start gap-3">
@@ -737,17 +808,32 @@ function CountryCard({
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-1.5">
-        {agg.cities.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            onClick={() => onEditCity(c)}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-passport-navy/5 dark:bg-white/5 text-passport-ink2 dark:text-white/70 hover:bg-passport-navy/10"
-          >
-            <MapPin size={11} />
-            {c.name}
-          </button>
-        ))}
+        {agg.cities.map((c) => {
+          const count = discoveriesInCity(c.name).length;
+          const open = openCity === c.id;
+          return (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setOpenCity(open ? null : c.id)}
+              className={cn(
+                'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs',
+                open
+                  ? 'bg-passport-navy/10 dark:bg-white/10 text-passport-navy dark:text-white/90'
+                  : 'bg-passport-navy/5 dark:bg-white/5 text-passport-ink2 dark:text-white/70 hover:bg-passport-navy/10',
+              )}
+            >
+              <MapPin size={11} />
+              {c.name}
+              {count > 0 && (
+                <span className="ml-0.5 inline-flex items-center gap-0.5 text-passport-gold">
+                  <Compass size={10} />
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
         <button
           type="button"
           onClick={onAddCity}
@@ -757,7 +843,91 @@ function CountryCard({
         </button>
       </div>
 
+      {(() => {
+        if (!openCity) return null;
+        const city = agg.cities.find((c) => c.id === openCity);
+        if (!city) return null;
+        const recs = discoveriesInCity(city.name);
+        return (
+          <div className="mt-3 rounded-xl bg-passport-navy/[0.03] dark:bg-white/[0.04] p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.16em] text-passport-fieldlabel">
+                <MapPin size={12} className="text-passport-gold" /> {city.name}
+              </div>
+              <button
+                type="button"
+                onClick={() => onEditCity(city)}
+                className="text-[11px] text-passport-navy dark:text-passport-goldsoft hover:underline"
+              >
+                Edit city
+              </button>
+            </div>
+            {recs.length > 0 ? (
+              <DiscoveryList items={recs} onOpen={onEditDiscovery} />
+            ) : (
+              <p className="text-xs text-passport-ink3 dark:text-white/45">
+                No discoveries recorded here yet.
+              </p>
+            )}
+          </div>
+        );
+      })()}
+
+      {countryLevelDiscoveries.length > 0 && (
+        <div className="mt-3">
+          <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-passport-gold mb-2">
+            <Compass size={12} /> Discoveries
+          </div>
+          <DiscoveryList
+            items={countryLevelDiscoveries}
+            onOpen={onEditDiscovery}
+          />
+        </div>
+      )}
+
       {friendsHere.length > 0 && <FriendsHere friends={friendsHere} />}
+    </div>
+  );
+}
+
+function DiscoveryList({
+  items,
+  onOpen,
+}: {
+  items: Discovery[];
+  onOpen: (d: Discovery) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      {items
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((d) => {
+          const Icon = CATEGORY_ICON[d.category];
+          return (
+            <button
+              key={d.id}
+              type="button"
+              onClick={() => onOpen(d)}
+              className="w-full flex items-center gap-2 text-left rounded-lg px-2 py-1.5 hover:bg-passport-navy/[0.05] dark:hover:bg-white/[0.06] transition-colors"
+            >
+              <Icon size={13} className="text-passport-gold shrink-0" />
+              <span className="text-sm text-passport-ink dark:text-white/85 truncate min-w-0">
+                {d.name}
+              </span>
+              {d.verdict && (
+                <span
+                  className={cn(
+                    'ml-auto shrink-0 px-2 py-0.5 rounded-full text-[10px] border',
+                    VERDICT_STYLE[d.verdict].chip,
+                  )}
+                >
+                  {VERDICT_META[d.verdict].label}
+                </span>
+              )}
+            </button>
+          );
+        })}
     </div>
   );
 }
