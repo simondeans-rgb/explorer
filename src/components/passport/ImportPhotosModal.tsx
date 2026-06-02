@@ -223,7 +223,7 @@ export function ImportPhotosModal({ userId, places, onClose }: Props) {
                               {c.cities.map((city) => (
                                 <span
                                   key={city}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 text-passport-ink2 dark:text-white/70"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-white dark:bg-white/10 shadow-card text-passport-ink2 dark:text-white/70"
                                 >
                                   <MapPin size={10} />
                                   {city}

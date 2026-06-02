@@ -358,7 +358,7 @@ function PickChip({
       className={cn(
         'px-3 py-1.5 rounded-full text-sm border transition-colors',
         active
-          ? 'bg-passport-navy text-passport-parchment border-passport-navy dark:bg-passport-gold dark:text-passport-ink dark:border-passport-gold'
+          ? 'bg-passport-navy text-white dark:bg-white dark:text-passport-navy shadow-card border-transparent'
           : 'border-black/15 dark:border-white/15 text-black/60 dark:text-white/60 hover:border-passport-gold/60',
       )}
     >

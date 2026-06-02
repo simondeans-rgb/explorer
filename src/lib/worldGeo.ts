@@ -74,9 +74,9 @@ export const centroidByAlpha2: Record<string, [number, number]> = {};
   }
 }
 
-/** Brand palette for the maps. */
-export const MAP_FILL_VISITED = '#E8C97A'; // Pale Gold
-export const MAP_FILL_UNVISITED_LIGHT = '#EDE6D4'; // Cartridge, slightly toned
-export const MAP_FILL_UNVISITED_DARK = '#16233a';
-export const MAP_STROKE_LIGHT = '#D8CEB4';
-export const MAP_STROKE_DARK = '#24344f';
+/** Worldly map palette — sunset coral for visited, soft neutral land. */
+export const MAP_FILL_VISITED = '#FF7A66'; // Sunset coral
+export const MAP_FILL_UNVISITED_LIGHT = '#ECEEF6'; // soft cool grey land
+export const MAP_FILL_UNVISITED_DARK = '#222637';
+export const MAP_STROKE_LIGHT = '#FFFFFF';
+export const MAP_STROKE_DARK = '#0E1018';

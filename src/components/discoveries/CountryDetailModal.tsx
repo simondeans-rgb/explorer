@@ -367,7 +367,7 @@ function FriendRow({
     <button
       type="button"
       onClick={onOpen}
-      className="w-full text-left rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 px-3 py-2.5 hover:border-passport-gold/50 transition-colors"
+      className="w-full text-left rounded-2xl bg-white dark:bg-white/[0.04] shadow-card px-3.5 py-3 hover:shadow-card-hover active:scale-[0.99] transition-all"
     >
       <div className="flex items-center gap-2">
         <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-passport-navy/[0.06] dark:bg-white/[0.08] text-xs font-medium text-passport-navy dark:text-passport-goldsoft capitalize">
