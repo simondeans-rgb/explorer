@@ -4,23 +4,25 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0D1B2E" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0B1422" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F6F7FB" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0E1018" media="(prefers-color-scheme: dark)" />
     <meta
       name="description"
-      content="Explorer's Passport — a lifelong personal travel archive. Issued by the Society of Discovery."
+      content="Worldly — your beautiful personal travel archive. Collect the places you've been, the discoveries you've made, and the world still left to see."
     />
-    <title>Explorer's Passport</title>
+    <title>Worldly</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=DM+Sans:wght@300;400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <script>
       (function () {
         try {
-          var stored = localStorage.getItem('explorer:theme');
+          var stored =
+            localStorage.getItem('worldly:theme') ||
+            localStorage.getItem('explorer:theme');
           var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
           if (stored === 'dark' || (!stored && prefersDark)) {
             document.documentElement.classList.add('dark');

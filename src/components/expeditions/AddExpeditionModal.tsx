@@ -126,12 +126,11 @@ export function AddExpeditionModal({ userId, initial, onClose }: Props) {
         onMouseDown={(e) => e.stopPropagation()}
         className={cn(
           'w-full sm:max-w-md max-h-[92vh] overflow-y-auto no-scrollbar',
-          'rounded-t-2xl sm:rounded-2xl shadow-page animate-rise-in',
-          'bg-passport-card dark:bg-passport-carddark',
-          'border border-black/5 dark:border-white/10',
+          'rounded-t-3xl sm:rounded-3xl shadow-float animate-rise-in',
+          'bg-passport-cartridge dark:bg-passport-carddark',
         )}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-passport-navy/[0.06] dark:border-white/10">
           <h2 className="font-display text-lg font-semibold text-passport-navy dark:text-white/90">
             {editing ? 'Edit journey' : 'New journey'}
           </h2>
@@ -243,7 +242,7 @@ export function AddExpeditionModal({ userId, initial, onClose }: Props) {
           </Field>
         </div>
 
-        <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-black/5 dark:border-white/10">
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-passport-navy/[0.06] dark:border-white/10">
           {editing ? (
             <button
               type="button"
@@ -262,8 +261,8 @@ export function AddExpeditionModal({ userId, initial, onClose }: Props) {
             disabled={!canSave || busy}
             className={cn(
               'inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all',
-              'bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink',
-              'hover:opacity-90 active:scale-[0.99]',
+              'bg-brand-gradient text-white shadow-card',
+              'hover:opacity-95 active:scale-[0.99]',
               'disabled:opacity-40 disabled:cursor-not-allowed',
             )}
           >
@@ -302,7 +301,7 @@ function JourneyRow({
                 className={cn(
                   'inline-flex items-center justify-center h-7 w-7 rounded-full border transition-colors',
                   active
-                    ? 'bg-passport-navy text-passport-parchment border-passport-navy dark:bg-passport-gold dark:text-passport-ink dark:border-passport-gold'
+                    ? 'bg-passport-navy text-white dark:bg-white dark:text-passport-navy shadow-card border-transparent'
                     : 'border-black/15 dark:border-white/15 text-black/55 dark:text-white/55',
                 )}
               >

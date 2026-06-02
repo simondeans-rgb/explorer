@@ -13,6 +13,7 @@ import {
   Globe2,
   Images,
   MapPin,
+  MapPinned,
   Plus,
   Users,
   X,
@@ -62,7 +63,6 @@ const PassportMap = lazy(() =>
 );
 import { DiscoveryRing } from './DiscoveryRing';
 import { Stamp } from './Stamp';
-import { Crest } from './Crest';
 import { RELATIONSHIP_ICON } from './relationshipIcons';
 
 interface Props {
@@ -84,16 +84,6 @@ interface Props {
   loading: boolean;
 }
 
-function hashOf(s: string): number {
-  let hash = 0;
-  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) | 0;
-  return Math.abs(hash);
-}
-
-function memberNo(uid: string): string {
-  return String(hashOf(uid || 'guest') % 1_000_000).padStart(6, '0');
-}
-
 const MONTHS = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
@@ -102,10 +92,6 @@ function formatMonth(iso: string): string {
   const [y, m] = iso.split('-');
   const mi = m ? Number(m) - 1 : -1;
   return mi >= 0 && mi < 12 ? `${MONTHS[mi]} ${y}` : y;
-}
-
-function pad(s: string, n: number): string {
-  return (s + '<'.repeat(n)).slice(0, n);
 }
 
 /** Resize/crop a chosen image to the passport photo aspect (68:84) and return
@@ -137,13 +123,6 @@ async function fileToPassportPhoto(file: File): Promise<string> {
   return canvas.toDataURL('image/jpeg', 0.82);
 }
 
-function mrzLines(name: string, no: string): [string, string] {
-  const clean = name.toUpperCase().replace(/[^A-Z]+/g, '<');
-  return [
-    pad(`P<SOD<${clean}`, 36),
-    pad(`SOD${no}<<EXP000000`, 36),
-  ];
-}
 
 export function PassportView({
   userId,
@@ -292,7 +271,6 @@ export function PassportView({
     <div className="animate-fade-in space-y-8">
       <BioPage
         name={memberName(user?.email ?? '')}
-        no={memberNo(userId)}
         sinceYear={memberSinceYear}
         stats={stats}
         discoveriesTotal={discoveryStats.total}
@@ -304,44 +282,47 @@ export function PassportView({
       {discovered.length > 0 && (
         <div className="space-y-3">
           <SectionHeading>Your world</SectionHeading>
-          <Suspense fallback={<MapSkeleton />}>
-            <PassportMap aggregates={aggregates} />
-          </Suspense>
+          <div className="overflow-hidden rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-2">
+            <Suspense fallback={<MapSkeleton />}>
+              <PassportMap aggregates={aggregates} />
+            </Suspense>
+          </div>
+          {/* Quick actions */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setCountryImport(true)}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl text-sm font-semibold bg-white dark:bg-passport-carddark shadow-card text-passport-navy dark:text-white/85 hover:shadow-card-hover active:scale-[0.98] transition-all"
+            >
+              <Globe2 size={16} className="text-passport-gold" /> Import
+            </button>
+            <button
+              type="button"
+              onClick={() => setPhotoImport(true)}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl text-sm font-semibold bg-white dark:bg-passport-carddark shadow-card text-passport-navy dark:text-white/85 hover:shadow-card-hover active:scale-[0.98] transition-all"
+            >
+              <Images size={16} className="text-passport-gold" /> Photos
+            </button>
+            <button
+              type="button"
+              onClick={() => setModal({ kind: 'country' })}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl text-sm font-semibold bg-passport-navy text-white dark:bg-white dark:text-passport-navy hover:opacity-90 active:scale-[0.98] transition-all"
+            >
+              <Plus size={16} /> Add
+            </button>
+          </div>
         </div>
       )}
-
-      <div className="flex items-center justify-between gap-2">
-        <SectionHeading>Your Passport</SectionHeading>
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => setCountryImport(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border border-passport-navy/20 dark:border-white/20 text-passport-navy dark:text-white/80 hover:bg-passport-navy/5 dark:hover:bg-white/10 active:scale-[0.98]"
-          >
-            <Globe2 size={15} /> Import
-          </button>
-          <button
-            type="button"
-            onClick={() => setPhotoImport(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border border-passport-navy/20 dark:border-white/20 text-passport-navy dark:text-white/80 hover:bg-passport-navy/5 dark:hover:bg-white/10 active:scale-[0.98]"
-          >
-            <Images size={15} /> Scan photos
-          </button>
-          <button
-            type="button"
-            onClick={() => setModal({ kind: 'country' })}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-passport-navy text-passport-parchment hover:opacity-90 active:scale-[0.98]"
-          >
-            <Plus size={15} /> Add
-          </button>
-        </div>
-      </div>
 
       {isEmpty && (
         <EmptyState
           onAdd={() => setModal({ kind: 'country' })}
           onImport={() => setCountryImport(true)}
         />
+      )}
+
+      {discovered.length > 0 && (
+        <SectionHeading>Your places</SectionHeading>
       )}
 
       {earned.length > 0 && <RecognitionsStrip recognitions={earned} />}
@@ -380,14 +361,14 @@ export function PassportView({
 
       {aspiring.length > 0 && (
         <div className="space-y-3">
-          <SectionHeading>Aspiring — places to discover</SectionHeading>
+          <SectionHeading>Wishlist</SectionHeading>
           <div className="flex flex-wrap gap-2">
             {aspiring.map((a) => (
               <button
                 key={a.code}
                 type="button"
                 onClick={() => editCountry(a)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border border-dashed border-passport-gold/50 text-passport-ink2 dark:text-white/70 hover:bg-passport-gold/10"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium bg-white dark:bg-passport-carddark shadow-card text-passport-ink2 dark:text-white/75 hover:shadow-card-hover active:scale-[0.98] transition-all"
               >
                 <span className="text-base leading-none">{flagEmoji(a.code)}</span>
                 {a.name}
@@ -400,7 +381,7 @@ export function PassportView({
             .map((a) => (
               <div
                 key={a.code}
-                className="rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 shadow-page p-4"
+                className="rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-4"
               >
                 <div className="flex items-center gap-2 font-display text-lg font-semibold text-passport-navy dark:text-white/90">
                   <span className="text-2xl leading-none">
@@ -454,23 +435,32 @@ export function PassportView({
   );
 }
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
+function SectionHeading({
+  children,
+  action,
+}: {
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
   return (
-    <div>
-      <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
+    <div className="flex items-end justify-between gap-3">
+      <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
         {children}
       </h2>
-      <div className="gold-rule mt-1.5 w-24" />
+      {action}
     </div>
   );
 }
 
-const FIELD_LABEL =
-  'text-[10px] font-medium uppercase tracking-[0.18em] text-passport-fieldlabel';
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
 
 function BioPage({
   name,
-  no,
   sinceYear,
   stats,
   discoveriesTotal,
@@ -479,7 +469,6 @@ function BioPage({
   onChangePhoto,
 }: {
   name: string;
-  no: string;
   sinceYear: number | null;
   stats: PassportStats;
   discoveriesTotal: number;
@@ -487,7 +476,6 @@ function BioPage({
   photo: string | null;
   onChangePhoto: (dataUrl: string | null) => void;
 }) {
-  const [mrz1, mrz2] = mrzLines(name, no);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(e: ChangeEvent<HTMLInputElement>) {
@@ -508,200 +496,166 @@ function BioPage({
   const worldSeen =
     rawPct === 0 ? '0' : rawPct < 1 ? rawPct.toFixed(1) : String(Math.round(rawPct));
 
-  const figures: {
-    label: string;
-    value: string | number;
-    total?: number;
-    suffix?: string;
-  }[] = [
+  const figures: { label: string; value: string | number; total?: number }[] = [
     { label: 'Countries', value: stats.countriesDiscovered, total: totalCountries },
     { label: 'Cities', value: stats.citiesDiscovered },
-    { label: 'Discoveries', value: discoveriesTotal },
-    { label: 'Journeys', value: expeditionCount },
     { label: 'Continents', value: stats.continentsDiscovered, total: CONTINENTS.length },
-    { label: 'World Seen', value: worldSeen, suffix: '%' },
+    { label: 'Discoveries', value: discoveriesTotal },
   ];
 
   return (
-    <div className="rounded-xl overflow-hidden shadow-page border border-black/10 dark:border-white/10">
-      {/* Header band — always navy with gold type (Brand Book §08). */}
-      <div className="bg-passport-navy px-5 py-3 flex items-center justify-between">
-        <div className="leading-tight">
-          <div className="text-[9px] font-medium uppercase tracking-[0.22em] text-passport-gold">
-            Explorer&rsquo;s Passport
-          </div>
-          <div className="text-[9px] uppercase tracking-[0.22em] text-passport-gold/60">
-            Society of Discovery
-          </div>
-        </div>
-        <div className="text-[9px] font-medium uppercase tracking-[0.2em] text-passport-gold/80">
-          Member Record
-        </div>
+    <div className="space-y-5">
+      {/* Greeting */}
+      <div className="px-1">
+        <p className="text-sm font-medium text-passport-gold">{greeting()},</p>
+        <h1 className="font-display text-[2rem] leading-tight font-semibold text-passport-navy dark:text-white capitalize">
+          {name || 'Explorer'}
+        </h1>
       </div>
-      <div className="h-px bg-passport-gold/40" />
 
-      {/* Body — parchment. */}
-      <div className="bg-passport-card text-passport-ink px-5 pt-4">
-        <div className="page-divide pb-2 mb-4 flex items-center justify-between text-[9px] tracking-[0.14em] text-passport-fieldlabel uppercase">
-          <span>Type · M&nbsp;&nbsp; Code · SOD&nbsp;&nbsp; No. {no}</span>
-          <span>Page 1 / 1</span>
-        </div>
+      {/* Hero passport card */}
+      <div className="relative overflow-hidden rounded-3xl bg-brand-gradient text-white shadow-float">
+        {/* decorative globe lines */}
+        <div
+          className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full border border-white/20"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute -right-2 top-6 h-32 w-32 rounded-full border border-white/15"
+          aria-hidden="true"
+        />
 
-        <div className="flex gap-4">
-          <div className="relative w-[68px] h-[84px] shrink-0 rounded-sm bg-passport-paged border border-black/10 overflow-hidden">
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFile}
-            />
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              aria-label={photo ? 'Change passport photo' : 'Add passport photo'}
-              className="group absolute inset-0 flex items-center justify-center"
-            >
-              {photo ? (
-                <img
-                  src={photo}
-                  alt="Passport portrait"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span className="font-display text-3xl font-semibold text-passport-fieldlabel">
-                  {name[0]?.toUpperCase() ?? 'E'}
-                </span>
-              )}
-              <span
-                className={cn(
-                  'absolute inset-x-0 bottom-0 flex items-center justify-center gap-0.5 py-0.5',
-                  'bg-passport-navy/80 text-passport-gold',
-                  'text-[7px] uppercase tracking-[0.12em]',
-                  photo ? 'opacity-0 group-hover:opacity-100 transition-opacity' : '',
-                )}
-              >
-                <Camera size={8} />
-                {photo ? 'Change' : 'Add photo'}
-              </span>
-            </button>
-            {photo && (
+        <div className="relative p-5 sm:p-6">
+          <div className="flex items-center gap-4">
+            <div className="relative h-16 w-16 shrink-0">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFile}
+              />
               <button
                 type="button"
-                onClick={() => onChangePhoto(null)}
-                aria-label="Remove passport photo"
-                className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-passport-navy/80 text-passport-parchment hover:bg-passport-navy"
+                onClick={() => fileRef.current?.click()}
+                aria-label={photo ? 'Change photo' : 'Add photo'}
+                className="group relative h-16 w-16 overflow-hidden rounded-2xl bg-white/20 ring-2 ring-white/40 flex items-center justify-center"
               >
-                <X size={9} />
-              </button>
-            )}
-            {!photo && (
-              <>
-                <Corner className="top-1 left-1 border-t border-l" />
-                <Corner className="top-1 right-1 border-t border-r" />
-                <Corner className="bottom-1 left-1 border-b border-l" />
-                <Corner className="bottom-1 right-1 border-b border-r" />
-              </>
-            )}
-          </div>
-
-          <div className="flex-1 min-w-0 flex flex-col gap-2.5">
-            <div>
-              <div className={FIELD_LABEL}>Member</div>
-              <div className="font-display text-2xl font-semibold leading-tight truncate text-passport-navy">
-                {name}
-              </div>
-            </div>
-            <div className="relative">
-              <div className={FIELD_LABEL}>Nationality</div>
-              <div className="font-display text-[15px] text-passport-ink">
-                Member · Society of Discovery
-              </div>
-              <div className="absolute right-0 -top-1 border-[1.5px] border-passport-navy/30 rounded px-1.5 py-0.5 rotate-[-9deg]">
-                <span className="text-[7px] font-medium uppercase tracking-[0.16em] text-passport-navy/40">
-                  Verified
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="page-divide grid grid-cols-2 gap-3 mt-4 pb-4">
-          <div>
-            <div className={FIELD_LABEL}>Member Since</div>
-            <div className="text-sm font-medium uppercase tracking-wide">
-              {sinceYear ?? '—'}
-            </div>
-          </div>
-          <div>
-            <div className={FIELD_LABEL}>Standing</div>
-            <div className="font-display text-[15px]">Known to us</div>
-          </div>
-        </div>
-
-        <div className="page-divide grid grid-cols-3 gap-y-3 gap-x-2 mt-4 pb-4">
-          {figures.map(({ label, value, total, suffix }) => (
-            <div key={label}>
-              <div className={FIELD_LABEL}>{label}</div>
-              <div className="font-display text-2xl font-semibold text-passport-navy leading-none">
-                {value}
-                {suffix}
-                {total != null && (
-                  <span className="text-sm font-normal text-passport-fieldlabel">
-                    {' / '}
-                    {total}
+                {photo ? (
+                  <img
+                    src={photo}
+                    alt="Your portrait"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="font-display text-2xl font-semibold text-white">
+                    {name[0]?.toUpperCase() ?? 'E'}
                   </span>
                 )}
-              </div>
+                <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-0.5 bg-black/30 py-0.5 text-[8px] uppercase tracking-wide opacity-0 transition-opacity group-hover:opacity-100">
+                  <Camera size={9} /> {photo ? 'Change' : 'Add'}
+                </span>
+              </button>
+              {photo && (
+                <button
+                  type="button"
+                  onClick={() => onChangePhoto(null)}
+                  aria-label="Remove photo"
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-passport-navy text-white shadow-card"
+                >
+                  <X size={11} />
+                </button>
+              )}
             </div>
-          ))}
-        </div>
 
-        <div className="flex items-end justify-between mt-4 pb-4">
-          <div>
-            <div className={`${FIELD_LABEL} mb-1.5`}>Signature of Bearer</div>
-            <div className="font-display text-lg italic text-passport-ink">
-              {name}
+            <div className="min-w-0">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70">
+                Worldly Passport
+              </div>
+              <div className="font-display text-xl font-semibold capitalize truncate">
+                {name || 'Explorer'}
+              </div>
+              {sinceYear && (
+                <div className="text-xs text-white/70 mt-0.5">
+                  Collecting the world since {sinceYear}
+                </div>
+              )}
             </div>
-            <div className="h-px bg-black/20 mt-1.5 w-36" />
           </div>
-          <Crest />
+
+          {/* World-seen progress */}
+          <div className="mt-5">
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs font-medium text-white/80">
+                You&rsquo;ve seen{' '}
+                <span className="font-bold text-white">{worldSeen}%</span> of the
+                world
+              </span>
+              <span className="text-xs text-white/70">
+                {stats.countriesDiscovered}/{totalCountries}
+              </span>
+            </div>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/20">
+              <div
+                className="h-full rounded-full bg-white"
+                style={{ width: `${Math.max(2, Math.min(100, rawPct))}%` }}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* MRZ strip — aged parchment, monospace (Brand Book §08). */}
-      <div className="bg-passport-paged px-5 py-2 font-mono text-[8px] leading-relaxed tracking-[0.1em] text-passport-fieldtext/70 break-all">
-        <div>{mrz1}</div>
-        <div>{mrz2}</div>
+      {/* Stat strip — story-framed */}
+      <div className="grid grid-cols-4 gap-2">
+        {figures.map(({ label, value, total }) => (
+          <div
+            key={label}
+            className="rounded-2xl bg-white dark:bg-passport-carddark shadow-card px-2 py-3 text-center"
+          >
+            <div className="font-display text-2xl font-semibold text-passport-navy dark:text-white leading-none">
+              {value}
+              {total != null && (
+                <span className="text-xs font-medium text-passport-ink3">
+                  /{total}
+                </span>
+              )}
+            </div>
+            <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.08em] text-passport-ink3">
+              {label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Journeys tally line */}
+      <div className="flex items-center justify-center gap-1.5 text-xs text-passport-ink3">
+        <MapPinned size={13} className="text-passport-gold" />
+        {expeditionCount === 0
+          ? 'No journeys logged yet'
+          : `${expeditionCount} ${expeditionCount === 1 ? 'journey' : 'journeys'} on record`}
       </div>
     </div>
-  );
-}
-
-function Corner({ className }: { className: string }) {
-  return (
-    <span
-      className={`absolute w-2 h-2 border-passport-fieldlabel/70 ${className}`}
-    />
   );
 }
 
 function RecognitionsStrip({ recognitions }: { recognitions: Recognition[] }) {
   return (
     <div className="space-y-3">
-      <SectionHeading>Recognitions</SectionHeading>
-      <div className="flex flex-wrap gap-2">
+      <SectionHeading>Achievements</SectionHeading>
+      <div className="flex gap-2.5 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
         {recognitions.map((r) => (
-          <span
+          <div
             key={r.id}
             title={r.description}
-            className="inline-flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full text-sm bg-passport-gold/10 text-passport-navy dark:text-passport-goldsoft border border-passport-gold/40"
+            className="shrink-0 w-[120px] rounded-2xl bg-white dark:bg-passport-carddark shadow-card p-3 text-center"
           >
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-passport-gold/60 text-passport-gold text-xs">
+            <div className="mx-auto h-11 w-11 rounded-2xl bg-brand-gradient flex items-center justify-center text-white text-lg shadow-card">
               {r.symbol}
-            </span>
-            {r.title}
-          </span>
+            </div>
+            <div className="mt-2 text-xs font-semibold text-passport-navy dark:text-white leading-tight">
+              {r.title}
+            </div>
+          </div>
         ))}
       </div>
     </div>
@@ -777,17 +731,15 @@ function CountryCard({
     <div
       ref={cardRef}
       className={cn(
-        'rounded-xl bg-passport-card dark:bg-passport-carddark border shadow-page p-4 transition-colors',
-        focusCity != null
-          ? 'border-passport-gold/70'
-          : 'border-black/10 dark:border-white/10',
+        'rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-4 transition-all',
+        focusCity != null ? 'ring-2 ring-passport-gold/70' : '',
       )}
     >
       <div className="flex items-start gap-3">
         <button
           type="button"
           onClick={onEdit}
-          className="text-4xl leading-none shrink-0 hover:scale-105 transition-transform"
+          className="h-12 w-12 shrink-0 rounded-2xl bg-passport-cartridge dark:bg-white/5 flex items-center justify-center text-3xl leading-none hover:scale-105 transition-transform"
         >
           {flagEmoji(agg.code)}
         </button>
@@ -1040,28 +992,31 @@ function EmptyState({
   onImport: () => void;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-black/15 dark:border-white/15 p-10 text-center">
-      <p className="font-display text-2xl font-semibold text-passport-navy dark:text-white/90 mb-1">
-        Your Passport is blank.
+    <div className="rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-8 text-center">
+      <div className="mx-auto mb-4 h-16 w-16 rounded-3xl bg-brand-gradient flex items-center justify-center shadow-card">
+        <Globe2 size={28} className="text-white" />
+      </div>
+      <p className="font-display text-2xl font-semibold text-passport-navy dark:text-white mb-1.5">
+        Start your world
       </p>
-      <p className="text-sm text-passport-ink2 dark:text-white/50 mb-5 max-w-sm mx-auto">
-        Record the first country you have discovered — or bring your travels
-        across from another app to begin the archive in seconds.
+      <p className="text-sm text-passport-ink2 dark:text-white/60 mb-6 max-w-xs mx-auto">
+        Add the first country you&rsquo;ve been to — or bring your travels across
+        from another app in seconds.
       </p>
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <button
-          type="button"
-          onClick={onAdd}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-passport-navy text-passport-parchment font-medium hover:opacity-90"
-        >
-          <Plus size={16} /> Add a country
-        </button>
+      <div className="flex flex-col gap-2.5 max-w-xs mx-auto">
         <button
           type="button"
           onClick={onImport}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-passport-navy/20 dark:border-white/20 text-passport-navy dark:text-white/80 font-medium hover:bg-passport-navy/5 dark:hover:bg-white/10"
+          className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-brand-gradient text-white font-semibold shadow-card hover:opacity-95 active:scale-[0.99] transition-all"
         >
-          <Globe2 size={16} /> Import your countries
+          <Globe2 size={17} /> Import your travels
+        </button>
+        <button
+          type="button"
+          onClick={onAdd}
+          className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-passport-cartridge dark:bg-white/5 text-passport-navy dark:text-white/85 font-semibold hover:bg-passport-paged dark:hover:bg-white/10 active:scale-[0.99] transition-all"
+        >
+          <Plus size={17} /> Add a country
         </button>
       </div>
     </div>

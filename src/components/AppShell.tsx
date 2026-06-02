@@ -32,6 +32,7 @@ import { ExpeditionsView } from './expeditions/ExpeditionsView';
 import { DiscoveriesView } from './discoveries/DiscoveriesView';
 import { FriendsView } from './friends/FriendsView';
 import { WelcomeModal, type WelcomeChoice } from './WelcomeModal';
+import { WorldlyLogo } from './Brand';
 
 type Section =
   | 'passport'
@@ -41,9 +42,10 @@ type Section =
   | 'almanac';
 
 const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
-  { id: 'passport', label: 'Passport', icon: BookMarked },
+  { id: 'passport', label: 'Home', icon: BookMarked },
   { id: 'expeditions', label: 'Journeys', icon: MapPinned },
-  { id: 'discoveries', label: 'Discoveries', icon: Compass },
+  { id: 'discoveries', label: 'Explore', icon: Compass },
+  { id: 'friends', label: 'Friends', icon: Users },
   { id: 'almanac', label: 'Almanac', icon: ScrollText },
 ];
 
@@ -158,14 +160,9 @@ export function AppShell() {
 
   return (
     <div className="passport-bg fixed inset-0 flex flex-col">
-      <Header
-        section={section}
-        onChange={setSection}
-        onImport={() => setShowWelcome(true)}
-      />
-      <Nav section={section} onChange={setSection} />
+      <TopBar onImport={() => setShowWelcome(true)} />
       <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
-        <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-6 sm:py-8 min-w-0">
+        <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 pt-2 pb-32 min-w-0">
           {section === 'passport' && (
             <PassportView
               userId={user?.uid ?? ''}
@@ -234,6 +231,8 @@ export function AppShell() {
         </div>
       </main>
 
+      <BottomNav section={section} onChange={setSection} />
+
       {showWelcome && (
         <WelcomeModal onChoose={chooseWelcome} onClose={dismissWelcome} />
       )}
@@ -241,15 +240,7 @@ export function AppShell() {
   );
 }
 
-function Header({
-  section,
-  onChange,
-  onImport,
-}: {
-  section: Section;
-  onChange: (s: Section) => void;
-  onImport: () => void;
-}) {
+function TopBar({ onImport }: { onImport: () => void }) {
   const { user, signOut, demo } = useAuth();
   const { theme, toggle } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -267,28 +258,12 @@ function Header({
   const initial = user?.email?.[0]?.toUpperCase() ?? '?';
 
   return (
-    <header
-      className={cn(
-        'h-14 px-4 sm:px-6 flex items-center justify-between shrink-0',
-        'bg-passport-navy text-passport-parchment',
-        'border-b border-black/20',
-      )}
-    >
-      <div className="flex items-center gap-2">
-        <Compass size={18} className="text-passport-goldsoft" />
-        <div className="leading-none">
-          <div className="font-display font-semibold tracking-tight">
-            Explorer&rsquo;s Passport
-          </div>
-          <div className="text-[10px] uppercase tracking-[0.28em] text-passport-goldsoft/80">
-            Society of Discovery
-          </div>
-        </div>
-      </div>
+    <header className="shrink-0 h-16 px-4 sm:px-6 flex items-center justify-between">
+      <WorldlyLogo size={30} />
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         {demo && (
-          <span className="mr-1 hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-[0.18em] bg-passport-gold/20 text-passport-goldsoft border border-passport-gold/40">
+          <span className="mr-1 inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.16em] bg-passport-gold/12 text-passport-gold">
             Demo
           </span>
         )}
@@ -296,24 +271,9 @@ function Header({
           type="button"
           aria-label="Toggle theme"
           onClick={toggle}
-          className="p-2 rounded-full hover:bg-white/10 text-passport-parchment/80"
+          className="h-10 w-10 inline-flex items-center justify-center rounded-full text-passport-ink2 dark:text-white/70 hover:bg-passport-navy/[0.06] dark:hover:bg-white/10 transition-colors"
         >
-          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-        </button>
-
-        <button
-          type="button"
-          aria-label="Friends"
-          aria-pressed={section === 'friends'}
-          onClick={() => onChange(section === 'friends' ? 'passport' : 'friends')}
-          className={cn(
-            'p-2 rounded-full hover:bg-white/10',
-            section === 'friends'
-              ? 'text-passport-goldsoft bg-white/10'
-              : 'text-passport-parchment/80',
-          )}
-        >
-          <Users size={16} />
+          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
         <div ref={menuRef} className="relative">
@@ -321,7 +281,7 @@ function Header({
             type="button"
             aria-label="Member menu"
             onClick={() => setMenuOpen((v) => !v)}
-            className="h-8 w-8 rounded-full text-sm font-medium bg-white/10 text-passport-parchment hover:bg-white/20"
+            className="h-10 w-10 rounded-full text-sm font-bold bg-brand-gradient text-white shadow-card hover:opacity-90 active:scale-95 transition-all"
           >
             {initial}
           </button>
@@ -329,17 +289,18 @@ function Header({
           {menuOpen && (
             <div
               className={cn(
-                'absolute right-0 mt-2 w-60 rounded-xl p-2 shadow-page z-50',
-                'bg-white/95 dark:bg-passport-carddark/95 backdrop-blur',
-                'border border-black/5 dark:border-white/10',
+                'absolute right-0 mt-2 w-64 rounded-2xl p-2 shadow-float z-50 animate-scale-in origin-top-right',
+                'glass border border-white/40 dark:border-white/10',
                 'text-passport-ink dark:text-white/85',
               )}
             >
-              <div className="px-3 py-2 text-xs text-black/55 dark:text-white/55">
-                <div className="uppercase tracking-[0.2em] text-[10px] text-passport-gold mb-0.5">
-                  Member
+              <div className="px-3 py-2.5">
+                <div className="uppercase tracking-[0.18em] text-[10px] font-semibold text-passport-gold mb-0.5">
+                  Signed in
                 </div>
-                <div className="truncate">{user?.email ?? 'Signed in'}</div>
+                <div className="truncate text-sm font-medium">
+                  {user?.email ?? 'Member'}
+                </div>
               </div>
               <button
                 type="button"
@@ -347,12 +308,9 @@ function Header({
                   setMenuOpen(false);
                   onImport();
                 }}
-                className={cn(
-                  'w-full inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-                  'hover:bg-black/5 dark:hover:bg-white/10',
-                )}
+                className="w-full inline-flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-passport-navy/[0.06] dark:hover:bg-white/10"
               >
-                <Globe2 size={14} />
+                <Globe2 size={16} className="text-passport-gold" />
                 Import travels
               </button>
               <button
@@ -361,12 +319,9 @@ function Header({
                   setMenuOpen(false);
                   void signOut();
                 }}
-                className={cn(
-                  'w-full inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-                  'hover:bg-black/5 dark:hover:bg-white/10',
-                )}
+                className="w-full inline-flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-passport-navy/[0.06] dark:hover:bg-white/10"
               >
-                <LogOut size={14} />
+                <LogOut size={16} className="text-passport-ink3" />
                 Sign out
               </button>
             </div>
@@ -377,7 +332,7 @@ function Header({
   );
 }
 
-function Nav({
+function BottomNav({
   section,
   onChange,
 }: {
@@ -385,27 +340,36 @@ function Nav({
   onChange: (s: Section) => void;
 }) {
   return (
-    <nav className="shrink-0 bg-passport-navy/95 border-b border-black/20">
-      <div className="mx-auto w-full max-w-3xl px-2 sm:px-6 flex items-center gap-1 overflow-x-auto no-scrollbar">
+    <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pointer-events-none">
+      <div className="pointer-events-auto glass border border-white/50 dark:border-white/10 shadow-float rounded-full px-1.5 py-1.5 flex items-center gap-0.5">
         {SECTIONS.map(({ id, label, icon: Icon }) => {
           const active = id === section;
           return (
             <button
               key={id}
               type="button"
+              aria-label={label}
+              aria-current={active ? 'page' : undefined}
               onClick={() => onChange(id)}
               className={cn(
-                'relative flex items-center gap-1.5 px-3 py-2.5 text-sm whitespace-nowrap transition-colors',
+                'relative flex flex-col items-center justify-center gap-0.5 rounded-full transition-all duration-200',
+                'w-[58px] h-[52px]',
                 active
-                  ? 'text-passport-goldsoft'
-                  : 'text-passport-parchment/60 hover:text-passport-parchment/90',
+                  ? 'text-white'
+                  : 'text-passport-ink3 dark:text-white/50 hover:text-passport-ink dark:hover:text-white/80',
               )}
             >
-              <Icon size={15} />
-              {label}
               {active && (
-                <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-passport-gold" />
+                <span className="absolute inset-0 rounded-full bg-brand-gradient shadow-card" />
               )}
+              <Icon
+                size={20}
+                className="relative z-10"
+                strokeWidth={active ? 2.4 : 2}
+              />
+              <span className="relative z-10 text-[9.5px] font-semibold tracking-tight">
+                {label}
+              </span>
             </button>
           );
         })}

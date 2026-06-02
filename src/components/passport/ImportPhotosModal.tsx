@@ -87,12 +87,11 @@ export function ImportPhotosModal({ userId, places, onClose }: Props) {
         onMouseDown={(e) => e.stopPropagation()}
         className={cn(
           'w-full sm:max-w-md max-h-[92vh] overflow-y-auto no-scrollbar',
-          'rounded-t-2xl sm:rounded-2xl shadow-page animate-rise-in',
-          'bg-passport-card dark:bg-passport-carddark',
-          'border border-black/5 dark:border-white/10',
+          'rounded-t-3xl sm:rounded-3xl shadow-float animate-rise-in',
+          'bg-passport-cartridge dark:bg-passport-carddark',
         )}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-passport-navy/[0.06] dark:border-white/10">
           <h2 className="font-display text-lg font-semibold text-passport-navy dark:text-white/90">
             Import from photos
           </h2>
@@ -224,7 +223,7 @@ export function ImportPhotosModal({ userId, places, onClose }: Props) {
                               {c.cities.map((city) => (
                                 <span
                                   key={city}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 text-passport-ink2 dark:text-white/70"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-white dark:bg-white/10 shadow-card text-passport-ink2 dark:text-white/70"
                                 >
                                   <MapPin size={10} />
                                   {city}
@@ -294,7 +293,7 @@ export function ImportPhotosModal({ userId, places, onClose }: Props) {
         </div>
 
         {(stage === 'preview' || stage === 'done') && plan && (
-          <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-black/5 dark:border-white/10">
+          <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-passport-navy/[0.06] dark:border-white/10">
             {stage === 'preview' ? (
               <>
                 <button
@@ -310,8 +309,8 @@ export function ImportPhotosModal({ userId, places, onClose }: Props) {
                   disabled={nothingNew || plan.stats.located === 0}
                   className={cn(
                     'inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium',
-                    'bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink',
-                    'hover:opacity-90 disabled:opacity-40',
+                    'bg-brand-gradient text-white shadow-card',
+                    'hover:opacity-95 disabled:opacity-40',
                   )}
                 >
                   <Check size={16} /> Add {plan.stats.newCountries +
@@ -323,7 +322,7 @@ export function ImportPhotosModal({ userId, places, onClose }: Props) {
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink hover:opacity-90"
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-sm font-semibold bg-brand-gradient text-white shadow-card hover:opacity-95"
               >
                 Done
               </button>

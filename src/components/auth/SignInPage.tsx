@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
-import { ArrowRight, Compass, Moon, Sun } from 'lucide-react';
+import { ArrowRight, Moon, Sun } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { cn } from '../../lib/cn';
+import { WorldlyMark } from '../Brand';
 
 type Mode = 'signin' | 'signup';
 
@@ -37,7 +38,7 @@ function friendlyError(code: string): string {
     case 'auth/weak-password':
       return 'Password needs to be at least 6 characters.';
     case 'auth/email-already-in-use':
-      return 'A Member already exists for that email — try signing in.';
+      return 'An account already exists for that email — try signing in.';
     case 'auth/invalid-credential':
     case 'auth/wrong-password':
     case 'auth/user-not-found':
@@ -52,6 +53,13 @@ function friendlyError(code: string): string {
       return 'Something went wrong. Please try again.';
   }
 }
+
+const inputCls = cn(
+  'w-full px-4 py-3.5 rounded-2xl outline-none transition-all',
+  'bg-passport-cartridge dark:bg-white/5 border border-transparent',
+  'focus:border-passport-gold/60 focus:bg-white dark:focus:bg-white/[0.08]',
+  'text-passport-ink dark:text-white/90 placeholder:text-passport-ink3',
+);
 
 export function SignInPage() {
   const { signIn, signUp, signInWithGoogle, signInDemo, configured } =
@@ -71,8 +79,10 @@ export function SignInPage() {
       await signInWithGoogle();
     } catch (err) {
       const code = (err as { code?: string })?.code ?? 'auth/unknown';
-      // The user dismissing the popup isn't an error worth shouting about.
-      if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
+      if (
+        code !== 'auth/popup-closed-by-user' &&
+        code !== 'auth/cancelled-popup-request'
+      ) {
         setError(friendlyError(code));
       }
     } finally {
@@ -97,49 +107,54 @@ export function SignInPage() {
   }
 
   return (
-    <div className="passport-bg fixed inset-0 flex flex-col">
-      <header className="flex items-center justify-between px-5 py-4">
-        <div className="flex items-center gap-2 text-passport-navy dark:text-passport-goldsoft">
-          <Compass size={18} />
-          <span className="font-display font-semibold tracking-tight">
-            Explorer&rsquo;s Passport
-          </span>
+    <div className="fixed inset-0 flex flex-col bg-passport-cartridge dark:bg-passport-night overflow-y-auto no-scrollbar">
+      {/* Hero */}
+      <div className="relative shrink-0 overflow-hidden bg-brand-gradient px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-16 text-white">
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 20% 20%, white 0, transparent 8%), radial-gradient(circle at 80% 30%, white 0, transparent 6%), radial-gradient(circle at 60% 80%, white 0, transparent 7%)',
+            backgroundSize: '120px 120px',
+          }}
+        />
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <WorldlyMark size={34} />
+            <span className="font-display text-2xl font-semibold">Worldly</span>
+          </div>
+          <button
+            type="button"
+            aria-label="Toggle theme"
+            onClick={toggle}
+            className="h-10 w-10 inline-flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition-colors"
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
         </div>
-        <button
-          type="button"
-          aria-label="Toggle theme"
-          onClick={toggle}
-          className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-black/60 dark:text-white/60 transition-colors"
-        >
-          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-        </button>
-      </header>
-
-      <main className="flex-1 flex items-center justify-center px-5">
-        <div className="w-full max-w-sm animate-fade-in">
-          <p className="text-center text-[11px] uppercase tracking-[0.32em] text-passport-gold mb-3">
-            The Society of Discovery
-          </p>
-          <h1 className="font-display text-4xl text-center mb-2 text-passport-navy dark:text-white/90">
-            {mode === 'signin' ? 'Welcome back, Member.' : 'Begin your archive.'}
-          </h1>
-          <p className="text-center text-sm text-black/55 dark:text-white/55 mb-8">
+        <div className="relative mt-12 max-w-md animate-rise-in">
+          <h1 className="font-display text-[2.6rem] leading-[1.05] font-semibold">
             {mode === 'signin'
-              ? 'Sign in to open your lifelong travel archive.'
-              : 'Create a Membership and receive your Explorer’s Passport.'}
+              ? 'Welcome back.'
+              : 'Your world, beautifully kept.'}
+          </h1>
+          <p className="mt-3 text-white/85 text-[15px] leading-relaxed max-w-sm">
+            {mode === 'signin'
+              ? 'Open your personal travel archive — every place, journey and discovery in one place.'
+              : 'Collect the places you’ve been, the discoveries you’ve made, and the world still left to see.'}
           </p>
+        </div>
+      </div>
 
+      {/* Auth card */}
+      <main className="flex-1 px-5 pb-[max(2rem,env(safe-area-inset-bottom))]">
+        <div className="w-full max-w-sm mx-auto -mt-8 rounded-3xl bg-white dark:bg-passport-carddark shadow-float p-6 animate-rise-in">
           {!configured ? (
             <div>
               <button
                 type="button"
                 onClick={signInDemo}
-                className={cn(
-                  'group w-full px-4 py-3 rounded-xl font-medium transition-all',
-                  'inline-flex items-center justify-center gap-2',
-                  'bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink',
-                  'hover:opacity-90 active:scale-[0.99]',
-                )}
+                className="group w-full px-4 py-3.5 rounded-2xl font-semibold transition-all inline-flex items-center justify-center gap-2 bg-passport-navy text-white dark:bg-white dark:text-passport-navy hover:opacity-90 active:scale-[0.99]"
               >
                 Explore the demo
                 <ArrowRight
@@ -147,39 +162,30 @@ export function SignInPage() {
                   className="transition-transform group-hover:translate-x-0.5"
                 />
               </button>
-              <p className="mt-3 text-center text-xs text-black/45 dark:text-white/45">
-                A sample Passport, stored only on this device — no account
-                needed.
+              <p className="mt-3 text-center text-xs text-passport-ink3">
+                A sample world, stored only on this device — no account needed.
               </p>
-              <p className="mt-2 text-center text-xs text-black/45 dark:text-white/45">
-                Account sign-in is unavailable here because Firebase isn&rsquo;t
+              <p className="mt-2 text-center text-xs text-passport-ink3">
+                Account sign-in is unavailable here because Firebase isn’t
                 configured. Set the <code>VITE_FIREBASE_*</code> environment
-                variables (Vercel → Settings → Environment Variables) and
-                redeploy to sign in and sync across devices.
+                variables and redeploy to sign in and sync across devices.
               </p>
             </div>
           ) : (
             <>
-              <div className="mb-5">
-                <button
-                  type="button"
-                  onClick={handleGoogle}
-                  disabled={busy}
-                  className={cn(
-                    'w-full px-4 py-3 rounded-xl font-medium transition-all',
-                    'inline-flex items-center justify-center gap-2.5',
-                    'bg-white text-passport-ink border border-black/10',
-                    'hover:bg-black/[0.03] active:scale-[0.99] disabled:opacity-50',
-                  )}
-                >
-                  <GoogleMark />
-                  Continue with Google
-                </button>
-                <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-black/35 dark:text-white/35">
-                  <span className="h-px flex-1 bg-black/10 dark:bg-white/10" />
-                  or
-                  <span className="h-px flex-1 bg-black/10 dark:bg-white/10" />
-                </div>
+              <button
+                type="button"
+                onClick={handleGoogle}
+                disabled={busy}
+                className="w-full px-4 py-3.5 rounded-2xl font-semibold transition-all inline-flex items-center justify-center gap-2.5 bg-passport-cartridge dark:bg-white/5 text-passport-ink dark:text-white/90 hover:bg-passport-paged dark:hover:bg-white/10 active:scale-[0.99] disabled:opacity-50"
+              >
+                <GoogleMark />
+                Continue with Google
+              </button>
+              <div className="my-5 flex items-center gap-3 text-[10px] uppercase tracking-[0.2em] text-passport-ink3">
+                <span className="h-px flex-1 bg-passport-navy/10 dark:bg-white/10" />
+                or
+                <span className="h-px flex-1 bg-passport-navy/10 dark:bg-white/10" />
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-3">
@@ -190,12 +196,7 @@ export function SignInPage() {
                   placeholder="Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className={cn(
-                    'w-full px-4 py-3 rounded-xl outline-none transition-colors',
-                    'bg-white/70 dark:bg-white/5 border border-black/10 dark:border-white/10',
-                    'focus:border-passport-gold/70 dark:focus:border-passport-gold/70',
-                    'text-black/85 dark:text-white/90 placeholder:text-black/40 dark:placeholder:text-white/40',
-                  )}
+                  className={inputCls}
                 />
                 <input
                   type="password"
@@ -207,16 +208,11 @@ export function SignInPage() {
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={cn(
-                    'w-full px-4 py-3 rounded-xl outline-none transition-colors',
-                    'bg-white/70 dark:bg-white/5 border border-black/10 dark:border-white/10',
-                    'focus:border-passport-gold/70 dark:focus:border-passport-gold/70',
-                    'text-black/85 dark:text-white/90 placeholder:text-black/40 dark:placeholder:text-white/40',
-                  )}
+                  className={inputCls}
                 />
 
                 {error && (
-                  <p className="text-sm text-red-600 dark:text-red-400">
+                  <p className="text-sm text-passport-burgundy dark:text-passport-expedition">
                     {error}
                   </p>
                 )}
@@ -224,31 +220,26 @@ export function SignInPage() {
                 <button
                   type="submit"
                   disabled={busy}
-                  className={cn(
-                    'w-full px-4 py-3 rounded-xl font-medium transition-all',
-                    'bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink',
-                    'hover:opacity-90 active:scale-[0.99]',
-                    'disabled:opacity-50 disabled:cursor-not-allowed',
-                  )}
+                  className="w-full px-4 py-3.5 rounded-2xl font-semibold transition-all bg-brand-gradient text-white shadow-card hover:opacity-95 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {busy
                     ? 'Working…'
                     : mode === 'signin'
                       ? 'Sign in'
-                      : 'Become a Member'}
+                      : 'Create your account'}
                 </button>
               </form>
 
-              <p className="text-center text-sm text-black/55 dark:text-white/55 mt-6">
-                {mode === 'signin' ? 'Not yet a Member?' : 'Already a Member?'}{' '}
+              <p className="text-center text-sm text-passport-ink3 mt-6">
+                {mode === 'signin' ? 'New to Worldly?' : 'Already have an account?'}{' '}
                 <button
                   type="button"
                   onClick={() =>
                     setMode((m) => (m === 'signin' ? 'signup' : 'signin'))
                   }
-                  className="font-medium text-passport-navy dark:text-passport-goldsoft hover:underline"
+                  className="font-semibold text-passport-gold hover:underline"
                 >
-                  {mode === 'signin' ? 'Join the Society' : 'Sign in'}
+                  {mode === 'signin' ? 'Create an account' : 'Sign in'}
                 </button>
               </p>
             </>

@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Check, ChevronDown, Compass, Search, Users } from 'lucide-react';
+import { Check, ChevronDown, Search, Users } from 'lucide-react';
 import { COUNTRIES } from '../../data/countries';
-import { countryFacts } from '../../data/countryFacts';
 import { flagEmoji } from '../../lib/flags';
 import { CONTINENTS, type Continent, type Discovery } from '../../types';
 import type { CountryPresence } from '../../lib/explore';
@@ -49,39 +48,36 @@ export function ExploreView({
     <div className="space-y-4">
       <div className="relative">
         <Search
-          size={16}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-black/35 dark:text-white/35"
+          size={17}
+          className="absolute left-4 top-1/2 -translate-y-1/2 text-passport-ink3"
         />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search countries…"
-          className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 focus:outline-none focus:border-passport-gold/60 text-passport-ink dark:text-white/85 placeholder:text-black/35 dark:placeholder:text-white/35"
+          className="w-full pl-11 pr-3 py-3 rounded-2xl text-sm bg-white dark:bg-passport-carddark shadow-card focus:outline-none focus:ring-2 focus:ring-passport-gold/40 text-passport-ink dark:text-white/85 placeholder:text-passport-ink3"
         />
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {CONTINENTS.map((continent) => {
           const list = byContinent.get(continent);
           if (!list || list.length === 0) return null;
           const isOpen = searching || open === continent;
           return (
-            <section
-              key={continent}
-              className="rounded-2xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 shadow-page overflow-hidden"
-            >
+            <section key={continent}>
               <button
                 type="button"
                 onClick={() => setOpen(isOpen ? null : continent)}
-                className="w-full flex items-center justify-between px-4 py-3"
+                className="w-full flex items-center justify-between px-1 py-1.5"
               >
-                <span className="font-display text-lg font-semibold text-passport-navy dark:text-white/90">
+                <span className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
                   {continent}
                 </span>
-                <span className="flex items-center gap-2 text-xs text-passport-ink3 dark:text-white/45">
+                <span className="flex items-center gap-1.5 text-xs font-medium text-passport-ink3">
                   {list.length}
                   <ChevronDown
-                    size={16}
+                    size={18}
                     className={cn(
                       'transition-transform',
                       isOpen ? 'rotate-180' : '',
@@ -90,7 +86,7 @@ export function ExploreView({
                 </span>
               </button>
               {isOpen && (
-                <div className="px-3 pb-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                   {list.map((c) => (
                     <CountryTile
                       key={c.code}
@@ -146,42 +142,37 @@ function CountryTile({
 }) {
   const visited = (presence?.mine.length ?? 0) > 0;
   const friendCount = presence?.friends.length ?? 0;
-  const hasFacts = Boolean(countryFacts(code));
   return (
     <button
       type="button"
       onClick={onOpen}
-      className={cn(
-        'group relative text-left rounded-xl p-3 border transition-all active:scale-[0.98]',
-        'bg-passport-navy/[0.02] dark:bg-white/[0.03]',
-        visited
-          ? 'border-passport-gold/50'
-          : 'border-black/10 dark:border-white/10 hover:border-passport-gold/40',
-      )}
+      className="group relative text-left rounded-2xl overflow-hidden bg-white dark:bg-passport-carddark shadow-card hover:shadow-card-hover active:scale-[0.98] transition-all"
     >
-      <div className="flex items-start justify-between gap-1">
-        <span className="text-3xl leading-none">{flagEmoji(code)}</span>
+      {/* Flag "stamp" band */}
+      <div className="relative h-16 flex items-center justify-center bg-passport-goldpale dark:bg-white/5 overflow-hidden">
+        <span className="text-4xl leading-none drop-shadow-sm transition-transform group-hover:scale-110">
+          {flagEmoji(code)}
+        </span>
         {visited && (
           <span
-            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-passport-gold/20 text-passport-navy dark:text-passport-goldsoft"
+            className="absolute top-1.5 right-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-gradient text-white shadow-card"
             title="You've been here"
           >
-            <Check size={12} />
+            <Check size={12} strokeWidth={3} />
           </span>
         )}
       </div>
-      <div className="mt-2 font-medium text-sm text-passport-navy dark:text-white/90 leading-tight line-clamp-2">
-        {name}
-      </div>
-      <div className="mt-1 flex items-center gap-2 text-[11px] text-passport-ink3 dark:text-white/45 min-h-[16px]">
-        {friendCount > 0 && (
-          <span className="inline-flex items-center gap-0.5">
-            <Users size={11} /> {friendCount}
-          </span>
-        )}
-        {!hasFacts && !visited && friendCount === 0 && (
-          <Compass size={11} className="opacity-50" />
-        )}
+      <div className="p-2.5">
+        <div className="font-semibold text-[13px] text-passport-navy dark:text-white leading-tight line-clamp-2">
+          {name}
+        </div>
+        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-passport-ink3 min-h-[16px]">
+          {friendCount > 0 && (
+            <span className="inline-flex items-center gap-0.5">
+              <Users size={11} /> {friendCount}
+            </span>
+          )}
+        </div>
       </div>
     </button>
   );

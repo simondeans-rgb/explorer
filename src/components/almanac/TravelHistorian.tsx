@@ -37,15 +37,15 @@ export function TravelHistorian({
   }
 
   return (
-    <section className="rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 shadow-page p-5">
+    <section className="rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] text-passport-gold">
-            <Feather size={13} /> The Travel Historian
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-passport-gold">
+            <Feather size={14} /> Your story
           </div>
-          <p className="text-sm text-black/55 dark:text-white/55 mt-1 max-w-md">
-            The Society&rsquo;s Historian will compose your {scopeLabel} from the
-            record of your Passport.
+          <p className="text-sm text-passport-ink2 dark:text-white/55 mt-1 max-w-md">
+            Have your {scopeLabel} written for you, from everywhere you&rsquo;ve
+            been.
           </p>
         </div>
         <button
@@ -53,44 +53,41 @@ export function TravelHistorian({
           onClick={compose}
           disabled={status === 'writing'}
           className={cn(
-            'shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all',
-            'bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink',
-            'hover:opacity-90 active:scale-[0.98] disabled:opacity-50',
+            'shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm font-semibold transition-all',
+            'bg-brand-gradient text-white shadow-card',
+            'hover:opacity-95 active:scale-[0.98] disabled:opacity-50',
           )}
         >
           {status === 'writing' ? (
             <>
-              <Loader2 size={14} className="animate-spin" /> Composing…
+              <Loader2 size={15} className="animate-spin" /> Writing…
             </>
           ) : status === 'idle' ? (
             <>
-              <Feather size={14} /> Compose
+              <Feather size={15} /> Write it
             </>
           ) : (
             <>
-              <Feather size={14} /> Compose again
+              <Feather size={15} /> Again
             </>
           )}
         </button>
       </div>
 
       {error && (
-        <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p className="mt-3 text-sm text-passport-burgundy dark:text-passport-expedition">
+          {error}
+        </p>
       )}
 
       {(text || status === 'writing') && (
-        <div className="mt-4 border-t border-black/5 dark:border-white/10 pt-4">
+        <div className="mt-4 page-divide-none border-t border-passport-navy/[0.06] dark:border-white/10 pt-4">
           <p className="font-display text-lg leading-relaxed text-passport-ink dark:text-white/85 whitespace-pre-wrap">
             {text}
             {status === 'writing' && (
               <span className="inline-block w-[2px] h-5 align-middle ml-0.5 bg-passport-gold animate-pulse" />
             )}
           </p>
-          {status === 'done' && (
-            <div className="mt-3 text-[11px] uppercase tracking-[0.18em] text-passport-fieldlabel">
-              Composed by the Society of Discovery
-            </div>
-          )}
         </div>
       )}
     </section>

@@ -51,29 +51,28 @@ export function TravelStatsPanel({ expeditions }: { expeditions: Expedition[] })
 
   return (
     <section className="space-y-3">
-      <div>
-        <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
-          By the numbers
-        </h2>
-        <div className="gold-rule mt-1.5 w-24" />
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
+        By the numbers
+      </h2>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         {cards.map(({ icon: Icon, value, label }) => (
           <div
             key={label}
-            className="min-w-0 rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 px-2 py-3 text-center shadow-page"
+            className="min-w-0 rounded-2xl bg-white dark:bg-passport-carddark shadow-card px-3 py-4 text-center"
           >
-            <Icon size={15} className="mx-auto text-passport-gold mb-1" />
-            <div className="font-display text-xl font-semibold text-passport-navy dark:text-passport-goldsoft leading-none break-words">
+            <div className="mx-auto mb-1.5 h-8 w-8 rounded-xl bg-passport-goldpale dark:bg-white/10 flex items-center justify-center">
+              <Icon size={15} className="text-passport-gold" />
+            </div>
+            <div className="font-display text-xl font-semibold text-passport-navy dark:text-white leading-none break-words">
               {value}
             </div>
-            <div className="text-[10px] uppercase tracking-[0.1em] text-black/45 dark:text-white/45 mt-1 break-words">
+            <div className="text-[10px] font-medium uppercase tracking-[0.08em] text-passport-ink3 mt-1 break-words">
               {label}
             </div>
           </div>
         ))}
       </div>
-      <p className="text-[11px] text-black/40 dark:text-white/40">
+      <p className="text-[11px] text-passport-ink3 px-1">
         Distances are great-circle estimates from each leg&rsquo;s endpoints;
         time in the air assumes an ~800 km/h average.
       </p>

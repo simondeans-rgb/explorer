@@ -129,12 +129,11 @@ export function AddDiscoveryModal({
         onMouseDown={(e) => e.stopPropagation()}
         className={cn(
           'w-full sm:max-w-md max-h-[92vh] overflow-y-auto no-scrollbar',
-          'rounded-t-2xl sm:rounded-2xl shadow-page animate-rise-in',
-          'bg-passport-card dark:bg-passport-carddark',
-          'border border-black/5 dark:border-white/10',
+          'rounded-t-3xl sm:rounded-3xl shadow-float animate-rise-in',
+          'bg-passport-cartridge dark:bg-passport-carddark',
         )}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-passport-navy/[0.06] dark:border-white/10">
           <h2 className="font-display text-lg font-semibold text-passport-navy dark:text-white/90">
             {editing ? 'Edit discovery' : 'Record a discovery'}
           </h2>
@@ -171,10 +170,10 @@ export function AddDiscoveryModal({
                     onClick={() => setCategory(c)}
                     title={DISCOVERY_CATEGORY_META[c].hint}
                     className={cn(
-                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors',
+                      'inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all active:scale-[0.97]',
                       active
-                        ? 'bg-passport-navy text-passport-parchment border-passport-navy dark:bg-passport-gold dark:text-passport-ink dark:border-passport-gold'
-                        : 'border-black/15 dark:border-white/15 text-black/70 dark:text-white/70 hover:border-passport-gold/60',
+                        ? 'bg-passport-navy text-white dark:bg-white dark:text-passport-navy shadow-card'
+                        : 'bg-white dark:bg-white/5 shadow-card text-passport-ink2 dark:text-white/70',
                     )}
                   >
                     <Icon size={14} />
@@ -214,10 +213,10 @@ export function AddDiscoveryModal({
                       type="button"
                       onClick={() => pickLandmark(l)}
                       className={cn(
-                        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors',
+                        'inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all active:scale-[0.97]',
                         active
-                          ? 'bg-passport-navy text-passport-parchment border-passport-navy dark:bg-passport-gold dark:text-passport-ink dark:border-passport-gold'
-                          : 'border-black/15 dark:border-white/15 text-black/70 dark:text-white/70 hover:border-passport-gold/60',
+                          ? 'bg-passport-navy text-white dark:bg-white dark:text-passport-navy shadow-card'
+                          : 'bg-white dark:bg-white/5 shadow-card text-passport-ink2 dark:text-white/70',
                       )}
                     >
                       <Landmark size={13} />
@@ -286,7 +285,7 @@ export function AddDiscoveryModal({
           </Field>
         </div>
 
-        <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-black/5 dark:border-white/10">
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-passport-navy/[0.06] dark:border-white/10">
           {editing ? (
             <button
               type="button"
@@ -305,8 +304,8 @@ export function AddDiscoveryModal({
             disabled={!canSave || busy}
             className={cn(
               'inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all',
-              'bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink',
-              'hover:opacity-90 active:scale-[0.99]',
+              'bg-brand-gradient text-white shadow-card',
+              'hover:opacity-95 active:scale-[0.99]',
               'disabled:opacity-40 disabled:cursor-not-allowed',
             )}
           >

@@ -42,7 +42,7 @@ function WorldMapCanvas({
   const stroke = dark ? MAP_STROKE_DARK : MAP_STROKE_LIGHT;
 
   return (
-    <div className="overflow-hidden rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 shadow-page">
+    <div className="overflow-hidden rounded-2xl bg-passport-cartridge dark:bg-passport-night">
       <ComposableMap
         projection="geoEqualEarth"
         projectionConfig={PROJECTION_CONFIG}
@@ -98,7 +98,7 @@ function Chip({
       className={cn(
         'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border transition-colors whitespace-nowrap',
         active
-          ? 'bg-passport-navy text-passport-parchment border-passport-navy dark:bg-passport-gold dark:text-passport-ink dark:border-passport-gold'
+          ? 'bg-passport-navy text-white dark:bg-white dark:text-passport-navy shadow-card border-transparent'
           : 'border-black/15 dark:border-white/15 text-black/60 dark:text-white/60 hover:border-passport-gold/60',
       )}
     >
@@ -202,7 +202,7 @@ export function PassportMap({ aggregates }: { aggregates: CountryAggregate[] }) 
       <WorldMapCanvas isVisited={(c) => !!c && current.has(c)}>
         {markers.map((c, i) => (
           <Marker key={i} coordinates={c}>
-            <circle r={2.4} fill="#C9A84C" stroke="#0D1B2E" strokeWidth={0.6} />
+            <circle r={2.4} fill="#FF6A55" stroke="#FFFFFF" strokeWidth={0.6} />
           </Marker>
         ))}
       </WorldMapCanvas>
@@ -320,7 +320,7 @@ export function ExpeditionMap({ expeditions }: { expeditions: Expedition[] }) {
           <Line
             key={i}
             coordinates={greatCircle(r.from, r.to)}
-            stroke="#C9A84C"
+            stroke="#FF6A55"
             strokeWidth={2.2}
             strokeLinecap="round"
             strokeOpacity={0.85}
@@ -331,8 +331,8 @@ export function ExpeditionMap({ expeditions }: { expeditions: Expedition[] }) {
           <Marker key={i} coordinates={c}>
             <circle
               r={2.6}
-              fill="#C9A84C"
-              stroke="#0D1B2E"
+              fill="#FF6A55"
+              stroke="#FFFFFF"
               strokeWidth={0.6}
             />
           </Marker>

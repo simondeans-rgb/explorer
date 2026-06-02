@@ -1,8 +1,26 @@
-# Explorer's Passport
+# Worldly
 
-A cloud-synced "Explorer's Passport" travel app (React + Vite + TypeScript +
-Tailwind, Firebase auth/Firestore). Falls back to a fully clickable
-localStorage-backed demo when Firebase env vars are absent.
+A cloud-synced personal travel archive — **Worldly** (formerly "Explorer's
+Passport"). React + Vite + TypeScript + Tailwind, Firebase auth/Firestore.
+Falls back to a fully clickable localStorage-backed demo when Firebase env vars
+are absent.
+
+## Design system (Worldly)
+
+Premium consumer travel app — "travel magazine meets premium mobile app",
+story-first, visual, airy. Tokens keep the legacy `passport-*` names so the
+whole app themes from one place; semantics changed:
+- `passport-navy` = primary indigo ink/surface; `passport-gold` = **sunset-coral
+  accent** (#FF6A55); `passport-chart` = electric indigo; `passport-brass` =
+  teal. Surfaces are clean white (`passport-card`) with soft `shadow-card`/
+  `shadow-float` (no hard borders).
+- Type: **Fraunces** (display) + **Plus Jakarta Sans** (UI).
+- Utilities in `index.css`: `.bg-brand-gradient`, `.text-brand-gradient`,
+  `.glass`, `.hero-scrim`, `.shimmer`. Brand mark/logo in `components/Brand.tsx`.
+- Navigation: minimal top bar (logo + profile) + floating glass bottom tab bar
+  (`AppShell.tsx`). Primary actions use the coral→indigo gradient.
+Keep new screens consistent: rounded-2xl/3xl white cards, gradient primary CTA,
+one clear primary action per screen, generous spacing.
 
 ## Deploy workflow
 
