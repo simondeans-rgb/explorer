@@ -16,9 +16,6 @@ body,
   height: 100%;
 }
 
-/* Never let a stray wide child make the whole page horizontally scrollable
-   (which on mobile triggers a zoomed-out "fit" view). Content is constrained
-   to the viewport; individual scrollers opt in explicitly. */
 html,
 body {
   max-width: 100%;
@@ -27,20 +24,19 @@ body {
 
 body {
   margin: 0;
-  /* Body & interface — DM Sans (Brand Book §05). */
-  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    system-ui, sans-serif;
-  /* Cartridge — the app background. */
-  background-color: #f8f4ec;
-  color: #1c1a17;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', system-ui, sans-serif;
+  background-color: #f6f7fb;
+  color: #181b2e;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
+  letter-spacing: -0.01em;
 }
 
 .dark body {
-  background-color: #0b1422;
-  color: #f8f4ec;
+  background-color: #0e1018;
+  color: #f4f5fa;
 }
 
 #root {
@@ -63,41 +59,128 @@ textarea {
   resize: none;
 }
 
-/* The app surface — Cartridge with a faint cartographic dot grid in gold. */
+/* Display headings — Fraunces, optical sizing for editorial weight. */
+.font-display {
+  font-optical-sizing: auto;
+  letter-spacing: -0.02em;
+}
+
+/* The app surface — a soft, airy wash with a faint warm sunrise at the top. */
 .passport-bg {
-  background-color: #f8f4ec;
+  background-color: #f6f7fb;
   background-image:
     radial-gradient(
-      circle at 18px 18px,
-      rgba(201, 168, 76, 0.07) 1px,
-      transparent 1.6px
+      120% 60% at 50% -10%,
+      rgba(255, 106, 85, 0.08) 0%,
+      rgba(255, 106, 85, 0) 60%
+    ),
+    radial-gradient(
+      90% 50% at 100% 0%,
+      rgba(91, 108, 255, 0.07) 0%,
+      rgba(91, 108, 255, 0) 55%
     );
-  background-size: 36px 36px;
+  background-attachment: fixed;
 }
 
 .dark .passport-bg {
-  background-color: #0b1422;
+  background-color: #0e1018;
   background-image:
     radial-gradient(
-      circle at 18px 18px,
-      rgba(201, 168, 76, 0.06) 1px,
-      transparent 1.6px
+      120% 60% at 50% -10%,
+      rgba(255, 106, 85, 0.1) 0%,
+      rgba(255, 106, 85, 0) 60%
+    ),
+    radial-gradient(
+      90% 50% at 100% 0%,
+      rgba(91, 108, 255, 0.12) 0%,
+      rgba(91, 108, 255, 0) 55%
     );
 }
 
-/* Gold rule used beneath section headings (Gold Seal, sparing). */
-.gold-rule {
-  height: 1px;
-  background: linear-gradient(
-    to right,
-    rgba(201, 168, 76, 0.75),
-    rgba(201, 168, 76, 0)
+/* Brand gradient — sunset coral -> indigo. Used on hero accents & CTAs. */
+.bg-brand-gradient {
+  background-image: linear-gradient(
+    135deg,
+    #ff6a55 0%,
+    #ff8b79 38%,
+    #5b6cff 110%
+  );
+}
+.text-brand-gradient {
+  background-image: linear-gradient(
+    115deg,
+    #ff6a55 0%,
+    #ff8b79 40%,
+    #5b6cff 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Hero image scrim — keeps overlaid text legible on photography. */
+.hero-scrim {
+  background-image: linear-gradient(
+    to top,
+    rgba(16, 18, 42, 0.82) 0%,
+    rgba(16, 18, 42, 0.35) 45%,
+    rgba(16, 18, 42, 0.05) 100%
   );
 }
 
-/* Dashed divider used inside passport page bodies — never solid. */
+/* Frosted-glass surface for floating bars / chips over imagery. */
+.glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: saturate(1.4) blur(18px);
+  -webkit-backdrop-filter: saturate(1.4) blur(18px);
+}
+.dark .glass {
+  background: rgba(27, 30, 46, 0.66);
+}
+
+/* Soft coral rule beneath section eyebrows (sparing). */
+.gold-rule {
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    rgba(255, 106, 85, 0.9),
+    rgba(255, 139, 121, 0)
+  );
+}
+
+/* Subtle dashed divider (legacy passport bodies). */
 .page-divide {
-  border-bottom: 0.5px dashed rgba(13, 27, 46, 0.18);
+  border-bottom: 1px dashed rgba(16, 18, 42, 0.1);
+}
+.dark .page-divide {
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+/* Shimmer placeholder for image loads. */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: rgba(16, 18, 42, 0.05);
+}
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.5),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .no-scrollbar::-webkit-scrollbar {
