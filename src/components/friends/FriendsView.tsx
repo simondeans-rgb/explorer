@@ -126,54 +126,59 @@ export function FriendsView({
 
   return (
     <div className="animate-fade-in space-y-6">
-      <header className="text-center">
-        <Users size={26} className="mx-auto text-passport-gold mb-2" />
-        <h1 className="font-display text-3xl font-semibold text-passport-navy dark:text-white/90">
-          Fellow Members
+      <header className="pt-2">
+        <p className="text-sm font-medium text-passport-gold">Your circle</p>
+        <h1 className="font-display text-[2rem] leading-tight font-semibold text-passport-navy dark:text-white">
+          Friends
         </h1>
-        <p className="text-sm text-black/55 dark:text-white/55 mt-1 max-w-md mx-auto">
-          Connect with people you trust. When you plan a place, their visits and
-          recommendations appear in your Passport.
+        <p className="text-sm text-passport-ink2 dark:text-white/55 mt-1 max-w-md">
+          Connect with people you trust. Their visits and recommendations appear
+          right where you&rsquo;re planning.
         </p>
       </header>
 
       {demo ? (
-        <div className="rounded-xl border border-dashed border-passport-gold/40 bg-passport-card/60 dark:bg-passport-carddark/60 p-6 text-center">
-          <p className="font-display text-xl font-semibold text-passport-navy dark:text-white/90 mb-1">
+        <div className="rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-8 text-center">
+          <div className="mx-auto mb-4 h-16 w-16 rounded-3xl bg-brand-gradient flex items-center justify-center shadow-card">
+            <Users size={26} className="text-white" />
+          </div>
+          <p className="font-display text-xl font-semibold text-passport-navy dark:text-white mb-1.5">
             Sign in to connect
           </p>
-          <p className="text-sm text-black/55 dark:text-white/55">
-            Connecting with fellow Members needs a Society account — the local
-            demo can&rsquo;t reach other Members. Sign in to share codes and see
-            friends&rsquo; recommendations.
+          <p className="text-sm text-passport-ink2 dark:text-white/60 max-w-xs mx-auto">
+            Connecting needs an account — the local demo can&rsquo;t reach other
+            people. Sign in to share your code and see friends&rsquo;
+            recommendations.
           </p>
         </div>
       ) : (
         <>
-          <section className="rounded-xl bg-passport-navy text-passport-parchment p-5 shadow-page text-center">
-            <div className="text-[10px] uppercase tracking-[0.28em] text-passport-goldsoft mb-2">
-              Your Member code
+          <section className="relative overflow-hidden rounded-3xl bg-brand-gradient text-white p-6 shadow-float text-center">
+            <div
+              className="pointer-events-none absolute -right-8 -bottom-10 h-40 w-40 rounded-full border border-white/15"
+              aria-hidden="true"
+            />
+            <div className="relative">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/75 mb-2">
+                Your invite code
+              </div>
+              <button
+                type="button"
+                onClick={copyCode}
+                className="inline-flex items-center gap-2.5 font-display text-[2rem] font-semibold tracking-wider hover:opacity-90"
+              >
+                {code ?? '··· ···'}
+                {copied ? <Check size={20} /> : <Copy size={18} className="opacity-70" />}
+              </button>
+              <p className="text-xs text-white/70 mt-2">
+                Tap to copy, then share to connect.
+              </p>
             </div>
-            <button
-              type="button"
-              onClick={copyCode}
-              className="inline-flex items-center gap-2 font-display text-3xl font-semibold tracking-wider hover:opacity-90"
-            >
-              {code ?? '··· ···'}
-              {copied ? (
-                <Check size={18} className="text-passport-goldsoft" />
-              ) : (
-                <Copy size={18} className="opacity-60" />
-              )}
-            </button>
-            <p className="text-xs text-passport-parchment/55 mt-2">
-              Share this code with someone to connect.
-            </p>
           </section>
 
           <section className="space-y-2">
-            <label className="block text-[11px] uppercase tracking-[0.16em] text-black/45 dark:text-white/45">
-              Add a Member by code
+            <label className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-passport-ink3 px-1">
+              Add someone by code
             </label>
             <div className="flex gap-2">
               <input
@@ -187,18 +192,18 @@ export function FriendsView({
                 type="button"
                 onClick={handleSend}
                 disabled={busy || !entry.trim()}
-                className="inline-flex items-center gap-1.5 px-4 rounded-xl text-sm font-medium bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink hover:opacity-90 disabled:opacity-40 shrink-0"
+                className="inline-flex items-center gap-1.5 px-5 rounded-2xl text-sm font-semibold bg-brand-gradient text-white shadow-card hover:opacity-95 disabled:opacity-40 active:scale-[0.98] transition-all shrink-0"
               >
-                <UserPlus size={15} /> Send
+                <UserPlus size={16} /> Send
               </button>
             </div>
             {message && (
               <p
                 className={cn(
-                  'text-sm',
+                  'text-sm px-1',
                   message.ok
-                    ? 'text-emerald-700 dark:text-emerald-400'
-                    : 'text-red-600 dark:text-red-400',
+                    ? 'text-passport-brass'
+                    : 'text-passport-burgundy dark:text-passport-expedition',
                 )}
               >
                 {message.text}
@@ -291,10 +296,10 @@ export function FriendsView({
               {groupedPicks.map(([countryCode, list]) => (
                 <div
                   key={countryCode}
-                  className="rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 shadow-page p-4"
+                  className="rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-4"
                 >
-                  <div className="flex items-center gap-2 mb-2 font-display text-lg font-semibold text-passport-navy dark:text-white/90">
-                    <span className="text-2xl leading-none">
+                  <div className="flex items-center gap-2.5 mb-3 font-display text-lg font-semibold text-passport-navy dark:text-white">
+                    <span className="h-9 w-9 rounded-xl bg-passport-cartridge dark:bg-white/5 flex items-center justify-center text-xl leading-none">
                       {flagEmoji(countryCode)}
                     </span>
                     {countryName(countryCode)}
@@ -327,8 +332,8 @@ export function FriendsView({
             outgoing.length === 0 &&
             friends.length === 0 &&
             picks.length === 0 && (
-              <p className="text-sm text-center text-black/45 dark:text-white/45">
-                No connections yet. Share your code, or add a Member above.
+              <p className="text-sm text-center text-passport-ink3 py-4">
+                No connections yet. Share your code, or add someone above.
               </p>
             )}
         </>
@@ -370,8 +375,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-2">
-      <h2 className="font-display text-lg font-semibold text-passport-navy dark:text-white/90">
+    <section className="space-y-2.5">
+      <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
         {title}
       </h2>
       <div className="space-y-2">{children}</div>
@@ -389,8 +394,8 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 shadow-page px-4 py-3">
-      <div className="h-9 w-9 rounded-full bg-passport-navy/[0.06] dark:bg-white/[0.06] flex items-center justify-center font-display text-lg font-semibold text-passport-navy dark:text-passport-goldsoft shrink-0">
+    <div className="flex items-center gap-3 rounded-2xl bg-white dark:bg-passport-carddark shadow-card px-4 py-3">
+      <div className="h-10 w-10 rounded-full bg-brand-gradient flex items-center justify-center font-semibold text-white shrink-0">
         {name[0]?.toUpperCase() ?? 'M'}
       </div>
       <div className="flex-1 min-w-0">
@@ -423,10 +428,10 @@ function IconBtn({
       aria-label={label}
       onClick={onClick}
       className={cn(
-        'inline-flex items-center justify-center h-8 w-8 rounded-full transition-colors',
+        'inline-flex items-center justify-center h-9 w-9 rounded-full transition-all active:scale-95',
         tone === 'accept'
-          ? 'bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink hover:opacity-90'
-          : 'text-black/50 dark:text-white/50 hover:bg-black/5 dark:hover:bg-white/10',
+          ? 'bg-brand-gradient text-white shadow-card hover:opacity-90'
+          : 'text-passport-ink3 hover:bg-passport-navy/[0.06] dark:hover:bg-white/10',
       )}
     >
       {children}

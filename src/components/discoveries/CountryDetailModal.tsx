@@ -112,43 +112,48 @@ export function CountryDetailModal({
         onMouseDown={(e) => e.stopPropagation()}
         className={cn(
           'w-full sm:max-w-lg max-h-[92vh] overflow-y-auto no-scrollbar',
-          'rounded-t-2xl sm:rounded-2xl shadow-page animate-rise-in',
-          'bg-passport-card dark:bg-passport-carddark',
-          'border border-black/5 dark:border-white/10',
+          'rounded-t-3xl sm:rounded-3xl shadow-float animate-rise-in',
+          'bg-passport-cartridge dark:bg-passport-carddark',
         )}
       >
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center gap-3 px-5 py-4 border-b border-black/5 dark:border-white/10 bg-passport-card dark:bg-passport-carddark">
-          {drill ? (
+        {/* Hero header */}
+        <div className="relative overflow-hidden bg-brand-gradient text-white">
+          <div
+            className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full border border-white/20"
+            aria-hidden="true"
+          />
+          <div className="relative flex items-start justify-between px-5 pt-5 pb-6">
+            {drill ? (
+              <button
+                type="button"
+                aria-label="Back"
+                onClick={() => setDrill(null)}
+                className="h-9 w-9 -ml-1 inline-flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25"
+              >
+                <ChevronLeft size={18} />
+              </button>
+            ) : (
+              <div className="h-14 w-14 rounded-2xl bg-white/20 ring-2 ring-white/30 flex items-center justify-center text-4xl leading-none">
+                {flagEmoji(code)}
+              </div>
+            )}
             <button
               type="button"
-              aria-label="Back"
-              onClick={() => setDrill(null)}
-              className="p-1.5 -ml-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-black/55 dark:text-white/55"
+              aria-label="Close"
+              onClick={onClose}
+              className="h-9 w-9 inline-flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25"
             >
-              <ChevronLeft size={18} />
+              <X size={18} />
             </button>
-          ) : (
-            <span className="text-3xl leading-none">{flagEmoji(code)}</span>
-          )}
-          <div className="min-w-0 flex-1">
-            <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90 truncate">
+          </div>
+          <div className="relative px-5 pb-5">
+            <h2 className="font-display text-2xl font-semibold leading-tight">
               {drill ? drill.name : name}
             </h2>
-            {drill && (
-              <p className="text-xs text-passport-ink3 dark:text-white/45">
-                Recommendations in {name}
-              </p>
-            )}
+            <p className="text-sm text-white/80 mt-0.5">
+              {drill ? `Recommendations in ${name}` : facts?.capital ?? 'Explore'}
+            </p>
           </div>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-black/50 dark:text-white/50"
-          >
-            <X size={18} />
-          </button>
         </div>
 
         {drill ? (
@@ -159,51 +164,51 @@ export function CountryDetailModal({
           />
         ) : (
           <div className="px-5 py-4 space-y-6">
-            {/* Your status + actions */}
+            {/* Your status + cities */}
             <div className="flex flex-wrap items-center gap-2">
               {visited ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm bg-passport-gold/15 text-passport-navy dark:text-passport-goldsoft border border-passport-gold/40">
-                  <Check size={14} /> You&rsquo;ve been here
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-passport-goldpale text-passport-gold">
+                  <Check size={14} strokeWidth={3} /> You&rsquo;ve been here
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm bg-black/[0.04] dark:bg-white/[0.06] text-black/55 dark:text-white/55">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-passport-navy/[0.05] dark:bg-white/[0.06] text-passport-ink2 dark:text-white/55">
                   <Compass size={14} /> Not yet discovered
                 </span>
               )}
               {presence?.myCities.map((c) => (
                 <span
                   key={c}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-passport-navy/[0.06] dark:bg-white/[0.06] text-passport-ink2 dark:text-white/70"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-white dark:bg-white/[0.06] shadow-card text-passport-ink2 dark:text-white/70"
                 >
                   <MapPin size={11} /> {c}
                 </span>
               ))}
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => onAddTrip(code)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink hover:opacity-90"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-3 rounded-2xl text-sm font-semibold bg-brand-gradient text-white shadow-card hover:opacity-95 active:scale-[0.98] transition-all"
               >
-                <Plus size={15} /> Add a trip
+                <Plus size={16} /> Add a trip
               </button>
               {!visited && (
                 <button
                   type="button"
                   onClick={addToWishlist}
                   disabled={wishBusy || wished}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium border border-passport-gold/50 text-passport-navy dark:text-white/80 hover:bg-passport-gold/10 disabled:opacity-60"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-3 rounded-2xl text-sm font-semibold bg-white dark:bg-white/5 shadow-card text-passport-navy dark:text-white/85 hover:shadow-card-hover active:scale-[0.98] disabled:opacity-60 transition-all"
                 >
-                  {wished ? <Check size={15} /> : <Compass size={15} />}
-                  {wished ? 'On your wishlist' : 'Add to wishlist'}
+                  {wished ? <Check size={16} /> : <Compass size={16} />}
+                  {wished ? 'On wishlist' : 'Wishlist'}
                 </button>
               )}
             </div>
 
             {/* Facts */}
             {facts ? (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 <Fact icon={Building2} label="Capital" value={facts.capital} />
                 <Fact icon={Coins} label="Currency" value={facts.currency} />
                 <Fact
@@ -218,7 +223,7 @@ export function CountryDetailModal({
                 />
               </div>
             ) : (
-              <p className="text-sm text-black/50 dark:text-white/50">
+              <p className="text-sm text-passport-ink3">
                 Detailed facts for {name} are coming soon. You can still track
                 your visits, add it to your wishlist, and see who&rsquo;s been.
               </p>
@@ -286,11 +291,11 @@ function Fact({
   value: string;
 }) {
   return (
-    <div className="rounded-xl bg-passport-navy/[0.04] dark:bg-white/[0.05] px-3 py-2.5">
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-passport-fieldlabel">
-        <Icon size={11} /> {label}
+    <div className="rounded-2xl bg-white dark:bg-white/[0.06] shadow-card px-3.5 py-3">
+      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-passport-ink3">
+        <Icon size={12} className="text-passport-gold" /> {label}
       </div>
-      <div className="mt-0.5 text-sm font-medium text-passport-navy dark:text-white/90 break-words">
+      <div className="mt-1 text-[15px] font-semibold text-passport-navy dark:text-white break-words">
         {value}
       </div>
     </div>

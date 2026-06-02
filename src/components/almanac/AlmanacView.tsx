@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ScrollText, type LucideIcon } from 'lucide-react';
+import { type LucideIcon } from 'lucide-react';
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
 import type { DiscoveryStats } from '../../lib/discoveryStats';
 import type { JourneyStats } from '../../lib/journeyStats';
@@ -115,23 +115,26 @@ export function AlmanacView({
 
   return (
     <div className="animate-fade-in space-y-7">
-      <div className="text-center">
-        <ScrollText
-          size={26}
-          className="mx-auto text-passport-gold mb-2"
+      <div className="relative overflow-hidden rounded-3xl bg-brand-gradient text-white p-6 shadow-float">
+        <div
+          className="pointer-events-none absolute -left-10 -bottom-12 h-44 w-44 rounded-full border border-white/15"
+          aria-hidden="true"
         />
-        <p className="text-[11px] uppercase tracking-[0.32em] text-passport-gold">
-          Society of Discovery
-        </p>
-        <h1 className="font-display text-3xl font-semibold text-passport-navy dark:text-white/90">
-          The Almanac
-        </h1>
-        <p className="text-sm text-black/50 dark:text-white/50 mt-1">
-          A record of your discoveries, published from your Passport.
-        </p>
+        <div className="relative">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/75">
+            Your travel story
+          </p>
+          <h1 className="font-display text-[2.4rem] leading-none font-semibold mt-1">
+            The Almanac
+          </h1>
+          <p className="text-sm text-white/80 mt-2 max-w-sm">
+            A beautiful record of everywhere you&rsquo;ve been — published from
+            your own world.
+          </p>
+        </div>
       </div>
 
-      <div className="flex flex-wrap justify-center gap-2">
+      <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
         <EditionChip
           active={edition === 'lifetime'}
           onClick={() => setEdition('lifetime')}
@@ -142,7 +145,7 @@ export function AlmanacView({
             key={y}
             active={edition === y}
             onClick={() => setEdition(y)}
-            label={y === currentYear ? `${y} (this year)` : String(y)}
+            label={y === currentYear ? `${y} · this year` : String(y)}
           />
         ))}
       </div>
@@ -167,10 +170,9 @@ export function AlmanacView({
           />
 
           <section className="space-y-3">
-            <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
+            <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
               Relationships with places
             </h2>
-            <div className="gold-rule w-24" />
             <StatGrid>
               {RELATIONSHIPS.map((r) => (
                 <Stat
@@ -185,10 +187,9 @@ export function AlmanacView({
 
           {journeyStats.total > 0 && (
             <section className="space-y-3">
-              <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
+              <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
                 Journeys taken
               </h2>
-              <div className="gold-rule w-24" />
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {JOURNEY_MODES.filter((m) => journeyStats.byMode[m] > 0).map(
                   (m) => {
@@ -196,7 +197,7 @@ export function AlmanacView({
                     return (
                       <div
                         key={m}
-                        className="min-w-0 rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 px-2 py-3 shadow-page text-center"
+                        className="min-w-0 rounded-2xl bg-white dark:bg-passport-carddark shadow-card px-2 py-3 text-center"
                       >
                         <Icon
                           size={16}
@@ -218,10 +219,9 @@ export function AlmanacView({
 
           {discoveryStats.total > 0 && (
             <section className="space-y-3">
-              <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
+              <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
                 Discoveries
               </h2>
-              <div className="gold-rule w-24" />
               <StatGrid>
                 <Stat value={discoveryStats.total} label="Total" />
                 <Stat
@@ -258,16 +258,15 @@ export function AlmanacView({
           )}
 
           <section className="space-y-3">
-            <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
+            <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
               The world, by continent
             </h2>
-            <div className="gold-rule w-24" />
             {CONTINENTS.filter((c) => byContinent.has(c)).map((c) => {
               const list = byContinent.get(c) ?? [];
               return (
                 <div
                   key={c}
-                  className="rounded-2xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 shadow-page p-4"
+                  className="rounded-2xl bg-white dark:bg-passport-carddark shadow-card p-4"
                 >
                   <div className="flex items-baseline justify-between mb-2">
                     <span className="font-display text-lg font-semibold text-passport-navy dark:text-white/90">
@@ -292,10 +291,9 @@ export function AlmanacView({
 
           {earned.length > 0 && (
             <section className="space-y-3">
-              <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
+              <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
                 Recognitions
               </h2>
-              <div className="gold-rule w-24" />
               <ul className="space-y-1.5">
                 {earned.map((r) => (
                   <li
@@ -315,10 +313,9 @@ export function AlmanacView({
         </>
       ) : (
         <section className="space-y-3">
-          <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white/90">
+          <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
             The year {edition}
           </h2>
-          <div className="gold-rule w-24" />
           {yearPlaces.length === 0 &&
           yearDiscoveries.length === 0 &&
           yearExpeditions.length === 0 ? (
@@ -336,7 +333,7 @@ export function AlmanacView({
                     {yearExpeditions.map((e) => (
                       <span
                         key={e.id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-white dark:bg-passport-carddark shadow-card"
                       >
                         {e.countryCodes[0] && (
                           <span className="text-base leading-none">
@@ -354,7 +351,7 @@ export function AlmanacView({
                   {yearPlaces.map((p) => (
                     <span
                       key={p.id}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-white dark:bg-passport-carddark shadow-card"
                     >
                       <span className="text-base leading-none">
                         {flagEmoji(p.countryCode)}
@@ -377,7 +374,7 @@ export function AlmanacView({
                     {yearDiscoveries.map((d) => (
                       <span
                         key={d.id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-white dark:bg-passport-carddark shadow-card"
                       >
                         {d.countryCode && (
                           <span className="text-base leading-none">
@@ -412,10 +409,10 @@ function EditionChip({
       type="button"
       onClick={onClick}
       className={cn(
-        'px-3 py-1.5 rounded-full text-sm border transition-colors',
+        'shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all active:scale-[0.97]',
         active
-          ? 'bg-passport-navy text-passport-parchment border-passport-navy dark:bg-passport-gold dark:text-passport-ink dark:border-passport-gold'
-          : 'border-black/15 dark:border-white/15 text-black/60 dark:text-white/60 hover:border-passport-gold/60',
+          ? 'bg-passport-navy text-white dark:bg-white dark:text-passport-navy shadow-card'
+          : 'bg-white dark:bg-passport-carddark shadow-card text-passport-ink2 dark:text-white/65',
       )}
     >
       {label}
@@ -424,7 +421,7 @@ function EditionChip({
 }
 
 function StatGrid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">{children}</div>;
+  return <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">{children}</div>;
 }
 
 function Stat({
@@ -437,14 +434,16 @@ function Stat({
   icon?: LucideIcon;
 }) {
   return (
-    <div className="min-w-0 rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 px-2 py-3 text-center shadow-page">
+    <div className="min-w-0 rounded-2xl bg-white dark:bg-passport-carddark shadow-card px-2 py-3.5 text-center">
       {Icon && (
-        <Icon size={14} className="mx-auto text-passport-gold mb-1" />
+        <div className="mx-auto mb-1.5 h-7 w-7 rounded-lg bg-passport-goldpale dark:bg-white/10 flex items-center justify-center">
+          <Icon size={14} className="text-passport-gold" />
+        </div>
       )}
-      <div className="font-display text-2xl font-semibold text-passport-navy dark:text-passport-goldsoft leading-none">
+      <div className="font-display text-2xl font-semibold text-passport-navy dark:text-white leading-none">
         {value}
       </div>
-      <div className="text-[10px] uppercase tracking-[0.1em] text-black/45 dark:text-white/45 mt-1 break-words hyphens-auto">
+      <div className="text-[10px] font-medium uppercase tracking-[0.08em] text-passport-ink3 mt-1 break-words hyphens-auto">
         {label}
       </div>
     </div>
@@ -453,16 +452,16 @@ function Stat({
 
 function Figures({ items }: { items: [string, number][] }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
       {items.map(([label, value]) => (
         <div
           key={label}
-          className="min-w-0 rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/5 dark:border-white/10 px-4 py-4 shadow-page"
+          className="min-w-0 rounded-2xl bg-white dark:bg-passport-carddark shadow-card px-4 py-5"
         >
-          <div className="font-display text-3xl font-semibold text-passport-navy dark:text-passport-goldsoft">
+          <div className="font-display text-[2rem] font-semibold text-brand-gradient leading-none">
             {value}
           </div>
-          <div className="text-[11px] uppercase tracking-[0.12em] text-black/45 dark:text-white/45 mt-1 break-words">
+          <div className="text-[11px] font-medium uppercase tracking-[0.1em] text-passport-ink3 mt-1.5 break-words">
             {label}
           </div>
         </div>
