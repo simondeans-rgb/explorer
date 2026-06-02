@@ -79,22 +79,24 @@ export function DiscoveriesView({
 
   return (
     <div className="animate-fade-in space-y-6">
-      <header className="text-center">
-        <Compass size={26} className="mx-auto text-passport-gold mb-2" />
-        <h1 className="font-display text-3xl font-semibold text-passport-navy dark:text-white/90">
-          Discoveries
+      <header className="pt-2">
+        <p className="text-sm font-medium text-passport-gold">
+          The world, country by country
+        </p>
+        <h1 className="font-display text-[2rem] leading-tight font-semibold text-passport-navy dark:text-white">
+          Explore
         </h1>
-        <p className="text-sm text-black/55 dark:text-white/55 mt-1 max-w-md mx-auto">
-          Explore the world country by country, and record the places worth
-          remembering — the most valuable guide your friends will ever have.
+        <p className="text-sm text-passport-ink2 dark:text-white/55 mt-1 max-w-md">
+          Discover destinations, see where friends have been, and keep the
+          places worth remembering.
         </p>
       </header>
 
-      <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-black/[0.04] dark:bg-white/[0.06]">
+      <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-passport-navy/[0.05] dark:bg-white/[0.06]">
         {(
           [
             ['explore', 'Explore', Globe2],
-            ['recorded', 'Recorded', Compass],
+            ['recorded', 'My discoveries', Compass],
           ] as [Tab, string, typeof Globe2][]
         ).map(([id, label, Icon]) => (
           <button
@@ -102,10 +104,10 @@ export function DiscoveriesView({
             type="button"
             onClick={() => setTab(id)}
             className={cn(
-              'inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors',
+              'inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all',
               tab === id
-                ? 'bg-white dark:bg-passport-navy text-passport-navy dark:text-passport-goldsoft shadow-sm'
-                : 'text-black/55 dark:text-white/55',
+                ? 'bg-white dark:bg-passport-carddark text-passport-navy dark:text-white shadow-card'
+                : 'text-passport-ink3 dark:text-white/55',
             )}
           >
             <Icon size={15} /> {label}
@@ -155,16 +157,16 @@ export function DiscoveriesView({
       ) : (
         <>
           <div className="flex items-center justify-between">
-            <div className="text-sm text-black/50 dark:text-white/50">
+            <div className="text-sm font-medium text-passport-ink2 dark:text-white/55">
               {discoveries.length}{' '}
               {discoveries.length === 1 ? 'discovery' : 'discoveries'} recorded
             </div>
             <button
               type="button"
               onClick={() => setModal({})}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-passport-navy text-passport-parchment hover:opacity-90 active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm font-semibold bg-brand-gradient text-white shadow-card hover:opacity-95 active:scale-[0.98] transition-all"
             >
-              <Plus size={15} /> Record
+              <Plus size={16} /> Record
             </button>
           </div>
 
@@ -250,14 +252,14 @@ function FilterChip({
       type="button"
       onClick={onClick}
       className={cn(
-        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors',
+        'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold transition-all active:scale-[0.97]',
         active
-          ? 'bg-passport-navy text-passport-parchment border-passport-navy dark:bg-passport-gold dark:text-passport-ink dark:border-passport-gold'
-          : 'border-black/15 dark:border-white/15 text-black/60 dark:text-white/60 hover:border-passport-gold/60',
+          ? 'bg-passport-navy text-white dark:bg-white dark:text-passport-navy shadow-card'
+          : 'bg-white dark:bg-passport-carddark shadow-card text-passport-ink2 dark:text-white/65',
       )}
     >
       {label}
-      <span className="opacity-60">{count}</span>
+      <span className="opacity-50">{count}</span>
     </button>
   );
 }
@@ -288,11 +290,11 @@ function DiscoveryCard({
           onEdit();
         }
       }}
-      className="w-full text-left rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 shadow-page p-4 cursor-pointer"
+      className="w-full text-left rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-4 cursor-pointer hover:shadow-card-hover transition-all"
     >
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-passport-navy/[0.06] dark:bg-white/[0.06] text-passport-navy dark:text-passport-goldsoft shrink-0">
-          <Icon size={17} />
+        <span className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-passport-goldpale dark:bg-white/10 text-passport-gold shrink-0">
+          <Icon size={18} />
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-3">
@@ -353,20 +355,23 @@ function DiscoveryCard({
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="rounded-xl border border-dashed border-black/15 dark:border-white/15 p-10 text-center">
-      <p className="font-display text-2xl font-semibold text-passport-navy dark:text-white/90 mb-1">
-        No discoveries yet.
+    <div className="rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-8 text-center">
+      <div className="mx-auto mb-4 h-16 w-16 rounded-3xl bg-brand-gradient flex items-center justify-center shadow-card">
+        <Compass size={26} className="text-white" />
+      </div>
+      <p className="font-display text-2xl font-semibold text-passport-navy dark:text-white mb-1.5">
+        Keep what you love
       </p>
-      <p className="text-sm text-black/50 dark:text-white/50 mb-5 max-w-sm mx-auto">
-        Record a restaurant, a museum, a viewpoint — anywhere worth
-        remembering — and mark whether you would recommend it.
+      <p className="text-sm text-passport-ink2 dark:text-white/60 mb-6 max-w-xs mx-auto">
+        A restaurant, a museum, a viewpoint — anywhere worth remembering. Mark
+        whether you&rsquo;d recommend it and build your own guide.
       </p>
       <button
         type="button"
         onClick={onAdd}
-        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-passport-navy text-passport-parchment font-medium hover:opacity-90"
+        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-brand-gradient text-white font-semibold shadow-card hover:opacity-95 active:scale-[0.99] transition-all"
       >
-        <Plus size={16} /> Record a discovery
+        <Plus size={17} /> Record a discovery
       </button>
     </div>
   );

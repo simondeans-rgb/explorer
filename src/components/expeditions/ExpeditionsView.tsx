@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { Compass, MapPinned, Plane, Plus, RefreshCw } from 'lucide-react';
+import { Compass, Plane, Plus, RefreshCw } from 'lucide-react';
 import { countryName } from '../../data/countries';
 import { flagEmoji } from '../../lib/flags';
 import {
@@ -111,61 +111,64 @@ export function ExpeditionsView({
 
   return (
     <div className="animate-fade-in space-y-6">
-      <header className="text-center">
-        <MapPinned size={26} className="mx-auto text-passport-gold mb-2" />
-        <h1 className="font-display text-3xl font-semibold text-passport-navy dark:text-white/90">
+      <header className="pt-2">
+        <p className="text-sm font-medium text-passport-gold">
+          {expeditions.length}{' '}
+          {expeditions.length === 1 ? 'journey' : 'journeys'} on record
+        </p>
+        <h1 className="font-display text-[2rem] leading-tight font-semibold text-passport-navy dark:text-white">
           Journeys
         </h1>
-        <p className="text-sm text-black/55 dark:text-white/55 mt-1 max-w-md mx-auto">
-          Every trip — a weekend in Rome, a gap year across Asia — is a
-          Journey: a record of how you travelled, what you discovered and your
-          notes.
+        <p className="text-sm text-passport-ink2 dark:text-white/55 mt-1 max-w-md">
+          Every trip — a weekend in Rome, a gap year across Asia — a record of
+          how you travelled and what you found.
         </p>
-      </header>
-
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-sm text-black/50 dark:text-white/50">
-          {expeditions.length}{' '}
-          {expeditions.length === 1 ? 'journey' : 'journeys'}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setModal({})}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-sm font-semibold bg-brand-gradient text-white shadow-card hover:opacity-95 active:scale-[0.98] transition-all"
+          >
+            <Plus size={16} /> New journey
+          </button>
+          <button
+            type="button"
+            onClick={() => setImporting(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-sm font-semibold bg-white dark:bg-passport-carddark shadow-card text-passport-navy dark:text-white/85 hover:shadow-card-hover active:scale-[0.98] transition-all"
+          >
+            <Plane size={16} className="text-passport-gold" /> Import flights
+          </button>
           {hasImported && (
             <button
               type="button"
               onClick={() => setReevaluating(true)}
               title="Rebuild imported trips from your residence history"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border border-black/15 dark:border-white/15 text-passport-navy dark:text-white/80 hover:border-passport-gold/60 active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-sm font-semibold text-passport-ink2 dark:text-white/70 hover:bg-passport-navy/[0.06] dark:hover:bg-white/10 active:scale-[0.98] transition-all"
             >
               <RefreshCw size={15} /> Re-evaluate
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setImporting(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border border-black/15 dark:border-white/15 text-passport-navy dark:text-white/80 hover:border-passport-gold/60 active:scale-[0.98]"
-          >
-            <Plane size={15} /> Import
-          </button>
-          <button
-            type="button"
-            onClick={() => setModal({})}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-passport-navy text-passport-parchment hover:opacity-90 active:scale-[0.98]"
-          >
-            <Plus size={15} /> New
-          </button>
         </div>
-      </div>
+      </header>
 
       {expeditions.length > 0 && (
-        <Suspense fallback={<MapSkeleton />}>
-          <ExpeditionMap expeditions={expeditions} />
-        </Suspense>
+        <div className="overflow-hidden rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-2">
+          <Suspense fallback={<MapSkeleton />}>
+            <ExpeditionMap expeditions={expeditions} />
+          </Suspense>
+        </div>
       )}
 
       {expeditions.length > 0 && (
         <Suspense fallback={null}>
           <TravelStatsPanel expeditions={expeditions} />
         </Suspense>
+      )}
+
+      {expeditions.length > 0 && (
+        <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
+          Your trips
+        </h2>
       )}
 
       {isEmpty ? (
@@ -238,18 +241,18 @@ function ExpeditionCard({
     <button
       type="button"
       onClick={onEdit}
-      className="w-full text-left rounded-xl bg-passport-card dark:bg-passport-carddark border border-black/10 dark:border-white/10 shadow-page p-4"
+      className="w-full text-left rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-5 hover:shadow-card-hover active:scale-[0.99] transition-all"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="font-display text-lg font-semibold text-passport-navy dark:text-white/90 leading-tight">
-            {e.title}
-          </div>
           {range && (
-            <div className="text-xs text-passport-ink3 dark:text-white/45 mt-0.5">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-passport-gold mb-1">
               {range}
             </div>
           )}
+          <div className="font-display text-xl font-semibold text-passport-navy dark:text-white leading-tight">
+            {e.title}
+          </div>
         </div>
         {e.countryCodes.length > 0 && (
           <div className="flex flex-wrap justify-end gap-1 text-xl leading-none shrink-0 max-w-[40%]">
@@ -311,20 +314,23 @@ function ExpeditionCard({
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="rounded-xl border border-dashed border-black/15 dark:border-white/15 p-10 text-center">
-      <p className="font-display text-2xl font-semibold text-passport-navy dark:text-white/90 mb-1">
-        No journeys yet.
+    <div className="rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-8 text-center">
+      <div className="mx-auto mb-4 h-16 w-16 rounded-3xl bg-brand-gradient flex items-center justify-center shadow-card">
+        <Plane size={26} className="text-white" />
+      </div>
+      <p className="font-display text-2xl font-semibold text-passport-navy dark:text-white mb-1.5">
+        Log your first journey
       </p>
-      <p className="text-sm text-black/50 dark:text-white/50 mb-5 max-w-sm mx-auto">
-        Log your first trip — its dates, the countries it crossed, and how you
-        travelled.
+      <p className="text-sm text-passport-ink2 dark:text-white/60 mb-6 max-w-xs mx-auto">
+        Add a trip — its dates, the countries it crossed, and how you travelled.
+        Or import your flights to fill them in automatically.
       </p>
       <button
         type="button"
         onClick={onAdd}
-        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-passport-navy text-passport-parchment font-medium hover:opacity-90"
+        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-brand-gradient text-white font-semibold shadow-card hover:opacity-95 active:scale-[0.99] transition-all"
       >
-        <Plus size={16} /> New journey
+        <Plus size={17} /> New journey
       </button>
     </div>
   );
