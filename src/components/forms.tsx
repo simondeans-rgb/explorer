@@ -17,7 +17,7 @@ export function Field({
 }) {
   return (
     <label className="block min-w-0">
-      <span className="block text-[11px] uppercase tracking-[0.16em] text-black/45 dark:text-white/45 mb-1.5">
+      <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-passport-ink3 mb-1.5">
         {label}
       </span>
       {children}
@@ -78,7 +78,7 @@ export function CountryPicker({
       </button>
 
       {open && (
-        <div className="absolute z-20 mt-1 w-full rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-passport-carddark shadow-page overflow-hidden">
+        <div className="absolute z-20 mt-1 w-full rounded-2xl border border-passport-navy/10 dark:border-white/10 bg-white dark:bg-passport-carddark shadow-float overflow-hidden">
           <div className="flex items-center gap-2 px-3 py-2 border-b border-black/5 dark:border-white/10">
             <Search size={14} className="opacity-50" />
             <input
@@ -186,7 +186,7 @@ export function AirportPicker({
         autoComplete="off"
       />
       {open && results.length > 0 && (
-        <ul className="absolute z-20 mt-1 w-full rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-passport-carddark shadow-page overflow-hidden max-h-52 overflow-y-auto no-scrollbar py-1">
+        <ul className="absolute z-20 mt-1 w-full rounded-2xl border border-passport-navy/10 dark:border-white/10 bg-white dark:bg-passport-carddark shadow-float overflow-hidden max-h-52 overflow-y-auto no-scrollbar py-1">
           {results.map((a) => (
             <li key={a.iata}>
               <button

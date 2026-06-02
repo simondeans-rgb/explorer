@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import {
-  Compass,
   Globe2,
   Images,
   type LucideIcon,
@@ -9,6 +8,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '../lib/cn';
+import { WorldlyMark } from './Brand';
 
 export type WelcomeChoice = 'countries' | 'flighty' | 'photos' | 'fresh';
 
@@ -61,48 +61,51 @@ export function WelcomeModal({ onChoose, onClose }: Props) {
         onMouseDown={(e) => e.stopPropagation()}
         className={cn(
           'w-full sm:max-w-md max-h-[92vh] overflow-y-auto no-scrollbar',
-          'rounded-t-2xl sm:rounded-2xl shadow-page animate-rise-in',
-          'bg-passport-card dark:bg-passport-carddark',
-          'border border-black/5 dark:border-white/10',
+          'rounded-t-3xl sm:rounded-3xl shadow-float animate-rise-in',
+          'bg-passport-cartridge dark:bg-passport-carddark',
         )}
       >
-        <div className="relative bg-passport-navy text-passport-parchment px-5 py-6 text-center">
+        <div className="relative overflow-hidden bg-brand-gradient text-white px-6 py-7 text-center">
+          <div
+            className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full border border-white/20"
+            aria-hidden="true"
+          />
           <button
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="absolute right-3 top-3 p-1.5 rounded-full hover:bg-white/10 text-passport-parchment/70"
+            className="absolute right-3 top-3 h-9 w-9 inline-flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25"
           >
             <X size={18} />
           </button>
-          <Compass size={26} className="mx-auto text-passport-goldsoft mb-2" />
-          <div className="text-[10px] uppercase tracking-[0.28em] text-passport-goldsoft mb-1">
-            Welcome, Explorer
+          <WorldlyMark size={40} className="mx-auto mb-3" />
+          <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/75 mb-1">
+            Welcome to Worldly
           </div>
           <h2 className="font-display text-2xl font-semibold">
-            Begin your Passport
+            Bring your world with you
           </h2>
-          <p className="text-sm text-passport-parchment/70 mt-1.5 max-w-xs mx-auto">
+          <p className="text-sm text-white/80 mt-1.5 max-w-xs mx-auto">
             Already track your travels elsewhere? Bring them across in seconds.
           </p>
         </div>
 
-        <div className="px-5 py-4 space-y-2">
+        <div className="px-4 py-4 space-y-2.5">
           {OPTIONS.map(({ id, icon: Icon, title, blurb }) => (
             <button
               key={id}
               type="button"
               onClick={() => onChoose(id)}
-              className="w-full flex items-center gap-3 text-left rounded-xl border border-black/10 dark:border-white/10 px-4 py-3 hover:border-passport-gold/60 hover:bg-passport-gold/[0.04] transition-colors"
+              className="group w-full flex items-center gap-3.5 text-left rounded-2xl bg-white dark:bg-white/[0.04] shadow-card px-4 py-3.5 hover:shadow-card-hover active:scale-[0.99] transition-all"
             >
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-passport-navy/[0.06] dark:bg-white/[0.08] text-passport-navy dark:text-passport-goldsoft shrink-0">
-                <Icon size={18} />
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-passport-goldpale dark:bg-white/10 text-passport-gold shrink-0">
+                <Icon size={20} />
               </span>
-              <span className="min-w-0">
-                <span className="block font-medium text-passport-navy dark:text-white/90">
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold text-passport-navy dark:text-white">
                   {title}
                 </span>
-                <span className="block text-xs text-passport-ink3 dark:text-white/50">
+                <span className="block text-xs text-passport-ink3 dark:text-white/50 mt-0.5">
                   {blurb}
                 </span>
               </span>

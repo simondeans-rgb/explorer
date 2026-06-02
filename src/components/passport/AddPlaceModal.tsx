@@ -152,12 +152,11 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
         onMouseDown={(e) => e.stopPropagation()}
         className={cn(
           'w-full sm:max-w-md max-h-[92vh] overflow-y-auto no-scrollbar',
-          'rounded-t-2xl sm:rounded-2xl shadow-page animate-rise-in',
-          'bg-passport-card dark:bg-passport-carddark',
-          'border border-black/5 dark:border-white/10',
+          'rounded-t-3xl sm:rounded-3xl shadow-float animate-rise-in',
+          'bg-passport-cartridge dark:bg-passport-carddark',
         )}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-passport-navy/[0.06] dark:border-white/10">
           <h2 className="font-display text-lg font-semibold text-passport-navy dark:text-white/90">
             {title}
           </h2>
@@ -212,10 +211,10 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
                     onClick={() => toggleRel(r)}
                     title={RELATIONSHIP_META[r].description}
                     className={cn(
-                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors',
+                      'inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all active:scale-[0.97]',
                       active
-                        ? 'bg-passport-navy text-passport-parchment border-passport-navy dark:bg-passport-gold dark:text-passport-ink dark:border-passport-gold'
-                        : 'border-black/15 dark:border-white/15 text-black/70 dark:text-white/70 hover:border-passport-gold/60',
+                        ? 'bg-passport-navy text-white dark:bg-white dark:text-passport-navy shadow-card'
+                        : 'bg-white dark:bg-white/5 shadow-card text-passport-ink2 dark:text-white/70',
                     )}
                   >
                     <Icon size={14} />
@@ -309,7 +308,7 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
           </Field>
         </div>
 
-        <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-black/5 dark:border-white/10">
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-passport-navy/[0.06] dark:border-white/10">
           {editing ? (
             <button
               type="button"
@@ -328,8 +327,8 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
             disabled={!canSave || busy}
             className={cn(
               'inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all',
-              'bg-passport-navy text-passport-parchment dark:bg-passport-gold dark:text-passport-ink',
-              'hover:opacity-90 active:scale-[0.99]',
+              'bg-brand-gradient text-white shadow-card',
+              'hover:opacity-95 active:scale-[0.99]',
               'disabled:opacity-40 disabled:cursor-not-allowed',
             )}
           >
@@ -350,17 +349,17 @@ function KindToggle({
   onChange: (k: PlaceKind) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-black/[0.04] dark:bg-white/[0.06]">
+    <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-passport-navy/[0.05] dark:bg-white/[0.06]">
       {(['country', 'city'] as PlaceKind[]).map((k) => (
         <button
           key={k}
           type="button"
           onClick={() => onChange(k)}
           className={cn(
-            'py-2 rounded-lg text-sm font-medium capitalize transition-colors',
+            'py-2.5 rounded-xl text-sm font-semibold capitalize transition-all',
             kind === k
-              ? 'bg-white dark:bg-passport-navy text-passport-navy dark:text-passport-goldsoft shadow-sm'
-              : 'text-black/55 dark:text-white/55',
+              ? 'bg-white dark:bg-passport-carddark text-passport-navy dark:text-white shadow-card'
+              : 'text-passport-ink3 dark:text-white/55',
           )}
         >
           {k}
