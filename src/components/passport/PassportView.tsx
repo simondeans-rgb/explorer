@@ -8,15 +8,16 @@ import {
   type ChangeEvent,
 } from 'react';
 import {
-  Camera,
+  ChevronRight,
   Compass,
   Globe2,
   Images,
+  type LucideIcon,
   MapPin,
   MapPinned,
   Plus,
+  Search,
   Users,
-  X,
 } from 'lucide-react';
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
 import type { DiscoveryStats } from '../../lib/discoveryStats';
@@ -40,6 +41,7 @@ import { memberName } from '../../lib/memberName';
 import { cn } from '../../lib/cn';
 import { VERDICT_STYLE } from '../discoveries/verdictStyle';
 import { DestinationImage } from '../DestinationImage';
+import { heroImage } from '../../lib/destinationImage';
 import { CATEGORY_ICON } from '../discoveries/categoryIcons';
 import {
   AddDiscoveryModal,
@@ -82,6 +84,12 @@ interface Props {
   /** One-shot: scroll to a country card (and open a city), from a discovery. */
   focusPlace?: { code: string; city?: string } | null;
   onFocusConsumed?: () => void;
+  /** One-shot: open the add-place modal (from the quick-add "+"). */
+  openAdd?: boolean;
+  onAddConsumed?: () => void;
+  /** Navigate to another section (e.g. the search pill → Explore). */
+  onExplore?: () => void;
+  onOpenJourneys?: () => void;
   loading: boolean;
 }
 
@@ -139,6 +147,10 @@ export function PassportView({
   onImportConsumed,
   focusPlace,
   onFocusConsumed,
+  openAdd,
+  onAddConsumed,
+  onExplore,
+  onOpenJourneys,
   loading,
 }: Props) {
   const { user } = useAuth();
@@ -156,6 +168,13 @@ export function PassportView({
     else if (openImport === 'photos') setPhotoImport(true);
     onImportConsumed?.();
   }, [openImport, onImportConsumed]);
+
+  // Open the add-place modal when routed here from the quick-add "+".
+  useEffect(() => {
+    if (!openAdd) return;
+    setModal({ kind: 'country' });
+    onAddConsumed?.();
+  }, [openAdd, onAddConsumed]);
 
   // Country card refs + the place to focus when arriving from a discovery.
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
@@ -205,15 +224,6 @@ export function PassportView({
     [stats, discoveryStats],
   );
   const earned = recognitions.filter((r) => r.earned);
-
-  const memberSinceYear = useMemo(() => {
-    let min = Infinity;
-    for (const a of aggregates) {
-      if (a.countryPlace) min = Math.min(min, a.countryPlace.createdAt);
-      for (const c of a.cities) min = Math.min(min, c.createdAt);
-    }
-    return Number.isFinite(min) ? new Date(min).getFullYear() : null;
-  }, [aggregates]);
 
   function editCountry(a: CountryAggregate) {
     setModal({
@@ -272,14 +282,21 @@ export function PassportView({
     <div className="animate-fade-in space-y-8">
       <BioPage
         name={memberName(user?.email ?? '')}
-        sinceYear={memberSinceYear}
         stats={stats}
         discoveriesTotal={discoveryStats.total}
         expeditionCount={expeditionCount}
         heroCode={discovered[0]?.code}
         photo={photo}
         onChangePhoto={setPhoto}
+        onSearch={() => onExplore?.()}
       />
+
+      {expeditions.length > 0 && (
+        <RecentJourneys
+          expeditions={expeditions}
+          onViewAll={() => onOpenJourneys?.()}
+        />
+      )}
 
       {discovered.length > 0 && (
         <div className="space-y-3">
@@ -463,22 +480,22 @@ function greeting(): string {
 
 function BioPage({
   name,
-  sinceYear,
   stats,
   discoveriesTotal,
   expeditionCount,
   heroCode,
   photo,
   onChangePhoto,
+  onSearch,
 }: {
   name: string;
-  sinceYear: number | null;
   stats: PassportStats;
   discoveriesTotal: number;
   expeditionCount: number;
   heroCode?: string;
   photo: string | null;
   onChangePhoto: (dataUrl: string | null) => void;
+  onSearch: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -507,37 +524,44 @@ function BioPage({
     { label: 'Discoveries', value: discoveriesTotal },
   ];
 
+  const hero = heroImage(heroCode, 1000);
+
+  const TILE: {
+    label: string;
+    value: string | number;
+    total?: number;
+    icon: LucideIcon;
+    tint: string;
+    badge: string;
+  }[] = [
+    { label: 'Countries', value: figures[0].value, total: figures[0].total, icon: Globe2, tint: 'bg-emerald-50 dark:bg-emerald-500/10', badge: 'from-emerald-400 to-teal-500' },
+    { label: 'Cities', value: figures[1].value, total: figures[1].total, icon: MapPin, tint: 'bg-rose-50 dark:bg-rose-500/10', badge: 'from-rose-400 to-pink-500' },
+    { label: 'Journeys', value: expeditionCount, icon: MapPinned, tint: 'bg-amber-50 dark:bg-amber-500/10', badge: 'from-amber-400 to-orange-500' },
+    { label: 'Discoveries', value: figures[3].value, total: figures[3].total, icon: Compass, tint: 'bg-violet-50 dark:bg-violet-500/10', badge: 'from-violet-400 to-indigo-500' },
+  ];
+
   return (
-    <div className="space-y-5">
-      {/* Greeting */}
-      <div className="px-1">
-        <p className="text-sm font-medium text-passport-gold">{greeting()},</p>
-        <h1 className="font-display text-[2rem] leading-tight font-semibold text-passport-navy dark:text-white capitalize">
-          {name || 'Explorer'}
-        </h1>
-      </div>
-
-      {/* Hero passport card */}
-      <div className="relative overflow-hidden rounded-3xl bg-brand-gradient text-white shadow-float">
-        {/* Subtle destination photo of your signature country, behind the gradient */}
-        {heroCode && (
-          <div className="pointer-events-none absolute inset-0 opacity-30 mix-blend-soft-light">
-            <DestinationImage code={heroCode} width={800} className="h-full" />
-          </div>
-        )}
-        {/* decorative globe lines */}
-        <div
-          className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full border border-white/20"
-          aria-hidden="true"
-        />
-        <div
-          className="pointer-events-none absolute -right-2 top-6 h-32 w-32 rounded-full border border-white/15"
-          aria-hidden="true"
-        />
-
-        <div className="relative p-5 sm:p-6">
-          <div className="flex items-center gap-4">
-            <div className="relative h-16 w-16 shrink-0">
+    <div className="-mt-2 space-y-5">
+      {/* Photo hero with overlaid greeting */}
+      <div className="relative -mx-4 sm:-mx-6">
+        <DestinationImage
+          code={heroCode ?? ''}
+          width={1000}
+          className="min-h-[300px] flex flex-col justify-end"
+        >
+          {/* photo override so the default hero shows for everyone */}
+          {hero.photo && !heroCode && (
+            <img
+              src={hero.photo}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-white dark:to-passport-night" />
+          <div className="relative px-5 pt-6 pb-10">
+            {/* avatar (top-right) */}
+            <div className="absolute right-5 top-5">
               <input
                 ref={fileRef}
                 type="file"
@@ -549,79 +573,68 @@ function BioPage({
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 aria-label={photo ? 'Change photo' : 'Add photo'}
-                className="group relative h-16 w-16 overflow-hidden rounded-2xl bg-white/20 ring-2 ring-white/40 flex items-center justify-center"
+                className="relative h-11 w-11 overflow-hidden rounded-full ring-2 ring-white shadow-card flex items-center justify-center bg-brand-gradient"
               >
                 {photo ? (
-                  <img
-                    src={photo}
-                    alt="Your portrait"
-                    className="h-full w-full object-cover"
-                  />
+                  <img src={photo} alt="You" className="h-full w-full object-cover" />
                 ) : (
-                  <span className="font-display text-2xl font-semibold text-white">
+                  <span className="text-base font-bold text-white">
                     {name[0]?.toUpperCase() ?? 'E'}
                   </span>
                 )}
-                <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-0.5 bg-black/30 py-0.5 text-[8px] uppercase tracking-wide opacity-0 transition-opacity group-hover:opacity-100">
-                  <Camera size={9} /> {photo ? 'Change' : 'Add'}
-                </span>
               </button>
-              {photo && (
-                <button
-                  type="button"
-                  onClick={() => onChangePhoto(null)}
-                  aria-label="Remove photo"
-                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-passport-navy text-white shadow-card"
-                >
-                  <X size={11} />
-                </button>
-              )}
             </div>
 
-            <div className="min-w-0">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70">
-                Worldly Passport
-              </div>
-              <div className="font-display text-xl font-semibold capitalize truncate">
-                {name || 'Explorer'}
-              </div>
-              {sinceYear && (
-                <div className="text-xs text-white/70 mt-0.5">
-                  Collecting the world since {sinceYear}
-                </div>
-              )}
-            </div>
-          </div>
+            <p className="text-sm font-semibold text-passport-navy/90 drop-shadow-sm">
+              {greeting()}, {name?.split(' ')[0] || 'Explorer'}
+            </p>
+            <h1 className="mt-1 font-display text-[2rem] leading-[1.08] font-semibold text-passport-navy drop-shadow-sm max-w-[15ch]">
+              Where will your next story take you?
+            </h1>
 
-          {/* World-seen progress */}
-          <div className="mt-5">
-            <div className="flex items-baseline justify-between">
-              <span className="text-xs font-medium text-white/80">
-                You&rsquo;ve seen{' '}
-                <span className="font-bold text-white">{worldSeen}%</span> of the
-                world
+            {/* Search pill (routes to Explore) */}
+            <button
+              type="button"
+              onClick={onSearch}
+              className="mt-5 w-full flex items-center gap-2.5 rounded-full glass shadow-float px-4 py-3.5 text-left"
+            >
+              <Search size={18} className="text-passport-ink3" />
+              <span className="text-sm text-passport-ink3">
+                Search places, trips, friends…
               </span>
-              <span className="text-xs text-white/70">
-                {stats.countriesDiscovered}/{totalCountries}
-              </span>
-            </div>
-            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/20">
-              <div
-                className="h-full rounded-full bg-white"
-                style={{ width: `${Math.max(2, Math.min(100, rawPct))}%` }}
-              />
-            </div>
+            </button>
           </div>
+        </DestinationImage>
+      </div>
+
+      {/* Section heading */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
+            Your Passport
+          </h2>
+          <p className="text-xs text-passport-ink3 mt-0.5">
+            You&rsquo;ve seen {worldSeen}% of the world ·{' '}
+            {stats.countriesDiscovered}/{totalCountries} countries
+          </p>
         </div>
       </div>
 
-      {/* Stat strip — story-framed */}
-      <div className="grid grid-cols-4 gap-2">
-        {figures.map(({ label, value, total }) => (
+      {/* Bright pastel stat tiles with gradient icon badges */}
+      <div className="grid grid-cols-4 gap-2.5">
+        {TILE.map(({ label, value, total, icon: Icon, tint, badge }) => (
           <div
             key={label}
-            className="rounded-2xl bg-white dark:bg-passport-carddark shadow-card px-2 py-3 text-center"
+            className={cn('rounded-3xl shadow-card px-2 py-4 text-center', tint)}
           >
+            <div
+              className={cn(
+                'mx-auto mb-2 h-10 w-10 rounded-full flex items-center justify-center text-white shadow-card bg-gradient-to-br',
+                badge,
+              )}
+            >
+              <Icon size={18} strokeWidth={2.4} />
+            </div>
             <div className="font-display text-2xl font-semibold text-passport-navy dark:text-white leading-none">
               {value}
               {total != null && (
@@ -630,19 +643,77 @@ function BioPage({
                 </span>
               )}
             </div>
-            <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.08em] text-passport-ink3">
+            <div className="mt-1 text-[10px] font-semibold text-passport-ink3">
               {label}
             </div>
           </div>
         ))}
       </div>
+    </div>
+  );
+}
 
-      {/* Journeys tally line */}
-      <div className="flex items-center justify-center gap-1.5 text-xs text-passport-ink3">
-        <MapPinned size={13} className="text-passport-gold" />
-        {expeditionCount === 0
-          ? 'No journeys logged yet'
-          : `${expeditionCount} ${expeditionCount === 1 ? 'journey' : 'journeys'} on record`}
+function RecentJourneys({
+  expeditions,
+  onViewAll,
+}: {
+  expeditions: Expedition[];
+  onViewAll: () => void;
+}) {
+  const recent = [...expeditions]
+    .sort((a, b) => (b.startDate ?? '').localeCompare(a.startDate ?? ''))
+    .slice(0, 6);
+  const monthYear = (iso?: string) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime())
+      ? ''
+      : d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+  };
+  return (
+    <div className="space-y-3">
+      <div className="flex items-end justify-between">
+        <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
+          Recent journeys
+        </h2>
+        <button
+          type="button"
+          onClick={onViewAll}
+          className="text-sm font-semibold text-passport-gold hover:underline inline-flex items-center gap-0.5"
+        >
+          View all <ChevronRight size={15} />
+        </button>
+      </div>
+      <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
+        {recent.map((e) => {
+          const code = e.countryCodes[0];
+          return (
+            <button
+              key={e.id}
+              type="button"
+              onClick={onViewAll}
+              className="shrink-0 w-[150px] rounded-3xl overflow-hidden shadow-card active:scale-[0.98] transition-transform"
+            >
+              <DestinationImage
+                code={code ?? ''}
+                width={400}
+                className="h-44 flex flex-col text-white"
+                scrim
+              >
+                <div className="mt-auto p-3">
+                  <div className="font-display text-base font-semibold leading-tight drop-shadow-sm line-clamp-2">
+                    {e.title}
+                  </div>
+                  {monthYear(e.startDate) && (
+                    <div className="text-[11px] text-white/85 mt-0.5">
+                      {monthYear(e.startDate)}
+                    </div>
+                  )}
+                </div>
+              </DestinationImage>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

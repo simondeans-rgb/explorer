@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Compass, Globe2, MapPinned, Plus } from 'lucide-react';
 import { countryName } from '../../data/countries';
 import { flagEmoji } from '../../lib/flags';
@@ -30,6 +30,8 @@ interface Props {
   friendDiscoveries: Discovery[];
   onAddTrip: (code: string) => void;
   onGoToPlace: (countryCode: string, city?: string) => void;
+  openAdd?: boolean;
+  onAddConsumed?: () => void;
   loading: boolean;
 }
 
@@ -44,11 +46,20 @@ export function DiscoveriesView({
   friendDiscoveries,
   onAddTrip,
   onGoToPlace,
+  openAdd,
+  onAddConsumed,
   loading,
 }: Props) {
   const [modal, setModal] = useState<DiscoveryModalInitial | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [tab, setTab] = useState<Tab>('explore');
+
+  useEffect(() => {
+    if (!openAdd) return;
+    setTab('recorded');
+    setModal({});
+    onAddConsumed?.();
+  }, [openAdd, onAddConsumed]);
 
   const counts = useMemo(() => {
     const c = { all: discoveries.length } as Record<Filter, number>;

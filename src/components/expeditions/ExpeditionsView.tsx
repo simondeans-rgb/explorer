@@ -35,6 +35,9 @@ interface Props {
   /** One-shot: open the Flighty importer on mount (from the first-run welcome). */
   openImport?: boolean;
   onImportConsumed?: () => void;
+  /** One-shot: open a new-journey form (from the quick-add "+"). */
+  openAdd?: boolean;
+  onAddConsumed?: () => void;
   loading: boolean;
 }
 
@@ -63,6 +66,8 @@ export function ExpeditionsView({
   onNewTripConsumed,
   openImport,
   onImportConsumed,
+  openAdd,
+  onAddConsumed,
   loading,
 }: Props) {
   const [modal, setModal] = useState<ExpeditionModalInitial | null>(null);
@@ -82,6 +87,13 @@ export function ExpeditionsView({
     setImporting(true);
     onImportConsumed?.();
   }, [openImport, onImportConsumed]);
+
+  // Arriving from the quick-add "+" — open a new journey form.
+  useEffect(() => {
+    if (!openAdd) return;
+    setModal({});
+    onAddConsumed?.();
+  }, [openAdd, onAddConsumed]);
 
   const hasImported = useMemo(
     () =>
