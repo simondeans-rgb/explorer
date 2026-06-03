@@ -57,7 +57,7 @@ export function DestinationImage({
           decoding="async"
           onLoad={() => setLoaded(true)}
           className={cn(
-            'absolute inset-0 h-full w-full object-cover transition-opacity duration-700',
+            'vivid-photo absolute inset-0 h-full w-full object-cover transition-opacity duration-700',
             loaded ? 'opacity-100' : 'opacity-0',
           )}
         />

@@ -154,6 +154,11 @@ textarea {
   background: rgba(27, 30, 46, 0.66);
 }
 
+/* Bright, vibrant destination photos — punchier colour & contrast. */
+.vivid-photo {
+  filter: saturate(1.28) contrast(1.06) brightness(1.03);
+}
+
 /* Soft coral rule beneath section eyebrows (sparing). */
 .gold-rule {
   height: 2px;

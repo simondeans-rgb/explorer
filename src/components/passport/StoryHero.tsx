@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { flagEmoji } from '../../lib/flags';
 import type { StoryCard } from '../../lib/homeStory';
 import { DestinationImage } from '../DestinationImage';
@@ -7,7 +7,8 @@ import { cn } from '../../lib/cn';
 /**
  * The opening experience: a full-bleed, swipeable carousel of emotional story
  * cards (current trip, last trip, a memory, a friend's recommendation, a
- * favourite). Content and imagery first — no statistics.
+ * favourite). Content and imagery first — no statistics. Auto-advances gently
+ * until the user interacts, then yields to them.
  */
 export function StoryHero({
   cards,
@@ -18,13 +19,50 @@ export function StoryHero({
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
+  const activeRef = useRef(0);
+  const paused = useRef(false);
 
   function onScroll() {
     const el = scroller.current;
     if (!el) return;
     const i = Math.round(el.scrollLeft / el.clientWidth);
-    if (i !== active) setActive(i);
+    if (i !== active) {
+      setActive(i);
+      activeRef.current = i;
+    }
   }
+
+  // Gentle auto-advance (every 5.5s). Pauses on touch/pointer, respects
+  // reduced-motion, and never fights a user mid-scroll.
+  useEffect(() => {
+    if (cards.length < 2) return;
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return;
+    }
+    const el = scroller.current;
+    if (!el) return;
+    const pause = () => {
+      paused.current = true;
+    };
+    el.addEventListener('pointerdown', pause, { passive: true });
+    el.addEventListener('touchstart', pause, { passive: true });
+    const id = window.setInterval(() => {
+      if (paused.current || !scroller.current) return;
+      const next = (activeRef.current + 1) % cards.length;
+      scroller.current.scrollTo({
+        left: next * scroller.current.clientWidth,
+        behavior: 'smooth',
+      });
+    }, 5500);
+    return () => {
+      window.clearInterval(id);
+      el.removeEventListener('pointerdown', pause);
+      el.removeEventListener('touchstart', pause);
+    };
+  }, [cards.length]);
 
   return (
     <div className="relative -mx-4 sm:-mx-6">
