@@ -7,12 +7,13 @@
 
 // ISO 3166-1 alpha-2 codes that have a bundled photo at /destinations/XX.jpg.
 const HAS_PHOTO = new Set([
-  'AE', 'AR', 'AT', 'AU', 'BG', 'BR', 'BS', 'BW', 'CH', 'CL', 'CN', 'CO', 'CR',
-  'CU', 'CY', 'CZ', 'DE', 'DK', 'DO', 'EC', 'EG', 'ES', 'FI', 'FJ', 'FR', 'GB',
-  'GH', 'GR', 'GT', 'HK', 'ID', 'IE', 'IN', 'IS', 'IT', 'JM', 'JP', 'KE', 'KH',
-  'KR', 'LK', 'LT', 'LU', 'MA', 'MT', 'MU', 'MX', 'MY', 'NL', 'NO', 'NZ', 'PE',
-  'PH', 'PL', 'QA', 'RO', 'RS', 'SC', 'SG', 'SI', 'TH', 'TR', 'TW', 'TZ', 'US',
-  'UY', 'VN', 'ZA',
+  'AE', 'AR', 'AT', 'AU', 'AZ', 'BD', 'BG', 'BR', 'BS', 'BW', 'CH', 'CL', 'CN',
+  'CO', 'CR', 'CU', 'CY', 'CZ', 'DE', 'DK', 'DO', 'EC', 'EG', 'ES', 'FI', 'FJ',
+  'FR', 'GB', 'GH', 'GR', 'GT', 'HK', 'ID', 'IE', 'IN', 'IS', 'IT', 'JM', 'JO',
+  'JP', 'KE', 'KH', 'KR', 'KZ', 'LB', 'LK', 'LT', 'LU', 'MA', 'MT', 'MU', 'MX',
+  'MY', 'NL', 'NO', 'NP', 'NZ', 'PE', 'PH', 'PK', 'PL', 'PR', 'PT', 'PY', 'QA',
+  'RO', 'RS', 'RW', 'SC', 'SG', 'SI', 'TH', 'TR', 'TW', 'TZ', 'UG', 'US', 'UY',
+  'UZ', 'VN', 'ZA',
 ]);
 
 const photoPath = (code: string) => `/destinations/${code}.jpg`;
