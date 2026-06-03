@@ -13,10 +13,22 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useProfilePhoto } from '../../hooks/useProfilePhoto';
 import { memberName } from '../../lib/memberName';
 import { cn } from '../../lib/cn';
+import type { PassportStats } from '../../lib/stats';
+import type { DiscoveryStats } from '../../lib/discoveryStats';
+import type { JourneyStats } from '../../lib/journeyStats';
+import {
+  computeExplorerLevel,
+  computeBadges,
+  type Badge,
+} from '../../lib/explorer';
+import { ExplorerLevelCard } from './ExplorerLevelCard';
 
 interface Props {
   userId: string;
   friendCount: number;
+  stats: PassportStats;
+  discoveryStats: DiscoveryStats;
+  journeyStats: JourneyStats;
   onOpenFriends: () => void;
   onOpenAlmanac: () => void;
   onImport: () => void;
@@ -25,6 +37,9 @@ interface Props {
 export function ProfileView({
   userId,
   friendCount,
+  stats,
+  discoveryStats,
+  journeyStats,
   onOpenFriends,
   onOpenAlmanac,
   onImport,
@@ -33,6 +48,14 @@ export function ProfileView({
   const { theme, toggle } = useTheme();
   const { photo } = useProfilePhoto(userId || undefined);
   const name = memberName(user?.email ?? '');
+
+  const level = computeExplorerLevel(stats, discoveryStats, journeyStats);
+  const badges = computeBadges({
+    stats,
+    discovery: discoveryStats,
+    journeys: journeyStats,
+  });
+  const earnedCount = badges.filter((b) => b.earned).length;
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -58,6 +81,26 @@ export function ProfileView({
           <p className="text-sm text-white/80 mt-0.5 truncate">
             {user?.email ?? 'Worldly member'}
           </p>
+        </div>
+      </div>
+
+      {/* Explorer level */}
+      <ExplorerLevelCard level={level} />
+
+      {/* Achievements */}
+      <div className="space-y-3">
+        <div className="flex items-end justify-between px-1">
+          <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
+            Achievements
+          </h2>
+          <span className="text-xs font-medium text-passport-ink3">
+            {earnedCount}/{badges.length} earned
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-2.5">
+          {badges.map((b) => (
+            <BadgeTile key={b.id} badge={b} />
+          ))}
         </div>
       </div>
 
@@ -162,5 +205,49 @@ function HubCard({
       </span>
       <ChevronRight size={18} className="text-passport-ink3 shrink-0" />
     </button>
+  );
+}
+
+function BadgeTile({ badge }: { badge: Badge }) {
+  const pct = Math.round(badge.progress * 100);
+  return (
+    <div
+      className={cn(
+        'relative overflow-hidden rounded-2xl px-2.5 py-3 text-center shadow-card transition-all',
+        badge.earned
+          ? 'bg-white dark:bg-passport-carddark'
+          : 'bg-passport-cartridge/60 dark:bg-white/5',
+      )}
+      title={badge.description}
+    >
+      <div
+        className={cn(
+          'mx-auto mb-1.5 flex h-11 w-11 items-center justify-center rounded-full text-2xl',
+          badge.earned
+            ? 'bg-brand-gradient shadow-card'
+            : 'bg-black/5 dark:bg-white/10 grayscale opacity-50',
+        )}
+      >
+        <span aria-hidden="true">{badge.emoji}</span>
+      </div>
+      <p
+        className={cn(
+          'text-[0.7rem] font-semibold leading-tight',
+          badge.earned
+            ? 'text-passport-navy dark:text-white'
+            : 'text-passport-ink3',
+        )}
+      >
+        {badge.title}
+      </p>
+      {!badge.earned && (
+        <div className="mt-1.5 h-1 w-full rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-passport-gold/70"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+    </div>
   );
 }
