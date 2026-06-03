@@ -31,6 +31,7 @@ import {
   type Relationship,
 } from '../../types';
 import { cn } from '../../lib/cn';
+import { DestinationImage } from '../DestinationImage';
 import { CATEGORY_ICON } from './categoryIcons';
 import { VERDICT_STYLE } from './verdictStyle';
 
@@ -116,24 +117,25 @@ export function CountryDetailModal({
           'bg-passport-cartridge dark:bg-passport-carddark',
         )}
       >
-        {/* Hero header */}
-        <div className="relative overflow-hidden bg-brand-gradient text-white">
-          <div
-            className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full border border-white/20"
-            aria-hidden="true"
-          />
-          <div className="relative flex items-start justify-between px-5 pt-5 pb-6">
+        {/* Hero header — destination photo over gradient (gradient for drill) */}
+        <DestinationImage
+          code={drill ? 'XX' : code}
+          width={800}
+          className="text-white min-h-[180px] flex flex-col"
+          scrim
+        >
+          <div className="flex items-start justify-between px-5 pt-5 pb-6">
             {drill ? (
               <button
                 type="button"
                 aria-label="Back"
                 onClick={() => setDrill(null)}
-                className="h-9 w-9 -ml-1 inline-flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25"
+                className="h-9 w-9 -ml-1 inline-flex items-center justify-center rounded-full glass text-white hover:bg-white/25"
               >
                 <ChevronLeft size={18} />
               </button>
             ) : (
-              <div className="h-14 w-14 rounded-2xl bg-white/20 ring-2 ring-white/30 flex items-center justify-center text-4xl leading-none">
+              <div className="h-14 w-14 rounded-2xl bg-white/25 ring-2 ring-white/40 flex items-center justify-center text-4xl leading-none backdrop-blur-sm">
                 {flagEmoji(code)}
               </div>
             )}
@@ -141,20 +143,20 @@ export function CountryDetailModal({
               type="button"
               aria-label="Close"
               onClick={onClose}
-              className="h-9 w-9 inline-flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25"
+              className="h-9 w-9 inline-flex items-center justify-center rounded-full glass text-white hover:bg-white/25"
             >
               <X size={18} />
             </button>
           </div>
-          <div className="relative px-5 pb-5">
-            <h2 className="font-display text-2xl font-semibold leading-tight">
+          <div className="mt-auto px-5 pb-5">
+            <h2 className="font-display text-2xl font-semibold leading-tight drop-shadow-sm">
               {drill ? drill.name : name}
             </h2>
-            <p className="text-sm text-white/80 mt-0.5">
+            <p className="text-sm text-white/85 mt-0.5">
               {drill ? `Recommendations in ${name}` : facts?.capital ?? 'Explore'}
             </p>
           </div>
-        </div>
+        </DestinationImage>
 
         {drill ? (
           <FriendDrillDown

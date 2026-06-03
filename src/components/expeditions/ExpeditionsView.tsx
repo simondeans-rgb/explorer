@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Compass, Plane, Plus, RefreshCw } from 'lucide-react';
+import { DestinationImage } from '../DestinationImage';
 import { countryName } from '../../data/countries';
 import { flagEmoji } from '../../lib/flags';
 import {
@@ -237,14 +238,41 @@ function ExpeditionCard({
 }) {
   const range = formatRange(e.startDate, e.endDate);
 
+  const heroCode = e.countryCodes[0];
+
   return (
     <button
       type="button"
       onClick={onEdit}
-      className="w-full text-left rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-5 hover:shadow-card-hover active:scale-[0.99] transition-all"
+      className="w-full text-left rounded-3xl overflow-hidden bg-white dark:bg-passport-carddark shadow-card hover:shadow-card-hover active:scale-[0.99] transition-all"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      {heroCode ? (
+        <DestinationImage
+          code={heroCode}
+          width={800}
+          className="h-32 text-white flex flex-col"
+          scrim
+        >
+          <div className="absolute top-3 right-3 flex flex-wrap justify-end gap-1 text-lg leading-none max-w-[50%]">
+            {e.countryCodes.map((c) => (
+              <span key={c} title={countryName(c)} className="drop-shadow">
+                {flagEmoji(c)}
+              </span>
+            ))}
+          </div>
+          <div className="mt-auto p-4">
+            {range && (
+              <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/85 mb-0.5">
+                {range}
+              </div>
+            )}
+            <div className="font-display text-xl font-semibold leading-tight drop-shadow-sm">
+              {e.title}
+            </div>
+          </div>
+        </DestinationImage>
+      ) : (
+        <div className="px-5 pt-5">
           {range && (
             <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-passport-gold mb-1">
               {range}
@@ -254,19 +282,11 @@ function ExpeditionCard({
             {e.title}
           </div>
         </div>
-        {e.countryCodes.length > 0 && (
-          <div className="flex flex-wrap justify-end gap-1 text-xl leading-none shrink-0 max-w-[40%]">
-            {e.countryCodes.map((c) => (
-              <span key={c} title={countryName(c)}>
-                {flagEmoji(c)}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
 
+      <div className="px-5 pb-5 pt-4">
       {e.journeys.length > 0 && (
-        <div className="mt-3 space-y-1.5">
+        <div className="space-y-1.5">
           {e.journeys.map((j) => {
             const Icon = JOURNEY_ICON[j.mode];
             const route = [j.from, j.to].filter(Boolean).join(' → ');
@@ -308,6 +328,7 @@ function ExpeditionCard({
           {e.note}
         </p>
       )}
+      </div>
     </button>
   );
 }

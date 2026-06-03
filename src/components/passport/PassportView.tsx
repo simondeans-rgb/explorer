@@ -39,6 +39,7 @@ import { placePeriods } from '../../lib/residences';
 import { memberName } from '../../lib/memberName';
 import { cn } from '../../lib/cn';
 import { VERDICT_STYLE } from '../discoveries/verdictStyle';
+import { DestinationImage } from '../DestinationImage';
 import { CATEGORY_ICON } from '../discoveries/categoryIcons';
 import {
   AddDiscoveryModal,
@@ -275,6 +276,7 @@ export function PassportView({
         stats={stats}
         discoveriesTotal={discoveryStats.total}
         expeditionCount={expeditionCount}
+        heroCode={discovered[0]?.code}
         photo={photo}
         onChangePhoto={setPhoto}
       />
@@ -465,6 +467,7 @@ function BioPage({
   stats,
   discoveriesTotal,
   expeditionCount,
+  heroCode,
   photo,
   onChangePhoto,
 }: {
@@ -473,6 +476,7 @@ function BioPage({
   stats: PassportStats;
   discoveriesTotal: number;
   expeditionCount: number;
+  heroCode?: string;
   photo: string | null;
   onChangePhoto: (dataUrl: string | null) => void;
 }) {
@@ -515,6 +519,12 @@ function BioPage({
 
       {/* Hero passport card */}
       <div className="relative overflow-hidden rounded-3xl bg-brand-gradient text-white shadow-float">
+        {/* Subtle destination photo of your signature country, behind the gradient */}
+        {heroCode && (
+          <div className="pointer-events-none absolute inset-0 opacity-30 mix-blend-soft-light">
+            <DestinationImage code={heroCode} width={800} className="h-full" />
+          </div>
+        )}
         {/* decorative globe lines */}
         <div
           className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full border border-white/20"
