@@ -78,6 +78,9 @@ interface Props {
   discoveryStats: DiscoveryStats;
   expeditionCount: number;
   friendCountryMap: Map<string, FriendPresence[]>;
+  /** 'story' = content-first Home (default); 'atlas' = the collection surface
+   *  (map, country cards, wishlist, stats) hosted inside the Atlas tab. */
+  mode?: 'story' | 'atlas';
   /** One-shot: open an importer on mount (from the first-run welcome). */
   openImport?: 'countries' | 'photos' | null;
   onImportConsumed?: () => void;
@@ -90,6 +93,7 @@ interface Props {
   /** Navigate to another section (e.g. the search pill → Explore). */
   onExplore?: () => void;
   onOpenJourneys?: () => void;
+  onOpenAtlas?: () => void;
   loading: boolean;
 }
 
@@ -143,6 +147,7 @@ export function PassportView({
   discoveryStats,
   expeditionCount,
   friendCountryMap,
+  mode = 'story',
   openImport,
   onImportConsumed,
   focusPlace,
@@ -151,8 +156,10 @@ export function PassportView({
   onAddConsumed,
   onExplore,
   onOpenJourneys,
+  onOpenAtlas,
   loading,
 }: Props) {
+  const atlas = mode === 'atlas';
   const { user } = useAuth();
   const { photo, setPhoto } = useProfilePhoto(userId || undefined);
   const [modal, setModal] = useState<ModalInitial | null>(null);
@@ -328,42 +335,44 @@ export function PassportView({
   return (
     <div className="animate-fade-in -mt-1 space-y-9">
       {/* ── Story: the opening, content-first experience ──────────────── */}
-      <div className="relative">
-        {/* floating, transparent top bar over the hero */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 pt-[max(0.75rem,env(safe-area-inset-top))]">
-          <div className="flex items-center gap-2">
-            <WorldlyMark size={26} />
-            <span className="font-display text-lg font-semibold text-white drop-shadow">
-              worldly
-            </span>
+      {!atlas && (
+        <div className="relative">
+          {/* floating, transparent top bar over the hero */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 pt-[max(0.75rem,env(safe-area-inset-top))]">
+            <div className="flex items-center gap-2">
+              <WorldlyMark size={26} />
+              <span className="font-display text-lg font-semibold text-white drop-shadow">
+                worldly
+              </span>
+            </div>
+            <div className="pointer-events-auto">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFile}
+              />
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                aria-label={photo ? 'Change photo' : 'Add photo'}
+                className="relative h-9 w-9 overflow-hidden rounded-full ring-2 ring-white/80 shadow-card grid place-items-center bg-brand-gradient"
+              >
+                {photo ? (
+                  <img src={photo} alt="You" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-sm font-bold text-white">
+                    {memberName(user?.email ?? '')[0]?.toUpperCase() ?? 'E'}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
-          <div className="pointer-events-auto">
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFile}
-            />
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              aria-label={photo ? 'Change photo' : 'Add photo'}
-              className="relative h-9 w-9 overflow-hidden rounded-full ring-2 ring-white/80 shadow-card grid place-items-center bg-brand-gradient"
-            >
-              {photo ? (
-                <img src={photo} alt="You" className="h-full w-full object-cover" />
-              ) : (
-                <span className="text-sm font-bold text-white">
-                  {memberName(user?.email ?? '')[0]?.toUpperCase() ?? 'E'}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
 
-        <StoryHero cards={storyCards} onOpen={openStory} />
-      </div>
+          <StoryHero cards={storyCards} onOpen={openStory} />
+        </div>
+      )}
 
       {isEmpty && (
         <EmptyState
@@ -373,7 +382,7 @@ export function PassportView({
       )}
 
       {/* ── Recent journeys (collectible memory cards) ────────────────── */}
-      {expeditions.length > 0 && (
+      {!atlas && expeditions.length > 0 && (
         <RecentJourneys
           expeditions={expeditions}
           onViewAll={() => onOpenJourneys?.()}
@@ -381,7 +390,7 @@ export function PassportView({
       )}
 
       {/* ── Your favourite discoveries ────────────────────────────────── */}
-      {myRecommendations.length > 0 && (
+      {!atlas && myRecommendations.length > 0 && (
         <DiscoveryRail
           title="Places you loved"
           discoveries={myRecommendations}
@@ -390,45 +399,63 @@ export function PassportView({
       )}
 
       {/* ── Friends' recommendations ──────────────────────────────────── */}
-      <FriendRecsRail
-        friendCountryMap={friendCountryMap}
-        onExplore={() => onExplore?.()}
-      />
+      {!atlas && (
+        <FriendRecsRail
+          friendCountryMap={friendCountryMap}
+          onExplore={() => onExplore?.()}
+        />
+      )}
 
       {/* ── Achievements (collectible) ────────────────────────────────── */}
-      {earned.length > 0 && <RecognitionsStrip recognitions={earned} />}
+      {!atlas && earned.length > 0 && <RecognitionsStrip recognitions={earned} />}
 
-      {/* ── Your world (map + places), quieter, lower down ────────────── */}
+      {/* ── Your world (map) ──────────────────────────────────────────── */}
       {discovered.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-[1.35rem] font-semibold text-passport-navy dark:text-white tracking-tight">
               Your world
             </h2>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setCountryImport(true)}
-                aria-label="Import countries"
-                className="h-9 w-9 grid place-items-center rounded-full bg-white dark:bg-passport-carddark shadow-card text-passport-ink2 dark:text-white/80 active:scale-95 transition-transform"
-              >
-                <Globe2 size={17} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setPhotoImport(true)}
-                aria-label="Scan photos"
-                className="h-9 w-9 grid place-items-center rounded-full bg-white dark:bg-passport-carddark shadow-card text-passport-ink2 dark:text-white/80 active:scale-95 transition-transform"
-              >
-                <Images size={17} />
-              </button>
-            </div>
+            {atlas ? (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setCountryImport(true)}
+                  aria-label="Import countries"
+                  className="h-9 w-9 grid place-items-center rounded-full bg-white dark:bg-passport-carddark shadow-card text-passport-ink2 dark:text-white/80 active:scale-95 transition-transform"
+                >
+                  <Globe2 size={17} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPhotoImport(true)}
+                  aria-label="Scan photos"
+                  className="h-9 w-9 grid place-items-center rounded-full bg-white dark:bg-passport-carddark shadow-card text-passport-ink2 dark:text-white/80 active:scale-95 transition-transform"
+                >
+                  <Images size={17} />
+                </button>
+              </div>
+            ) : (
+              onOpenAtlas && (
+                <button
+                  type="button"
+                  onClick={onOpenAtlas}
+                  className="text-sm font-semibold text-passport-gold hover:underline inline-flex items-center gap-0.5"
+                >
+                  See all <ChevronRight size={15} />
+                </button>
+              )
+            )}
           </div>
-          <div className="overflow-hidden rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-2">
+          <button
+            type="button"
+            onClick={!atlas ? onOpenAtlas : undefined}
+            className="block w-full overflow-hidden rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-2 text-left"
+          >
             <Suspense fallback={<MapSkeleton />}>
               <PassportMap aggregates={aggregates} />
             </Suspense>
-          </div>
+          </button>
         </div>
       )}
 
@@ -442,11 +469,11 @@ export function PassportView({
         />
       )}
 
-      {discovered.length > 0 && (
+      {atlas && discovered.length > 0 && (
         <SectionHeading>Your places</SectionHeading>
       )}
 
-      {discovered.length > 0 && (
+      {atlas && discovered.length > 0 && (
         <div className="space-y-3">
           {discovered.map((a) => (
             <CountryCard
@@ -468,7 +495,7 @@ export function PassportView({
         </div>
       )}
 
-      {aspiring.length > 0 && (
+      {atlas && aspiring.length > 0 && (
         <div className="space-y-3">
           <SectionHeading>Wishlist</SectionHeading>
           <div className="flex flex-wrap gap-2">

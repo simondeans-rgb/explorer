@@ -3,8 +3,8 @@ import {
   BookMarked,
   ChevronLeft,
   Compass,
+  Globe2,
   type LucideIcon,
-  MapPinned,
   Plus,
   UserRound,
 } from 'lucide-react';
@@ -23,18 +23,17 @@ import { buildCountryPresence } from '../lib/explore';
 import { memberName } from '../lib/memberName';
 import { cn } from '../lib/cn';
 import { PassportView } from './passport/PassportView';
+import { AtlasView } from './atlas/AtlasView';
 import { AlmanacView } from './almanac/AlmanacView';
-import { ExpeditionsView } from './expeditions/ExpeditionsView';
 import { DiscoveriesView } from './discoveries/DiscoveriesView';
 import { FriendsView } from './friends/FriendsView';
 import { ProfileView } from './profile/ProfileView';
 import { WelcomeModal, type WelcomeChoice } from './WelcomeModal';
-import { WorldlyLogo } from './Brand';
 import { QuickAddSheet } from './QuickAddSheet';
 
 type Section =
   | 'passport'
-  | 'expeditions'
+  | 'atlas'
   | 'discoveries'
   | 'friends'
   | 'almanac'
@@ -42,10 +41,10 @@ type Section =
 
 // The four bottom-nav tabs (a center "+" FAB sits between the middle two).
 const NAV_TABS: { id: Section; label: string; icon: LucideIcon }[] = [
-  { id: 'passport', label: 'Passport', icon: BookMarked },
-  { id: 'expeditions', label: 'Journeys', icon: MapPinned },
+  { id: 'passport', label: 'Story', icon: BookMarked },
+  { id: 'atlas', label: 'Atlas', icon: Globe2 },
   { id: 'discoveries', label: 'Explore', icon: Compass },
-  { id: 'profile', label: 'Profile', icon: UserRound },
+  { id: 'profile', label: 'You', icon: UserRound },
 ];
 
 export function AppShell() {
@@ -96,15 +95,19 @@ export function AppShell() {
     [user?.uid, friends, places, discoveries, friendsData],
   );
 
-  // Set when "Add a trip" is tapped on a country in Explore; routes to the
-  // Journeys section and opens a pre-filled new-journey form.
+  // Which Atlas sub-tab to land on when navigating there.
+  const [atlasTab, setAtlasTab] = useState<'places' | 'journeys'>('places');
+
+  // Set when "Add a trip" is tapped on a country in Explore; routes to Atlas →
+  // Journeys and opens a pre-filled new-journey form.
   const [tripCountry, setTripCountry] = useState<string | null>(null);
   function startTrip(code: string) {
     setTripCountry(code);
-    setSection('expeditions');
+    setAtlasTab('journeys');
+    setSection('atlas');
   }
 
-  // Set when a discovery's place is tapped; routes to the Passport and focuses
+  // Set when a discovery's place is tapped; routes to Atlas → Places and focuses
   // that country (opening the city, if given).
   const [focusPlace, setFocusPlace] = useState<{
     code: string;
@@ -112,7 +115,8 @@ export function AppShell() {
   } | null>(null);
   function goToPlace(code: string, city?: string) {
     setFocusPlace({ code, city });
-    setSection('passport');
+    setAtlasTab('places');
+    setSection('atlas');
   }
 
   // Quick-add ("+") — one-shot flags the destination view opens on arrival.
@@ -123,10 +127,12 @@ export function AppShell() {
   function quickAdd(choice: 'place' | 'journey' | 'discovery' | 'import') {
     setShowQuickAdd(false);
     if (choice === 'place') {
-      setSection('passport');
+      setAtlasTab('places');
+      setSection('atlas');
       setOpenAddPlace(true);
     } else if (choice === 'journey') {
-      setSection('expeditions');
+      setAtlasTab('journeys');
+      setSection('atlas');
       setOpenAddJourney(true);
     } else if (choice === 'discovery') {
       setSection('discoveries');
@@ -169,7 +175,8 @@ export function AppShell() {
   function chooseWelcome(choice: WelcomeChoice) {
     dismissWelcome();
     if (choice === 'flighty') {
-      setSection('expeditions');
+      setAtlasTab('journeys');
+      setSection('atlas');
       setOpenFlighty(true);
     } else if (choice === 'countries' || choice === 'photos') {
       setSection('passport');
@@ -178,7 +185,8 @@ export function AppShell() {
     // 'fresh' just closes the welcome.
   }
 
-  const showLogoBar = section !== 'passport';
+  // Friends & Almanac are sub-pages of "You" — show a back bar. The four primary
+  // tabs each render their own in-view header, so no extra chrome there.
   const subPage =
     section === 'friends'
       ? 'Friends'
@@ -188,19 +196,15 @@ export function AppShell() {
 
   return (
     <div className="passport-bg fixed inset-0 flex flex-col">
-      {showLogoBar && (
+      {subPage && (
         <header className="shrink-0 h-14 px-4 sm:px-6 flex items-center justify-between">
-          {subPage ? (
-            <button
-              type="button"
-              onClick={() => setSection('profile')}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-passport-navy dark:text-white"
-            >
-              <ChevronLeft size={20} /> {subPage}
-            </button>
-          ) : (
-            <WorldlyLogo size={28} />
-          )}
+          <button
+            type="button"
+            onClick={() => setSection('profile')}
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-passport-navy dark:text-white"
+          >
+            <ChevronLeft size={20} /> {subPage}
+          </button>
         </header>
       )}
       <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
@@ -223,28 +227,46 @@ export function AppShell() {
               friendCountryMap={friendCountryMap}
               openImport={openImport}
               onImportConsumed={() => setOpenImport(null)}
-              openAdd={openAddPlace}
+              openAdd={openAddPlace && section === 'passport'}
               onAddConsumed={() => setOpenAddPlace(false)}
-              focusPlace={focusPlace}
-              onFocusConsumed={() => setFocusPlace(null)}
               onExplore={() => setSection('discoveries')}
-              onOpenJourneys={() => setSection('expeditions')}
+              onOpenJourneys={() => {
+                setAtlasTab('journeys');
+                setSection('atlas');
+              }}
+              onOpenAtlas={() => {
+                setAtlasTab('places');
+                setSection('atlas');
+              }}
               loading={loading}
             />
           )}
-          {section === 'expeditions' && (
-            <ExpeditionsView
+          {section === 'atlas' && (
+            <AtlasView
               userId={user?.uid ?? ''}
-              expeditions={expeditions}
-              discoveries={discoveries}
               places={places}
+              discoveries={discoveries}
+              expeditions={expeditions}
+              aggregates={aggregates}
+              stats={stats}
+              discoveryStats={discoveryStats}
+              friendCountryMap={friendCountryMap}
+              initialTab={atlasTab}
+              openImport={openImport}
+              onImportConsumed={() => setOpenImport(null)}
+              focusPlace={focusPlace}
+              onFocusConsumed={() => setFocusPlace(null)}
+              openAddPlace={openAddPlace}
+              onAddPlaceConsumed={() => setOpenAddPlace(false)}
+              onExplore={() => setSection('discoveries')}
               newTripCountry={tripCountry}
               onNewTripConsumed={() => setTripCountry(null)}
-              openImport={openFlighty}
-              onImportConsumed={() => setOpenFlighty(false)}
-              openAdd={openAddJourney}
-              onAddConsumed={() => setOpenAddJourney(false)}
-              loading={expeditionsLoading}
+              openFlighty={openFlighty}
+              onFlightyConsumed={() => setOpenFlighty(false)}
+              openAddJourney={openAddJourney}
+              onAddJourneyConsumed={() => setOpenAddJourney(false)}
+              loading={loading}
+              expeditionsLoading={expeditionsLoading}
             />
           )}
           {section === 'discoveries' && (
