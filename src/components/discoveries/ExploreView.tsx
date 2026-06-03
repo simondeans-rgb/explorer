@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Check, ChevronDown, Search, Users } from 'lucide-react';
 import { COUNTRIES } from '../../data/countries';
 import { flagEmoji } from '../../lib/flags';
+import { DestinationImage } from '../DestinationImage';
 import { CONTINENTS, type Continent, type Discovery } from '../../types';
 import type { CountryPresence } from '../../lib/explore';
 import { cn } from '../../lib/cn';
@@ -148,20 +149,25 @@ function CountryTile({
       onClick={onOpen}
       className="group relative text-left rounded-2xl overflow-hidden bg-white dark:bg-passport-carddark shadow-card hover:shadow-card-hover active:scale-[0.98] transition-all"
     >
-      {/* Flag "stamp" band */}
-      <div className="relative h-16 flex items-center justify-center bg-passport-goldpale dark:bg-white/5 overflow-hidden">
-        <span className="text-4xl leading-none drop-shadow-sm transition-transform group-hover:scale-110">
+      {/* Destination image band (photo over gradient; flag badge) */}
+      <DestinationImage
+        code={code}
+        width={400}
+        className="h-24"
+        scrim
+      >
+        <div className="absolute top-1.5 left-1.5 text-2xl leading-none drop-shadow-md">
           {flagEmoji(code)}
-        </span>
+        </div>
         {visited && (
-          <span
-            className="absolute top-1.5 right-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-gradient text-white shadow-card"
+          <div
+            className="absolute top-1.5 right-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-passport-gold shadow-card"
             title="You've been here"
           >
             <Check size={12} strokeWidth={3} />
-          </span>
+          </div>
         )}
-      </div>
+      </DestinationImage>
       <div className="p-2.5">
         <div className="font-semibold text-[13px] text-passport-navy dark:text-white leading-tight line-clamp-2">
           {name}
