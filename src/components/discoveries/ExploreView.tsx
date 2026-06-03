@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Check, ChevronDown, Search, Users } from 'lucide-react';
+import { Check, Search, Users } from 'lucide-react';
 import { COUNTRIES } from '../../data/countries';
 import { flagEmoji } from '../../lib/flags';
 import { DestinationImage } from '../DestinationImage';
 import { CONTINENTS, type Continent, type Discovery } from '../../types';
 import type { CountryPresence } from '../../lib/explore';
-import { cn } from '../../lib/cn';
 import { CountryDetailModal } from './CountryDetailModal';
 
 interface Props {
@@ -18,6 +17,16 @@ interface Props {
   onRecordLandmark: (countryCode: string, landmark: string) => void;
 }
 
+const CONTINENT_BLURB: Record<Continent, string> = {
+  Europe: 'Old towns, coastlines and café culture',
+  Asia: 'Temples, street food and neon nights',
+  Africa: 'Wild horizons and ancient wonders',
+  'North America': 'Big cities and bigger landscapes',
+  'South America': 'Mountains, rainforest and rhythm',
+  Oceania: 'Islands, reefs and open road',
+  Antarctica: 'The last great wilderness',
+};
+
 export function ExploreView({
   userId,
   presenceByCountry,
@@ -28,7 +37,6 @@ export function ExploreView({
   onRecordLandmark,
 }: Props) {
   const [query, setQuery] = useState('');
-  const [open, setOpen] = useState<Continent | null>('Europe');
   const [detail, setDetail] = useState<string | null>(null);
 
   const byContinent = useMemo(() => {
@@ -44,61 +52,72 @@ export function ExploreView({
   }, [query]);
 
   const searching = query.trim().length > 0;
+  const visitedCount = useMemo(() => {
+    let n = 0;
+    for (const p of presenceByCountry.values()) if (p.mine.length > 0) n += 1;
+    return n;
+  }, [presenceByCountry]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Story-first header */}
+      <header className="pt-1">
+        <p className="text-sm font-semibold text-coral">
+          {visitedCount > 0
+            ? `${visitedCount} ${visitedCount === 1 ? 'country' : 'countries'} explored`
+            : 'The whole world, waiting'}
+        </p>
+        <h1 className="font-display text-[2.1rem] leading-[1.05] font-semibold text-passport-navy dark:text-white max-w-[18ch]">
+          Where to next?
+        </h1>
+      </header>
+
       <div className="relative">
         <Search
-          size={17}
+          size={18}
           className="absolute left-4 top-1/2 -translate-y-1/2 text-passport-ink3"
         />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search countries…"
-          className="w-full pl-11 pr-3 py-3 rounded-2xl text-sm bg-white dark:bg-passport-carddark shadow-card focus:outline-none focus:ring-2 focus:ring-passport-gold/40 text-passport-ink dark:text-white/85 placeholder:text-passport-ink3"
+          className="w-full pl-11 pr-3 py-3.5 rounded-2xl text-sm bg-white dark:bg-passport-carddark shadow-card focus:outline-none focus:ring-2 focus:ring-coral/40 text-passport-ink dark:text-white/85 placeholder:text-passport-ink3"
         />
       </div>
 
-      <div className="space-y-4">
+      {/* Per-continent carousels */}
+      <div className="space-y-7">
         {CONTINENTS.map((continent) => {
           const list = byContinent.get(continent);
           if (!list || list.length === 0) return null;
-          const isOpen = searching || open === continent;
           return (
             <section key={continent}>
-              <button
-                type="button"
-                onClick={() => setOpen(isOpen ? null : continent)}
-                className="w-full flex items-center justify-between px-1 py-1.5"
-              >
-                <span className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
-                  {continent}
-                </span>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-passport-ink3">
-                  {list.length}
-                  <ChevronDown
-                    size={18}
-                    className={cn(
-                      'transition-transform',
-                      isOpen ? 'rotate-180' : '',
-                    )}
-                  />
-                </span>
-              </button>
-              {isOpen && (
-                <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  {list.map((c) => (
-                    <CountryTile
-                      key={c.code}
-                      code={c.code}
-                      name={c.name}
-                      presence={presenceByCountry.get(c.code)}
-                      onOpen={() => setDetail(c.code)}
-                    />
-                  ))}
+              <div className="mb-3">
+                <div className="flex items-baseline gap-2">
+                  <h2 className="font-display text-[1.5rem] font-semibold text-passport-navy dark:text-white tracking-tight">
+                    {continent}
+                  </h2>
+                  <span className="text-xs font-semibold text-passport-ink3">
+                    {list.length}
+                  </span>
                 </div>
-              )}
+                {!searching && (
+                  <p className="text-xs text-passport-ink3 mt-0.5">
+                    {CONTINENT_BLURB[continent]}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-3.5 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
+                {list.map((c) => (
+                  <CountryCard
+                    key={c.code}
+                    code={c.code}
+                    name={c.name}
+                    presence={presenceByCountry.get(c.code)}
+                    onOpen={() => setDetail(c.code)}
+                  />
+                ))}
+              </div>
             </section>
           );
         })}
@@ -130,7 +149,7 @@ export function ExploreView({
   );
 }
 
-function CountryTile({
+function CountryCard({
   code,
   name,
   presence,
@@ -147,39 +166,37 @@ function CountryTile({
     <button
       type="button"
       onClick={onOpen}
-      className="group relative text-left rounded-2xl overflow-hidden bg-white dark:bg-passport-carddark shadow-card hover:shadow-card-hover active:scale-[0.98] transition-all"
+      className="group shrink-0 w-[180px] rounded-[1.6rem] overflow-hidden shadow-float active:scale-[0.98] transition-transform"
     >
-      {/* Destination image band (photo over gradient; flag badge) */}
       <DestinationImage
         code={code}
-        width={400}
-        className="h-24"
+        className="h-52 flex flex-col text-white"
         scrim
       >
-        <div className="absolute top-1.5 left-1.5 text-2xl leading-none drop-shadow-md">
+        {/* flag badge */}
+        <div className="absolute top-3 left-3 text-2xl leading-none drop-shadow-md">
           {flagEmoji(code)}
         </div>
         {visited && (
           <div
-            className="absolute top-1.5 right-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-passport-gold shadow-card"
+            className="absolute top-3 right-3 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-coral shadow-card"
             title="You've been here"
           >
-            <Check size={12} strokeWidth={3} />
+            <Check size={13} strokeWidth={3} />
           </div>
         )}
-      </DestinationImage>
-      <div className="p-2.5">
-        <div className="font-semibold text-[13px] text-passport-navy dark:text-white leading-tight line-clamp-2">
-          {name}
-        </div>
-        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-passport-ink3 min-h-[16px]">
+        <div className="mt-auto p-3.5">
+          <div className="font-display text-lg font-semibold leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]">
+            {name}
+          </div>
           {friendCount > 0 && (
-            <span className="inline-flex items-center gap-0.5">
-              <Users size={11} /> {friendCount}
-            </span>
+            <div className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-white/85">
+              <Users size={11} /> {friendCount} friend
+              {friendCount === 1 ? '' : 's'} been
+            </div>
           )}
         </div>
-      </div>
+      </DestinationImage>
     </button>
   );
 }

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { destinationImage } from '../lib/destinationImage';
+import { flagEmoji } from '../lib/flags';
 import { cn } from '../lib/cn';
 
 /**
  * Destination backdrop: an on-brand gradient that always renders, with a
- * curated photo (when one exists for the country) fading in over it once it
- * loads. If the photo fails — offline, blocked network, no curated image — the
- * gradient simply stays, so there are never broken-image states.
+ * bundled photo (when one exists for the country) fading in over it once it
+ * loads. When there's no photo, a large faded flag is shown over the gradient
+ * so every country still reads as a designed "picture", never a blank panel.
  */
 export function DestinationImage({
   code,
@@ -36,6 +37,17 @@ export function DestinationImage({
       className={cn('relative overflow-hidden', rounded, className)}
       style={{ backgroundImage: gradient }}
     >
+      {/* No-photo fallback: a big translucent flag motif over the gradient. */}
+      {!photo && code && (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 flex items-center justify-center select-none"
+        >
+          <span className="text-[7rem] leading-none opacity-25 blur-[1px]">
+            {flagEmoji(code)}
+          </span>
+        </div>
+      )}
       {photo && (
         <img
           src={photo}
@@ -55,3 +67,4 @@ export function DestinationImage({
     </div>
   );
 }
+

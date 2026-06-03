@@ -7,10 +7,12 @@
 
 // ISO 3166-1 alpha-2 codes that have a bundled photo at /destinations/XX.jpg.
 const HAS_PHOTO = new Set([
-  'AE', 'AR', 'AT', 'AU', 'BR', 'CH', 'CL', 'CN', 'CO', 'CR', 'CU', 'DE', 'EG',
-  'ES', 'FJ', 'FR', 'GB', 'ID', 'IE', 'IN', 'IS', 'IT', 'JP', 'KE', 'KR', 'LK',
-  'MA', 'MX', 'MY', 'NL', 'NO', 'NZ', 'PE', 'SG', 'TH', 'TR', 'TZ', 'US', 'VN',
-  'ZA',
+  'AE', 'AR', 'AT', 'AU', 'BG', 'BR', 'BS', 'BW', 'CH', 'CL', 'CN', 'CO', 'CR',
+  'CU', 'CY', 'CZ', 'DE', 'DK', 'DO', 'EC', 'EG', 'ES', 'FI', 'FJ', 'FR', 'GB',
+  'GH', 'GR', 'GT', 'HK', 'ID', 'IE', 'IN', 'IS', 'IT', 'JM', 'JP', 'KE', 'KH',
+  'KR', 'LK', 'LT', 'LU', 'MA', 'MT', 'MU', 'MX', 'MY', 'NL', 'NO', 'NZ', 'PE',
+  'PH', 'PL', 'QA', 'RO', 'RS', 'SC', 'SG', 'SI', 'TH', 'TR', 'TW', 'TZ', 'US',
+  'UY', 'VN', 'ZA',
 ]);
 
 const photoPath = (code: string) => `/destinations/${code}.jpg`;
