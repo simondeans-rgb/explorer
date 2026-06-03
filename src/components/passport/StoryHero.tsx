@@ -82,8 +82,7 @@ export function StoryHero({
               code={card.code}
               className="h-[58vh] max-h-[460px] min-h-[360px] flex flex-col rounded-b-[2.5rem]"
             >
-              {/* top + bottom scrims */}
-              <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/45 to-transparent" />
+              {/* bottom scrim keeps the overlaid title legible */}
               <div className="absolute inset-0 hero-scrim" />
 
               {/* content pinned to the bottom */}

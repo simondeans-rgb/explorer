@@ -372,18 +372,19 @@ export function PassportView({
     <div className="animate-fade-in -mt-1 space-y-9">
       {/* ── Story: the opening, content-first experience ──────────────── */}
       {!atlas && (
-        <div className="relative">
-          {/* floating, transparent top bar over the hero */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <div>
+          {/* Fixed-height brand bar — sits in its own space above the hero,
+              never overlapping the imagery. */}
+          <div className="flex items-center justify-between px-1 pt-[max(0.5rem,env(safe-area-inset-top))] pb-4">
             <div className="flex items-center gap-2">
               <WorldlyMark size={26} />
-              <span className="font-display text-lg font-semibold text-white drop-shadow">
+              <span className="font-display text-lg font-semibold text-passport-navy dark:text-white">
                 worldly
               </span>
             </div>
-            <div className="pointer-events-auto flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <span
-                className="glass rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-card"
+                className="rounded-full bg-white dark:bg-white/10 px-2.5 py-1 text-xs font-semibold text-passport-navy dark:text-white shadow-card"
                 title={`${explorerLevel.title} · ${explorerLevel.xp.toLocaleString()} XP`}
               >
                 Lvl {explorerLevel.level}
@@ -399,7 +400,7 @@ export function PassportView({
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 aria-label={photo ? 'Change photo' : 'Add photo'}
-                className="relative h-9 w-9 overflow-hidden rounded-full ring-2 ring-white/80 shadow-card grid place-items-center bg-brand-gradient"
+                className="relative h-9 w-9 overflow-hidden rounded-full ring-2 ring-white shadow-card grid place-items-center bg-brand-gradient"
               >
                 {photo ? (
                   <img src={photo} alt="You" className="h-full w-full object-cover" />
