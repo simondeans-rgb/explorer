@@ -1,0 +1,123 @@
+import { useEffect, useState } from 'react';
+import { Globe2, MapPinned } from 'lucide-react';
+import type { CountryAggregate, PassportStats } from '../../lib/stats';
+import type { DiscoveryStats } from '../../lib/discoveryStats';
+import type { Discovery, Expedition, Place } from '../../types';
+import type { FriendPresence } from '../../lib/friends';
+import { cn } from '../../lib/cn';
+import { PassportView } from '../passport/PassportView';
+import { ExpeditionsView } from '../expeditions/ExpeditionsView';
+
+type AtlasTab = 'places' | 'journeys';
+
+interface Props {
+  userId: string;
+  places: Place[];
+  discoveries: Discovery[];
+  expeditions: Expedition[];
+  aggregates: CountryAggregate[];
+  stats: PassportStats;
+  discoveryStats: DiscoveryStats;
+  friendCountryMap: Map<string, FriendPresence[]>;
+  // Passport (Places) one-shot flags
+  openImport?: 'countries' | 'photos' | null;
+  onImportConsumed?: () => void;
+  focusPlace?: { code: string; city?: string } | null;
+  onFocusConsumed?: () => void;
+  openAddPlace?: boolean;
+  onAddPlaceConsumed?: () => void;
+  onExplore?: () => void;
+  // Journeys one-shot flags
+  newTripCountry?: string | null;
+  onNewTripConsumed?: () => void;
+  openFlighty?: boolean;
+  onFlightyConsumed?: () => void;
+  openAddJourney?: boolean;
+  onAddJourneyConsumed?: () => void;
+  /** Which tab to land on (e.g. focusPlace/new-trip set this). */
+  initialTab?: AtlasTab;
+  loading: boolean;
+  expeditionsLoading: boolean;
+}
+
+export function AtlasView(props: Props) {
+  const [tab, setTab] = useState<AtlasTab>(props.initialTab ?? 'places');
+
+  // When the shell routes here with a specific intent (focus a place / add a
+  // trip), follow the requested sub-tab.
+  const requested = props.initialTab;
+  useEffect(() => {
+    if (requested) setTab(requested);
+  }, [requested, props.focusPlace, props.newTripCountry]);
+
+  return (
+    <div className="animate-fade-in space-y-5 pt-1">
+      <header>
+        <p className="text-sm font-semibold text-coral">Your collection</p>
+        <h1 className="font-display text-[2rem] leading-tight font-semibold text-passport-navy dark:text-white">
+          Atlas
+        </h1>
+      </header>
+
+      <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-passport-navy/[0.05] dark:bg-white/[0.06]">
+        {(
+          [
+            ['places', 'Places', Globe2],
+            ['journeys', 'Journeys', MapPinned],
+          ] as [AtlasTab, string, typeof Globe2][]
+        ).map(([id, label, Icon]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setTab(id)}
+            className={cn(
+              'inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all',
+              tab === id
+                ? 'bg-white dark:bg-passport-carddark text-passport-navy dark:text-white shadow-card'
+                : 'text-passport-ink3 dark:text-white/55',
+            )}
+          >
+            <Icon size={15} /> {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'places' ? (
+        <PassportView
+          mode="atlas"
+          userId={props.userId}
+          places={props.places}
+          discoveries={props.discoveries}
+          expeditions={props.expeditions}
+          aggregates={props.aggregates}
+          stats={props.stats}
+          discoveryStats={props.discoveryStats}
+          expeditionCount={props.expeditions.length}
+          friendCountryMap={props.friendCountryMap}
+          openImport={props.openImport}
+          onImportConsumed={props.onImportConsumed}
+          focusPlace={props.focusPlace}
+          onFocusConsumed={props.onFocusConsumed}
+          openAdd={props.openAddPlace}
+          onAddConsumed={props.onAddPlaceConsumed}
+          onExplore={props.onExplore}
+          loading={props.loading}
+        />
+      ) : (
+        <ExpeditionsView
+          userId={props.userId}
+          expeditions={props.expeditions}
+          discoveries={props.discoveries}
+          places={props.places}
+          newTripCountry={props.newTripCountry}
+          onNewTripConsumed={props.onNewTripConsumed}
+          openImport={props.openFlighty}
+          onImportConsumed={props.onFlightyConsumed}
+          openAdd={props.openAddJourney}
+          onAddConsumed={props.onAddJourneyConsumed}
+          loading={props.expeditionsLoading}
+        />
+      )}
+    </div>
+  );
+}
