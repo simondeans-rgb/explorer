@@ -277,6 +277,63 @@ export const DISCOVERY_CATEGORY_META: Record<
   },
 };
 
+/** Optional finer type within a category (e.g. food → restaurant/café/bar).
+ *  Backward compatible: discoveries without a subcategory are still valid. */
+export const DISCOVERY_SUBCATEGORIES: Record<
+  DiscoveryCategory,
+  { id: string; label: string }[]
+> = {
+  food: [
+    { id: 'restaurant', label: 'Restaurant' },
+    { id: 'cafe', label: 'Café' },
+    { id: 'bar', label: 'Bar' },
+    { id: 'bakery', label: 'Bakery' },
+    { id: 'street-food', label: 'Street food' },
+    { id: 'winery', label: 'Winery' },
+  ],
+  accommodation: [
+    { id: 'hotel', label: 'Hotel' },
+    { id: 'resort', label: 'Resort' },
+    { id: 'apartment', label: 'Apartment' },
+    { id: 'hostel', label: 'Hostel' },
+    { id: 'guesthouse', label: 'Guesthouse' },
+    { id: 'campsite', label: 'Campsite' },
+  ],
+  culture: [
+    { id: 'museum', label: 'Museum' },
+    { id: 'gallery', label: 'Gallery' },
+    { id: 'landmark', label: 'Landmark' },
+    { id: 'historic-site', label: 'Historic site' },
+    { id: 'religious-site', label: 'Religious site' },
+    { id: 'theatre', label: 'Theatre' },
+  ],
+  experience: [
+    { id: 'attraction', label: 'Attraction' },
+    { id: 'tour', label: 'Tour' },
+    { id: 'show', label: 'Show' },
+    { id: 'festival', label: 'Festival' },
+    { id: 'activity', label: 'Activity' },
+    { id: 'nightlife', label: 'Nightlife' },
+  ],
+  nature: [
+    { id: 'beach', label: 'Beach' },
+    { id: 'park', label: 'Park' },
+    { id: 'viewpoint', label: 'Viewpoint' },
+    { id: 'trail', label: 'Trail' },
+    { id: 'national-park', label: 'National park' },
+    { id: 'wildlife', label: 'Wildlife' },
+  ],
+};
+
+/** Look up a subcategory's label by id within a category. */
+export function subcategoryLabel(
+  category: DiscoveryCategory,
+  id: string | undefined,
+): string | undefined {
+  if (!id) return undefined;
+  return DISCOVERY_SUBCATEGORIES[category]?.find((s) => s.id === id)?.label;
+}
+
 export type RecommendationVerdict =
   | 'recommend'
   | 'hidden-gem'
@@ -309,6 +366,8 @@ export interface Discovery {
   userId: string;
   name: string;
   category: DiscoveryCategory;
+  /** Optional finer type within the category (id from DISCOVERY_SUBCATEGORIES). */
+  subcategory?: string;
   countryCode?: string;
   city?: string;
   /** Canonical name of a well-known landmark this record is about, linking it

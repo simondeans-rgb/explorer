@@ -34,6 +34,7 @@ function normalize(input: DiscoveryInput) {
   return {
     name: input.name.trim(),
     category: input.category,
+    subcategory: input.subcategory || undefined,
     countryCode: input.countryCode || undefined,
     city: input.city?.trim() || undefined,
     landmark: input.landmark?.trim() || undefined,
