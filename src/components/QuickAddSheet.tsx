@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import {
   BookMarked,
+  Camera,
   Compass,
   Globe2,
   type LucideIcon,
@@ -9,7 +10,12 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/cn';
 
-export type QuickAddChoice = 'place' | 'journey' | 'discovery' | 'import';
+export type QuickAddChoice =
+  | 'place'
+  | 'journey'
+  | 'discovery'
+  | 'capture'
+  | 'import';
 
 const OPTIONS: {
   id: QuickAddChoice;
@@ -21,6 +27,7 @@ const OPTIONS: {
   { id: 'place', icon: BookMarked, title: 'Add a place', blurb: 'A country or city you’ve been to', badge: 'from-emerald-400 to-teal-500' },
   { id: 'journey', icon: MapPinned, title: 'Log a journey', blurb: 'A trip, with how you travelled', badge: 'from-amber-400 to-orange-500' },
   { id: 'discovery', icon: Compass, title: 'Record a discovery', blurb: 'A place or experience worth keeping', badge: 'from-violet-400 to-indigo-500' },
+  { id: 'capture', icon: Camera, title: 'Add a photo', blurb: 'A moment from your travels', badge: 'from-sky-400 to-blue-500' },
   { id: 'import', icon: Globe2, title: 'Import travels', blurb: 'Bring data from another app', badge: 'from-rose-400 to-pink-500' },
 ];
 

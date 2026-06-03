@@ -47,6 +47,12 @@ service cloud.firestore {
       allow create: if createIsOwner();
     }
 
+    // Photo captures stay private to their owner.
+    match /captures/{captureId} {
+      allow read, update, delete: if isOwner();
+      allow create: if createIsOwner();
+    }
+
     // Member profile, looked up by uid once you're connected. No listing.
     match /profiles/{uid} {
       allow get: if signedIn();
