@@ -65,19 +65,24 @@ textarea {
   letter-spacing: -0.02em;
 }
 
-/* The app surface — a soft, airy wash with a faint warm sunrise at the top. */
+/* The app surface — warm white with a soft multi-accent sunrise at the top. */
 .passport-bg {
-  background-color: #f6f7fb;
+  background-color: #fafafc;
   background-image:
     radial-gradient(
-      120% 60% at 50% -10%,
-      rgba(255, 106, 85, 0.08) 0%,
-      rgba(255, 106, 85, 0) 60%
+      120% 55% at 0% -10%,
+      rgba(255, 107, 154, 0.1) 0%,
+      rgba(255, 107, 154, 0) 55%
     ),
     radial-gradient(
-      90% 50% at 100% 0%,
-      rgba(91, 108, 255, 0.07) 0%,
-      rgba(91, 108, 255, 0) 55%
+      90% 50% at 100% -5%,
+      rgba(155, 124, 255, 0.1) 0%,
+      rgba(155, 124, 255, 0) 55%
+    ),
+    radial-gradient(
+      90% 45% at 50% 0%,
+      rgba(36, 209, 195, 0.07) 0%,
+      rgba(36, 209, 195, 0) 60%
     );
   background-attachment: fixed;
 }
@@ -86,32 +91,32 @@ textarea {
   background-color: #0e1018;
   background-image:
     radial-gradient(
-      120% 60% at 50% -10%,
-      rgba(255, 106, 85, 0.1) 0%,
-      rgba(255, 106, 85, 0) 60%
+      120% 55% at 0% -10%,
+      rgba(255, 107, 154, 0.12) 0%,
+      rgba(255, 107, 154, 0) 55%
     ),
     radial-gradient(
-      90% 50% at 100% 0%,
-      rgba(91, 108, 255, 0.12) 0%,
-      rgba(91, 108, 255, 0) 55%
+      90% 50% at 100% -5%,
+      rgba(155, 124, 255, 0.14) 0%,
+      rgba(155, 124, 255, 0) 55%
     );
 }
 
-/* Brand gradient — sunset coral -> indigo. Used on hero accents & CTAs. */
+/* Brand gradient — coral -> lavender -> aqua. Used on hero accents & CTAs. */
 .bg-brand-gradient {
   background-image: linear-gradient(
     135deg,
-    #ff6a55 0%,
-    #ff8b79 38%,
-    #5b6cff 110%
+    #ff6b9a 0%,
+    #9b7cff 52%,
+    #24d1c3 110%
   );
 }
 .text-brand-gradient {
   background-image: linear-gradient(
     115deg,
-    #ff6a55 0%,
-    #ff8b79 40%,
-    #5b6cff 100%
+    #ff6b9a 0%,
+    #9b7cff 55%,
+    #24d1c3 100%
   );
   -webkit-background-clip: text;
   background-clip: text;
@@ -119,13 +124,23 @@ textarea {
   color: transparent;
 }
 
-/* Hero image scrim — keeps overlaid text legible on photography. */
+/* A warmer "sunset" gradient for hero photography fallbacks. */
+.bg-sunset-gradient {
+  background-image: linear-gradient(
+    160deg,
+    #ffb84d 0%,
+    #ff6b9a 55%,
+    #9b7cff 110%
+  );
+}
+
+/* Hero image scrim — keeps overlaid text legible without going muddy. */
 .hero-scrim {
   background-image: linear-gradient(
     to top,
-    rgba(16, 18, 42, 0.82) 0%,
-    rgba(16, 18, 42, 0.35) 45%,
-    rgba(16, 18, 42, 0.05) 100%
+    rgba(20, 33, 61, 0.78) 0%,
+    rgba(20, 33, 61, 0.28) 42%,
+    rgba(20, 33, 61, 0) 78%
   );
 }
 

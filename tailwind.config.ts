@@ -31,34 +31,41 @@ const config: Config = {
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       colors: {
+        // Named accent palette (the Worldly brand spectrum).
+        navy: "#14213D",
+        aqua: "#24D1C3",
+        coral: "#FF6B9A",
+        sunburst: "#FFB84D",
+        lavender: "#9B7CFF",
+        warmwhite: "#FAFAFC",
         passport: {
-          // Primary ink / surfaces (deep premium indigo)
-          navy: "#181B2E", // primary buttons, headings, dark surfaces
-          admiralty: "#262A45",
-          chart: "#5B6CFF", // secondary accent — electric indigo
-          // Brand accent — sunset coral
-          gold: "#FF6A55", // accent: eyebrows, rules, icon tints, primary CTA
-          goldsoft: "#FF8B79", // lighter coral (dark-mode accents / headings)
-          goldpale: "#FFE9E4",
+          // Primary ink / surfaces
+          navy: "#14213D", // deep navy text & dark surfaces
+          admiralty: "#243456",
+          chart: "#9B7CFF", // lavender secondary
+          // Brand accent — coral
+          gold: "#FF6B9A", // coral accent: eyebrows, rules, primary highlights
+          goldsoft: "#FF92B5",
+          goldpale: "#FFE4EE",
           // Light foreground / text-on-navy
           parchment: "#FFFFFF",
-          cartridge: "#F6F7FB",
+          cartridge: "#FAFAFC", // warm white app background
           // Card / page surfaces
-          card: "#FFFFFF", // clean white cards
-          paged: "#EEF0F7",
-          fieldlabel: "#9AA0B4", // cool muted label
-          fieldtext: "#5C6276",
+          card: "#FFFFFF",
+          paged: "#F1F2F7",
+          fieldlabel: "#8A90A6",
+          fieldtext: "#5A607A",
           // Ink scale
-          ink: "#181B2E",
-          ink2: "#4B5167",
-          ink3: "#9298AD",
-          // Secondary palette (verdicts / stamps) — ocean + sunset
+          ink: "#14213D",
+          ink2: "#48506B",
+          ink3: "#8A90A6",
+          // Secondary palette (verdicts / accents)
           oxblood: "#7A1F2B",
-          burgundy: "#C24A55", // "avoid" red
-          expedition: "#E86F86",
-          brass: "#11A6C4", // teal — "worth visiting"
-          amber: "#F2A65A",
-          vellum: "#EAF6F9",
+          burgundy: "#E0457B", // coral-red for "avoid"/errors
+          expedition: "#FF6B9A",
+          brass: "#24D1C3", // aqua — "worth visiting"
+          amber: "#FFB84D", // sunburst
+          vellum: "#E6FBF8",
           // Dark-mode surfaces
           night: "#0E1018",
           carddark: "#1B1E2E",
