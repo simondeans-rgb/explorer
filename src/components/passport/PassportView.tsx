@@ -549,7 +549,7 @@ function BioPage({
     { label: 'Discoveries', value: discoveriesTotal },
   ];
 
-  const hero = heroImage(heroCode, 1000);
+  const hero = heroImage(heroCode);
 
   const TILE: {
     label: string;
