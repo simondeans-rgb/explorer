@@ -309,6 +309,9 @@ export function AppShell() {
             <ProfileView
               userId={user?.uid ?? ''}
               friendCount={friends.length}
+              stats={stats}
+              discoveryStats={discoveryStats}
+              journeyStats={journeyStats}
               onOpenFriends={() => setSection('friends')}
               onOpenAlmanac={() => setSection('almanac')}
               onImport={() => setShowWelcome(true)}

@@ -20,6 +20,8 @@ import {
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
 import type { DiscoveryStats } from '../../lib/discoveryStats';
 import { evaluateRecognitions, type Recognition } from '../../lib/recognitions';
+import { computeJourneyStats } from '../../lib/journeyStats';
+import { computeExplorerLevel } from '../../lib/explorer';
 import { flagEmoji } from '../../lib/flags';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProfilePhoto } from '../../hooks/useProfilePhoto';
@@ -246,6 +248,12 @@ export function PassportView({
   );
   const earned = recognitions.filter((r) => r.earned);
 
+  const explorerLevel = useMemo(
+    () =>
+      computeExplorerLevel(stats, discoveryStats, computeJourneyStats(expeditions)),
+    [stats, discoveryStats, expeditions],
+  );
+
   const storyCards = useMemo(
     () =>
       buildHomeStory({
@@ -366,7 +374,13 @@ export function PassportView({
                 worldly
               </span>
             </div>
-            <div className="pointer-events-auto">
+            <div className="pointer-events-auto flex items-center gap-2">
+              <span
+                className="glass rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-card"
+                title={`${explorerLevel.title} · ${explorerLevel.xp.toLocaleString()} XP`}
+              >
+                Lvl {explorerLevel.level}
+              </span>
               <input
                 ref={fileRef}
                 type="file"
