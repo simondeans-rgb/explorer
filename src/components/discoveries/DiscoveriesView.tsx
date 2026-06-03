@@ -5,6 +5,7 @@ import { flagEmoji } from '../../lib/flags';
 import {
   DISCOVERY_CATEGORIES,
   DISCOVERY_CATEGORY_META,
+  subcategoryLabel,
   VERDICT_META,
   type Discovery,
   type DiscoveryCategory,
@@ -147,6 +148,7 @@ export function DiscoveriesView({
                   id: d.id,
                   name: d.name,
                   category: d.category,
+                  subcategory: d.subcategory,
                   countryCode: d.countryCode,
                   city: d.city,
                   landmark: d.landmark,
@@ -218,6 +220,7 @@ export function DiscoveriesView({
                         id: d.id,
                         name: d.name,
                         category: d.category,
+                        subcategory: d.subcategory,
                         countryCode: d.countryCode,
                         city: d.city,
                         landmark: d.landmark,
@@ -339,12 +342,14 @@ function DiscoveryCard({
               <span>
                 {place}
                 {' · '}
-                {DISCOVERY_CATEGORY_META[d.category].label}
+                {subcategoryLabel(d.category, d.subcategory) ??
+                  DISCOVERY_CATEGORY_META[d.category].label}
               </span>
             </button>
           ) : (
             <div className="text-xs text-passport-ink3 dark:text-white/45 mt-0.5">
-              {DISCOVERY_CATEGORY_META[d.category].label}
+              {subcategoryLabel(d.category, d.subcategory) ??
+                DISCOVERY_CATEGORY_META[d.category].label}
             </div>
           )}
           {expeditionTitle && (

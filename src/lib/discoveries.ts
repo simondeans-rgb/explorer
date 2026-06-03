@@ -38,6 +38,7 @@ export function subscribeDiscoveries(
         userId: data.userId,
         name: data.name ?? '',
         category: (data.category ?? 'food') as DiscoveryCategory,
+        subcategory: data.subcategory || undefined,
         countryCode: data.countryCode || undefined,
         city: data.city || undefined,
         landmark: data.landmark || undefined,
@@ -57,6 +58,7 @@ export function subscribeDiscoveries(
 export interface DiscoveryInput {
   name: string;
   category: DiscoveryCategory;
+  subcategory?: string;
   countryCode?: string;
   city?: string;
   landmark?: string;
@@ -70,6 +72,7 @@ function toDoc(input: DiscoveryInput) {
   return {
     name: input.name.trim(),
     category: input.category,
+    subcategory: input.subcategory || null,
     countryCode: input.countryCode || null,
     city: input.city?.trim() || null,
     landmark: input.landmark?.trim() || null,

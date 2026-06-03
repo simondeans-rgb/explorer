@@ -8,6 +8,7 @@ import {
 import { countryFacts } from '../../data/countryFacts';
 import {
   DISCOVERY_CATEGORIES,
+  DISCOVERY_SUBCATEGORIES,
   DISCOVERY_CATEGORY_META,
   RECOMMENDATION_VERDICTS,
   VERDICT_META,
@@ -25,6 +26,7 @@ export interface DiscoveryModalInitial {
   id?: string;
   name?: string;
   category?: DiscoveryCategory;
+  subcategory?: string;
   countryCode?: string;
   city?: string;
   landmark?: string;
@@ -51,6 +53,9 @@ export function AddDiscoveryModal({
   const [category, setCategory] = useState<DiscoveryCategory>(
     initial.category ?? 'food',
   );
+  const [subcategory, setSubcategory] = useState<string | undefined>(
+    initial.subcategory,
+  );
   const [countryCode, setCountryCode] = useState(initial.countryCode ?? '');
   const [city, setCity] = useState(initial.city ?? '');
   const [landmark, setLandmark] = useState(initial.landmark ?? '');
@@ -75,6 +80,11 @@ export function AddDiscoveryModal({
     ? (countryFacts(countryCode)?.landmarks ?? [])
     : [];
 
+  function selectCategory(c: DiscoveryCategory) {
+    if (c !== category) setSubcategory(undefined);
+    setCategory(c);
+  }
+
   function pickLandmark(l: string) {
     if (landmark === l) {
       // Toggle off — keep the name but unlink.
@@ -84,7 +94,10 @@ export function AddDiscoveryModal({
     setLandmark(l);
     if (!name.trim()) setName(l);
     // Landmarks are sights — nudge the category unless the user already chose.
-    if (category === 'food') setCategory('culture');
+    if (category === 'food') {
+      setCategory('culture');
+      setSubcategory(undefined);
+    }
   }
 
   async function handleSave() {
@@ -93,6 +106,7 @@ export function AddDiscoveryModal({
     const input = {
       name: name.trim(),
       category,
+      subcategory: subcategory || undefined,
       countryCode: countryCode || undefined,
       city: city.trim() || undefined,
       landmark: landmark.trim() || undefined,
@@ -167,7 +181,7 @@ export function AddDiscoveryModal({
                   <button
                     key={c}
                     type="button"
-                    onClick={() => setCategory(c)}
+                    onClick={() => selectCategory(c)}
                     title={DISCOVERY_CATEGORY_META[c].hint}
                     className={cn(
                       'inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all active:scale-[0.97]',
@@ -178,6 +192,31 @@ export function AddDiscoveryModal({
                   >
                     <Icon size={14} />
                     {DISCOVERY_CATEGORY_META[c].label}
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+
+          <Field label="Type">
+            <div className="flex flex-wrap gap-2">
+              {DISCOVERY_SUBCATEGORIES[category].map((s) => {
+                const active = subcategory === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() =>
+                      setSubcategory(active ? undefined : s.id)
+                    }
+                    className={cn(
+                      'px-3 py-1.5 rounded-full text-sm font-medium transition-all active:scale-[0.97]',
+                      active
+                        ? 'bg-coral text-white shadow-card'
+                        : 'bg-white dark:bg-white/5 shadow-card text-passport-ink2 dark:text-white/70',
+                    )}
+                  >
+                    {s.label}
                   </button>
                 );
               })}

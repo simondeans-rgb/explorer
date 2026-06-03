@@ -321,6 +321,7 @@ export function PassportView({
       id: d.id,
       name: d.name,
       category: d.category,
+      subcategory: d.subcategory,
       countryCode: d.countryCode,
       city: d.city,
       landmark: d.landmark,
