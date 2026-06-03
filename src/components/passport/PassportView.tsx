@@ -8,6 +8,8 @@ import {
   type ChangeEvent,
 } from 'react';
 import {
+  BedDouble,
+  Bell,
   ChevronRight,
   Compass,
   Globe2,
@@ -17,6 +19,8 @@ import {
   MapPinned,
   Plus,
   Search,
+  Ticket,
+  UtensilsCrossed,
   Users,
 } from 'lucide-react';
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
@@ -28,6 +32,7 @@ import { useProfilePhoto } from '../../hooks/useProfilePhoto';
 import { COUNTRIES } from '../../data/countries';
 import {
   CONTINENTS,
+  JOURNEY_MODE_META,
   RELATIONSHIP_META,
   VERDICT_META,
   type Discovery,
@@ -41,6 +46,7 @@ import { memberName } from '../../lib/memberName';
 import { cn } from '../../lib/cn';
 import { VERDICT_STYLE } from '../discoveries/verdictStyle';
 import { DestinationImage } from '../DestinationImage';
+import { WorldlyMark } from '../Brand';
 import { heroImage } from '../../lib/destinationImage';
 import { CATEGORY_ICON } from '../discoveries/categoryIcons';
 import {
@@ -67,6 +73,7 @@ const PassportMap = lazy(() =>
 import { DiscoveryRing } from './DiscoveryRing';
 import { Stamp } from './Stamp';
 import { RELATIONSHIP_ICON } from './relationshipIcons';
+import { JOURNEY_ICON } from '../expeditions/journeyIcons';
 
 interface Props {
   userId: string;
@@ -289,6 +296,10 @@ export function PassportView({
         photo={photo}
         onChangePhoto={setPhoto}
         onSearch={() => onExplore?.()}
+        onQuickAdd={(pick) => {
+          if (pick === 'place') setModal({ kind: 'country' });
+          else setDiscoveryModal({ category: pick });
+        }}
       />
 
       {expeditions.length > 0 && (
@@ -300,35 +311,33 @@ export function PassportView({
 
       {discovered.length > 0 && (
         <div className="space-y-3">
-          <SectionHeading>Your world</SectionHeading>
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-[1.35rem] font-semibold text-passport-navy dark:text-white tracking-tight">
+              Your world
+            </h2>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setCountryImport(true)}
+                aria-label="Import countries"
+                className="h-9 w-9 grid place-items-center rounded-full bg-white dark:bg-passport-carddark shadow-card text-passport-ink2 dark:text-white/80 active:scale-95 transition-transform"
+              >
+                <Globe2 size={17} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setPhotoImport(true)}
+                aria-label="Scan photos"
+                className="h-9 w-9 grid place-items-center rounded-full bg-white dark:bg-passport-carddark shadow-card text-passport-ink2 dark:text-white/80 active:scale-95 transition-transform"
+              >
+                <Images size={17} />
+              </button>
+            </div>
+          </div>
           <div className="overflow-hidden rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-2">
             <Suspense fallback={<MapSkeleton />}>
               <PassportMap aggregates={aggregates} />
             </Suspense>
-          </div>
-          {/* Quick actions */}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setCountryImport(true)}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl text-sm font-semibold bg-white dark:bg-passport-carddark shadow-card text-passport-navy dark:text-white/85 hover:shadow-card-hover active:scale-[0.98] transition-all"
-            >
-              <Globe2 size={16} className="text-passport-gold" /> Import
-            </button>
-            <button
-              type="button"
-              onClick={() => setPhotoImport(true)}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl text-sm font-semibold bg-white dark:bg-passport-carddark shadow-card text-passport-navy dark:text-white/85 hover:shadow-card-hover active:scale-[0.98] transition-all"
-            >
-              <Images size={16} className="text-passport-gold" /> Photos
-            </button>
-            <button
-              type="button"
-              onClick={() => setModal({ kind: 'country' })}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl text-sm font-semibold bg-passport-navy text-white dark:bg-white dark:text-passport-navy hover:opacity-90 active:scale-[0.98] transition-all"
-            >
-              <Plus size={16} /> Add
-            </button>
           </div>
         </div>
       )}
@@ -478,6 +487,20 @@ function greeting(): string {
   return 'Good evening';
 }
 
+type QuickPick = 'place' | 'food' | 'accommodation' | 'experience';
+
+const QUICK_ACTIONS: {
+  label: string;
+  icon: LucideIcon;
+  badge: string;
+  onPick: QuickPick;
+}[] = [
+  { label: 'Place', icon: MapPin, badge: 'from-aqua to-emerald-400', onPick: 'place' },
+  { label: 'Food', icon: UtensilsCrossed, badge: 'from-coral to-pink-400', onPick: 'food' },
+  { label: 'Stay', icon: BedDouble, badge: 'from-lavender to-indigo-400', onPick: 'accommodation' },
+  { label: 'Experience', icon: Ticket, badge: 'from-sunburst to-amber-400', onPick: 'experience' },
+];
+
 function BioPage({
   name,
   stats,
@@ -487,6 +510,7 @@ function BioPage({
   photo,
   onChangePhoto,
   onSearch,
+  onQuickAdd,
 }: {
   name: string;
   stats: PassportStats;
@@ -496,6 +520,7 @@ function BioPage({
   photo: string | null;
   onChangePhoto: (dataUrl: string | null) => void;
   onSearch: () => void;
+  onQuickAdd: (pick: QuickPick) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -534,34 +559,46 @@ function BioPage({
     tint: string;
     badge: string;
   }[] = [
-    { label: 'Countries', value: figures[0].value, total: figures[0].total, icon: Globe2, tint: 'bg-emerald-50 dark:bg-emerald-500/10', badge: 'from-emerald-400 to-teal-500' },
-    { label: 'Cities', value: figures[1].value, total: figures[1].total, icon: MapPin, tint: 'bg-rose-50 dark:bg-rose-500/10', badge: 'from-rose-400 to-pink-500' },
-    { label: 'Journeys', value: expeditionCount, icon: MapPinned, tint: 'bg-amber-50 dark:bg-amber-500/10', badge: 'from-amber-400 to-orange-500' },
-    { label: 'Discoveries', value: figures[3].value, total: figures[3].total, icon: Compass, tint: 'bg-violet-50 dark:bg-violet-500/10', badge: 'from-violet-400 to-indigo-500' },
+    { label: 'Countries', value: figures[0].value, total: figures[0].total, icon: Globe2, tint: 'bg-aqua/10', badge: 'from-aqua to-emerald-400' },
+    { label: 'Cities', value: figures[1].value, total: figures[1].total, icon: MapPin, tint: 'bg-coral/10', badge: 'from-coral to-pink-400' },
+    { label: 'Journeys', value: expeditionCount, icon: MapPinned, tint: 'bg-sunburst/15', badge: 'from-sunburst to-amber-400' },
+    { label: 'Discoveries', value: figures[3].value, total: figures[3].total, icon: Compass, tint: 'bg-lavender/12', badge: 'from-lavender to-indigo-400' },
   ];
 
   return (
-    <div className="-mt-2 space-y-5">
-      {/* Photo hero with overlaid greeting */}
-      <div className="relative -mx-4 sm:-mx-6">
-        <DestinationImage
-          code={heroCode ?? ''}
-          width={1000}
-          className="min-h-[300px] flex flex-col justify-end"
-        >
-          {/* photo override so the default hero shows for everyone */}
-          {hero.photo && !heroCode && (
+    <div className="space-y-6">
+      {/* ── Hero ─────────────────────────────────────────────────────── */}
+      <div className="relative -mx-4 sm:-mx-6 -mt-1">
+        <div className="relative h-[380px] overflow-hidden rounded-b-[2.5rem]">
+          {/* image / gradient backdrop */}
+          {hero.photo ? (
             <img
               src={hero.photo}
               alt=""
               aria-hidden="true"
               className="absolute inset-0 h-full w-full object-cover"
             />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-white dark:to-passport-night" />
-          <div className="relative px-5 pt-6 pb-10">
-            {/* avatar (top-right) */}
-            <div className="absolute right-5 top-5">
+          ) : null}
+          <div
+            className="absolute inset-0"
+            style={{ backgroundImage: hero.photo ? undefined : hero.gradient }}
+          />
+          {/* readability scrims: darken top (for header chrome) + bottom (text) */}
+          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/35 to-transparent" />
+          <div className="absolute inset-0 hero-scrim" />
+
+          {/* top chrome */}
+          <div className="relative flex items-center justify-between px-5 pt-[max(0.75rem,env(safe-area-inset-top))]">
+            <div className="flex items-center gap-2">
+              <WorldlyMark size={28} />
+              <span className="font-display text-xl font-semibold text-white drop-shadow">
+                worldly
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-9 w-9 grid place-items-center rounded-full glass text-white">
+                <Bell size={17} />
+              </span>
               <input
                 ref={fileRef}
                 type="file"
@@ -573,81 +610,116 @@ function BioPage({
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 aria-label={photo ? 'Change photo' : 'Add photo'}
-                className="relative h-11 w-11 overflow-hidden rounded-full ring-2 ring-white shadow-card flex items-center justify-center bg-brand-gradient"
+                className="relative h-9 w-9 overflow-hidden rounded-full ring-2 ring-white/80 shadow-card grid place-items-center bg-brand-gradient"
               >
                 {photo ? (
                   <img src={photo} alt="You" className="h-full w-full object-cover" />
                 ) : (
-                  <span className="text-base font-bold text-white">
+                  <span className="text-sm font-bold text-white">
                     {name[0]?.toUpperCase() ?? 'E'}
                   </span>
                 )}
               </button>
             </div>
+          </div>
 
-            <p className="text-sm font-semibold text-passport-navy/90 drop-shadow-sm">
+          {/* headline + search, anchored to the bottom on the scrim */}
+          <div className="absolute inset-x-0 bottom-0 px-5 pb-7">
+            <p className="text-sm font-semibold text-white/90">
               {greeting()}, {name?.split(' ')[0] || 'Explorer'}
             </p>
-            <h1 className="mt-1 font-display text-[2rem] leading-[1.08] font-semibold text-passport-navy drop-shadow-sm max-w-[15ch]">
+            <h1 className="mt-1.5 font-display text-[2.1rem] leading-[1.06] font-semibold text-white max-w-[16ch] drop-shadow-[0_2px_12px_rgba(0,0,0,0.35)]">
               Where will your next story take you?
             </h1>
-
-            {/* Search pill (routes to Explore) */}
             <button
               type="button"
               onClick={onSearch}
-              className="mt-5 w-full flex items-center gap-2.5 rounded-full glass shadow-float px-4 py-3.5 text-left"
+              className="mt-4 w-full flex items-center gap-2.5 rounded-full bg-white shadow-float px-4 py-3.5 text-left"
             >
-              <Search size={18} className="text-passport-ink3" />
+              <Search size={18} className="text-coral" />
               <span className="text-sm text-passport-ink3">
                 Search places, trips, friends…
               </span>
             </button>
           </div>
-        </DestinationImage>
-      </div>
-
-      {/* Section heading */}
-      <div className="flex items-end justify-between">
-        <div>
-          <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
-            Your Passport
-          </h2>
-          <p className="text-xs text-passport-ink3 mt-0.5">
-            You&rsquo;ve seen {worldSeen}% of the world ·{' '}
-            {stats.countriesDiscovered}/{totalCountries} countries
-          </p>
         </div>
       </div>
 
-      {/* Bright pastel stat tiles with gradient icon badges */}
-      <div className="grid grid-cols-4 gap-2.5">
-        {TILE.map(({ label, value, total, icon: Icon, tint, badge }) => (
-          <div
-            key={label}
-            className={cn('rounded-3xl shadow-card px-2 py-4 text-center', tint)}
-          >
-            <div
-              className={cn(
-                'mx-auto mb-2 h-10 w-10 rounded-full flex items-center justify-center text-white shadow-card bg-gradient-to-br',
-                badge,
-              )}
-            >
-              <Icon size={18} strokeWidth={2.4} />
-            </div>
-            <div className="font-display text-2xl font-semibold text-passport-navy dark:text-white leading-none">
-              {value}
-              {total != null && (
-                <span className="text-xs font-medium text-passport-ink3">
-                  /{total}
-                </span>
-              )}
-            </div>
-            <div className="mt-1 text-[10px] font-semibold text-passport-ink3">
-              {label}
-            </div>
+      {/* ── Floating Passport summary card (overlaps the hero) ─────────── */}
+      <div className="-mt-10 relative rounded-3xl bg-white dark:bg-passport-carddark shadow-float p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="font-display text-xl font-semibold text-passport-navy dark:text-white tracking-tight">
+              Your Passport
+            </h2>
+            <p className="text-xs text-passport-ink3 mt-0.5">
+              You&rsquo;ve seen{' '}
+              <span className="font-bold text-coral">{worldSeen}%</span> of the
+              world
+            </p>
           </div>
-        ))}
+          <div className="h-11 w-11 rounded-2xl bg-brand-gradient grid place-items-center text-white shadow-card">
+            <Globe2 size={20} strokeWidth={2.4} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2">
+          {TILE.map(({ label, value, total, icon: Icon, tint, badge }) => (
+            <div
+              key={label}
+              className={cn('rounded-2xl px-1.5 py-3 text-center', tint)}
+            >
+              <div
+                className={cn(
+                  'mx-auto mb-1.5 h-9 w-9 rounded-full grid place-items-center text-white shadow-card bg-gradient-to-br',
+                  badge,
+                )}
+              >
+                <Icon size={17} strokeWidth={2.4} />
+              </div>
+              <div className="font-display text-xl font-semibold text-passport-navy dark:text-white leading-none">
+                {value}
+                {total != null && (
+                  <span className="text-[11px] font-medium text-passport-ink3">
+                    /{total}
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 text-[10px] font-semibold text-passport-ink2 dark:text-white/70">
+                {label}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Quick actions ─────────────────────────────────────────────── */}
+      <div>
+        <h2 className="font-display text-[1.35rem] font-semibold text-passport-navy dark:text-white tracking-tight mb-3">
+          Quick add
+        </h2>
+        <div className="grid grid-cols-4 gap-2.5">
+          {QUICK_ACTIONS.map(({ label, icon: Icon, badge, onPick }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => onQuickAdd(onPick)}
+              className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
+            >
+              <span
+                className={cn(
+                  'h-14 w-14 rounded-2xl grid place-items-center text-white shadow-card bg-gradient-to-br',
+                  badge,
+                )}
+              >
+                <Icon size={22} strokeWidth={2.2} />
+              </span>
+              <span className="text-[11px] font-semibold text-passport-ink2 dark:text-white/75">
+                {label}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -684,28 +756,43 @@ function RecentJourneys({
           View all <ChevronRight size={15} />
         </button>
       </div>
-      <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
+      <div className="flex gap-3.5 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
         {recent.map((e) => {
           const code = e.countryCodes[0];
+          const mode = e.journeys[0]?.mode;
+          const ModeIcon = mode ? JOURNEY_ICON[mode] : null;
           return (
             <button
               key={e.id}
               type="button"
               onClick={onViewAll}
-              className="shrink-0 w-[150px] rounded-3xl overflow-hidden shadow-card active:scale-[0.98] transition-transform"
+              className="shrink-0 w-[164px] rounded-[1.75rem] overflow-hidden shadow-float active:scale-[0.98] transition-transform"
             >
               <DestinationImage
                 code={code ?? ''}
                 width={400}
-                className="h-44 flex flex-col text-white"
+                className="h-56 flex flex-col text-white"
                 scrim
               >
-                <div className="mt-auto p-3">
-                  <div className="font-display text-base font-semibold leading-tight drop-shadow-sm line-clamp-2">
+                {/* journey-type chip */}
+                {ModeIcon && (
+                  <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full glass px-2.5 py-1 text-[10px] font-semibold text-white">
+                    <ModeIcon size={12} />
+                    {JOURNEY_MODE_META[mode!].label}
+                  </div>
+                )}
+                {/* country flag badge */}
+                {code && (
+                  <div className="absolute right-3 top-3 text-lg leading-none drop-shadow">
+                    {flagEmoji(code)}
+                  </div>
+                )}
+                <div className="mt-auto p-3.5">
+                  <div className="font-display text-lg font-semibold leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)] line-clamp-2">
                     {e.title}
                   </div>
                   {monthYear(e.startDate) && (
-                    <div className="text-[11px] text-white/85 mt-0.5">
+                    <div className="text-[11px] font-medium text-white/85 mt-1">
                       {monthYear(e.startDate)}
                     </div>
                   )}

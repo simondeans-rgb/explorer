@@ -359,19 +359,24 @@ function BottomNav({
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 pointer-events-none">
-      <div className="pointer-events-auto glass border-t border-white/40 dark:border-white/10 shadow-float px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto w-full max-w-2xl flex items-center justify-between">
+      <div className="pointer-events-auto glass shadow-[0_-8px_30px_rgba(20,33,61,0.08)] px-3 pt-2.5 pb-[max(0.6rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto w-full max-w-md flex items-center justify-between">
           {left.map((t) => (
             <Tab key={t.id} {...t} />
           ))}
-          <button
-            type="button"
-            aria-label="Add"
-            onClick={onAdd}
-            className="-mt-7 h-16 w-16 rounded-full bg-brand-gradient text-white shadow-float flex items-center justify-center ring-4 ring-passport-cartridge dark:ring-passport-night active:scale-95 transition-transform"
-          >
-            <Plus size={28} strokeWidth={2.6} />
-          </button>
+          <div className="flex flex-col items-center w-16">
+            <button
+              type="button"
+              aria-label="Add"
+              onClick={onAdd}
+              className="-mt-8 h-14 w-14 rounded-full bg-brand-gradient text-white shadow-float grid place-items-center ring-[5px] ring-warmwhite dark:ring-passport-night active:scale-90 transition-transform"
+            >
+              <Plus size={26} strokeWidth={2.8} />
+            </button>
+            <span className="mt-0.5 text-[10px] font-semibold text-passport-ink3">
+              Add
+            </span>
+          </div>
           {right.map((t) => (
             <Tab key={t.id} {...t} />
           ))}

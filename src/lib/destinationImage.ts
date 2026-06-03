@@ -72,18 +72,27 @@ export function heroImage(code?: string, width = 1000): Destination {
   };
 }
 
-// Deterministic hue from a country code, so each place keeps a stable identity.
-function hueOf(code: string): number {
+// Brand spectrum stops — coral, lavender, aqua, sunburst — so every generated
+// gradient stays on-palette and bright rather than a random hue.
+const SPECTRUM: [string, string][] = [
+  ['#FF6B9A', '#9B7CFF'], // coral → lavender
+  ['#9B7CFF', '#24D1C3'], // lavender → aqua
+  ['#24D1C3', '#FFB84D'], // aqua → sunburst
+  ['#FFB84D', '#FF6B9A'], // sunburst → coral
+  ['#FF6B9A', '#FFB84D'], // coral → sunburst
+  ['#24D1C3', '#9B7CFF'], // aqua → lavender
+];
+
+function hashOf(code: string): number {
   let h = 0;
   for (let i = 0; i < code.length; i++) h = (h * 53 + code.charCodeAt(i)) | 0;
-  return Math.abs(h) % 360;
+  return Math.abs(h);
 }
 
-/** A bright, vivid travel-toned gradient, deterministic per code. */
+/** A bright, on-brand gradient, deterministic per code. */
 export function gradientFor(code: string): string {
-  const h = hueOf(code || 'XX');
-  const h2 = (h + 42) % 360;
-  return `linear-gradient(135deg, hsl(${h} 92% 66%) 0%, hsl(${h2} 90% 60%) 52%, hsl(${(h2 + 34) % 360} 84% 54%) 110%)`;
+  const [a, b] = SPECTRUM[hashOf(code || 'XX') % SPECTRUM.length];
+  return `linear-gradient(150deg, ${a} 0%, ${b} 100%)`;
 }
 
 /** Imagery for a country: a curated photo URL (if any) + its always-on gradient. */
