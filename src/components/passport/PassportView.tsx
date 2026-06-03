@@ -31,6 +31,7 @@ import {
   JOURNEY_MODE_META,
   RELATIONSHIP_META,
   VERDICT_META,
+  type Capture,
   type Discovery,
   type Expedition,
   type Place,
@@ -44,6 +45,7 @@ import { VERDICT_STYLE } from '../discoveries/verdictStyle';
 import { DestinationImage } from '../DestinationImage';
 import { WorldlyMark } from '../Brand';
 import { StoryHero } from './StoryHero';
+import { CapturesRail, CapturesEmptyCta } from '../captures/CapturesRail';
 import { buildHomeStory } from '../../lib/homeStory';
 import { CATEGORY_ICON } from '../discoveries/categoryIcons';
 import {
@@ -82,6 +84,9 @@ interface Props {
   discoveryStats: DiscoveryStats;
   expeditionCount: number;
   friendCountryMap: Map<string, FriendPresence[]>;
+  /** Recent photo captures (Story rail). */
+  captures?: Capture[];
+  onAddCapture?: () => void;
   /** 'story' = content-first Home (default); 'atlas' = the collection surface
    *  (map, country cards, wishlist, stats) hosted inside the Atlas tab. */
   mode?: 'story' | 'atlas';
@@ -151,6 +156,8 @@ export function PassportView({
   discoveryStats,
   expeditionCount,
   friendCountryMap,
+  captures = [],
+  onAddCapture,
   mode = 'story',
   openImport,
   onImportConsumed,
@@ -422,6 +429,20 @@ export function PassportView({
           expeditions={expeditions}
           onViewAll={() => onOpenJourneys?.()}
         />
+      )}
+
+      {/* ── Recent captures (photo memories) ──────────────────────────── */}
+      {!atlas && onAddCapture && !isEmpty && (
+        <section className="space-y-3">
+          <h2 className="font-display text-[1.35rem] font-semibold text-passport-navy dark:text-white tracking-tight">
+            Recent captures
+          </h2>
+          {captures.length > 0 ? (
+            <CapturesRail captures={captures.slice(0, 12)} onAdd={onAddCapture} />
+          ) : (
+            <CapturesEmptyCta onAdd={onAddCapture} />
+          )}
+        </section>
       )}
 
       {/* ── Your favourite discoveries ────────────────────────────────── */}

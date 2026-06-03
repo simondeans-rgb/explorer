@@ -379,3 +379,19 @@ export interface Discovery {
   createdAt: number;
   updatedAt: number;
 }
+
+/** A photo memory — a compact JPEG thumbnail (data URL) optionally tied to a
+ *  place, journey, or discovery. Kept small (well under Firestore's 1 MB doc
+ *  limit) by the same canvas compression used for profile photos. */
+export interface Capture {
+  id: string;
+  userId: string;
+  /** Compact JPEG data URL. */
+  dataUrl: string;
+  countryCode?: string;
+  city?: string;
+  expeditionId?: string;
+  discoveryId?: string;
+  caption?: string;
+  createdAt: number;
+}

@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { usePlaces } from '../hooks/usePlaces';
 import { useDiscoveries } from '../hooks/useDiscoveries';
 import { useExpeditions } from '../hooks/useExpeditions';
+import { useCaptures } from '../hooks/useCaptures';
 import { useConnections } from '../hooks/useConnections';
 import { useProfile } from '../hooks/useProfile';
 import { useFriendsData } from '../hooks/useFriendsData';
@@ -30,6 +31,10 @@ import { FriendsView } from './friends/FriendsView';
 import { ProfileView } from './profile/ProfileView';
 import { WelcomeModal, type WelcomeChoice } from './WelcomeModal';
 import { QuickAddSheet } from './QuickAddSheet';
+import {
+  AddCaptureModal,
+  type CaptureModalInitial,
+} from './captures/AddCaptureModal';
 
 type Section =
   | 'passport'
@@ -57,6 +62,7 @@ export function AppShell() {
   const { expeditions, loading: expeditionsLoading } = useExpeditions(
     user?.uid,
   );
+  const { captures } = useCaptures(user?.uid);
   const { connections } = useConnections(user?.uid);
   const profile = useProfile(user?.uid, myName);
   const [section, setSection] = useState<Section>('passport');
@@ -124,7 +130,12 @@ export function AppShell() {
   const [openAddPlace, setOpenAddPlace] = useState(false);
   const [openAddJourney, setOpenAddJourney] = useState(false);
   const [openAddDiscovery, setOpenAddDiscovery] = useState(false);
-  function quickAdd(choice: 'place' | 'journey' | 'discovery' | 'import') {
+  const [captureModal, setCaptureModal] = useState<CaptureModalInitial | null>(
+    null,
+  );
+  function quickAdd(
+    choice: 'place' | 'journey' | 'discovery' | 'capture' | 'import',
+  ) {
     setShowQuickAdd(false);
     if (choice === 'place') {
       setAtlasTab('places');
@@ -137,6 +148,8 @@ export function AppShell() {
     } else if (choice === 'discovery') {
       setSection('discoveries');
       setOpenAddDiscovery(true);
+    } else if (choice === 'capture') {
+      setCaptureModal({});
     } else {
       setShowWelcome(true);
     }
@@ -225,6 +238,8 @@ export function AppShell() {
               discoveryStats={discoveryStats}
               expeditionCount={expeditions.length}
               friendCountryMap={friendCountryMap}
+              captures={captures}
+              onAddCapture={() => setCaptureModal({})}
               openImport={openImport}
               onImportConsumed={() => setOpenImport(null)}
               openAdd={openAddPlace && section === 'passport'}
@@ -335,6 +350,15 @@ export function AppShell() {
 
       {showWelcome && (
         <WelcomeModal onChoose={chooseWelcome} onClose={dismissWelcome} />
+      )}
+
+      {captureModal && (
+        <AddCaptureModal
+          userId={user?.uid ?? ''}
+          initial={captureModal}
+          expeditions={expeditions}
+          onClose={() => setCaptureModal(null)}
+        />
       )}
     </div>
   );
