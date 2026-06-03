@@ -19,6 +19,7 @@ export interface CountryAggregate {
   relationships: Relationship[];
   stamps: StampKind[];
   cities: Place[];
+  regions: Place[];
   countryPlace?: Place;
   note?: string;
   firstYear?: number;
@@ -69,12 +70,20 @@ export function aggregateByCountry(places: Place[]): CountryAggregate[] {
   for (const [code, group] of groups) {
     const countryPlace = group.find((p) => p.kind === 'country');
     const cities = group.filter((p) => p.kind === 'city');
+    const regions = group.filter((p) => p.kind === 'region');
 
     const rels = new Set<Relationship>();
     for (const r of countryPlace?.relationships ?? []) rels.add(r);
     const discoveredCities = cities.filter((c) => hasDiscovery(c.relationships));
     for (const c of discoveredCities) {
       for (const r of c.relationships) {
+        if (r !== 'aspiring') rels.add(r);
+      }
+    }
+    // Regions also imply discovery of their country.
+    const discoveredRegions = regions.filter((r) => hasDiscovery(r.relationships));
+    for (const rg of discoveredRegions) {
+      for (const r of rg.relationships) {
         if (r !== 'aspiring') rels.add(r);
       }
     }
@@ -86,7 +95,10 @@ export function aggregateByCountry(places: Place[]): CountryAggregate[] {
     }
 
     const note = countryPlace?.note;
-    const discovered = hasDiscovery(rels) || discoveredCities.length > 0;
+    const discovered =
+      hasDiscovery(rels) ||
+      discoveredCities.length > 0 ||
+      discoveredRegions.length > 0;
     const meta = COUNTRY_BY_CODE[code];
     const years = group
       .map((p) => p.firstYear)
@@ -99,6 +111,7 @@ export function aggregateByCountry(places: Place[]): CountryAggregate[] {
       relationships: [...rels],
       stamps,
       cities,
+      regions,
       countryPlace,
       note,
       firstYear: years.length ? Math.min(...years) : undefined,
@@ -117,6 +130,7 @@ export interface PassportStats {
   countriesWorked: number;
   countriesStudied: number;
   citiesDiscovered: number;
+  regionsDiscovered: number;
   continentsDiscovered: number;
   continents: Continent[];
   flagCodes: string[];
@@ -129,6 +143,7 @@ export function computeStats(aggregates: CountryAggregate[]): PassportStats {
   const discovered = aggregates.filter((a) => a.discovered);
   const continents = new Set<Continent>();
   let citiesDiscovered = 0;
+  let regionsDiscovered = 0;
   let totalStamps = 0;
   let scoreSum = 0;
 
@@ -136,6 +151,9 @@ export function computeStats(aggregates: CountryAggregate[]): PassportStats {
     if (a.continent) continents.add(a.continent);
     citiesDiscovered += a.cities.filter((c) =>
       c.relationships.some((r) => r !== 'aspiring'),
+    ).length;
+    regionsDiscovered += a.regions.filter((r) =>
+      r.relationships.some((x) => x !== 'aspiring'),
     ).length;
     totalStamps += a.stamps.length;
     scoreSum += a.discoveryScore;
@@ -150,6 +168,7 @@ export function computeStats(aggregates: CountryAggregate[]): PassportStats {
     countriesWorked: has('worked'),
     countriesStudied: has('studied'),
     citiesDiscovered,
+    regionsDiscovered,
     continentsDiscovered: continents.size,
     continents: [...continents].sort(),
     flagCodes: discovered.map((a) => a.code),

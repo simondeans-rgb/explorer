@@ -32,7 +32,7 @@ export interface Country {
   continent: Continent;
 }
 
-export type PlaceKind = 'country' | 'city';
+export type PlaceKind = 'country' | 'city' | 'region';
 
 /**
  * The seven relationships a Member can have with a place. Six of them count as

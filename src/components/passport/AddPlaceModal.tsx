@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Check, Plus, Trash2, X } from 'lucide-react';
 import { countryName } from '../../data/countries';
+import { regionsFor, hasRegions } from '../../data/regions';
 import { flagEmoji } from '../../lib/flags';
 import { createPlace, deletePlace, updatePlace } from '../../lib/places';
 import {
@@ -41,7 +42,9 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
   const [kind, setKind] = useState<PlaceKind>(initial.kind);
   const [countryCode, setCountryCode] = useState(initial.countryCode ?? '');
   const [cityName, setCityName] = useState(
-    initial.kind === 'city' ? (initial.name ?? '') : '',
+    initial.kind === 'city' || initial.kind === 'region'
+      ? (initial.name ?? '')
+      : '',
   );
   const [relationships, setRelationships] = useState<Set<Relationship>>(
     new Set(initial.relationships ?? (initial.kind === 'city' ? ['visited'] : [])),
@@ -97,6 +100,14 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
     relationships.size > 0 &&
     (kind === 'country' || cityName.trim().length > 0);
 
+  // When switching kind, default a region's relationships to 'visited' like cities.
+  function changeKind(k: PlaceKind) {
+    setKind(k);
+    if ((k === 'city' || k === 'region') && relationships.size === 0) {
+      setRelationships(new Set<Relationship>(['visited']));
+    }
+  }
+
   async function handleSave() {
     if (!canSave || busy) return;
     setBusy(true);
@@ -108,7 +119,7 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
     const input = {
       kind,
       countryCode,
-      name: kind === 'country' ? countryName(countryCode) : cityName,
+      name: kind === 'country' ? countryName(countryCode) : cityName.trim(),
       relationships: [...relationships],
       firstYear:
         parsedYear && !Number.isNaN(parsedYear) ? parsedYear : undefined,
@@ -138,10 +149,14 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
   const title = editing
     ? kind === 'city'
       ? 'Edit city'
-      : `Edit ${countryName(countryCode)}`
+      : kind === 'region'
+        ? 'Edit region'
+        : `Edit ${countryName(countryCode)}`
     : kind === 'city'
       ? 'Add a city'
-      : 'Add to your Passport';
+      : kind === 'region'
+        ? 'Add a region'
+        : 'Add to your Passport';
 
   return (
     <div
@@ -172,10 +187,10 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
 
         <div className="px-5 py-4 space-y-5">
           {!initial.lockKind && !editing && (
-            <KindToggle kind={kind} onChange={setKind} />
+            <KindToggle kind={kind} onChange={changeKind} />
           )}
 
-          <Field label={kind === 'city' ? 'Country' : 'Country'}>
+          <Field label="Country">
             {initial.lockCountry || editing ? (
               <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/10 dark:border-white/10">
                 <span className="text-xl leading-none">
@@ -196,6 +211,42 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
                 placeholder="e.g. Lisbon"
                 className={inputClass}
               />
+            </Field>
+          )}
+
+          {kind === 'region' && (
+            <Field label="Region">
+              {countryCode && hasRegions(countryCode) ? (
+                <div className="flex flex-wrap gap-2">
+                  {regionsFor(countryCode).map((rg) => {
+                    const active = cityName === rg.name;
+                    return (
+                      <button
+                        key={rg.code}
+                        type="button"
+                        onClick={() => setCityName(active ? '' : rg.name)}
+                        className={cn(
+                          'px-3 py-1.5 rounded-full text-sm font-medium transition-all active:scale-[0.97]',
+                          active
+                            ? 'bg-passport-navy text-white dark:bg-white dark:text-passport-navy shadow-card'
+                            : 'bg-white dark:bg-white/5 shadow-card text-passport-ink2 dark:text-white/70',
+                        )}
+                      >
+                        {rg.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <input
+                  value={cityName}
+                  onChange={(e) => setCityName(e.target.value)}
+                  placeholder={
+                    countryCode ? 'e.g. a state or province' : 'Choose a country first'
+                  }
+                  className={inputClass}
+                />
+              )}
             </Field>
           )}
 
@@ -349,8 +400,8 @@ function KindToggle({
   onChange: (k: PlaceKind) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-passport-navy/[0.05] dark:bg-white/[0.06]">
-      {(['country', 'city'] as PlaceKind[]).map((k) => (
+    <div className="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-passport-navy/[0.05] dark:bg-white/[0.06]">
+      {(['country', 'region', 'city'] as PlaceKind[]).map((k) => (
         <button
           key={k}
           type="button"
