@@ -76,8 +76,7 @@ export function StoryHero({
             key={card.id}
             type="button"
             onClick={() => onOpen(card)}
-            className="shrink-0 w-screen max-w-[100vw] snap-center text-left"
-            style={{ width: '100vw' }}
+            className="shrink-0 w-full snap-center text-left"
           >
             <DestinationImage
               code={card.code}
