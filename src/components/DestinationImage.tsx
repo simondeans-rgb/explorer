@@ -10,20 +10,20 @@ import { cn } from '../lib/cn';
  */
 export function DestinationImage({
   code,
-  width = 800,
   className,
   rounded = '',
   children,
   scrim = false,
 }: {
   code: string;
+  /** Deprecated — images are bundled at a fixed size; kept for call-site compat. */
   width?: number;
   className?: string;
   rounded?: string;
   children?: React.ReactNode;
   scrim?: boolean;
 }) {
-  const { photo, gradient } = destinationImage(code, width);
+  const { photo, gradient } = destinationImage(code);
   const [loaded, setLoaded] = useState(false);
 
   // Reset when the country changes so the fade plays again.
