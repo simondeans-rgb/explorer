@@ -12,6 +12,7 @@ import {
   Compass,
   Globe2,
   Images,
+  Map as MapIcon,
   MapPin,
   Plus,
   Users,
@@ -23,6 +24,7 @@ import { flagEmoji } from '../../lib/flags';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProfilePhoto } from '../../hooks/useProfilePhoto';
 import { COUNTRIES, countryName } from '../../data/countries';
+import { hasRegions } from '../../data/regions';
 import {
   JOURNEY_MODE_META,
   RELATIONSHIP_META,
@@ -299,6 +301,24 @@ export function PassportView({
     setModal({ kind: 'city', countryCode: a.code, lockKind: true, lockCountry: true });
   }
 
+  function addRegion(a: CountryAggregate) {
+    setModal({ kind: 'region', countryCode: a.code, lockKind: true, lockCountry: true });
+  }
+
+  function editRegion(place: Place) {
+    setModal({
+      id: place.id,
+      kind: 'region',
+      countryCode: place.countryCode,
+      name: place.name,
+      relationships: place.relationships,
+      firstYear: place.firstYear,
+      note: place.note,
+      lockKind: true,
+      lockCountry: true,
+    });
+  }
+
   function editCity(place: Place) {
     setModal({
       id: place.id,
@@ -490,6 +510,8 @@ export function PassportView({
               onEdit={() => editCountry(a)}
               onAddCity={() => addCity(a)}
               onEditCity={editCity}
+              onAddRegion={() => addRegion(a)}
+              onEditRegion={editRegion}
               onEditDiscovery={editDiscovery}
             />
           ))}
@@ -880,6 +902,8 @@ function CountryCard({
   onEdit,
   onAddCity,
   onEditCity,
+  onAddRegion,
+  onEditRegion,
   onEditDiscovery,
 }: {
   agg: CountryAggregate;
@@ -890,6 +914,8 @@ function CountryCard({
   onEdit: () => void;
   onAddCity: () => void;
   onEditCity: (place: Place) => void;
+  onAddRegion: () => void;
+  onEditRegion: (place: Place) => void;
   onEditDiscovery: (d: Discovery) => void;
 }) {
   const [openCity, setOpenCity] = useState<string | null>(null);
@@ -987,6 +1013,29 @@ function CountryCard({
         <p className="mt-4 font-display text-[15px] italic text-passport-ink2 dark:text-white/65 border-l-2 border-passport-gold/50 pl-3">
           {agg.note}
         </p>
+      )}
+
+      {(agg.regions.length > 0 || hasRegions(agg.code)) && (
+        <div className="mt-4 flex flex-wrap items-center gap-1.5">
+          {agg.regions.map((rg) => (
+            <button
+              key={rg.id}
+              type="button"
+              onClick={() => onEditRegion(rg)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-lavender/12 text-passport-ink2 dark:text-white/70 hover:bg-lavender/20"
+            >
+              <MapIcon size={11} className="text-lavender" />
+              {rg.name}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={onAddRegion}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border border-dashed border-black/15 dark:border-white/15 text-passport-ink3 dark:text-white/50 hover:border-passport-gold/60"
+          >
+            <Plus size={11} /> Region
+          </button>
+        </div>
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-1.5">
