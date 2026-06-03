@@ -60,6 +60,18 @@ export interface Destination {
   gradient: string;
 }
 
+// A bright, evocative default hero used when there's no signature country yet.
+const DEFAULT_HERO = '1507525428034-b723cf961d3e'; // sunlit coastline
+export function heroImage(code?: string, width = 1000): Destination {
+  if (code && PHOTO_ID[code]) {
+    return { photo: UNSPLASH(PHOTO_ID[code], width), gradient: gradientFor(code) };
+  }
+  return {
+    photo: UNSPLASH(DEFAULT_HERO, width),
+    gradient: gradientFor(code || 'WW'),
+  };
+}
+
 // Deterministic hue from a country code, so each place keeps a stable identity.
 function hueOf(code: string): number {
   let h = 0;
@@ -67,11 +79,11 @@ function hueOf(code: string): number {
   return Math.abs(h) % 360;
 }
 
-/** A soft two-stop travel-toned gradient, deterministic per code. */
+/** A bright, vivid travel-toned gradient, deterministic per code. */
 export function gradientFor(code: string): string {
   const h = hueOf(code || 'XX');
-  const h2 = (h + 38) % 360;
-  return `linear-gradient(135deg, hsl(${h} 70% 62%) 0%, hsl(${h2} 72% 56%) 55%, hsl(${(h2 + 30) % 360} 64% 48%) 110%)`;
+  const h2 = (h + 42) % 360;
+  return `linear-gradient(135deg, hsl(${h} 92% 66%) 0%, hsl(${h2} 90% 60%) 52%, hsl(${(h2 + 34) % 360} 84% 54%) 110%)`;
 }
 
 /** Imagery for a country: a curated photo URL (if any) + its always-on gradient. */

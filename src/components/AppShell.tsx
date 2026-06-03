@@ -1,18 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   BookMarked,
+  ChevronLeft,
   Compass,
-  Globe2,
-  LogOut,
   type LucideIcon,
   MapPinned,
-  Moon,
-  ScrollText,
-  Sun,
-  Users,
+  Plus,
+  UserRound,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
 import { usePlaces } from '../hooks/usePlaces';
 import { useDiscoveries } from '../hooks/useDiscoveries';
 import { useExpeditions } from '../hooks/useExpeditions';
@@ -31,22 +27,25 @@ import { AlmanacView } from './almanac/AlmanacView';
 import { ExpeditionsView } from './expeditions/ExpeditionsView';
 import { DiscoveriesView } from './discoveries/DiscoveriesView';
 import { FriendsView } from './friends/FriendsView';
+import { ProfileView } from './profile/ProfileView';
 import { WelcomeModal, type WelcomeChoice } from './WelcomeModal';
 import { WorldlyLogo } from './Brand';
+import { QuickAddSheet } from './QuickAddSheet';
 
 type Section =
   | 'passport'
   | 'expeditions'
   | 'discoveries'
   | 'friends'
-  | 'almanac';
+  | 'almanac'
+  | 'profile';
 
-const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
-  { id: 'passport', label: 'Home', icon: BookMarked },
+// The four bottom-nav tabs (a center "+" FAB sits between the middle two).
+const NAV_TABS: { id: Section; label: string; icon: LucideIcon }[] = [
+  { id: 'passport', label: 'Passport', icon: BookMarked },
   { id: 'expeditions', label: 'Journeys', icon: MapPinned },
   { id: 'discoveries', label: 'Explore', icon: Compass },
-  { id: 'friends', label: 'Friends', icon: Users },
-  { id: 'almanac', label: 'Almanac', icon: ScrollText },
+  { id: 'profile', label: 'Profile', icon: UserRound },
 ];
 
 export function AppShell() {
@@ -116,6 +115,27 @@ export function AppShell() {
     setSection('passport');
   }
 
+  // Quick-add ("+") — one-shot flags the destination view opens on arrival.
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [openAddPlace, setOpenAddPlace] = useState(false);
+  const [openAddJourney, setOpenAddJourney] = useState(false);
+  const [openAddDiscovery, setOpenAddDiscovery] = useState(false);
+  function quickAdd(choice: 'place' | 'journey' | 'discovery' | 'import') {
+    setShowQuickAdd(false);
+    if (choice === 'place') {
+      setSection('passport');
+      setOpenAddPlace(true);
+    } else if (choice === 'journey') {
+      setSection('expeditions');
+      setOpenAddJourney(true);
+    } else if (choice === 'discovery') {
+      setSection('discoveries');
+      setOpenAddDiscovery(true);
+    } else {
+      setShowWelcome(true);
+    }
+  }
+
   // First-run welcome: shown once per Member when their Passport is empty,
   // surfacing the import options. The choice opens the right importer by setting
   // a one-shot flag the relevant view consumes on mount.
@@ -158,11 +178,38 @@ export function AppShell() {
     // 'fresh' just closes the welcome.
   }
 
+  const showLogoBar = section !== 'passport';
+  const subPage =
+    section === 'friends'
+      ? 'Friends'
+      : section === 'almanac'
+        ? 'Almanac'
+        : null;
+
   return (
     <div className="passport-bg fixed inset-0 flex flex-col">
-      <TopBar onImport={() => setShowWelcome(true)} />
+      {showLogoBar && (
+        <header className="shrink-0 h-14 px-4 sm:px-6 flex items-center justify-between">
+          {subPage ? (
+            <button
+              type="button"
+              onClick={() => setSection('profile')}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-passport-navy dark:text-white"
+            >
+              <ChevronLeft size={20} /> {subPage}
+            </button>
+          ) : (
+            <WorldlyLogo size={28} />
+          )}
+        </header>
+      )}
       <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
-        <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 pt-2 pb-32 min-w-0">
+        <div
+          className={cn(
+            'mx-auto w-full max-w-2xl px-4 sm:px-6 pb-32 min-w-0',
+            section === 'passport' ? 'pt-0' : 'pt-1',
+          )}
+        >
           {section === 'passport' && (
             <PassportView
               userId={user?.uid ?? ''}
@@ -176,8 +223,12 @@ export function AppShell() {
               friendCountryMap={friendCountryMap}
               openImport={openImport}
               onImportConsumed={() => setOpenImport(null)}
+              openAdd={openAddPlace}
+              onAddConsumed={() => setOpenAddPlace(false)}
               focusPlace={focusPlace}
               onFocusConsumed={() => setFocusPlace(null)}
+              onExplore={() => setSection('discoveries')}
+              onOpenJourneys={() => setSection('expeditions')}
               loading={loading}
             />
           )}
@@ -191,6 +242,8 @@ export function AppShell() {
               onNewTripConsumed={() => setTripCountry(null)}
               openImport={openFlighty}
               onImportConsumed={() => setOpenFlighty(false)}
+              openAdd={openAddJourney}
+              onAddConsumed={() => setOpenAddJourney(false)}
               loading={expeditionsLoading}
             />
           )}
@@ -203,6 +256,8 @@ export function AppShell() {
               friendDiscoveries={friendsData.discoveries}
               onAddTrip={startTrip}
               onGoToPlace={goToPlace}
+              openAdd={openAddDiscovery}
+              onAddConsumed={() => setOpenAddDiscovery(false)}
               loading={discoveriesLoading}
             />
           )}
@@ -228,10 +283,30 @@ export function AppShell() {
               memberName={myName}
             />
           )}
+          {section === 'profile' && (
+            <ProfileView
+              userId={user?.uid ?? ''}
+              friendCount={friends.length}
+              onOpenFriends={() => setSection('friends')}
+              onOpenAlmanac={() => setSection('almanac')}
+              onImport={() => setShowWelcome(true)}
+            />
+          )}
         </div>
       </main>
 
-      <BottomNav section={section} onChange={setSection} />
+      <BottomNav
+        section={section}
+        onChange={setSection}
+        onAdd={() => setShowQuickAdd(true)}
+      />
+
+      {showQuickAdd && (
+        <QuickAddSheet
+          onChoose={quickAdd}
+          onClose={() => setShowQuickAdd(false)}
+        />
+      )}
 
       {showWelcome && (
         <WelcomeModal onChoose={chooseWelcome} onClose={dismissWelcome} />
@@ -240,139 +315,67 @@ export function AppShell() {
   );
 }
 
-function TopBar({ onImport }: { onImport: () => void }) {
-  const { user, signOut, demo } = useAuth();
-  const { theme, toggle } = useTheme();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    function onDocClick(e: MouseEvent) {
-      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
-    }
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, [menuOpen]);
-
-  const initial = user?.email?.[0]?.toUpperCase() ?? '?';
-
-  return (
-    <header className="shrink-0 h-16 px-4 sm:px-6 flex items-center justify-between">
-      <WorldlyLogo size={30} />
-
-      <div className="flex items-center gap-1.5">
-        {demo && (
-          <span className="mr-1 inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.16em] bg-passport-gold/12 text-passport-gold">
-            Demo
-          </span>
-        )}
-        <button
-          type="button"
-          aria-label="Toggle theme"
-          onClick={toggle}
-          className="h-10 w-10 inline-flex items-center justify-center rounded-full text-passport-ink2 dark:text-white/70 hover:bg-passport-navy/[0.06] dark:hover:bg-white/10 transition-colors"
-        >
-          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-        </button>
-
-        <div ref={menuRef} className="relative">
-          <button
-            type="button"
-            aria-label="Member menu"
-            onClick={() => setMenuOpen((v) => !v)}
-            className="h-10 w-10 rounded-full text-sm font-bold bg-brand-gradient text-white shadow-card hover:opacity-90 active:scale-95 transition-all"
-          >
-            {initial}
-          </button>
-
-          {menuOpen && (
-            <div
-              className={cn(
-                'absolute right-0 mt-2 w-64 rounded-2xl p-2 shadow-float z-50 animate-scale-in origin-top-right',
-                'glass border border-white/40 dark:border-white/10',
-                'text-passport-ink dark:text-white/85',
-              )}
-            >
-              <div className="px-3 py-2.5">
-                <div className="uppercase tracking-[0.18em] text-[10px] font-semibold text-passport-gold mb-0.5">
-                  Signed in
-                </div>
-                <div className="truncate text-sm font-medium">
-                  {user?.email ?? 'Member'}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onImport();
-                }}
-                className="w-full inline-flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-passport-navy/[0.06] dark:hover:bg-white/10"
-              >
-                <Globe2 size={16} className="text-passport-gold" />
-                Import travels
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  void signOut();
-                }}
-                className="w-full inline-flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-passport-navy/[0.06] dark:hover:bg-white/10"
-              >
-                <LogOut size={16} className="text-passport-ink3" />
-                Sign out
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </header>
-  );
-}
 
 function BottomNav({
   section,
   onChange,
+  onAdd,
 }: {
   section: Section;
   onChange: (s: Section) => void;
+  onAdd: () => void;
 }) {
+  const left = NAV_TABS.slice(0, 2);
+  const right = NAV_TABS.slice(2);
+
+  const Tab = ({
+    id,
+    label,
+    icon: Icon,
+  }: {
+    id: Section;
+    label: string;
+    icon: LucideIcon;
+  }) => {
+    const active = id === section;
+    return (
+      <button
+        type="button"
+        aria-label={label}
+        aria-current={active ? 'page' : undefined}
+        onClick={() => onChange(id)}
+        className={cn(
+          'flex flex-col items-center justify-center gap-1 w-16 transition-colors',
+          active
+            ? 'text-passport-gold'
+            : 'text-passport-ink3 dark:text-white/50 hover:text-passport-ink dark:hover:text-white/80',
+        )}
+      >
+        <Icon size={22} strokeWidth={active ? 2.5 : 2} />
+        <span className="text-[10px] font-semibold tracking-tight">{label}</span>
+      </button>
+    );
+  };
+
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pointer-events-none">
-      <div className="pointer-events-auto glass border border-white/50 dark:border-white/10 shadow-float rounded-full px-1.5 py-1.5 flex items-center gap-0.5">
-        {SECTIONS.map(({ id, label, icon: Icon }) => {
-          const active = id === section;
-          return (
-            <button
-              key={id}
-              type="button"
-              aria-label={label}
-              aria-current={active ? 'page' : undefined}
-              onClick={() => onChange(id)}
-              className={cn(
-                'relative flex flex-col items-center justify-center gap-0.5 rounded-full transition-all duration-200',
-                'w-[58px] h-[52px]',
-                active
-                  ? 'text-white'
-                  : 'text-passport-ink3 dark:text-white/50 hover:text-passport-ink dark:hover:text-white/80',
-              )}
-            >
-              {active && (
-                <span className="absolute inset-0 rounded-full bg-brand-gradient shadow-card" />
-              )}
-              <Icon
-                size={20}
-                className="relative z-10"
-                strokeWidth={active ? 2.4 : 2}
-              />
-              <span className="relative z-10 text-[9.5px] font-semibold tracking-tight">
-                {label}
-              </span>
-            </button>
-          );
-        })}
+    <nav className="fixed inset-x-0 bottom-0 z-40 pointer-events-none">
+      <div className="pointer-events-auto glass border-t border-white/40 dark:border-white/10 shadow-float px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto w-full max-w-2xl flex items-center justify-between">
+          {left.map((t) => (
+            <Tab key={t.id} {...t} />
+          ))}
+          <button
+            type="button"
+            aria-label="Add"
+            onClick={onAdd}
+            className="-mt-7 h-16 w-16 rounded-full bg-brand-gradient text-white shadow-float flex items-center justify-center ring-4 ring-passport-cartridge dark:ring-passport-night active:scale-95 transition-transform"
+          >
+            <Plus size={28} strokeWidth={2.6} />
+          </button>
+          {right.map((t) => (
+            <Tab key={t.id} {...t} />
+          ))}
+        </div>
       </div>
     </nav>
   );
