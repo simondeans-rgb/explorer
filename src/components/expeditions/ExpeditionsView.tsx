@@ -121,66 +121,102 @@ export function ExpeditionsView({
   }, [discoveries]);
 
   const isEmpty = !loading && expeditions.length === 0;
+  const featured = sorted[0];
 
   return (
-    <div className="animate-fade-in space-y-6">
-      <header className="pt-2">
-        <p className="text-sm font-medium text-passport-gold">
-          {expeditions.length}{' '}
-          {expeditions.length === 1 ? 'journey' : 'journeys'} on record
-        </p>
-        <h1 className="font-display text-[2rem] leading-tight font-semibold text-passport-navy dark:text-white">
-          Journeys
-        </h1>
-        <p className="text-sm text-passport-ink2 dark:text-white/55 mt-1 max-w-md">
-          Every trip — a weekend in Rome, a gap year across Asia — a record of
-          how you travelled and what you found.
-        </p>
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+    <div className="animate-fade-in -mt-1 space-y-7">
+      {/* Story hero — the most recent journey, full-bleed */}
+      {featured ? (
+        <div className="relative -mx-4 sm:-mx-6">
           <button
             type="button"
-            onClick={() => setModal({})}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-sm font-semibold bg-brand-gradient text-white shadow-card hover:opacity-95 active:scale-[0.98] transition-all"
+            onClick={() =>
+              setModal({
+                id: featured.id,
+                title: featured.title,
+                startDate: featured.startDate,
+                endDate: featured.endDate,
+                countryCodes: featured.countryCodes,
+                journeys: featured.journeys,
+                note: featured.note,
+              })
+            }
+            className="block w-full text-left"
           >
-            <Plus size={16} /> New journey
-          </button>
-          <button
-            type="button"
-            onClick={() => setImporting(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-sm font-semibold bg-white dark:bg-passport-carddark shadow-card text-passport-navy dark:text-white/85 hover:shadow-card-hover active:scale-[0.98] transition-all"
-          >
-            <Plane size={16} className="text-passport-gold" /> Import flights
-          </button>
-          {hasImported && (
-            <button
-              type="button"
-              onClick={() => setReevaluating(true)}
-              title="Rebuild imported trips from your residence history"
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-sm font-semibold text-passport-ink2 dark:text-white/70 hover:bg-passport-navy/[0.06] dark:hover:bg-white/10 active:scale-[0.98] transition-all"
+            <DestinationImage
+              code={featured.countryCodes[0] ?? ''}
+              className="h-[58vh] max-h-[460px] min-h-[360px] flex flex-col rounded-b-[2.5rem]"
             >
-              <RefreshCw size={15} /> Re-evaluate
-            </button>
-          )}
+              <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/40 to-transparent" />
+              <div className="absolute inset-0 hero-scrim" />
+              <div className="relative flex items-center justify-between px-5 pt-[max(0.75rem,env(safe-area-inset-top))]">
+                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/90">
+                  Your journeys
+                </span>
+              </div>
+              <div className="relative mt-auto px-6 pb-9">
+                <div className="flex items-center gap-2 mb-2 text-white/90">
+                  {featured.countryCodes.slice(0, 4).map((c) => (
+                    <span key={c} className="text-lg leading-none drop-shadow">
+                      {flagEmoji(c)}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/85">
+                  Latest journey
+                </p>
+                <h1 className="mt-1 font-display text-[2.4rem] leading-[0.98] font-semibold text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.45)] max-w-[14ch]">
+                  {featured.title}
+                </h1>
+                {formatRange(featured.startDate, featured.endDate) && (
+                  <p className="mt-2 text-sm font-medium text-white/85">
+                    {formatRange(featured.startDate, featured.endDate)}
+                  </p>
+                )}
+              </div>
+            </DestinationImage>
+          </button>
         </div>
-      </header>
-
-      {expeditions.length > 0 && (
-        <div className="overflow-hidden rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-2">
-          <Suspense fallback={<MapSkeleton />}>
-            <ExpeditionMap expeditions={expeditions} />
-          </Suspense>
-        </div>
+      ) : (
+        <header className="pt-2">
+          <p className="text-sm font-semibold text-coral">No journeys yet</p>
+          <h1 className="font-display text-[2rem] leading-tight font-semibold text-passport-navy dark:text-white">
+            Journeys
+          </h1>
+        </header>
       )}
 
-      {expeditions.length > 0 && (
-        <Suspense fallback={null}>
-          <TravelStatsPanel expeditions={expeditions} />
-        </Suspense>
-      )}
+      {/* Actions */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setModal({})}
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-sm font-semibold bg-brand-gradient text-white shadow-card hover:opacity-95 active:scale-[0.98] transition-all"
+        >
+          <Plus size={16} /> New journey
+        </button>
+        <button
+          type="button"
+          onClick={() => setImporting(true)}
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-sm font-semibold bg-white dark:bg-passport-carddark shadow-card text-passport-navy dark:text-white/85 hover:shadow-card-hover active:scale-[0.98] transition-all"
+        >
+          <Plane size={16} className="text-coral" /> Import flights
+        </button>
+        {hasImported && (
+          <button
+            type="button"
+            onClick={() => setReevaluating(true)}
+            title="Rebuild imported trips from your residence history"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-sm font-semibold text-passport-ink2 dark:text-white/70 hover:bg-passport-navy/[0.06] dark:hover:bg-white/10 active:scale-[0.98] transition-all"
+          >
+            <RefreshCw size={15} /> Re-evaluate
+          </button>
+        )}
+      </div>
 
       {expeditions.length > 0 && (
-        <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
-          Your trips
+        <h2 className="font-display text-[1.5rem] font-semibold text-passport-navy dark:text-white tracking-tight">
+          All trips
         </h2>
       )}
 
@@ -207,6 +243,26 @@ export function ExpeditionsView({
             />
           ))}
         </div>
+      )}
+
+      {/* Map + stats — reporting, after the content */}
+      {expeditions.length > 0 && (
+        <div className="space-y-3 pt-2">
+          <h2 className="font-display text-[1.5rem] font-semibold text-passport-navy dark:text-white tracking-tight">
+            Your routes
+          </h2>
+          <div className="overflow-hidden rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-2">
+            <Suspense fallback={<MapSkeleton />}>
+              <ExpeditionMap expeditions={expeditions} />
+            </Suspense>
+          </div>
+        </div>
+      )}
+
+      {expeditions.length > 0 && (
+        <Suspense fallback={null}>
+          <TravelStatsPanel expeditions={expeditions} />
+        </Suspense>
       )}
 
       {modal && (
