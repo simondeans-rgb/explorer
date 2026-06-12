@@ -16,8 +16,10 @@ import { useCaptures } from '../hooks/useCaptures';
 import { useSaved } from '../hooks/useSaved';
 import { useTrips, isUpcoming } from '../hooks/useTrips';
 import { createPlace } from '../lib/places';
-import { updateTrip, type TripInput } from '../lib/trips';
+import { updateTrip, deleteTrip, type TripInput } from '../lib/trips';
+import { createExpedition } from '../lib/expeditions';
 import { countryName } from '../data/countries';
+import { daysUntil } from '../hooks/useTrips';
 import type { ItineraryItem } from '../types';
 import { useConnections } from '../hooks/useConnections';
 import { useProfile } from '../hooks/useProfile';
@@ -99,6 +101,29 @@ export function AppShell() {
         ...tripToInput(t),
         itinerary: t.itinerary.filter((i) => i.id !== itemId),
       });
+  }
+  // Turn a trip that's underway/over into a logged journey, carrying the
+  // itinerary into the note, then retire the planned trip.
+  async function convertTripToJourney(tripId: string) {
+    const t = trips.find((x) => x.id === tripId);
+    if (!t || !user?.uid) return;
+    const stops = t.itinerary.map((i) => i.name).filter(Boolean);
+    const note =
+      [t.note, stops.length ? `Planned stops: ${stops.join(', ')}` : '']
+        .filter(Boolean)
+        .join('\n\n') || undefined;
+    await createExpedition(user.uid, {
+      title: t.title,
+      startDate: t.startDate,
+      endDate: t.endDate,
+      countryCodes: [t.countryCode],
+      journeys: [],
+      note,
+    });
+    await deleteTrip(tripId);
+    setActiveTripId(null);
+    setAtlasTab('journeys');
+    setSection('atlas');
   }
 
   // Promote a saved country into a tracked "aspiring" place on the map.
@@ -452,6 +477,11 @@ export function AppShell() {
           <TripDetailModal
             trip={activeTrip}
             friends={friendCountryMap.get(activeTrip.countryCode) ?? []}
+            ownRecs={saved
+              .filter((s) => s.countryCode === activeTrip.countryCode)
+              .map((s) => ({ name: s.name, city: s.city }))}
+            started={daysUntil(activeTrip.startDate) <= 0}
+            onConvert={() => void convertTripToJourney(activeTrip.id)}
             onAddItinerary={(item) => addItinerary(activeTrip.id, item)}
             onRemoveItinerary={(itemId) => removeItinerary(activeTrip.id, itemId)}
             onEdit={() =>
