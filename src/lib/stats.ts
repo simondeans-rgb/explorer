@@ -1,4 +1,6 @@
 import { COUNTRY_BY_CODE } from '../data/countries';
+import { regionsFor } from '../data/regions';
+import { regionForCity } from '../data/regionCities';
 import {
   DISCOVERY_RELATIONSHIPS,
   STAMP_FOR_RELATIONSHIP,
@@ -20,6 +22,9 @@ export interface CountryAggregate {
   stamps: StampKind[];
   cities: Place[];
   regions: Place[];
+  /** Region names auto-detected from the cities you've been to (e.g. visiting
+   *  Edinburgh implies Scotland). Display + counting only — not persisted. */
+  autoRegions: string[];
   countryPlace?: Place;
   note?: string;
   firstYear?: number;
@@ -104,6 +109,22 @@ export function aggregateByCountry(places: Place[]): CountryAggregate[] {
       .map((p) => p.firstYear)
       .filter((y): y is number => typeof y === 'number');
 
+    // Infer regions from the cities you've actually been to. Skip any that are
+    // already recorded explicitly so we don't double-count.
+    const explicitRegionNames = new Set(
+      regions.map((r) => r.name.toLowerCase()),
+    );
+    const regionNameByCode = new Map(
+      regionsFor(code).map((r) => [r.code, r.name]),
+    );
+    const autoRegionSet = new Set<string>();
+    for (const c of discoveredCities) {
+      const rc = regionForCity(code, c.name);
+      const rn = rc ? regionNameByCode.get(rc) : undefined;
+      if (rn && !explicitRegionNames.has(rn.toLowerCase())) autoRegionSet.add(rn);
+    }
+    const autoRegions = [...autoRegionSet];
+
     aggregates.push({
       code,
       name: countryPlace?.name || meta?.name || code,
@@ -112,6 +133,7 @@ export function aggregateByCountry(places: Place[]): CountryAggregate[] {
       stamps,
       cities,
       regions,
+      autoRegions,
       countryPlace,
       note,
       firstYear: years.length ? Math.min(...years) : undefined,
@@ -152,9 +174,13 @@ export function computeStats(aggregates: CountryAggregate[]): PassportStats {
     citiesDiscovered += a.cities.filter((c) =>
       c.relationships.some((r) => r !== 'aspiring'),
     ).length;
-    regionsDiscovered += a.regions.filter((r) =>
-      r.relationships.some((x) => x !== 'aspiring'),
-    ).length;
+    {
+      const names = new Set<string>(a.autoRegions);
+      for (const r of a.regions) {
+        if (r.relationships.some((x) => x !== 'aspiring')) names.add(r.name);
+      }
+      regionsDiscovered += names.size;
+    }
     totalStamps += a.stamps.length;
     scoreSum += a.discoveryScore;
   }

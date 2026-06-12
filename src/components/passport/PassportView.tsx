@@ -15,6 +15,7 @@ import {
   Map as MapIcon,
   MapPin,
   Plus,
+  Sparkles,
   Users,
 } from 'lucide-react';
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
@@ -1173,7 +1174,9 @@ function CountryCard({
         </p>
       )}
 
-      {(agg.regions.length > 0 || hasRegions(agg.code)) && (
+      {(agg.regions.length > 0 ||
+        agg.autoRegions.length > 0 ||
+        hasRegions(agg.code)) && (
         <div className="mt-4 flex flex-wrap items-center gap-1.5">
           {agg.regions.map((rg) => (
             <button
@@ -1185,6 +1188,16 @@ function CountryCard({
               <MapIcon size={11} className="text-lavender" />
               {rg.name}
             </button>
+          ))}
+          {agg.autoRegions.map((rn) => (
+            <span
+              key={`auto-${rn}`}
+              title="Detected from the cities you've been to"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-aqua/12 text-passport-ink2 dark:text-white/70"
+            >
+              <Sparkles size={10} className="text-aqua" />
+              {rn}
+            </span>
           ))}
           <button
             type="button"
