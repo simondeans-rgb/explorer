@@ -463,6 +463,8 @@ export function PassportView({
             onOpenFriends={onOpenFriends}
             hasFriendActivity={friendCountryMap.size > 0}
             onPickPhoto={() => fileRef.current?.click()}
+            firstRun={isEmpty}
+            onStart={() => setModal({ kind: 'country' })}
           />
         </>
       )}

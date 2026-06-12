@@ -15,6 +15,7 @@ export function DestinationImage({
   rounded = '',
   children,
   scrim = false,
+  motion = false,
 }: {
   code: string;
   /** Deprecated — images are bundled at a fixed size; kept for call-site compat. */
@@ -23,6 +24,8 @@ export function DestinationImage({
   rounded?: string;
   children?: React.ReactNode;
   scrim?: boolean;
+  /** Slow Ken Burns drift on the photo (respects prefers-reduced-motion). */
+  motion?: boolean;
 }) {
   const { photo, gradient } = destinationImage(code);
   const [loaded, setLoaded] = useState(false);
@@ -59,6 +62,7 @@ export function DestinationImage({
           className={cn(
             'vivid-photo absolute inset-0 h-full w-full object-cover transition-opacity duration-700',
             loaded ? 'opacity-100' : 'opacity-0',
+            motion && 'ken-burns',
           )}
         />
       )}
