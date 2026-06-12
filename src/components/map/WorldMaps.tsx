@@ -13,6 +13,7 @@ import {
   MAP_FILL_UNVISITED_DARK,
   MAP_FILL_UNVISITED_LIGHT,
   MAP_FILL_VISITED,
+  MAP_FILL_WISHLIST,
   MAP_STROKE_DARK,
   MAP_STROKE_LIGHT,
   worldTopology,
@@ -31,9 +32,11 @@ const PROJECTION_CONFIG = { scale: 150, center: [10, 8] as [number, number] };
 
 function WorldMapCanvas({
   isVisited,
+  isWishlist,
   children,
 }: {
   isVisited: (alpha2: string | undefined) => boolean;
+  isWishlist?: (alpha2: string | undefined) => boolean;
   children?: ReactNode;
 }) {
   const { theme } = useTheme();
@@ -56,7 +59,11 @@ function WorldMapCanvas({
               const code = geoAlpha2(
                 (geo.properties as { name?: string }).name,
               );
-              const fill = isVisited(code) ? MAP_FILL_VISITED : unvisited;
+              const fill = isVisited(code)
+                ? MAP_FILL_VISITED
+                : isWishlist?.(code)
+                  ? MAP_FILL_WISHLIST
+                  : unvisited;
               return (
                 <Geography
                   key={geo.rsmKey}
@@ -133,20 +140,38 @@ function ScopeChips({
   );
 }
 
-function Legend({ count }: { count: number }) {
+function Legend({ count, wishlist = 0 }: { count: number; wishlist?: number }) {
   return (
-    <div className="flex items-center gap-2 text-[11px] text-passport-ink3 dark:text-white/45">
-      <span
-        className="inline-block h-3 w-3 rounded-sm"
-        style={{ background: MAP_FILL_VISITED }}
-      />
-      {count} {count === 1 ? 'country' : 'countries'}
+    <div className="flex items-center gap-3 text-[11px] text-passport-ink3 dark:text-white/45">
+      <span className="flex items-center gap-1.5">
+        <span
+          className="inline-block h-3 w-3 rounded-sm"
+          style={{ background: MAP_FILL_VISITED }}
+        />
+        {count} {count === 1 ? 'country' : 'countries'}
+      </span>
+      {wishlist > 0 && (
+        <span className="flex items-center gap-1.5">
+          <span
+            className="inline-block h-3 w-3 rounded-sm"
+            style={{ background: MAP_FILL_WISHLIST }}
+          />
+          {wishlist} wishlist
+        </span>
+      )}
     </div>
   );
 }
 
 // ── Passport map — countries coloured by where you've been ─────────────────
-export function PassportMap({ aggregates }: { aggregates: CountryAggregate[] }) {
+export function PassportMap({
+  aggregates,
+  wishlistCodes,
+}: {
+  aggregates: CountryAggregate[];
+  /** Saved/wishlist country codes — shaded a paler coral as "still to come". */
+  wishlistCodes?: Set<string>;
+}) {
   const [scope, setScope] = useState<'all' | number>('all');
 
   const discovered = useMemo(
@@ -194,19 +219,30 @@ export function PassportMap({ aggregates }: { aggregates: CountryAggregate[] }) 
     return [...out.values()];
   }, [discovered, scope]);
 
-  if (discovered.length === 0) return null;
+  // Saved countries you haven't been to yet — your "still to come" wishlist.
+  const wishlist = useMemo(() => {
+    if (!wishlistCodes || scope !== 'all') return new Set<string>();
+    const out = new Set<string>();
+    for (const c of wishlistCodes) if (!current.has(c)) out.add(c);
+    return out;
+  }, [wishlistCodes, current, scope]);
+
+  if (discovered.length === 0 && wishlist.size === 0) return null;
 
   return (
     <div className="space-y-2.5">
       <ScopeChips scope={scope} years={years} onChange={setScope} />
-      <WorldMapCanvas isVisited={(c) => !!c && current.has(c)}>
+      <WorldMapCanvas
+        isVisited={(c) => !!c && current.has(c)}
+        isWishlist={(c) => !!c && wishlist.has(c)}
+      >
         {markers.map((c, i) => (
           <Marker key={i} coordinates={c}>
             <circle r={2.4} fill="#FF6A55" stroke="#FFFFFF" strokeWidth={0.6} />
           </Marker>
         ))}
       </WorldMapCanvas>
-      <Legend count={current.size} />
+      <Legend count={current.size} wishlist={wishlist.size} />
     </div>
   );
 }

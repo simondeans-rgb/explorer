@@ -1,4 +1,5 @@
 import {
+  Bookmark,
   ChevronRight,
   Globe2,
   LogOut,
@@ -26,6 +27,8 @@ import { ExplorerLevelCard } from './ExplorerLevelCard';
 interface Props {
   userId: string;
   friendCount: number;
+  savedCount: number;
+  onOpenSaved: () => void;
   stats: PassportStats;
   discoveryStats: DiscoveryStats;
   journeyStats: JourneyStats;
@@ -37,6 +40,8 @@ interface Props {
 export function ProfileView({
   userId,
   friendCount,
+  savedCount,
+  onOpenSaved,
   stats,
   discoveryStats,
   journeyStats,
@@ -116,6 +121,17 @@ export function ProfileView({
           }
           badge="from-rose-400 to-pink-500"
           onClick={onOpenFriends}
+        />
+        <HubCard
+          icon={Bookmark}
+          title="Saved & wishlist"
+          subtitle={
+            savedCount > 0
+              ? `${savedCount} bookmarked · places & memories to revisit`
+              : 'Bookmark places and memories to keep'
+          }
+          badge="from-coral to-sunburst"
+          onClick={onOpenSaved}
         />
         <HubCard
           icon={ScrollText}

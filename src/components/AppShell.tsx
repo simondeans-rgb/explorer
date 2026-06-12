@@ -29,6 +29,7 @@ import { AtlasView } from './atlas/AtlasView';
 import { AlmanacView } from './almanac/AlmanacView';
 import { DiscoveriesView } from './discoveries/DiscoveriesView';
 import { FriendsView } from './friends/FriendsView';
+import { SavedView } from './saved/SavedView';
 import { ProfileView } from './profile/ProfileView';
 import { WelcomeModal, type WelcomeChoice } from './WelcomeModal';
 import { QuickAddSheet } from './QuickAddSheet';
@@ -43,6 +44,7 @@ type Section =
   | 'discoveries'
   | 'friends'
   | 'almanac'
+  | 'saved'
   | 'profile';
 
 // The four bottom-nav tabs (a center "+" FAB sits between the middle two).
@@ -207,7 +209,9 @@ export function AppShell() {
       ? 'Friends'
       : section === 'almanac'
         ? 'Almanac'
-        : null;
+        : section === 'saved'
+          ? 'Saved'
+          : null;
 
   return (
     <div className="passport-bg fixed inset-0 flex flex-col">
@@ -273,6 +277,7 @@ export function AppShell() {
               stats={stats}
               discoveryStats={discoveryStats}
               friendCountryMap={friendCountryMap}
+              saved={saved}
               initialTab={atlasTab}
               openImport={openImport}
               onImportConsumed={() => setOpenImport(null)}
@@ -327,10 +332,26 @@ export function AppShell() {
               memberName={myName}
             />
           )}
+          {section === 'saved' && (
+            <SavedView
+              saved={saved}
+              onRemove={(item) =>
+                toggleSaved({
+                  key: item.key,
+                  kind: item.kind,
+                  name: item.name,
+                  countryCode: item.countryCode,
+                  city: item.city,
+                })
+              }
+            />
+          )}
           {section === 'profile' && (
             <ProfileView
               userId={user?.uid ?? ''}
               friendCount={friends.length}
+              savedCount={saved.length}
+              onOpenSaved={() => setSection('saved')}
               stats={stats}
               discoveryStats={discoveryStats}
               journeyStats={journeyStats}

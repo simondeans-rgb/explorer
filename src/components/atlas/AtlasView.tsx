@@ -4,6 +4,7 @@ import type { CountryAggregate, PassportStats } from '../../lib/stats';
 import type { DiscoveryStats } from '../../lib/discoveryStats';
 import type { Discovery, Expedition, Place } from '../../types';
 import type { FriendPresence } from '../../lib/friends';
+import type { SavedItem } from '../../lib/saved';
 import { cn } from '../../lib/cn';
 import { PassportView } from '../passport/PassportView';
 import { ExpeditionsView } from '../expeditions/ExpeditionsView';
@@ -19,6 +20,8 @@ interface Props {
   stats: PassportStats;
   discoveryStats: DiscoveryStats;
   friendCountryMap: Map<string, FriendPresence[]>;
+  /** Saved bookmarks — surfaced as wishlist shading on the Atlas map. */
+  saved?: SavedItem[];
   // Passport (Places) one-shot flags
   openImport?: 'countries' | 'photos' | null;
   onImportConsumed?: () => void;
@@ -94,6 +97,7 @@ export function AtlasView(props: Props) {
           discoveryStats={props.discoveryStats}
           expeditionCount={props.expeditions.length}
           friendCountryMap={props.friendCountryMap}
+          saved={props.saved}
           openImport={props.openImport}
           onImportConsumed={props.onImportConsumed}
           focusPlace={props.focusPlace}
