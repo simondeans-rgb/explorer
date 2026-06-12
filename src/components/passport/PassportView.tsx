@@ -93,6 +93,8 @@ interface Props {
   saved?: SavedItem[];
   isSaved?: (key: string) => boolean;
   onToggleSaved?: (input: SavedInput) => void;
+  /** Promote a saved country into a tracked aspiring place (Atlas). */
+  onAddAspiring?: (code: string) => void;
   /** 'story' = content-first Home (default); 'atlas' = the collection surface
    *  (map, country cards, wishlist, stats) hosted inside the Atlas tab. */
   mode?: 'story' | 'atlas';
@@ -169,6 +171,7 @@ export function PassportView({
   saved = [],
   isSaved,
   onToggleSaved,
+  onAddAspiring,
   mode = 'story',
   openImport,
   onImportConsumed,
@@ -311,6 +314,21 @@ export function PassportView({
       ),
     [saved],
   );
+
+  // Saved countries that aren't yet on the map — offer to add them as a tracked
+  // aspiring goal (Atlas only).
+  const savedToTrack = useMemo(() => {
+    const have = new Set(aggregates.map((a) => a.code));
+    const seen = new Set<string>();
+    const out: { code: string; name: string }[] = [];
+    for (const s of saved) {
+      const code = s.countryCode;
+      if (!code || have.has(code) || seen.has(code)) continue;
+      seen.add(code);
+      out.push({ code, name: countryName(code) });
+    }
+    return out;
+  }, [saved, aggregates]);
 
   // A single featured friend recommendation for the highlights row.
   const friendRec = useMemo<FriendRec | undefined>(() => {
@@ -679,22 +697,47 @@ export function PassportView({
         </div>
       )}
 
-      {atlas && aspiring.length > 0 && (
+      {atlas && (aspiring.length > 0 || savedToTrack.length > 0) && (
         <div className="space-y-3">
           <SectionHeading>Wishlist</SectionHeading>
-          <div className="flex flex-wrap gap-2">
-            {aspiring.map((a) => (
-              <button
-                key={a.code}
-                type="button"
-                onClick={() => editCountry(a)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium bg-white dark:bg-passport-carddark shadow-card text-passport-ink2 dark:text-white/75 hover:shadow-card-hover active:scale-[0.98] transition-all"
-              >
-                <span className="text-base leading-none">{flagEmoji(a.code)}</span>
-                {a.name}
-              </button>
-            ))}
-          </div>
+
+          {aspiring.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {aspiring.map((a) => (
+                <button
+                  key={a.code}
+                  type="button"
+                  onClick={() => editCountry(a)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium bg-white dark:bg-passport-carddark shadow-card text-passport-ink2 dark:text-white/75 hover:shadow-card-hover active:scale-[0.98] transition-all"
+                >
+                  <span className="text-base leading-none">{flagEmoji(a.code)}</span>
+                  {a.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {savedToTrack.length > 0 && onAddAspiring && (
+            <div className="rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-4">
+              <p className="text-xs font-semibold text-passport-ink3 mb-2.5">
+                From your saved — add to your map as a goal
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {savedToTrack.map((s) => (
+                  <button
+                    key={s.code}
+                    type="button"
+                    onClick={() => onAddAspiring(s.code)}
+                    className="inline-flex items-center gap-1.5 pl-3 pr-3.5 py-2 rounded-full text-sm font-medium bg-passport-goldpale dark:bg-white/10 text-passport-navy dark:text-white/85 hover:shadow-card active:scale-[0.98] transition-all"
+                  >
+                    <Plus size={14} className="text-coral" />
+                    <span className="text-base leading-none">{flagEmoji(s.code)}</span>
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {aspiring
             .filter((a) => (friendCountryMap.get(a.code)?.length ?? 0) > 0)

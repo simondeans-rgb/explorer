@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { Compass, Globe2, MapPinned, Plus } from 'lucide-react';
+import { Compass, Globe2, Heart, MapPinned, Plus } from 'lucide-react';
+import type { SavedInput } from '../../lib/saved';
 import { countryName } from '../../data/countries';
 import { flagEmoji } from '../../lib/flags';
 import {
@@ -31,6 +32,8 @@ interface Props {
   friendDiscoveries: Discovery[];
   onAddTrip: (code: string) => void;
   onGoToPlace: (countryCode: string, city?: string) => void;
+  isSaved?: (key: string) => boolean;
+  onToggleSaved?: (input: SavedInput) => void;
   openAdd?: boolean;
   onAddConsumed?: () => void;
   loading: boolean;
@@ -47,6 +50,8 @@ export function DiscoveriesView({
   friendDiscoveries,
   onAddTrip,
   onGoToPlace,
+  isSaved,
+  onToggleSaved,
   openAdd,
   onAddConsumed,
   loading,
@@ -210,6 +215,19 @@ export function DiscoveriesView({
                   <DiscoveryCard
                     key={d.id}
                     discovery={d}
+                    saved={isSaved?.(`discovery:${d.id}`) ?? false}
+                    onToggleSaved={
+                      onToggleSaved
+                        ? () =>
+                            onToggleSaved({
+                              key: `discovery:${d.id}`,
+                              kind: 'discovery',
+                              name: d.name,
+                              countryCode: d.countryCode,
+                              city: d.city,
+                            })
+                        : undefined
+                    }
                     expeditionTitle={
                       d.expeditionId
                         ? expeditionTitle.get(d.expeditionId)
@@ -280,11 +298,15 @@ function FilterChip({
 
 function DiscoveryCard({
   discovery: d,
+  saved = false,
+  onToggleSaved,
   expeditionTitle,
   onEdit,
   onGoToPlace,
 }: {
   discovery: Discovery;
+  saved?: boolean;
+  onToggleSaved?: () => void;
   expeditionTitle?: string;
   onEdit: () => void;
   onGoToPlace: (countryCode: string, city?: string) => void;
@@ -315,16 +337,35 @@ function DiscoveryCard({
             <div className="font-display text-lg font-semibold text-passport-navy dark:text-white/90 leading-tight">
               {d.name}
             </div>
-            {d.verdict && (
-              <span
-                className={cn(
-                  'shrink-0 px-2.5 py-0.5 rounded-full text-[11px] border',
-                  VERDICT_STYLE[d.verdict].chip,
-                )}
-              >
-                {VERDICT_META[d.verdict].label}
-              </span>
-            )}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {d.verdict && (
+                <span
+                  className={cn(
+                    'px-2.5 py-0.5 rounded-full text-[11px] border',
+                    VERDICT_STYLE[d.verdict].chip,
+                  )}
+                >
+                  {VERDICT_META[d.verdict].label}
+                </span>
+              )}
+              {onToggleSaved && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleSaved();
+                  }}
+                  aria-label={saved ? 'Saved' : 'Save'}
+                  aria-pressed={saved}
+                  className="h-8 w-8 -mr-1 -mt-0.5 grid place-items-center rounded-full text-passport-ink3 hover:bg-black/5 dark:hover:bg-white/10 active:scale-90 transition-all"
+                >
+                  <Heart
+                    size={16}
+                    className={cn(saved && 'fill-coral text-coral')}
+                  />
+                </button>
+              )}
+            </div>
           </div>
           {d.countryCode ? (
             <button

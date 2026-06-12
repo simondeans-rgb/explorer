@@ -22,6 +22,8 @@ interface Props {
   friendCountryMap: Map<string, FriendPresence[]>;
   /** Saved bookmarks — surfaced as wishlist shading on the Atlas map. */
   saved?: SavedItem[];
+  /** Promote a saved country into a tracked aspiring place. */
+  onAddAspiring?: (code: string) => void;
   // Passport (Places) one-shot flags
   openImport?: 'countries' | 'photos' | null;
   onImportConsumed?: () => void;
@@ -98,6 +100,7 @@ export function AtlasView(props: Props) {
           expeditionCount={props.expeditions.length}
           friendCountryMap={props.friendCountryMap}
           saved={props.saved}
+          onAddAspiring={props.onAddAspiring}
           openImport={props.openImport}
           onImportConsumed={props.onImportConsumed}
           focusPlace={props.focusPlace}
