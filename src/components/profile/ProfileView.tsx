@@ -6,6 +6,7 @@ import {
   type LucideIcon,
   Moon,
   ScrollText,
+  Sparkles,
   Sun,
   Users,
 } from 'lucide-react';
@@ -29,6 +30,7 @@ interface Props {
   friendCount: number;
   savedCount: number;
   onOpenSaved: () => void;
+  onOpenReview: () => void;
   stats: PassportStats;
   discoveryStats: DiscoveryStats;
   journeyStats: JourneyStats;
@@ -42,6 +44,7 @@ export function ProfileView({
   friendCount,
   savedCount,
   onOpenSaved,
+  onOpenReview,
   stats,
   discoveryStats,
   journeyStats,
@@ -121,6 +124,13 @@ export function ProfileView({
           }
           badge="from-rose-400 to-pink-500"
           onClick={onOpenFriends}
+        />
+        <HubCard
+          icon={Sparkles}
+          title="Year in Review"
+          subtitle="Your travel recap — beautiful & shareable"
+          badge="from-amber-400 to-orange-500"
+          onClick={onOpenReview}
         />
         <HubCard
           icon={Bookmark}
