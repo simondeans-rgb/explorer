@@ -301,6 +301,17 @@ export function PassportView({
     [storyCards, discovered],
   );
 
+  // Saved countries → wishlist shading on the map.
+  const wishlistCodes = useMemo(
+    () =>
+      new Set(
+        saved
+          .map((s) => s.countryCode)
+          .filter((c): c is string => !!c),
+      ),
+    [saved],
+  );
+
   // A single featured friend recommendation for the highlights row.
   const friendRec = useMemo<FriendRec | undefined>(() => {
     for (const [code, presences] of friendCountryMap) {
@@ -624,7 +635,7 @@ export function PassportView({
             className="block w-full overflow-hidden rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-2 text-left"
           >
             <Suspense fallback={<MapSkeleton />}>
-              <PassportMap aggregates={aggregates} />
+              <PassportMap aggregates={aggregates} wishlistCodes={wishlistCodes} />
             </Suspense>
           </button>
         </div>

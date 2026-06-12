@@ -76,6 +76,7 @@ export const centroidByAlpha2: Record<string, [number, number]> = {};
 
 /** Worldly map palette — sunset coral for visited, soft neutral land. */
 export const MAP_FILL_VISITED = '#FF7A66'; // Sunset coral
+export const MAP_FILL_WISHLIST = '#FFC7BD'; // pale coral — saved / wishlist
 export const MAP_FILL_UNVISITED_LIGHT = '#ECEEF6'; // soft cool grey land
 export const MAP_FILL_UNVISITED_DARK = '#222637';
 export const MAP_STROKE_LIGHT = '#FFFFFF';
