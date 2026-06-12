@@ -86,7 +86,7 @@ export function CountryPicker({
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search countries"
-              className="w-full bg-transparent outline-none text-sm"
+              className="w-full bg-transparent outline-none text-base"
             />
           </div>
           <ul className="max-h-56 overflow-y-auto no-scrollbar py-1">

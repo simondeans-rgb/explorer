@@ -81,7 +81,7 @@ export function ExploreView({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search countries…"
-          className="w-full pl-11 pr-3 py-3.5 rounded-2xl text-sm bg-white dark:bg-passport-carddark shadow-card focus:outline-none focus:ring-2 focus:ring-coral/40 text-passport-ink dark:text-white/85 placeholder:text-passport-ink3"
+          className="w-full pl-11 pr-3 py-3.5 rounded-2xl text-base bg-white dark:bg-passport-carddark shadow-card focus:outline-none focus:ring-2 focus:ring-coral/40 text-passport-ink dark:text-white/85 placeholder:text-passport-ink3"
         />
       </div>
 
