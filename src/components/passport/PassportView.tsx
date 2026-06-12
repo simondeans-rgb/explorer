@@ -28,7 +28,6 @@ import { useProfilePhoto } from '../../hooks/useProfilePhoto';
 import { COUNTRIES, countryName } from '../../data/countries';
 import { hasRegions } from '../../data/regions';
 import {
-  JOURNEY_MODE_META,
   RELATIONSHIP_META,
   VERDICT_META,
   type Capture,
@@ -43,10 +42,12 @@ import { memberName } from '../../lib/memberName';
 import { cn } from '../../lib/cn';
 import { VERDICT_STYLE } from '../discoveries/verdictStyle';
 import { DestinationImage } from '../DestinationImage';
-import { WorldlyMark } from '../Brand';
-import { StoryHero } from './StoryHero';
 import { CapturesRail, CapturesEmptyCta } from '../captures/CapturesRail';
 import { buildHomeStory } from '../../lib/homeStory';
+import { StoryHeader } from './story/StoryHeader';
+import { ContinueJourneyRail } from './story/ContinueJourneyRail';
+import { HighlightsRow, type FriendRec } from './story/HighlightsRow';
+import { LatestMemoryCard, type LatestMemory } from './story/LatestMemoryCard';
 import { CATEGORY_ICON } from '../discoveries/categoryIcons';
 import {
   AddDiscoveryModal,
@@ -72,7 +73,6 @@ const PassportMap = lazy(() =>
 import { DiscoveryRing } from './DiscoveryRing';
 import { Stamp } from './Stamp';
 import { RELATIONSHIP_ICON } from './relationshipIcons';
-import { JOURNEY_ICON } from '../expeditions/journeyIcons';
 
 interface Props {
   userId: string;
@@ -103,6 +103,8 @@ interface Props {
   onExplore?: () => void;
   onOpenJourneys?: () => void;
   onOpenAtlas?: () => void;
+  onOpenFriends?: () => void;
+  onOpenProfile?: () => void;
   loading: boolean;
 }
 
@@ -168,6 +170,8 @@ export function PassportView({
   onExplore,
   onOpenJourneys,
   onOpenAtlas,
+  onOpenFriends,
+  onOpenProfile,
   loading,
 }: Props) {
   const atlas = mode === 'atlas';
@@ -282,12 +286,70 @@ export function PassportView({
     [discoveries],
   );
 
-  function openStory(card: { kind: string; code: string }) {
-    if (card.kind === 'current' || card.kind === 'last') onOpenJourneys?.();
-    else if (card.kind === 'friend') onExplore?.();
-    else if (card.kind === 'welcome') setModal({ kind: 'country' });
-    else if (card.code) goToPlaceFocus(card.code);
-  }
+  // The hero image: the most emotionally relevant place we have a picture for.
+  const heroCode = useMemo(
+    () => storyCards.find((c) => c.code)?.code || discovered[0]?.code || '',
+    [storyCards, discovered],
+  );
+
+  // A single featured friend recommendation for the highlights row.
+  const friendRec = useMemo<FriendRec | undefined>(() => {
+    for (const [code, presences] of friendCountryMap) {
+      for (const p of presences) {
+        const rec =
+          p.discoveries.find((d) => d.verdict === 'recommend') ??
+          p.discoveries.find((d) => d.verdict === 'hidden-gem') ??
+          p.discoveries[0];
+        if (rec) return { code, friend: p.name, name: rec.name };
+      }
+    }
+    return undefined;
+  }, [friendCountryMap]);
+
+  // The latest memory card — newest capture, else a heartfelt discovery, else
+  // the most recent journey.
+  const latestMemory = useMemo<LatestMemory | undefined>(() => {
+    const shortDate = (ms: number) =>
+      new Date(ms).toLocaleDateString(undefined, {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    const cap = captures[0];
+    if (cap) {
+      const place = [cap.city, cap.countryCode ? countryName(cap.countryCode) : null]
+        .filter(Boolean)
+        .join(', ');
+      return {
+        image: cap.dataUrl,
+        code: cap.countryCode ?? '',
+        title: cap.caption || 'A moment worth keeping',
+        place: place || undefined,
+        dateLabel: shortDate(cap.createdAt),
+        eyebrow: 'Your latest capture',
+      };
+    }
+    const mem = storyCards.find((c) => c.kind === 'memory');
+    if (mem) {
+      return {
+        code: mem.code,
+        title: mem.title,
+        place: mem.subtitle,
+        eyebrow: 'A memory worth keeping',
+      };
+    }
+    const trip = storyCards.find((c) => c.kind === 'last' || c.kind === 'current');
+    if (trip) {
+      return {
+        code: trip.code,
+        title: trip.title,
+        place: trip.subtitle,
+        dateLabel: trip.meta,
+        eyebrow: trip.eyebrow,
+      };
+    }
+    return undefined;
+  }, [captures, storyCards]);
   function goToPlaceFocus(code: string) {
     const a = discovered.find((d) => d.code === code);
     if (a) {
@@ -370,51 +432,26 @@ export function PassportView({
 
   return (
     <div className="animate-fade-in -mt-1 space-y-9">
-      {/* ── Story: the opening, content-first experience ──────────────── */}
+      {/* ── Story: a warm, personal opening that asks "what's next?" ───── */}
       {!atlas && (
-        <div>
-          {/* Fixed-height brand bar — sits in its own space above the hero,
-              never overlapping the imagery. */}
-          <div className="flex items-center justify-between px-1 pt-[max(0.5rem,env(safe-area-inset-top))] pb-4">
-            <div className="flex items-center gap-2">
-              <WorldlyMark size={26} />
-              <span className="font-display text-lg font-semibold text-passport-navy dark:text-white">
-                worldly
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span
-                className="rounded-full bg-white dark:bg-white/10 px-2.5 py-1 text-xs font-semibold text-passport-navy dark:text-white shadow-card"
-                title={`${explorerLevel.title} · ${explorerLevel.xp.toLocaleString()} XP`}
-              >
-                Lvl {explorerLevel.level}
-              </span>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFile}
-              />
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                aria-label={photo ? 'Change photo' : 'Add photo'}
-                className="relative h-9 w-9 overflow-hidden rounded-full ring-2 ring-white shadow-card grid place-items-center bg-brand-gradient"
-              >
-                {photo ? (
-                  <img src={photo} alt="You" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-sm font-bold text-white">
-                    {memberName(user?.email ?? '')[0]?.toUpperCase() ?? 'E'}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-
-          <StoryHero cards={storyCards} onOpen={openStory} />
-        </div>
+        <>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFile}
+          />
+          <StoryHeader
+            name={memberName(user?.email ?? '')}
+            photo={photo ?? null}
+            heroCode={heroCode}
+            onSearch={() => onExplore?.()}
+            onOpenFriends={onOpenFriends}
+            hasFriendActivity={friendCountryMap.size > 0}
+            onPickPhoto={() => fileRef.current?.click()}
+          />
+        </>
       )}
 
       {isEmpty && (
@@ -424,11 +461,34 @@ export function PassportView({
         />
       )}
 
-      {/* ── Recent journeys (collectible memory cards) ────────────────── */}
+      {/* ── Continue your journey (real progress from trip dates) ─────── */}
       {!atlas && expeditions.length > 0 && (
-        <RecentJourneys
+        <ContinueJourneyRail
           expeditions={expeditions}
-          onViewAll={() => onOpenJourneys?.()}
+          onOpen={() => onOpenJourneys?.()}
+        />
+      )}
+
+      {/* ── Milestone + a friend's recommendation ─────────────────────── */}
+      {!atlas && !isEmpty && (
+        <HighlightsRow
+          level={explorerLevel}
+          onOpenProfile={() => onOpenProfile?.()}
+          friendRec={friendRec}
+          onOpenFriendRec={() => onExplore?.()}
+          onInviteFriends={() => onOpenFriends?.()}
+        />
+      )}
+
+      {/* ── Latest memory ─────────────────────────────────────────────── */}
+      {!atlas && latestMemory && (
+        <LatestMemoryCard
+          memory={latestMemory}
+          onOpen={
+            latestMemory.code
+              ? () => goToPlaceFocus(latestMemory.code)
+              : undefined
+          }
         />
       )}
 
@@ -643,87 +703,6 @@ function SectionHeading({
         {children}
       </h2>
       {action}
-    </div>
-  );
-}
-
-function RecentJourneys({
-  expeditions,
-  onViewAll,
-}: {
-  expeditions: Expedition[];
-  onViewAll: () => void;
-}) {
-  const recent = [...expeditions]
-    .sort((a, b) => (b.startDate ?? '').localeCompare(a.startDate ?? ''))
-    .slice(0, 6);
-  const monthYear = (iso?: string) => {
-    if (!iso) return '';
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime())
-      ? ''
-      : d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
-  };
-  return (
-    <div className="space-y-3">
-      <div className="flex items-end justify-between">
-        <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
-          Recent journeys
-        </h2>
-        <button
-          type="button"
-          onClick={onViewAll}
-          className="text-sm font-semibold text-passport-gold hover:underline inline-flex items-center gap-0.5"
-        >
-          View all <ChevronRight size={15} />
-        </button>
-      </div>
-      <div className="flex gap-3.5 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
-        {recent.map((e) => {
-          const code = e.countryCodes[0];
-          const mode = e.journeys[0]?.mode;
-          const ModeIcon = mode ? JOURNEY_ICON[mode] : null;
-          return (
-            <button
-              key={e.id}
-              type="button"
-              onClick={onViewAll}
-              className="shrink-0 w-[164px] rounded-[1.75rem] overflow-hidden shadow-float active:scale-[0.98] transition-transform"
-            >
-              <DestinationImage
-                code={code ?? ''}
-                width={400}
-                className="h-56 flex flex-col text-white"
-                scrim
-              >
-                {/* journey-type chip */}
-                {ModeIcon && (
-                  <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full glass px-2.5 py-1 text-[10px] font-semibold text-white">
-                    <ModeIcon size={12} />
-                    {JOURNEY_MODE_META[mode!].label}
-                  </div>
-                )}
-                {/* country flag badge */}
-                {code && (
-                  <div className="absolute right-3 top-3 text-lg leading-none drop-shadow">
-                    {flagEmoji(code)}
-                  </div>
-                )}
-                <div className="mt-auto p-3.5">
-                  <div className="font-display text-lg font-semibold leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)] line-clamp-2">
-                    {e.title}
-                  </div>
-                  {monthYear(e.startDate) && (
-                    <div className="text-[11px] font-medium text-white/85 mt-1">
-                      {monthYear(e.startDate)}
-                    </div>
-                  )}
-                </div>
-              </DestinationImage>
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }

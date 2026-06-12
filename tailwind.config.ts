@@ -29,6 +29,8 @@ const config: Config = {
           "serif",
         ],
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+        // Handwritten accent — for warm, personal script flourishes.
+        script: ["Caveat", "Brush Script MT", "cursive"],
       },
       colors: {
         // Named accent palette (the Worldly brand spectrum).
