@@ -12,7 +12,12 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import * as local from './localTrips';
-import type { ItineraryItem, RecommendationVerdict, Trip } from '../types';
+import type {
+  DiscoveryCategory,
+  ItineraryItem,
+  RecommendationVerdict,
+  Trip,
+} from '../types';
 
 const COLLECTION = 'trips';
 
@@ -28,6 +33,7 @@ function readItinerary(raw: unknown): ItineraryItem[] {
       id: String(o.id ?? Math.random().toString(36).slice(2)),
       name: String(o.name ?? ''),
       city: (o.city as string) || undefined,
+      category: (o.category as DiscoveryCategory) || undefined,
       fromFriend: (o.fromFriend as string) || undefined,
       verdict: (o.verdict as RecommendationVerdict) || undefined,
     } satisfies ItineraryItem;
@@ -40,6 +46,7 @@ function itineraryToDoc(items: ItineraryItem[]) {
     id: i.id,
     name: i.name.trim(),
     city: i.city?.trim() || null,
+    category: i.category || null,
     fromFriend: i.fromFriend || null,
     verdict: i.verdict || null,
   }));
