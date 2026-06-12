@@ -253,6 +253,8 @@ export function AppShell() {
                 setAtlasTab('places');
                 setSection('atlas');
               }}
+              onOpenFriends={() => setSection('friends')}
+              onOpenProfile={() => setSection('profile')}
               loading={loading}
             />
           )}
