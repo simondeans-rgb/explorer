@@ -57,6 +57,10 @@ export function ProfileView({
   const { photo } = useProfilePhoto(userId || undefined);
   const name = memberName(user?.email ?? '');
 
+  const hasTravel =
+    stats.countriesDiscovered > 0 ||
+    discoveryStats.total > 0 ||
+    journeyStats.total > 0;
   const level = computeExplorerLevel(stats, discoveryStats, journeyStats);
   const badges = computeBadges({
     stats,
@@ -125,13 +129,15 @@ export function ProfileView({
           badge="from-rose-400 to-pink-500"
           onClick={onOpenFriends}
         />
-        <HubCard
-          icon={Sparkles}
-          title="Year in Review"
-          subtitle="Your travel recap — beautiful & shareable"
-          badge="from-amber-400 to-orange-500"
-          onClick={onOpenReview}
-        />
+        {hasTravel && (
+          <HubCard
+            icon={Sparkles}
+            title="Year in Review"
+            subtitle="Your travel recap — beautiful & shareable"
+            badge="from-amber-400 to-orange-500"
+            onClick={onOpenReview}
+          />
+        )}
         <HubCard
           icon={Bookmark}
           title="Saved & wishlist"
