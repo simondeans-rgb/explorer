@@ -53,6 +53,12 @@ service cloud.firestore {
       allow create: if createIsOwner();
     }
 
+    // Saved bookmarks stay private to their owner.
+    match /saved/{savedId} {
+      allow read, update, delete: if isOwner();
+      allow create: if createIsOwner();
+    }
+
     // Member profile, looked up by uid once you're connected. No listing.
     match /profiles/{uid} {
       allow get: if signedIn();
