@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
   Building2,
+  Camera,
   Check,
   ChevronLeft,
   Coins,
@@ -9,6 +10,7 @@ import {
   MapPin,
   Maximize2,
   Plus,
+  RotateCcw,
   Thermometer,
   Users,
   X,
@@ -17,6 +19,9 @@ import { countryName } from '../../data/countries';
 import { countryFacts } from '../../data/countryFacts';
 import { flagEmoji } from '../../lib/flags';
 import { createPlace } from '../../lib/places';
+import { setCover, removeCover } from '../../lib/covers';
+import { useCover } from '../../hooks/useCovers';
+import { fileToCompactJpeg } from '../../lib/imageCompress';
 import {
   friendRecommendationsInCountry,
   discoveryMatchesLandmark,
@@ -69,6 +74,21 @@ export function CountryDetailModal({
   const [drill, setDrill] = useState<FriendInCountry | null>(null);
   const [wishBusy, setWishBusy] = useState(false);
   const [wished, setWished] = useState(false);
+  const coverRef = useRef<HTMLInputElement>(null);
+  const [coverBusy, setCoverBusy] = useState(false);
+  const hasCover = Boolean(useCover(code));
+
+  async function handleCover(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+    setCoverBusy(true);
+    try {
+      const dataUrl = await fileToCompactJpeg(file, 1280, 0.8);
+      await setCover(userId, code, dataUrl);
+    } finally {
+      setCoverBusy(false);
+    }
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -139,14 +159,46 @@ export function CountryDetailModal({
                 {flagEmoji(code)}
               </div>
             )}
-            <button
-              type="button"
-              aria-label="Close"
-              onClick={onClose}
-              className="h-9 w-9 inline-flex items-center justify-center rounded-full glass text-white hover:bg-white/25"
-            >
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-2">
+              {!drill && (
+                <>
+                  <input
+                    ref={coverRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleCover}
+                  />
+                  {hasCover && (
+                    <button
+                      type="button"
+                      aria-label="Reset to standard photo"
+                      onClick={() => userId && removeCover(userId, code)}
+                      className="h-9 w-9 inline-flex items-center justify-center rounded-full glass text-white hover:bg-white/25"
+                    >
+                      <RotateCcw size={16} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    aria-label={hasCover ? 'Change cover photo' : 'Add a cover photo'}
+                    onClick={() => coverRef.current?.click()}
+                    disabled={coverBusy}
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-full glass text-white hover:bg-white/25 disabled:opacity-60"
+                  >
+                    <Camera size={16} />
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={onClose}
+                className="h-9 w-9 inline-flex items-center justify-center rounded-full glass text-white hover:bg-white/25"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
           <div className="mt-auto px-5 pb-5">
             <h2 className="font-display text-2xl font-semibold leading-tight drop-shadow-sm">

@@ -65,6 +65,12 @@ service cloud.firestore {
       allow create: if createIsOwner();
     }
 
+    // Custom country cover photos stay private to their owner.
+    match /covers/{coverId} {
+      allow read, update, delete: if isOwner();
+      allow create: if createIsOwner();
+    }
+
     // Member profile, looked up by uid once you're connected. No listing.
     match /profiles/{uid} {
       allow get: if signedIn();
