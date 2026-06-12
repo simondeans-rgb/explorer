@@ -136,3 +136,4 @@ stated Creative Commons / public-domain licenses. Each entry links its source.
 | YE | Yemen 1982 - Jason's Mate | Gareth1953 All Right Now | by 2.0 | https://www.flickr.com/photos/40837632@N05/4312669161 |
 | ZM | Victoria Falls | jurvetson | by 2.0 | https://www.flickr.com/photos/44124348109@N01/5989696080 |
 | ZW | Lonely Kariba Elephant - Zimbabwe 1993 - Keep the  | Gareth1953 All Right Now | by 2.0 | https://www.flickr.com/photos/40837632@N05/4441502014 |
+| GB | Free Tower Bridge London photo |  | cc0 1.0 | https://www.rawpixel.com/image/5917162/photo-image-public-domain-free-building |
