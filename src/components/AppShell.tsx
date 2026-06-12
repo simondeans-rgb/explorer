@@ -434,6 +434,8 @@ export function AppShell() {
               code={profile?.code ?? null}
               connections={connections}
               friendCountryMap={friendCountryMap}
+              friendPlaces={friendsData.places}
+              friendDiscoveries={friendsData.discoveries}
               demo={demo}
             />
           )}
