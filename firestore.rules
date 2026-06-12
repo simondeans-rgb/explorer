@@ -59,6 +59,12 @@ service cloud.firestore {
       allow create: if createIsOwner();
     }
 
+    // Planned trips stay private to their owner.
+    match /trips/{tripId} {
+      allow read, update, delete: if isOwner();
+      allow create: if createIsOwner();
+    }
+
     // Member profile, looked up by uid once you're connected. No listing.
     match /profiles/{uid} {
       allow get: if signedIn();

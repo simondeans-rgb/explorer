@@ -35,6 +35,7 @@ import {
   type Expedition,
   type Place,
   type Relationship,
+  type Trip,
 } from '../../types';
 import type { FriendPresence } from '../../lib/friends';
 import { placePeriods } from '../../lib/residences';
@@ -49,6 +50,7 @@ import { ContinueJourneyRail } from './story/ContinueJourneyRail';
 import { HighlightsRow, type FriendRec } from './story/HighlightsRow';
 import { LatestMemoryCard, type LatestMemory } from './story/LatestMemoryCard';
 import { SavedRail } from './story/SavedRail';
+import { UpcomingTrips } from '../trips/UpcomingTrips';
 import type { SavedItem, SavedInput } from '../../lib/saved';
 import { CATEGORY_ICON } from '../discoveries/categoryIcons';
 import {
@@ -95,6 +97,10 @@ interface Props {
   onToggleSaved?: (input: SavedInput) => void;
   /** Promote a saved country into a tracked aspiring place (Atlas). */
   onAddAspiring?: (code: string) => void;
+  /** Upcoming planned trips (Story countdown). */
+  upcomingTrips?: Trip[];
+  onOpenTrip?: (id: string) => void;
+  onPlanTrip?: () => void;
   /** 'story' = content-first Home (default); 'atlas' = the collection surface
    *  (map, country cards, wishlist, stats) hosted inside the Atlas tab. */
   mode?: 'story' | 'atlas';
@@ -172,6 +178,9 @@ export function PassportView({
   isSaved,
   onToggleSaved,
   onAddAspiring,
+  upcomingTrips = [],
+  onOpenTrip,
+  onPlanTrip,
   mode = 'story',
   openImport,
   onImportConsumed,
@@ -502,6 +511,15 @@ export function PassportView({
         <EmptyState
           onAdd={() => setModal({ kind: 'country' })}
           onImport={() => setCountryImport(true)}
+        />
+      )}
+
+      {/* ── Counting down (upcoming trips) ────────────────────────────── */}
+      {!atlas && onPlanTrip && (!isEmpty || upcomingTrips.length > 0) && (
+        <UpcomingTrips
+          trips={upcomingTrips}
+          onOpen={(id) => onOpenTrip?.(id)}
+          onPlan={onPlanTrip}
         />
       )}
 
