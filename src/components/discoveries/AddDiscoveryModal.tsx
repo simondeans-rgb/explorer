@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
-import { Check, Landmark, Trash2, X } from 'lucide-react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { Check, ImagePlus, Landmark, Trash2, X } from 'lucide-react';
 import {
   createDiscovery,
   deleteDiscovery,
   updateDiscovery,
 } from '../../lib/discoveries';
+import { fileToCompactJpeg } from '../../lib/imageCompress';
 import { countryFacts } from '../../data/countryFacts';
 import {
   DISCOVERY_CATEGORIES,
@@ -33,6 +34,7 @@ export interface DiscoveryModalInitial {
   expeditionId?: string;
   verdict?: RecommendationVerdict;
   note?: string;
+  photo?: string;
 }
 
 interface Props {
@@ -64,7 +66,21 @@ export function AddDiscoveryModal({
     initial.verdict,
   );
   const [note, setNote] = useState(initial.note ?? '');
+  const [photo, setPhoto] = useState(initial.photo ?? '');
+  const [processing, setProcessing] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+
+  async function handlePhoto(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setProcessing(true);
+    try {
+      setPhoto(await fileToCompactJpeg(file, 1280, 0.8));
+    } finally {
+      setProcessing(false);
+    }
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -113,6 +129,7 @@ export function AddDiscoveryModal({
       expeditionId: expeditionId || undefined,
       verdict,
       note: note.trim() || undefined,
+      photo: photo || undefined,
     };
     try {
       if (initial.id) await updateDiscovery(initial.id, input);
@@ -162,6 +179,39 @@ export function AddDiscoveryModal({
         </div>
 
         <div className="px-5 py-4 space-y-5">
+          {/* Photo */}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handlePhoto}
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className={cn(
+              'relative w-full overflow-hidden rounded-2xl shadow-card transition-all active:scale-[0.99]',
+              photo ? 'aspect-[16/10]' : 'aspect-[16/9] bg-white dark:bg-white/5 grid place-items-center',
+            )}
+          >
+            {photo ? (
+              <>
+                <img src={photo} alt="" className="h-full w-full object-cover vivid-photo" />
+                <span className="absolute bottom-2 right-2 rounded-full bg-black/50 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                  Change
+                </span>
+              </>
+            ) : (
+              <span className="flex flex-col items-center gap-1.5 text-passport-ink3">
+                <ImagePlus size={24} />
+                <span className="text-sm font-medium">
+                  {processing ? 'Processing…' : 'Add a photo'}
+                </span>
+              </span>
+            )}
+          </button>
+
           <Field label="Name">
             <input
               autoFocus={!editing}
