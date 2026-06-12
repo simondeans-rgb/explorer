@@ -1,19 +1,30 @@
 // Destination imagery for Worldly.
 //
-// Photos are curated free stock (Unsplash License — free for commercial use,
-// no attribution) and bundled locally in /public/destinations, so they always
-// render with no runtime network dependency. Every place also has a
-// deterministic on-brand gradient as a fallback for countries without a photo.
+// Photos are bundled locally in /public/destinations so they always render with
+// no runtime network dependency. The original set is curated Unsplash (free,
+// no attribution); the remainder are Creative-Commons / public-domain images
+// sourced via Openverse and credited in /public/destinations/ATTRIBUTION.md.
+// Countries without a bundled photo fall back to an illustrated CountryScene.
 
 // ISO 3166-1 alpha-2 codes that have a bundled photo at /destinations/XX.jpg.
 const HAS_PHOTO = new Set([
-  'AE', 'AR', 'AT', 'AU', 'AZ', 'BD', 'BG', 'BR', 'BS', 'BW', 'CH', 'CL', 'CN',
-  'CO', 'CR', 'CU', 'CY', 'CZ', 'DE', 'DK', 'DO', 'EC', 'EG', 'ES', 'FI', 'FJ',
-  'FR', 'GB', 'GH', 'GR', 'GT', 'HK', 'ID', 'IE', 'IN', 'IS', 'IT', 'JM', 'JO',
-  'JP', 'KE', 'KH', 'KR', 'KZ', 'LB', 'LK', 'LT', 'LU', 'MA', 'MT', 'MU', 'MX',
-  'MY', 'NL', 'NO', 'NP', 'NZ', 'PE', 'PH', 'PK', 'PL', 'PR', 'PT', 'PY', 'QA',
-  'RO', 'RS', 'RW', 'SC', 'SG', 'SI', 'TH', 'TR', 'TW', 'TZ', 'UG', 'US', 'UY',
-  'UZ', 'VN', 'ZA',
+  'AD', 'AE', 'AF', 'AG', 'AL', 'AM', 'AO', 'AQ', 'AR', 'AS', 'AT', 'AU', 'AZ',
+  'BA', 'BB', 'BD', 'BE', 'BF', 'BG', 'BH', 'BI', 'BJ', 'BM', 'BN', 'BO', 'BR',
+  'BS', 'BT', 'BW', 'BY', 'BZ', 'CA', 'CD', 'CF', 'CG', 'CH', 'CK', 'CL', 'CM',
+  'CN', 'CO', 'CR', 'CU', 'CV', 'CY', 'CZ', 'DE', 'DJ', 'DK', 'DM', 'DO', 'DZ',
+  'EC', 'EE', 'EG', 'ER', 'ES', 'ET', 'FI', 'FJ', 'FK', 'FM', 'FO', 'FR', 'GA',
+  'GB', 'GD', 'GE', 'GF', 'GG', 'GH', 'GI', 'GL', 'GM', 'GN', 'GQ', 'GR', 'GT',
+  'GU', 'GW', 'GY', 'HK', 'HN', 'HR', 'HT', 'HU', 'ID', 'IE', 'IL', 'IM', 'IN',
+  'IQ', 'IR', 'IS', 'IT', 'JE', 'JM', 'JO', 'JP', 'KE', 'KG', 'KH', 'KI', 'KM',
+  'KN', 'KP', 'KR', 'KW', 'KZ', 'LA', 'LB', 'LC', 'LI', 'LK', 'LR', 'LS', 'LT',
+  'LU', 'LV', 'LY', 'MA', 'MC', 'MD', 'ME', 'MG', 'MH', 'MK', 'ML', 'MM', 'MN',
+  'MO', 'MR', 'MT', 'MU', 'MV', 'MW', 'MX', 'MY', 'MZ', 'NA', 'NC', 'NE', 'NG',
+  'NI', 'NL', 'NO', 'NP', 'NR', 'NZ', 'OM', 'PA', 'PE', 'PF', 'PG', 'PH', 'PK',
+  'PL', 'PR', 'PS', 'PT', 'PW', 'PY', 'QA', 'RO', 'RS', 'RU', 'RW', 'SA', 'SB',
+  'SC', 'SD', 'SE', 'SG', 'SI', 'SK', 'SL', 'SM', 'SN', 'SO', 'SR', 'SS', 'ST',
+  'SV', 'SY', 'SZ', 'TD', 'TG', 'TH', 'TJ', 'TL', 'TM', 'TN', 'TO', 'TR', 'TT',
+  'TV', 'TW', 'TZ', 'UA', 'UG', 'US', 'UY', 'UZ', 'VA', 'VC', 'VE', 'VN', 'VU',
+  'WS', 'XK', 'YE', 'ZA', 'ZM', 'ZW',
 ]);
 
 const photoPath = (code: string) => `/destinations/${code}.jpg`;
