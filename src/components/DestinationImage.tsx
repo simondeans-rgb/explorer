@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { destinationImage } from '../lib/destinationImage';
+import { useCover } from '../hooks/useCovers';
 import { cn } from '../lib/cn';
 import { CountryScene } from './CountryScene';
 
@@ -27,10 +28,14 @@ export function DestinationImage({
   /** Slow Ken Burns drift on the photo (respects prefers-reduced-motion). */
   motion?: boolean;
 }) {
-  const { photo, gradient } = destinationImage(code);
+  const base = destinationImage(code);
+  const gradient = base.gradient;
+  // A user's custom cover photo overrides the bundled image everywhere.
+  const cover = useCover(code);
+  const photo = cover ?? base.photo;
   const [loaded, setLoaded] = useState(false);
 
-  // Reset when the country changes so the fade plays again.
+  // Reset when the image source changes so the fade plays again.
   useEffect(() => {
     setLoaded(false);
   }, [photo]);

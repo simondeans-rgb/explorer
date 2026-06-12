@@ -15,6 +15,7 @@ import { useExpeditions } from '../hooks/useExpeditions';
 import { useCaptures } from '../hooks/useCaptures';
 import { useSaved } from '../hooks/useSaved';
 import { useTrips, isUpcoming } from '../hooks/useTrips';
+import { CoversContext, useCoversMap } from '../hooks/useCovers';
 import { createPlace } from '../lib/places';
 import { updateTrip, deleteTrip, type TripInput } from '../lib/trips';
 import { createExpedition } from '../lib/expeditions';
@@ -80,6 +81,7 @@ export function AppShell() {
   const { saved, isSaved, toggle: toggleSaved } = useSaved(user?.uid);
   const { trips } = useTrips(user?.uid);
   const upcomingTrips = useMemo(() => trips.filter(isUpcoming), [trips]);
+  const covers = useCoversMap(user?.uid);
 
   // Read-modify-write an itinerary change onto a trip.
   function tripToInput(t: (typeof trips)[number]): TripInput {
@@ -322,6 +324,7 @@ export function AppShell() {
           : null;
 
   return (
+    <CoversContext.Provider value={covers}>
     <div className="passport-bg fixed inset-0 flex flex-col">
       {subPage && (
         <header className="shrink-0 h-14 px-4 sm:px-6 flex items-center justify-between">
@@ -557,6 +560,7 @@ export function AppShell() {
         />
       )}
     </div>
+    </CoversContext.Provider>
   );
 }
 
