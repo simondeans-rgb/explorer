@@ -395,3 +395,29 @@ export interface Capture {
   caption?: string;
   createdAt: number;
 }
+
+/** A single planned stop on an upcoming trip's itinerary — often pulled from a
+ *  friend's recommendation, but can be added by hand too. */
+export interface ItineraryItem {
+  id: string;
+  name: string;
+  city?: string;
+  /** The friend who recommended it, if it came from a friend. */
+  fromFriend?: string;
+  verdict?: RecommendationVerdict;
+}
+
+/** An upcoming trip the Member is planning: a destination, planned dates, and a
+ *  growing itinerary of places to visit. Powers the Story countdown. */
+export interface Trip {
+  id: string;
+  userId: string;
+  title: string;
+  countryCode: string;
+  startDate: string; // ISO yyyy-mm-dd
+  endDate?: string; // ISO yyyy-mm-dd
+  itinerary: ItineraryItem[];
+  note?: string;
+  createdAt: number;
+  updatedAt: number;
+}

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import {
   BookMarked,
+  CalendarPlus,
   Camera,
   Compass,
   Globe2,
@@ -15,6 +16,7 @@ export type QuickAddChoice =
   | 'journey'
   | 'discovery'
   | 'capture'
+  | 'trip'
   | 'import';
 
 const OPTIONS: {
@@ -28,6 +30,7 @@ const OPTIONS: {
   { id: 'journey', icon: MapPinned, title: 'Log a journey', blurb: 'A trip, with how you travelled', badge: 'from-amber-400 to-orange-500' },
   { id: 'discovery', icon: Compass, title: 'Record a discovery', blurb: 'A place or experience worth keeping', badge: 'from-violet-400 to-indigo-500' },
   { id: 'capture', icon: Camera, title: 'Add a photo', blurb: 'A moment from your travels', badge: 'from-sky-400 to-blue-500' },
+  { id: 'trip', icon: CalendarPlus, title: 'Plan a trip', blurb: 'An upcoming adventure, with a countdown', badge: 'from-coral to-sunburst' },
   { id: 'import', icon: Globe2, title: 'Import travels', blurb: 'Bring data from another app', badge: 'from-rose-400 to-pink-500' },
 ];
 

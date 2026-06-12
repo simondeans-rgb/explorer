@@ -14,8 +14,11 @@ import { useDiscoveries } from '../hooks/useDiscoveries';
 import { useExpeditions } from '../hooks/useExpeditions';
 import { useCaptures } from '../hooks/useCaptures';
 import { useSaved } from '../hooks/useSaved';
+import { useTrips, isUpcoming } from '../hooks/useTrips';
 import { createPlace } from '../lib/places';
+import { updateTrip, type TripInput } from '../lib/trips';
 import { countryName } from '../data/countries';
+import type { ItineraryItem } from '../types';
 import { useConnections } from '../hooks/useConnections';
 import { useProfile } from '../hooks/useProfile';
 import { useFriendsData } from '../hooks/useFriendsData';
@@ -39,6 +42,8 @@ import {
   AddCaptureModal,
   type CaptureModalInitial,
 } from './captures/AddCaptureModal';
+import { AddTripModal, type TripModalInitial } from './trips/AddTripModal';
+import { TripDetailModal } from './trips/TripDetailModal';
 
 type Section =
   | 'passport'
@@ -69,6 +74,32 @@ export function AppShell() {
   );
   const { captures } = useCaptures(user?.uid);
   const { saved, isSaved, toggle: toggleSaved } = useSaved(user?.uid);
+  const { trips } = useTrips(user?.uid);
+  const upcomingTrips = useMemo(() => trips.filter(isUpcoming), [trips]);
+
+  // Read-modify-write an itinerary change onto a trip.
+  function tripToInput(t: (typeof trips)[number]): TripInput {
+    return {
+      title: t.title,
+      countryCode: t.countryCode,
+      startDate: t.startDate,
+      endDate: t.endDate,
+      note: t.note,
+      itinerary: t.itinerary,
+    };
+  }
+  function addItinerary(tripId: string, item: ItineraryItem) {
+    const t = trips.find((x) => x.id === tripId);
+    if (t) void updateTrip(tripId, { ...tripToInput(t), itinerary: [...t.itinerary, item] });
+  }
+  function removeItinerary(tripId: string, itemId: string) {
+    const t = trips.find((x) => x.id === tripId);
+    if (t)
+      void updateTrip(tripId, {
+        ...tripToInput(t),
+        itinerary: t.itinerary.filter((i) => i.id !== itemId),
+      });
+  }
 
   // Promote a saved country into a tracked "aspiring" place on the map.
   function addAspiring(code: string) {
@@ -150,8 +181,10 @@ export function AppShell() {
   const [captureModal, setCaptureModal] = useState<CaptureModalInitial | null>(
     null,
   );
+  const [tripModal, setTripModal] = useState<TripModalInitial | null>(null);
+  const [activeTripId, setActiveTripId] = useState<string | null>(null);
   function quickAdd(
-    choice: 'place' | 'journey' | 'discovery' | 'capture' | 'import',
+    choice: 'place' | 'journey' | 'discovery' | 'capture' | 'trip' | 'import',
   ) {
     setShowQuickAdd(false);
     if (choice === 'place') {
@@ -167,6 +200,8 @@ export function AppShell() {
       setOpenAddDiscovery(true);
     } else if (choice === 'capture') {
       setCaptureModal({});
+    } else if (choice === 'trip') {
+      setTripModal({});
     } else {
       setShowWelcome(true);
     }
@@ -262,6 +297,9 @@ export function AppShell() {
               saved={saved}
               isSaved={isSaved}
               onToggleSaved={toggleSaved}
+              upcomingTrips={upcomingTrips}
+              onOpenTrip={(id) => setActiveTripId(id)}
+              onPlanTrip={() => setTripModal({})}
               openImport={openImport}
               onImportConsumed={() => setOpenImport(null)}
               openAdd={openAddPlace && section === 'passport'}
@@ -402,6 +440,42 @@ export function AppShell() {
           initial={captureModal}
           expeditions={expeditions}
           onClose={() => setCaptureModal(null)}
+        />
+      )}
+
+      {(() => {
+        const activeTrip = activeTripId
+          ? trips.find((t) => t.id === activeTripId)
+          : null;
+        if (!activeTrip) return null;
+        return (
+          <TripDetailModal
+            trip={activeTrip}
+            friends={friendCountryMap.get(activeTrip.countryCode) ?? []}
+            onAddItinerary={(item) => addItinerary(activeTrip.id, item)}
+            onRemoveItinerary={(itemId) => removeItinerary(activeTrip.id, itemId)}
+            onEdit={() =>
+              setTripModal({
+                id: activeTrip.id,
+                title: activeTrip.title,
+                countryCode: activeTrip.countryCode,
+                startDate: activeTrip.startDate,
+                endDate: activeTrip.endDate,
+                note: activeTrip.note,
+                itinerary: activeTrip.itinerary,
+              })
+            }
+            onClose={() => setActiveTripId(null)}
+          />
+        );
+      })()}
+
+      {tripModal && (
+        <AddTripModal
+          userId={user?.uid ?? ''}
+          initial={tripModal}
+          onCreated={(id) => setActiveTripId(id)}
+          onClose={() => setTripModal(null)}
         />
       )}
     </div>
