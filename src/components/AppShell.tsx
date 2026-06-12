@@ -14,6 +14,8 @@ import { useDiscoveries } from '../hooks/useDiscoveries';
 import { useExpeditions } from '../hooks/useExpeditions';
 import { useCaptures } from '../hooks/useCaptures';
 import { useSaved } from '../hooks/useSaved';
+import { createPlace } from '../lib/places';
+import { countryName } from '../data/countries';
 import { useConnections } from '../hooks/useConnections';
 import { useProfile } from '../hooks/useProfile';
 import { useFriendsData } from '../hooks/useFriendsData';
@@ -67,6 +69,17 @@ export function AppShell() {
   );
   const { captures } = useCaptures(user?.uid);
   const { saved, isSaved, toggle: toggleSaved } = useSaved(user?.uid);
+
+  // Promote a saved country into a tracked "aspiring" place on the map.
+  function addAspiring(code: string) {
+    if (!user?.uid) return;
+    void createPlace(user.uid, {
+      kind: 'country',
+      countryCode: code,
+      name: countryName(code),
+      relationships: ['aspiring'],
+    });
+  }
   const { connections } = useConnections(user?.uid);
   const profile = useProfile(user?.uid, myName);
   const [section, setSection] = useState<Section>('passport');
@@ -278,6 +291,7 @@ export function AppShell() {
               discoveryStats={discoveryStats}
               friendCountryMap={friendCountryMap}
               saved={saved}
+              onAddAspiring={addAspiring}
               initialTab={atlasTab}
               openImport={openImport}
               onImportConsumed={() => setOpenImport(null)}
@@ -305,6 +319,8 @@ export function AppShell() {
               friendDiscoveries={friendsData.discoveries}
               onAddTrip={startTrip}
               onGoToPlace={goToPlace}
+              isSaved={isSaved}
+              onToggleSaved={toggleSaved}
               openAdd={openAddDiscovery}
               onAddConsumed={() => setOpenAddDiscovery(false)}
               loading={discoveriesLoading}
