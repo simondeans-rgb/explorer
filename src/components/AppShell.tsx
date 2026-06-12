@@ -18,6 +18,7 @@ import { useTrips, isUpcoming } from '../hooks/useTrips';
 import { createPlace } from '../lib/places';
 import { updateTrip, deleteTrip, type TripInput } from '../lib/trips';
 import { createExpedition } from '../lib/expeditions';
+import { computeReview, type ReviewScope } from '../lib/review';
 import { countryName } from '../data/countries';
 import { daysUntil } from '../hooks/useTrips';
 import type { ItineraryItem } from '../types';
@@ -46,6 +47,7 @@ import {
 } from './captures/AddCaptureModal';
 import { AddTripModal, type TripModalInitial } from './trips/AddTripModal';
 import { TripDetailModal } from './trips/TripDetailModal';
+import { ReviewModal } from './review/ReviewModal';
 
 type Section =
   | 'passport'
@@ -150,6 +152,39 @@ export function AppShell() {
     () => computeJourneyStats(expeditions),
     [expeditions],
   );
+
+  // ── Year in Review (shareable recap) ────────────────────────────────
+  const currentYear = new Date().getFullYear();
+  const hasThisYear = useMemo(
+    () =>
+      places.some((p) => p.firstYear === currentYear) ||
+      discoveries.some((d) => new Date(d.createdAt).getFullYear() === currentYear) ||
+      expeditions.some(
+        (e) =>
+          (e.startDate ? new Date(e.startDate) : new Date(e.createdAt)).getFullYear() ===
+          currentYear,
+      ),
+    [places, discoveries, expeditions, currentYear],
+  );
+  const [showReview, setShowReview] = useState(false);
+  const [reviewScope, setReviewScope] = useState<ReviewScope>('lifetime');
+  const review = useMemo(
+    () =>
+      computeReview(reviewScope, {
+        places,
+        aggregates,
+        discoveries,
+        expeditions,
+        stats,
+        discoveryStats,
+        journeyStats,
+      }),
+    [reviewScope, places, aggregates, discoveries, expeditions, stats, discoveryStats, journeyStats],
+  );
+  function openReview() {
+    setReviewScope(hasThisYear ? currentYear : 'lifetime');
+    setShowReview(true);
+  }
 
   const friends = useMemo(
     () => acceptedFriends(connections, user?.uid ?? ''),
@@ -431,6 +466,7 @@ export function AppShell() {
               friendCount={friends.length}
               savedCount={saved.length}
               onOpenSaved={() => setSection('saved')}
+              onOpenReview={openReview}
               stats={stats}
               discoveryStats={discoveryStats}
               journeyStats={journeyStats}
@@ -506,6 +542,18 @@ export function AppShell() {
           initial={tripModal}
           onCreated={(id) => setActiveTripId(id)}
           onClose={() => setTripModal(null)}
+        />
+      )}
+
+      {showReview && (
+        <ReviewModal
+          review={review}
+          name={myName}
+          scope={reviewScope}
+          canYear={hasThisYear}
+          currentYear={currentYear}
+          onScopeChange={setReviewScope}
+          onClose={() => setShowReview(false)}
         />
       )}
     </div>
