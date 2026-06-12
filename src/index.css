@@ -209,3 +209,24 @@ textarea {
 .no-scrollbar {
   scrollbar-width: none;
 }
+
+/* Slow "Ken Burns" drift for hero imagery — gentle life, never distracting.
+   Fully disabled when the user prefers reduced motion. */
+@keyframes kenburns {
+  0% {
+    transform: scale(1.06) translate3d(0, 0, 0);
+  }
+  100% {
+    transform: scale(1.16) translate3d(-2%, -2.5%, 0);
+  }
+}
+.ken-burns {
+  animation: kenburns 26s ease-in-out infinite alternate;
+  transform-origin: 60% 40%;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ken-burns {
+    animation: none;
+  }
+}
