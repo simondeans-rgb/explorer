@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, MapPin, Pencil, Plus, Sparkles, Users, X } from 'lucide-react';
+import { Check, MapPin, Pencil, Plane, Plus, Sparkles, Users, X } from 'lucide-react';
 import type { ItineraryItem, Trip } from '../../types';
 import { VERDICT_META } from '../../types';
 import type { FriendPresence } from '../../lib/friends';
@@ -28,6 +28,9 @@ function countdownLabel(trip: Trip): string {
 export function TripDetailModal({
   trip,
   friends,
+  ownRecs = [],
+  started = false,
+  onConvert,
   onAddItinerary,
   onRemoveItinerary,
   onEdit,
@@ -35,6 +38,11 @@ export function TripDetailModal({
 }: {
   trip: Trip;
   friends: FriendPresence[];
+  /** The Member's own saved places in the destination country. */
+  ownRecs?: { name: string; city?: string }[];
+  /** Whether the trip has begun (enables "save as a journey"). */
+  started?: boolean;
+  onConvert?: () => void;
   onAddItinerary: (item: ItineraryItem) => void;
   onRemoveItinerary: (itemId: string) => void;
   onEdit: () => void;
@@ -216,7 +224,54 @@ export function TripDetailModal({
             </section>
           )}
 
-          {friends.length === 0 && (
+          {/* Your own saved places here */}
+          {ownRecs.length > 0 && (
+            <section>
+              <h3 className="font-display text-[1.15rem] font-semibold text-passport-navy dark:text-white mb-2.5">
+                From your saved places
+              </h3>
+              <div className="space-y-2">
+                {ownRecs.map((r, i) => {
+                  const added = inItinerary.has(r.name.toLowerCase());
+                  return (
+                    <div
+                      key={`${r.name}-${i}`}
+                      className="flex items-center gap-3 rounded-2xl bg-white dark:bg-passport-carddark shadow-card px-3.5 py-3"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-passport-navy dark:text-white leading-tight truncate">
+                          {r.name}
+                        </p>
+                        {r.city && (
+                          <p className="text-xs text-passport-ink3 mt-0.5">{r.city}</p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          !added &&
+                          onAddItinerary({ id: newId(), name: r.name, city: r.city })
+                        }
+                        disabled={added}
+                        aria-label={added ? 'Added' : 'Add to itinerary'}
+                        className={cn(
+                          'shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold transition-all active:scale-95',
+                          added
+                            ? 'bg-aqua/15 text-aqua cursor-default'
+                            : 'bg-brand-gradient text-white shadow-card',
+                        )}
+                      >
+                        {added ? <Check size={14} /> : <Plus size={14} />}
+                        {added ? 'Added' : 'Add'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {friends.length === 0 && ownRecs.length === 0 && (
             <p className="text-sm text-passport-ink2 dark:text-white/55 rounded-2xl bg-white dark:bg-white/5 shadow-card px-4 py-3">
               None of your friends have logged {countryName(trip.countryCode)}{' '}
               yet — add places to your itinerary below, and their tips will show
@@ -289,6 +344,17 @@ export function TripDetailModal({
               </button>
             </div>
           </section>
+
+          {/* Once the trip has begun, retire it into a logged journey */}
+          {started && onConvert && (
+            <button
+              type="button"
+              onClick={onConvert}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-passport-navy dark:bg-white text-white dark:text-passport-navy font-semibold px-4 py-3.5 shadow-card active:scale-[0.99] transition-transform"
+            >
+              <Plane size={17} /> Save as a journey
+            </button>
+          )}
         </div>
       </div>
     </div>
