@@ -47,6 +47,7 @@ export function subscribeDiscoveries(
           | RecommendationVerdict
           | undefined,
         note: data.note || undefined,
+        photo: data.photo || undefined,
         createdAt: millis(data.createdAt),
         updatedAt: millis(data.updatedAt),
       } satisfies Discovery;
@@ -65,6 +66,7 @@ export interface DiscoveryInput {
   expeditionId?: string;
   verdict?: RecommendationVerdict;
   note?: string;
+  photo?: string;
 }
 
 // Firestore rejects `undefined`; empty optionals become `null`.
@@ -79,6 +81,7 @@ function toDoc(input: DiscoveryInput) {
     expeditionId: input.expeditionId || null,
     verdict: input.verdict || null,
     note: input.note?.trim() || null,
+    photo: input.photo || null,
   };
 }
 

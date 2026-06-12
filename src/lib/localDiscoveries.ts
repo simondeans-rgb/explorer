@@ -41,6 +41,7 @@ function normalize(input: DiscoveryInput) {
     expeditionId: input.expeditionId || undefined,
     verdict: input.verdict || undefined,
     note: input.note?.trim() || undefined,
+    photo: input.photo || undefined,
   };
 }
 

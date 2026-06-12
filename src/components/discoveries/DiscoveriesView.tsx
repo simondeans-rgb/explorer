@@ -245,6 +245,7 @@ export function DiscoveriesView({
                         expeditionId: d.expeditionId,
                         verdict: d.verdict,
                         note: d.note,
+                        photo: d.photo,
                       })
                     }
                     onGoToPlace={onGoToPlace}
@@ -329,9 +330,17 @@ function DiscoveryCard({
       className="w-full text-left rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-4 cursor-pointer hover:shadow-card-hover transition-all"
     >
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-passport-goldpale dark:bg-white/10 text-passport-gold shrink-0">
-          <Icon size={18} />
-        </span>
+        {d.photo ? (
+          <img
+            src={d.photo}
+            alt=""
+            className="mt-0.5 h-14 w-14 rounded-2xl object-cover shrink-0 vivid-photo shadow-card"
+          />
+        ) : (
+          <span className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-passport-goldpale dark:bg-white/10 text-passport-gold shrink-0">
+            <Icon size={18} />
+          </span>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-3">
             <div className="font-display text-lg font-semibold text-passport-navy dark:text-white/90 leading-tight">

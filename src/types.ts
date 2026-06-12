@@ -376,6 +376,8 @@ export interface Discovery {
   expeditionId?: string;
   verdict?: RecommendationVerdict;
   note?: string;
+  /** Optional photo of this discovery — a compact JPEG data URL. */
+  photo?: string;
   createdAt: number;
   updatedAt: number;
 }

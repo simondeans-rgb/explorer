@@ -875,6 +875,23 @@ function DiscoveryRail({
       <div className="flex gap-3.5 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
         {discoveries.map((d) => {
           const Icon = CATEGORY_ICON[d.category];
+          const content = (
+            <>
+              <div className="absolute left-3 top-3 h-8 w-8 rounded-full glass grid place-items-center text-white">
+                <Icon size={15} />
+              </div>
+              <div className="mt-auto p-3.5">
+                <div className="font-display text-base font-semibold leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)] line-clamp-2">
+                  {d.name}
+                </div>
+                {d.city && (
+                  <div className="text-[11px] font-medium text-white/85 mt-0.5">
+                    {d.city}
+                  </div>
+                )}
+              </div>
+            </>
+          );
           return (
             <button
               key={d.id}
@@ -882,25 +899,25 @@ function DiscoveryRail({
               onClick={() => onOpen(d)}
               className="shrink-0 w-[148px] rounded-[1.6rem] overflow-hidden shadow-float active:scale-[0.98] transition-transform"
             >
-              <DestinationImage
-                code={d.countryCode ?? ''}
-                className="h-48 flex flex-col text-white"
-                scrim
-              >
-                <div className="absolute left-3 top-3 h-8 w-8 rounded-full glass grid place-items-center text-white">
-                  <Icon size={15} />
+              {d.photo ? (
+                <div className="relative h-48 flex flex-col text-white">
+                  <img
+                    src={d.photo}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover vivid-photo"
+                  />
+                  <div className="absolute inset-0 hero-scrim" />
+                  {content}
                 </div>
-                <div className="mt-auto p-3.5">
-                  <div className="font-display text-base font-semibold leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)] line-clamp-2">
-                    {d.name}
-                  </div>
-                  {d.city && (
-                    <div className="text-[11px] font-medium text-white/85 mt-0.5">
-                      {d.city}
-                    </div>
-                  )}
-                </div>
-              </DestinationImage>
+              ) : (
+                <DestinationImage
+                  code={d.countryCode ?? ''}
+                  className="h-48 flex flex-col text-white"
+                  scrim
+                >
+                  {content}
+                </DestinationImage>
+              )}
             </button>
           );
         })}
