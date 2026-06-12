@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { destinationImage } from '../lib/destinationImage';
-import { flagEmoji } from '../lib/flags';
 import { cn } from '../lib/cn';
+import { CountryScene } from './CountryScene';
 
 /**
  * Destination backdrop: an on-brand gradient that always renders, with a
@@ -40,16 +40,13 @@ export function DestinationImage({
       className={cn('relative overflow-hidden', rounded, className)}
       style={{ backgroundImage: gradient }}
     >
-      {/* No-photo fallback: a big translucent flag motif over the gradient. */}
-      {!photo && code && (
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 flex items-center justify-center select-none"
-        >
-          <span className="text-[7rem] leading-none opacity-25 blur-[1px]">
-            {flagEmoji(code)}
-          </span>
-        </div>
+      {/* No-photo fallback: a deterministic illustrated scene so every country
+          still reads as a designed picture, not a flat panel. */}
+      {!photo && (
+        <CountryScene
+          code={code || 'WW'}
+          className="absolute inset-0 h-full w-full"
+        />
       )}
       {photo && (
         <img
