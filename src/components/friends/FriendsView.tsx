@@ -9,10 +9,16 @@ import {
 import type { FriendPresence } from '../../lib/friends';
 import { countryName } from '../../data/countries';
 import { flagEmoji } from '../../lib/flags';
-import { VERDICT_META, type RecommendationVerdict } from '../../types';
+import {
+  VERDICT_META,
+  type Discovery,
+  type Place,
+  type RecommendationVerdict,
+} from '../../types';
 import { cn } from '../../lib/cn';
 import { inputClass } from '../../lib/formClass';
 import { VERDICT_STYLE } from '../discoveries/verdictStyle';
+import { FriendProfileModal } from './FriendProfileModal';
 
 interface Props {
   userId: string;
@@ -20,6 +26,8 @@ interface Props {
   code: string | null;
   connections: Connection[];
   friendCountryMap: Map<string, FriendPresence[]>;
+  friendPlaces: Place[];
+  friendDiscoveries: Discovery[];
   demo: boolean;
 }
 
@@ -36,9 +44,14 @@ export function FriendsView({
   code,
   connections,
   friendCountryMap,
+  friendPlaces,
+  friendDiscoveries,
   demo,
 }: Props) {
   const [entry, setEntry] = useState('');
+  const [viewing, setViewing] = useState<{ uid: string; name: string } | null>(
+    null,
+  );
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(
     null,
@@ -94,10 +107,8 @@ export function FriendsView({
     );
   }, [picks, pickFilter]);
 
-  const otherName = (c: Connection) => {
-    const other = c.members.find((m) => m !== userId) ?? '';
-    return c.names[other] || 'Member';
-  };
+  const otherUid = (c: Connection) => c.members.find((m) => m !== userId) ?? '';
+  const otherName = (c: Connection) => c.names[otherUid(c)] || 'Member';
 
   async function handleSend() {
     if (busy || !entry.trim()) return;
@@ -237,7 +248,14 @@ export function FriendsView({
           {friends.length > 0 && (
             <Section title="Connections">
               {friends.map((c) => (
-                <Row key={c.id} name={otherName(c)} subtitle="Connected">
+                <Row
+                  key={c.id}
+                  name={otherName(c)}
+                  subtitle="View profile"
+                  onOpen={() =>
+                    setViewing({ uid: otherUid(c), name: otherName(c) })
+                  }
+                >
                   <IconBtn
                     label="Remove"
                     onClick={() => removeConnection(c.id)}
@@ -338,6 +356,15 @@ export function FriendsView({
             )}
         </>
       )}
+
+      {viewing && (
+        <FriendProfileModal
+          name={viewing.name}
+          places={friendPlaces.filter((p) => p.userId === viewing.uid)}
+          discoveries={friendDiscoveries.filter((d) => d.userId === viewing.uid)}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </div>
   );
 }
@@ -387,18 +414,20 @@ function Section({
 function Row({
   name,
   subtitle,
+  onOpen,
   children,
 }: {
   name: string;
   subtitle: string;
+  onOpen?: () => void;
   children: React.ReactNode;
 }) {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl bg-white dark:bg-passport-carddark shadow-card px-4 py-3">
+  const Inner = (
+    <>
       <div className="h-10 w-10 rounded-full bg-brand-gradient flex items-center justify-center font-semibold text-white shrink-0">
         {name[0]?.toUpperCase() ?? 'M'}
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 text-left">
         <div className="font-medium text-passport-ink dark:text-white/90 truncate capitalize">
           {name}
         </div>
@@ -406,6 +435,21 @@ function Row({
           {subtitle}
         </div>
       </div>
+    </>
+  );
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-white dark:bg-passport-carddark shadow-card px-4 py-3">
+      {onOpen ? (
+        <button
+          type="button"
+          onClick={onOpen}
+          className="flex items-center gap-3 flex-1 min-w-0 active:opacity-80"
+        >
+          {Inner}
+        </button>
+      ) : (
+        <div className="flex items-center gap-3 flex-1 min-w-0">{Inner}</div>
+      )}
       <div className="flex items-center gap-1.5">{children}</div>
     </div>
   );
