@@ -48,6 +48,8 @@ import { StoryHeader } from './story/StoryHeader';
 import { ContinueJourneyRail } from './story/ContinueJourneyRail';
 import { HighlightsRow, type FriendRec } from './story/HighlightsRow';
 import { LatestMemoryCard, type LatestMemory } from './story/LatestMemoryCard';
+import { SavedRail } from './story/SavedRail';
+import type { SavedItem, SavedInput } from '../../lib/saved';
 import { CATEGORY_ICON } from '../discoveries/categoryIcons';
 import {
   AddDiscoveryModal,
@@ -87,6 +89,10 @@ interface Props {
   /** Recent photo captures (Story rail). */
   captures?: Capture[];
   onAddCapture?: () => void;
+  /** Saved bookmarks (hearts/wishlist). */
+  saved?: SavedItem[];
+  isSaved?: (key: string) => boolean;
+  onToggleSaved?: (input: SavedInput) => void;
   /** 'story' = content-first Home (default); 'atlas' = the collection surface
    *  (map, country cards, wishlist, stats) hosted inside the Atlas tab. */
   mode?: 'story' | 'atlas';
@@ -160,6 +166,9 @@ export function PassportView({
   friendCountryMap,
   captures = [],
   onAddCapture,
+  saved = [],
+  isSaved,
+  onToggleSaved,
   mode = 'story',
   openImport,
   onImportConsumed,
@@ -323,10 +332,12 @@ export function PassportView({
       return {
         image: cap.dataUrl,
         code: cap.countryCode ?? '',
+        city: cap.city,
         title: cap.caption || 'A moment worth keeping',
         place: place || undefined,
         dateLabel: shortDate(cap.createdAt),
         eyebrow: 'Your latest capture',
+        saveKey: `capture:${cap.id}`,
       };
     }
     const mem = storyCards.find((c) => c.kind === 'memory');
@@ -336,6 +347,7 @@ export function PassportView({
         title: mem.title,
         place: mem.subtitle,
         eyebrow: 'A memory worth keeping',
+        saveKey: `memory:${mem.id}`,
       };
     }
     const trip = storyCards.find((c) => c.kind === 'last' || c.kind === 'current');
@@ -346,6 +358,7 @@ export function PassportView({
         place: trip.subtitle,
         dateLabel: trip.meta,
         eyebrow: trip.eyebrow,
+        saveKey: `trip:${trip.id}`,
       };
     }
     return undefined;
@@ -477,6 +490,19 @@ export function PassportView({
           friendRec={friendRec}
           onOpenFriendRec={() => onExplore?.()}
           onInviteFriends={() => onOpenFriends?.()}
+          saved={
+            !!friendRec &&
+            (isSaved?.(`rec:${friendRec.code}:${friendRec.name}`) ?? false)
+          }
+          onToggleSaved={() =>
+            friendRec &&
+            onToggleSaved?.({
+              key: `rec:${friendRec.code}:${friendRec.name}`,
+              kind: 'recommendation',
+              name: friendRec.name,
+              countryCode: friendRec.code,
+            })
+          }
         />
       )}
 
@@ -488,6 +514,32 @@ export function PassportView({
             latestMemory.code
               ? () => goToPlaceFocus(latestMemory.code)
               : undefined
+          }
+          saved={isSaved?.(latestMemory.saveKey) ?? false}
+          onToggleSaved={() =>
+            onToggleSaved?.({
+              key: latestMemory.saveKey,
+              kind: 'memory',
+              name: latestMemory.title,
+              countryCode: latestMemory.code || undefined,
+              city: latestMemory.city,
+            })
+          }
+        />
+      )}
+
+      {/* ── Saved & wishlist ──────────────────────────────────────────── */}
+      {!atlas && saved.length > 0 && (
+        <SavedRail
+          saved={saved}
+          onRemove={(item) =>
+            onToggleSaved?.({
+              key: item.key,
+              kind: item.kind,
+              name: item.name,
+              countryCode: item.countryCode,
+              city: item.city,
+            })
           }
         />
       )}

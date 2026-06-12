@@ -13,6 +13,7 @@ import { usePlaces } from '../hooks/usePlaces';
 import { useDiscoveries } from '../hooks/useDiscoveries';
 import { useExpeditions } from '../hooks/useExpeditions';
 import { useCaptures } from '../hooks/useCaptures';
+import { useSaved } from '../hooks/useSaved';
 import { useConnections } from '../hooks/useConnections';
 import { useProfile } from '../hooks/useProfile';
 import { useFriendsData } from '../hooks/useFriendsData';
@@ -63,6 +64,7 @@ export function AppShell() {
     user?.uid,
   );
   const { captures } = useCaptures(user?.uid);
+  const { saved, isSaved, toggle: toggleSaved } = useSaved(user?.uid);
   const { connections } = useConnections(user?.uid);
   const profile = useProfile(user?.uid, myName);
   const [section, setSection] = useState<Section>('passport');
@@ -240,6 +242,9 @@ export function AppShell() {
               friendCountryMap={friendCountryMap}
               captures={captures}
               onAddCapture={() => setCaptureModal({})}
+              saved={saved}
+              isSaved={isSaved}
+              onToggleSaved={toggleSaved}
               openImport={openImport}
               onImportConsumed={() => setOpenImport(null)}
               openAdd={openAddPlace && section === 'passport'}

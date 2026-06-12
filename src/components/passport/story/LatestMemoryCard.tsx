@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Bookmark, MapPin } from 'lucide-react';
 import { DestinationImage } from '../../DestinationImage';
 import { cn } from '../../../lib/cn';
@@ -7,21 +6,26 @@ export interface LatestMemory {
   /** Photo data URL (captures) — falls back to destination imagery by code. */
   image?: string;
   code: string;
+  city?: string;
   title: string;
   place?: string;
   dateLabel?: string;
   eyebrow: string;
+  /** Stable key for the Saved/bookmark store. */
+  saveKey: string;
 }
 
 export function LatestMemoryCard({
   memory,
   onOpen,
+  saved,
+  onToggleSaved,
 }: {
   memory: LatestMemory;
   onOpen?: () => void;
+  saved: boolean;
+  onToggleSaved: () => void;
 }) {
-  const [saved, setSaved] = useState(false);
-
   return (
     <section className="space-y-3">
       <h2 className="font-display text-[1.4rem] font-semibold text-passport-navy dark:text-white tracking-tight">
@@ -73,7 +77,7 @@ export function LatestMemoryCard({
 
         <button
           type="button"
-          onClick={() => setSaved((s) => !s)}
+          onClick={onToggleSaved}
           aria-label={saved ? 'Saved' : 'Save'}
           aria-pressed={saved}
           className="absolute right-3 top-3 h-9 w-9 grid place-items-center rounded-full bg-passport-cartridge dark:bg-white/10 text-passport-ink2 dark:text-white/70 active:scale-90 transition-transform"

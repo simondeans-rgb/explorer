@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { ArrowUpRight, Heart, Sparkles, UserPlus } from 'lucide-react';
 import type { ExplorerLevel } from '../../../lib/explorer';
 import { DestinationImage } from '../../DestinationImage';
@@ -18,18 +17,27 @@ export function HighlightsRow({
   friendRec,
   onOpenFriendRec,
   onInviteFriends,
+  saved,
+  onToggleSaved,
 }: {
   level: ExplorerLevel;
   onOpenProfile: () => void;
   friendRec?: FriendRec;
   onOpenFriendRec: () => void;
   onInviteFriends: () => void;
+  saved: boolean;
+  onToggleSaved: () => void;
 }) {
   return (
     <div className="grid grid-cols-2 gap-3.5">
       <MilestoneCard level={level} onOpen={onOpenProfile} />
       {friendRec ? (
-        <FriendRecommendCard rec={friendRec} onOpen={onOpenFriendRec} />
+        <FriendRecommendCard
+          rec={friendRec}
+          onOpen={onOpenFriendRec}
+          saved={saved}
+          onToggleSaved={onToggleSaved}
+        />
       ) : (
         <InviteFriendsCard onOpen={onInviteFriends} />
       )}
@@ -86,11 +94,14 @@ function MilestoneCard({
 function FriendRecommendCard({
   rec,
   onOpen,
+  saved,
+  onToggleSaved,
 }: {
   rec: FriendRec;
   onOpen: () => void;
+  saved: boolean;
+  onToggleSaved: () => void;
 }) {
-  const [saved, setSaved] = useState(false);
   return (
     <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-passport-carddark shadow-card min-h-[172px] flex flex-col">
       <DestinationImage code={rec.code} className="h-20 flex">
@@ -101,7 +112,7 @@ function FriendRecommendCard({
         </span>
         <button
           type="button"
-          onClick={() => setSaved((s) => !s)}
+          onClick={onToggleSaved}
           aria-label={saved ? 'Saved' : 'Save'}
           aria-pressed={saved}
           className="absolute right-2.5 top-2.5 h-8 w-8 grid place-items-center rounded-full glass text-white active:scale-90 transition-transform"
