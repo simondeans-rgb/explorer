@@ -39,6 +39,7 @@ function normalize(input: TripInput) {
       id: i.id,
       name: i.name.trim(),
       city: i.city?.trim() || undefined,
+      category: i.category || undefined,
       fromFriend: i.fromFriend || undefined,
       verdict: i.verdict || undefined,
     })),

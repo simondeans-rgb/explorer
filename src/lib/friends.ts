@@ -1,10 +1,20 @@
 import {
   DISCOVERY_RELATIONSHIPS,
   type Discovery,
+  type DiscoveryCategory,
   type Place,
   type RecommendationVerdict,
   type Relationship,
 } from '../types';
+
+/** A friend's recommendation, carried through with enough detail to plan from. */
+export interface FriendDiscovery {
+  name: string;
+  verdict?: RecommendationVerdict;
+  city?: string;
+  category?: DiscoveryCategory;
+  subcategory?: string;
+}
 import type { Connection } from './connections';
 
 export interface AcceptedFriend {
@@ -30,7 +40,7 @@ export interface FriendPresence {
   uid: string;
   name: string;
   relationships: Relationship[];
-  discoveries: { name: string; verdict?: RecommendationVerdict }[];
+  discoveries: FriendDiscovery[];
 }
 
 function isDiscovery(rels: Relationship[]): boolean {
@@ -60,15 +70,18 @@ export function friendsByCountry(
   }
 
   // country code -> uid -> discoveries
-  const discs = new Map<
-    string,
-    Map<string, { name: string; verdict?: RecommendationVerdict }[]>
-  >();
+  const discs = new Map<string, Map<string, FriendDiscovery[]>>();
   for (const d of discoveries) {
     if (!d.countryCode || !nameByUid.has(d.userId)) continue;
     const byUid = discs.get(d.countryCode) ?? new Map();
     const list = byUid.get(d.userId) ?? [];
-    list.push({ name: d.name, verdict: d.verdict });
+    list.push({
+      name: d.name,
+      verdict: d.verdict,
+      city: d.city,
+      category: d.category,
+      subcategory: d.subcategory,
+    });
     byUid.set(d.userId, list);
     discs.set(d.countryCode, byUid);
   }

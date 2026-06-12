@@ -1,14 +1,32 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Check, MapPin, Pencil, Plane, Plus, Sparkles, Users, X } from 'lucide-react';
-import type { ItineraryItem, Trip } from '../../types';
-import { VERDICT_META } from '../../types';
+import type {
+  DiscoveryCategory,
+  ItineraryItem,
+  RecommendationVerdict,
+  Trip,
+} from '../../types';
+import { DISCOVERY_CATEGORY_META, subcategoryLabel, VERDICT_META } from '../../types';
 import type { FriendPresence } from '../../lib/friends';
 import { countryName } from '../../data/countries';
 import { flagEmoji } from '../../lib/flags';
 import { daysUntil } from '../../hooks/useTrips';
 import { DestinationImage } from '../DestinationImage';
+import { CATEGORY_ICON } from '../discoveries/categoryIcons';
 import { cn } from '../../lib/cn';
 import { inputClass } from '../../lib/formClass';
+
+/** "City · Café" style meta line from a discovery's place + type. */
+function metaLine(
+  city?: string,
+  category?: DiscoveryCategory,
+  subcategory?: string,
+): string {
+  const type = category
+    ? (subcategoryLabel(category, subcategory) ?? DISCOVERY_CATEGORY_META[category].label)
+    : undefined;
+  return [city, type].filter(Boolean).join(' · ');
+}
 
 function newId(): string {
   const c = globalThis.crypto;
@@ -60,10 +78,24 @@ export function TripDetailModal({
 
   // Friends' recommendations in the destination country.
   const recs = useMemo(() => {
-    const out: { name: string; friend: string; verdict?: string }[] = [];
+    const out: {
+      name: string;
+      friend: string;
+      verdict?: RecommendationVerdict;
+      city?: string;
+      category?: DiscoveryCategory;
+      subcategory?: string;
+    }[] = [];
     for (const f of friends) {
       for (const d of f.discoveries) {
-        out.push({ name: d.name, friend: f.name, verdict: d.verdict });
+        out.push({
+          name: d.name,
+          friend: f.name,
+          verdict: d.verdict,
+          city: d.city,
+          category: d.category,
+          subcategory: d.subcategory,
+        });
       }
     }
     return out;
@@ -85,13 +117,21 @@ export function TripDetailModal({
     return [fmt(trip.startDate), fmt(trip.endDate)].filter(Boolean).join(' – ');
   }, [trip.startDate, trip.endDate]);
 
-  function addRec(r: { name: string; friend: string; verdict?: string }) {
+  function addRec(r: {
+    name: string;
+    friend: string;
+    verdict?: RecommendationVerdict;
+    city?: string;
+    category?: DiscoveryCategory;
+  }) {
     if (inItinerary.has(r.name.toLowerCase())) return;
     onAddItinerary({
       id: newId(),
       name: r.name,
       fromFriend: r.friend,
-      verdict: r.verdict as ItineraryItem['verdict'],
+      verdict: r.verdict,
+      city: r.city,
+      category: r.category,
     });
   }
 
@@ -193,14 +233,28 @@ export function TripDetailModal({
                       key={`${r.name}-${i}`}
                       className="flex items-center gap-3 rounded-2xl bg-white dark:bg-passport-carddark shadow-card px-3.5 py-3"
                     >
+                      {r.category &&
+                        (() => {
+                          const Icon = CATEGORY_ICON[r.category];
+                          return (
+                            <span className="shrink-0 h-9 w-9 rounded-xl bg-passport-goldpale dark:bg-white/10 text-passport-gold grid place-items-center">
+                              <Icon size={16} />
+                            </span>
+                          );
+                        })()}
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-passport-navy dark:text-white leading-tight truncate">
                           {r.name}
                         </p>
-                        <p className="text-xs text-passport-ink3 mt-0.5 capitalize">
-                          {r.friend}
-                          {r.verdict && ` · ${VERDICT_META[r.verdict as keyof typeof VERDICT_META]?.label ?? ''}`}
+                        <p className="text-xs text-passport-ink3 mt-0.5">
+                          <span className="capitalize">{r.friend}</span>
+                          {r.verdict && ` · ${VERDICT_META[r.verdict].label}`}
                         </p>
+                        {metaLine(r.city, r.category, r.subcategory) && (
+                          <p className="text-[11px] text-passport-ink3/80 mt-0.5 truncate">
+                            {metaLine(r.city, r.category, r.subcategory)}
+                          </p>
+                        )}
                       </div>
                       <button
                         type="button"
@@ -293,18 +347,30 @@ export function TripDetailModal({
 
             {trip.itinerary.length > 0 ? (
               <div className="space-y-2 mb-3">
-                {trip.itinerary.map((it) => (
+                {trip.itinerary.map((it) => {
+                  const Icon = it.category ? CATEGORY_ICON[it.category] : null;
+                  const meta = metaLine(it.city, it.category);
+                  return (
                   <div
                     key={it.id}
                     className="flex items-center gap-3 rounded-2xl bg-white dark:bg-passport-carddark shadow-card px-3.5 py-3"
                   >
+                    {Icon && (
+                      <span className="shrink-0 h-9 w-9 rounded-xl bg-passport-goldpale dark:bg-white/10 text-passport-gold grid place-items-center">
+                        <Icon size={16} />
+                      </span>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-passport-navy dark:text-white leading-tight truncate">
                         {it.name}
                       </p>
-                      {it.fromFriend && (
-                        <p className="text-xs text-passport-ink3 mt-0.5 capitalize">
-                          from {it.fromFriend}
+                      {(meta || it.fromFriend) && (
+                        <p className="text-xs text-passport-ink3 mt-0.5 truncate">
+                          {meta}
+                          {meta && it.fromFriend && ' · '}
+                          {it.fromFriend && (
+                            <span className="capitalize">from {it.fromFriend}</span>
+                          )}
                         </p>
                       )}
                     </div>
@@ -317,7 +383,8 @@ export function TripDetailModal({
                       <X size={16} />
                     </button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-passport-ink3 mb-3">
