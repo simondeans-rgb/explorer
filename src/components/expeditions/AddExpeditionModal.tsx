@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Check, Plus, Trash2, X } from 'lucide-react';
+import { Fragment, useEffect, useState } from 'react';
+import { Check, ChevronRight, Plus, Trash2, X } from 'lucide-react';
 import {
   createExpedition,
   deleteExpedition,
@@ -7,7 +7,7 @@ import {
 } from '../../lib/expeditions';
 import { countryName } from '../../data/countries';
 import { flagEmoji } from '../../lib/flags';
-import { JOURNEY_MODES, JOURNEY_MODE_META, type Journey } from '../../types';
+import { JOURNEY_MODES, JOURNEY_MODE_META, type Journey, type JourneyMode } from '../../types';
 import { cn } from '../../lib/cn';
 import { inputClass } from '../../lib/formClass';
 import { AirportPicker, CountryPicker, Field } from '../forms';
@@ -62,8 +62,13 @@ export function AddExpeditionModal({ userId, initial, onClose }: Props) {
     setCountryCodes((prev) => prev.filter((c) => c !== code));
   }
 
+  const [showRoute, setShowRoute] = useState(false);
+
   function addJourney() {
     setJourneys((prev) => [...prev, { id: newId(), mode: 'flight' }]);
+  }
+  function addLegs(legs: { mode: JourneyMode; from: string; to: string }[]) {
+    setJourneys((prev) => [...prev, ...legs.map((l) => ({ id: newId(), ...l }))]);
   }
   function updateJourney(id: string, patch: Partial<Journey>) {
     setJourneys((prev) =>
@@ -205,14 +210,36 @@ export function AddExpeditionModal({ userId, initial, onClose }: Props) {
               <span className="text-[11px] uppercase tracking-[0.16em] text-black/45 dark:text-white/45">
                 Legs
               </span>
-              <button
-                type="button"
-                onClick={addJourney}
-                className="inline-flex items-center gap-1 text-xs text-passport-navy dark:text-passport-goldsoft hover:underline"
-              >
-                <Plus size={13} /> Add
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowRoute((v) => !v)}
+                  className={cn(
+                    'inline-flex items-center gap-1 text-xs hover:underline',
+                    showRoute
+                      ? 'text-passport-gold'
+                      : 'text-passport-navy dark:text-passport-goldsoft',
+                  )}
+                >
+                  <ChevronRight size={13} /> Multi-stop
+                </button>
+                <button
+                  type="button"
+                  onClick={addJourney}
+                  className="inline-flex items-center gap-1 text-xs text-passport-navy dark:text-passport-goldsoft hover:underline"
+                >
+                  <Plus size={13} /> Add leg
+                </button>
+              </div>
             </div>
+            {showRoute && (
+              <RouteBuilder
+                onAdd={(legs) => {
+                  addLegs(legs);
+                  setShowRoute(false);
+                }}
+              />
+            )}
             <div className="space-y-3">
               {journeys.map((j) => (
                 <JourneyRow
@@ -271,6 +298,128 @@ export function AddExpeditionModal({ userId, initial, onClose }: Props) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Quick multi-stop builder: enter stops in order and one mode, and it chains
+ *  consecutive stops into legs (A→B, B→C, C→D) added all at once. */
+function RouteBuilder({
+  onAdd,
+}: {
+  onAdd: (legs: { mode: JourneyMode; from: string; to: string }[]) => void;
+}) {
+  const [mode, setMode] = useState<JourneyMode>('road');
+  const [stops, setStops] = useState<string[]>([]);
+  const [entry, setEntry] = useState('');
+
+  function addStop() {
+    const s = entry.trim();
+    if (!s) return;
+    setStops((prev) => [...prev, s]);
+    setEntry('');
+  }
+  function create() {
+    if (stops.length < 2) return;
+    const legs = [];
+    for (let i = 0; i < stops.length - 1; i++) {
+      legs.push({ mode, from: stops[i], to: stops[i + 1] });
+    }
+    onAdd(legs);
+    setStops([]);
+    setEntry('');
+  }
+
+  const legCount = Math.max(0, stops.length - 1);
+
+  return (
+    <div className="rounded-xl border border-dashed border-passport-gold/40 bg-passport-gold/[0.05] p-3 space-y-3 mb-3">
+      <p className="text-[11px] text-black/55 dark:text-white/55">
+        Add each stop in order — we&rsquo;ll chain them into legs.
+      </p>
+
+      <div className="flex flex-wrap gap-1">
+        {JOURNEY_MODES.map((m) => {
+          const Icon = JOURNEY_ICON[m];
+          const active = mode === m;
+          return (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              title={JOURNEY_MODE_META[m].label}
+              className={cn(
+                'inline-flex items-center justify-center h-7 w-7 rounded-full border transition-colors',
+                active
+                  ? 'bg-passport-navy text-white dark:bg-white dark:text-passport-navy shadow-card border-transparent'
+                  : 'border-black/15 dark:border-white/15 text-black/55 dark:text-white/55',
+              )}
+            >
+              <Icon size={13} />
+            </button>
+          );
+        })}
+      </div>
+
+      {stops.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {stops.map((s, i) => (
+            <Fragment key={`${s}-${i}`}>
+              <span className="inline-flex items-center gap-1 rounded-full bg-white dark:bg-white/10 shadow-card pl-2.5 pr-1.5 py-1 text-sm text-passport-navy dark:text-white">
+                {s}
+                <button
+                  type="button"
+                  onClick={() => setStops((p) => p.filter((_, idx) => idx !== i))}
+                  aria-label={`Remove ${s}`}
+                  className="text-black/40 dark:text-white/40 hover:text-black/70"
+                >
+                  <X size={13} />
+                </button>
+              </span>
+              {i < stops.length - 1 && (
+                <ChevronRight size={14} className="text-passport-ink3 shrink-0" />
+              )}
+            </Fragment>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <input
+          value={entry}
+          onChange={(e) => setEntry(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              addStop();
+            }
+          }}
+          placeholder={stops.length === 0 ? 'Start — e.g. Houston' : 'Next stop…'}
+          className={cn(inputClass, 'flex-1 min-w-0')}
+        />
+        <button
+          type="button"
+          onClick={addStop}
+          disabled={!entry.trim()}
+          aria-label="Add stop"
+          className="shrink-0 inline-flex items-center px-4 rounded-2xl bg-passport-cartridge dark:bg-white/10 text-passport-navy dark:text-white font-semibold disabled:opacity-40"
+        >
+          <Plus size={16} />
+        </button>
+      </div>
+
+      <button
+        type="button"
+        onClick={create}
+        disabled={legCount < 1}
+        className={cn(
+          'w-full inline-flex items-center justify-center gap-1.5 rounded-2xl py-2.5 text-sm font-semibold transition-all',
+          'bg-brand-gradient text-white shadow-card disabled:opacity-40',
+        )}
+      >
+        <Check size={15} />
+        Add {legCount} {legCount === 1 ? 'leg' : 'legs'}
+      </button>
     </div>
   );
 }
