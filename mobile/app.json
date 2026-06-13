@@ -37,6 +37,19 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "31d88642-eb0d-4c42-8642-7637ce0a3701"
+      }
+    },
+    "owner": "simmyd23",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/31d88642-eb0d-4c42-8642-7637ce0a3701"
     }
   }
 }
