@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, MapPin, Pencil, Plane, Plus, Sparkles, Users, X } from 'lucide-react';
+import { Check, MapPin, Pencil, Plane, Plus, Share2, Sparkles, Users, X } from 'lucide-react';
+import { buildTripPosterSvg } from '../../lib/sharePosters';
+import { shareOrDownloadSvg } from '../../lib/shareImage';
 import type {
   DiscoveryCategory,
   ItineraryItem,
@@ -184,6 +186,18 @@ export function TripDetailModal({
             className="absolute right-14 top-3 z-10 h-9 w-9 grid place-items-center rounded-full glass text-white"
           >
             <Pencil size={16} />
+          </button>
+          <button
+            type="button"
+            aria-label="Share trip"
+            onClick={() =>
+              shareOrDownloadSvg(buildTripPosterSvg(trip), 'worldly-trip.png', {
+                shareText: `${trip.title} — ${countdownLabel(trip)} ✈️`,
+              })
+            }
+            className="absolute right-[6.25rem] top-3 z-10 h-9 w-9 grid place-items-center rounded-full glass text-white"
+          >
+            <Share2 size={16} />
           </button>
           <div className="absolute inset-x-0 bottom-0 z-10 p-4">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-coral shadow-card">
