@@ -102,6 +102,10 @@ const config: Config = {
           from: { opacity: "0", transform: "scale(0.96)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
+        "expand-in": {
+          from: { opacity: "0", transform: "scale(0.92) translateY(18px)" },
+          to: { opacity: "1", transform: "scale(1) translateY(0)" },
+        },
         float: {
           "0%,100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-6px)" },
@@ -111,6 +115,7 @@ const config: Config = {
         "fade-in": "fade-in 240ms ease-out",
         "rise-in": "rise-in 320ms cubic-bezier(0.22,1,0.36,1) both",
         "scale-in": "scale-in 260ms cubic-bezier(0.22,1,0.36,1) both",
+        "expand-in": "expand-in 380ms cubic-bezier(0.22,1,0.36,1) both",
         float: "float 6s ease-in-out infinite",
       },
     },

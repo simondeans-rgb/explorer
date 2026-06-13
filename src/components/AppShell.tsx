@@ -59,11 +59,43 @@ type Section =
   | 'profile';
 
 // The four bottom-nav tabs (a center "+" FAB sits between the middle two).
-const NAV_TABS: { id: Section; label: string; icon: LucideIcon }[] = [
-  { id: 'passport', label: 'Story', icon: BookMarked },
-  { id: 'atlas', label: 'Atlas', icon: Globe2 },
-  { id: 'discoveries', label: 'Explore', icon: Compass },
-  { id: 'profile', label: 'You', icon: UserRound },
+// Each carries its page's gradient + accent so the active tab echoes the
+// colour of the screen you're on.
+const NAV_TABS: {
+  id: Section;
+  label: string;
+  icon: LucideIcon;
+  gradient: string;
+  accent: string;
+}[] = [
+  {
+    id: 'passport',
+    label: 'Story',
+    icon: BookMarked,
+    gradient: 'bg-brand-gradient',
+    accent: 'text-coral',
+  },
+  {
+    id: 'atlas',
+    label: 'Atlas',
+    icon: Globe2,
+    gradient: 'bg-[linear-gradient(135deg,#7C6BFF,#24D1C3)]',
+    accent: 'text-[#6B5BE6]',
+  },
+  {
+    id: 'discoveries',
+    label: 'Explore',
+    icon: Compass,
+    gradient: 'bg-[linear-gradient(135deg,#FF6B9A,#FFB84D)]',
+    accent: 'text-[#FF7A66]',
+  },
+  {
+    id: 'profile',
+    label: 'You',
+    icon: UserRound,
+    gradient: 'bg-brand-gradient',
+    accent: 'text-lavender',
+  },
 ];
 
 export function AppShell() {
@@ -564,10 +596,14 @@ function BottomNav({
     id,
     label,
     icon: Icon,
+    gradient,
+    accent,
   }: {
     id: Section;
     label: string;
     icon: LucideIcon;
+    gradient: string;
+    accent: string;
   }) => {
     const active = id === section;
     return (
@@ -576,15 +612,26 @@ function BottomNav({
         aria-label={label}
         aria-current={active ? 'page' : undefined}
         onClick={() => onChange(id)}
-        className={cn(
-          'flex flex-col items-center justify-center gap-1 w-16 transition-colors',
-          active
-            ? 'text-passport-gold'
-            : 'text-passport-ink3 dark:text-white/50 hover:text-passport-ink dark:hover:text-white/80',
-        )}
+        className="flex flex-col items-center justify-center gap-1 w-16"
       >
-        <Icon size={22} strokeWidth={active ? 2.5 : 2} />
-        <span className="text-[10px] font-semibold tracking-tight">{label}</span>
+        <span
+          className={cn(
+            'grid place-items-center h-9 w-12 rounded-2xl transition-all duration-300',
+            active
+              ? cn(gradient, 'text-white shadow-card')
+              : 'text-passport-ink3 dark:text-white/50',
+          )}
+        >
+          <Icon size={21} strokeWidth={active ? 2.5 : 2} />
+        </span>
+        <span
+          className={cn(
+            'text-[10px] font-semibold tracking-tight transition-colors',
+            active ? accent : 'text-passport-ink3 dark:text-white/50',
+          )}
+        >
+          {label}
+        </span>
       </button>
     );
   };
