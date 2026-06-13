@@ -39,6 +39,8 @@ import { AtlasView } from './atlas/AtlasView';
 import { AlmanacView } from './almanac/AlmanacView';
 import { DiscoveriesView } from './discoveries/DiscoveriesView';
 import { FriendsView } from './friends/FriendsView';
+import { FriendProfileModal } from './friends/FriendProfileModal';
+import type { FriendActivityItem } from './passport/story/FriendActivityRail';
 import { SavedView } from './saved/SavedView';
 import { ProfileView } from './profile/ProfileView';
 import { WelcomeModal, type WelcomeChoice } from './WelcomeModal';
@@ -267,6 +269,50 @@ export function AppShell() {
     [user?.uid, friends, places, discoveries, friendsData],
   );
 
+  // "Fresh from your circle" — recent friend places & discoveries for the Story.
+  const friendActivity = useMemo<FriendActivityItem[]>(() => {
+    const nameByUid = new Map(friends.map((f) => [f.uid, f.name]));
+    const cutoff = Date.now() - 45 * 86_400_000;
+    const out: FriendActivityItem[] = [];
+    for (const p of friendsData.places) {
+      const name = nameByUid.get(p.userId);
+      if (!name || p.createdAt < cutoff) continue;
+      out.push({ id: `p-${p.id}`, uid: p.userId, name, kind: 'place', label: p.name, code: p.countryCode ?? '', createdAt: p.createdAt });
+    }
+    for (const d of friendsData.discoveries) {
+      const name = nameByUid.get(d.userId);
+      if (!name || d.createdAt < cutoff) continue;
+      out.push({ id: `d-${d.id}`, uid: d.userId, name, kind: 'discovery', label: d.name, code: d.countryCode ?? '', createdAt: d.createdAt });
+    }
+    return out.sort((a, b) => b.createdAt - a.createdAt).slice(0, 12);
+  }, [friends, friendsData]);
+
+  // A "new since last seen" dot on the Story bell; cleared when Friends opens.
+  const friendsSeenKey = user?.uid ? `worldly:friendsSeen:${user.uid}` : null;
+  const [friendsSeenAt, setFriendsSeenAt] = useState(0);
+  const [activeFriend, setActiveFriend] = useState<{ uid: string; name: string } | null>(null);
+  const hasNewFriendActivity = (friendActivity[0]?.createdAt ?? 0) > friendsSeenAt;
+
+  useEffect(() => {
+    if (!friendsSeenKey) return;
+    try {
+      setFriendsSeenAt(Number(localStorage.getItem(friendsSeenKey)) || 0);
+    } catch {
+      /* ignore */
+    }
+  }, [friendsSeenKey]);
+  useEffect(() => {
+    if (section === 'friends' && friendsSeenKey) {
+      const now = Date.now();
+      setFriendsSeenAt(now);
+      try {
+        localStorage.setItem(friendsSeenKey, String(now));
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [section, friendsSeenKey]);
+
   // Which Atlas sub-tab to land on when navigating there.
   const [atlasTab, setAtlasTab] = useState<'places' | 'journeys'>('places');
 
@@ -398,6 +444,9 @@ export function AppShell() {
               upcomingTrips={upcomingTrips}
               onOpenTrip={(id) => setActiveTripId(id)}
               onPlanTrip={() => setTripModal({})}
+              friendActivity={friendActivity}
+              hasNewFriendActivity={hasNewFriendActivity}
+              onOpenFriend={(uid, name) => setActiveFriend({ uid, name })}
               openImport={openImport}
               onImportConsumed={() => setOpenImport(null)}
               openAdd={openAddPlace && section === 'passport'}
@@ -585,6 +634,17 @@ export function AppShell() {
           initial={tripModal}
           onCreated={(id) => setActiveTripId(id)}
           onClose={() => setTripModal(null)}
+        />
+      )}
+
+      {activeFriend && (
+        <FriendProfileModal
+          name={activeFriend.name}
+          places={friendsData.places.filter((p) => p.userId === activeFriend.uid)}
+          discoveries={friendsData.discoveries.filter(
+            (d) => d.userId === activeFriend.uid,
+          )}
+          onClose={() => setActiveFriend(null)}
         />
       )}
 
