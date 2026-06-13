@@ -52,6 +52,10 @@ import { HighlightsRow, type FriendRec } from './story/HighlightsRow';
 import { LatestMemoryCard, type LatestMemory } from './story/LatestMemoryCard';
 import { SavedRail } from './story/SavedRail';
 import { UpcomingTrips } from '../trips/UpcomingTrips';
+import {
+  FriendActivityRail,
+  type FriendActivityItem,
+} from './story/FriendActivityRail';
 import type { SavedItem, SavedInput } from '../../lib/saved';
 import { CATEGORY_ICON } from '../discoveries/categoryIcons';
 import {
@@ -102,6 +106,10 @@ interface Props {
   upcomingTrips?: Trip[];
   onOpenTrip?: (id: string) => void;
   onPlanTrip?: () => void;
+  /** Recent friend activity (Story rail) + a "new" bell dot. */
+  friendActivity?: FriendActivityItem[];
+  hasNewFriendActivity?: boolean;
+  onOpenFriend?: (uid: string, name: string) => void;
   /** 'story' = content-first Home (default); 'atlas' = the collection surface
    *  (map, country cards, wishlist, stats) hosted inside the Atlas tab. */
   mode?: 'story' | 'atlas';
@@ -182,6 +190,9 @@ export function PassportView({
   upcomingTrips = [],
   onOpenTrip,
   onPlanTrip,
+  friendActivity = [],
+  hasNewFriendActivity = false,
+  onOpenFriend,
   mode = 'story',
   openImport,
   onImportConsumed,
@@ -500,7 +511,7 @@ export function PassportView({
             heroCode={heroCode}
             onSearch={() => onExplore?.()}
             onOpenFriends={onOpenFriends}
-            hasFriendActivity={friendCountryMap.size > 0}
+            hasFriendActivity={hasNewFriendActivity}
             onPickPhoto={() => fileRef.current?.click()}
             firstRun={isEmpty}
             onStart={() => setModal({ kind: 'country' })}
@@ -522,6 +533,11 @@ export function PassportView({
           onOpen={(id) => onOpenTrip?.(id)}
           onPlan={onPlanTrip}
         />
+      )}
+
+      {/* ── Fresh from your circle (recent friend activity) ──────────── */}
+      {!atlas && onOpenFriend && friendActivity.length > 0 && (
+        <FriendActivityRail items={friendActivity} onOpenFriend={onOpenFriend} />
       )}
 
       {/* ── Continue your journey (real progress from trip dates) ─────── */}
