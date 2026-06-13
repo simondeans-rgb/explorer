@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import {
   UtensilsCrossed,
@@ -9,6 +10,8 @@ import {
 } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { PageHero } from '../../components/PageHero';
+import { Fab } from '../../components/Fab';
+import { AddDiscoverySheet } from '../../components/AddDiscoverySheet';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
@@ -29,8 +32,10 @@ const CATEGORY_ICON: Record<DiscoveryCategory, ComponentType<{ size?: number; co
 
 export default function ExploreScreen() {
   const { discoveries } = useWorldly();
+  const [addOpen, setAddOpen] = useState(false);
 
   return (
+    <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
     <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 40 }}>
       <PageHero eyebrow="The world, country by country" title="Explore" subtitle="Find destinations and keep the places worth remembering." gradient={GRADIENTS.explore} />
 
@@ -64,5 +69,9 @@ export default function ExploreScreen() {
         })}
       </View>
     </ScrollView>
+
+      <Fab onPress={() => setAddOpen(true)} />
+      <AddDiscoverySheet visible={addOpen} onClose={() => setAddOpen(false)} />
+    </View>
   );
 }

@@ -1,12 +1,21 @@
-import { View, Text, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { View, Text, ScrollView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
+import { CloudOff, Cloud, LogOut } from 'lucide-react-native';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { useWorldly } from '../../src/hooks/useWorldly';
+import { useAuth } from '../../src/store/auth';
+import { AuthSheet } from '../../components/AuthSheet';
 
 export default function YouScreen() {
   const { stats, discoveryStats, journeyStats, level, badges } = useWorldly();
+  const { configured, user, signOutUser } = useAuth();
+  const [authOpen, setAuthOpen] = useState(false);
   const earned = badges.filter((b) => b.earned).length;
+
+  const displayName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'Alex');
+  const initial = displayName.charAt(0).toUpperCase();
   const statItems: [string, number][] = [
     ['Countries', stats.countriesDiscovered],
     ['Cities', stats.citiesDiscovered],
@@ -19,10 +28,12 @@ export default function YouScreen() {
       {/* Identity hero */}
       <LinearGradient colors={GRADIENTS.you} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'relative', paddingTop: 64, paddingBottom: 56, alignItems: 'center' }}>
         <View className="rounded-full items-center justify-center bg-white/20" style={{ height: 92, width: 92, borderWidth: 3, borderColor: 'rgba(255,255,255,0.4)' }}>
-          <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 40 }}>A</Text>
+          <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 40 }}>{initial}</Text>
         </View>
-        <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 30, marginTop: 12 }}>Alex</Text>
-        <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.85, marginTop: 2 }}>Worldly member</Text>
+        <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 30, marginTop: 12 }}>{displayName}</Text>
+        <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.85, marginTop: 2 }}>
+          {user ? 'Synced member' : 'Worldly member'}
+        </Text>
         <Svg width="100%" height={42} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
           <Path d="M0,64 C220,118 460,16 720,44 C980,72 1220,120 1440,70 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
         </Svg>
@@ -59,6 +70,46 @@ export default function YouScreen() {
         ))}
       </View>
 
+      {/* Cloud sync */}
+      <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
+        {!configured ? (
+          <View className="bg-white rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
+            <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: COLORS.warmwhite }}>
+              <CloudOff size={20} color={COLORS.ink3} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>Offline demo</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Your world is saved on this device.</Text>
+            </View>
+          </View>
+        ) : user ? (
+          <View className="bg-white rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
+            <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: 'rgba(36,209,195,0.14)' }}>
+              <Cloud size={20} color={COLORS.aqua} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>Synced to the cloud</Text>
+              <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{user.email}</Text>
+            </View>
+            <Pressable onPress={() => signOutUser()} hitSlop={8} className="rounded-full items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
+              <LogOut size={18} color={COLORS.ink2} />
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable onPress={() => setAuthOpen(true)}>
+            <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
+              <View className="rounded-2xl items-center justify-center bg-white/20" style={{ height: 42, width: 42 }}>
+                <Cloud size={20} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 16 }}>Sync your world</Text>
+                <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.9, marginTop: 1 }}>Sign in to keep it on every device.</Text>
+              </View>
+            </LinearGradient>
+          </Pressable>
+        )}
+      </View>
+
       {/* Achievements */}
       <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
         <View className="flex-row items-end justify-between">
@@ -74,6 +125,8 @@ export default function YouScreen() {
           ))}
         </View>
       </View>
+
+      <AuthSheet visible={authOpen} onClose={() => setAuthOpen(false)} />
     </ScrollView>
   );
 }
