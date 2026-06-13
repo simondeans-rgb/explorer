@@ -6,6 +6,7 @@ import type { Discovery, Expedition, Place } from '../../types';
 import type { FriendPresence } from '../../lib/friends';
 import type { SavedItem } from '../../lib/saved';
 import { cn } from '../../lib/cn';
+import { PageHero } from '../PageHero';
 import { PassportView } from '../passport/PassportView';
 import { ExpeditionsView } from '../expeditions/ExpeditionsView';
 
@@ -56,13 +57,14 @@ export function AtlasView(props: Props) {
   }, [requested, props.focusPlace, props.newTripCountry]);
 
   return (
-    <div className="animate-fade-in space-y-5 pt-1">
-      <header>
-        <p className="text-sm font-semibold text-coral">Your collection</p>
-        <h1 className="font-display text-[2rem] leading-tight font-semibold text-passport-navy dark:text-white">
-          Atlas
-        </h1>
-      </header>
+    <div className="animate-fade-in space-y-5">
+      <PageHero
+        eyebrow="Your collection"
+        title="Atlas"
+        subtitle="Every place you've been — on the map, by country, journey by journey."
+        icon={Globe2}
+        gradient="bg-[linear-gradient(135deg,#7C6BFF_0%,#5B6CFF_45%,#24D1C3_100%)]"
+      />
 
       <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-passport-navy/[0.05] dark:bg-white/[0.06]">
         {(

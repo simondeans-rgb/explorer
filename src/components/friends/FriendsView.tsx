@@ -18,6 +18,7 @@ import {
 import { cn } from '../../lib/cn';
 import { inputClass } from '../../lib/formClass';
 import { VERDICT_STYLE } from '../discoveries/verdictStyle';
+import { PageHero } from '../PageHero';
 import { FriendProfileModal } from './FriendProfileModal';
 
 interface Props {
@@ -29,6 +30,7 @@ interface Props {
   friendPlaces: Place[];
   friendDiscoveries: Discovery[];
   demo: boolean;
+  onBack?: () => void;
 }
 
 interface Pick {
@@ -47,6 +49,7 @@ export function FriendsView({
   friendPlaces,
   friendDiscoveries,
   demo,
+  onBack,
 }: Props) {
   const [entry, setEntry] = useState('');
   const [viewing, setViewing] = useState<{ uid: string; name: string } | null>(
@@ -137,16 +140,14 @@ export function FriendsView({
 
   return (
     <div className="animate-fade-in space-y-6">
-      <header className="pt-2">
-        <p className="text-sm font-medium text-passport-gold">Your circle</p>
-        <h1 className="font-display text-[2rem] leading-tight font-semibold text-passport-navy dark:text-white">
-          Friends
-        </h1>
-        <p className="text-sm text-passport-ink2 dark:text-white/55 mt-1 max-w-md">
-          Connect with people you trust. Their visits and recommendations appear
-          right where you&rsquo;re planning.
-        </p>
-      </header>
+      <PageHero
+        eyebrow="Your circle"
+        title="Friends"
+        subtitle="Connect with people you trust — their visits and tips appear right where you're planning."
+        icon={Users}
+        gradient="bg-[linear-gradient(135deg,#24D1C3_0%,#5B6CFF_55%,#9B7CFF_100%)]"
+        onBack={onBack}
+      />
 
       {demo ? (
         <div className="rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-8 text-center">

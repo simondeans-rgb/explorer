@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { type LucideIcon } from 'lucide-react';
+import { ScrollText, type LucideIcon } from 'lucide-react';
+import { PageHero } from '../PageHero';
 import type { CountryAggregate, PassportStats } from '../../lib/stats';
 import type { DiscoveryStats } from '../../lib/discoveryStats';
 import type { JourneyStats } from '../../lib/journeyStats';
@@ -33,6 +34,7 @@ interface Props {
   expeditions: Expedition[];
   journeyStats: JourneyStats;
   memberName: string;
+  onBack?: () => void;
 }
 
 function expeditionYear(e: Expedition): number {
@@ -50,6 +52,7 @@ export function AlmanacView({
   expeditions,
   journeyStats,
   memberName,
+  onBack,
 }: Props) {
   const currentYear = new Date().getFullYear();
   const [edition, setEdition] = useState<'lifetime' | number>('lifetime');
@@ -115,24 +118,14 @@ export function AlmanacView({
 
   return (
     <div className="animate-fade-in space-y-7">
-      <div className="relative overflow-hidden rounded-3xl bg-brand-gradient text-white p-6 shadow-float">
-        <div
-          className="pointer-events-none absolute -left-10 -bottom-12 h-44 w-44 rounded-full border border-white/15"
-          aria-hidden="true"
-        />
-        <div className="relative">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/75">
-            Your travel story
-          </p>
-          <h1 className="font-display text-[2.4rem] leading-none font-semibold mt-1">
-            The Almanac
-          </h1>
-          <p className="text-sm text-white/80 mt-2 max-w-sm">
-            A beautiful record of everywhere you&rsquo;ve been — published from
-            your own world.
-          </p>
-        </div>
-      </div>
+      <PageHero
+        eyebrow="Your travel story"
+        title="The Almanac"
+        subtitle="A beautiful record of everywhere you've been — published from your own world."
+        icon={ScrollText}
+        gradient="bg-[linear-gradient(135deg,#FFB84D_0%,#FF6B9A_55%,#9B7CFF_100%)]"
+        onBack={onBack}
+      />
 
       <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
         <EditionChip

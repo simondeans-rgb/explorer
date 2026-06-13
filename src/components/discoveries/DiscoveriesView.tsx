@@ -14,6 +14,7 @@ import {
 } from '../../types';
 import type { CountryPresence } from '../../lib/explore';
 import { cn } from '../../lib/cn';
+import { PageHero } from '../PageHero';
 import { AddDiscoveryModal, type DiscoveryModalInitial } from './AddDiscoveryModal';
 import { CATEGORY_ICON } from './categoryIcons';
 
@@ -96,18 +97,13 @@ export function DiscoveriesView({
 
   return (
     <div className="animate-fade-in space-y-6">
-      <header className="pt-2">
-        <p className="text-sm font-medium text-passport-gold">
-          The world, country by country
-        </p>
-        <h1 className="font-display text-[2rem] leading-tight font-semibold text-passport-navy dark:text-white">
-          Explore
-        </h1>
-        <p className="text-sm text-passport-ink2 dark:text-white/55 mt-1 max-w-md">
-          Discover destinations, see where friends have been, and keep the
-          places worth remembering.
-        </p>
-      </header>
+      <PageHero
+        eyebrow="The world, country by country"
+        title="Explore"
+        subtitle="Find destinations, see where friends have been, and keep the places worth remembering."
+        icon={Compass}
+        gradient="bg-[linear-gradient(135deg,#FF6B9A_0%,#FF7A66_50%,#FFB84D_100%)]"
+      />
 
       <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-passport-navy/[0.05] dark:bg-white/[0.06]">
         {(
