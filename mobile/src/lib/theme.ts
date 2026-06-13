@@ -9,6 +9,7 @@ export const COLORS = {
   sunburst: '#FFB84D',
   warmwhite: '#FAFAFC',
   night: '#0E1018',
+  ink: '#14213D',
   ink2: '#48506B',
   ink3: '#8A90A6',
   white: '#FFFFFF',

@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
-import { Bell, Search } from 'lucide-react-native';
+import { Bell, Plus, Search } from 'lucide-react-native';
 import { WorldlyMark } from '../../components/Brand';
+import { AddPlaceSheet } from '../../components/AddPlaceSheet';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
@@ -11,9 +13,11 @@ import { useWorldly } from '../../src/hooks/useWorldly';
 export default function StoryScreen() {
   const { aggregates, stats, level } = useWorldly();
   const discovered = aggregates.filter((a) => a.discovered);
+  const [addOpen, setAddOpen] = useState(false);
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 40 }}>
+    <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
       {/* Hero */}
       <LinearGradient colors={GRADIENTS.sunrise} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'relative', paddingTop: 64, paddingBottom: 64, paddingHorizontal: 20 }}>
         <View className="flex-row items-center justify-between">
@@ -69,5 +73,17 @@ export default function StoryScreen() {
         </ScrollView>
       </View>
     </ScrollView>
+
+      {/* Floating add button */}
+      <Pressable
+        onPress={() => setAddOpen(true)}
+        className="absolute items-center justify-center rounded-full"
+        style={{ right: 20, bottom: 28, height: 60, width: 60, backgroundColor: COLORS.coral, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 }}
+      >
+        <Plus size={28} color="#fff" strokeWidth={2.6} />
+      </Pressable>
+
+      <AddPlaceSheet visible={addOpen} onClose={() => setAddOpen(false)} />
+    </View>
   );
 }
