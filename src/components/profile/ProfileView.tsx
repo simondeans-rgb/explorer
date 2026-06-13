@@ -6,10 +6,13 @@ import {
   type LucideIcon,
   Moon,
   ScrollText,
+  Share2,
   Sparkles,
   Sun,
   Users,
 } from 'lucide-react';
+import { buildMapPosterSvg } from '../../lib/sharePosters';
+import { shareOrDownloadSvg } from '../../lib/shareImage';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useProfilePhoto } from '../../hooks/useProfilePhoto';
@@ -123,6 +126,28 @@ export function ProfileView({
 
       {/* Hub links */}
       <div className="space-y-2.5">
+        {hasTravel && (
+          <HubCard
+            icon={Share2}
+            title="Share my map"
+            subtitle={`${stats.countriesDiscovered} countries · ${stats.continentsDiscovered} continents`}
+            badge="from-aqua to-lavender"
+            onClick={() =>
+              shareOrDownloadSvg(
+                buildMapPosterSvg({
+                  name,
+                  countries: stats.countriesDiscovered,
+                  cities: stats.citiesDiscovered,
+                  continents: stats.continentsDiscovered,
+                }),
+                'worldly-map.png',
+                {
+                  shareText: `I've explored ${stats.countriesDiscovered} countries on Worldly 🌍`,
+                },
+              )
+            }
+          />
+        )}
         <HubCard
           icon={Users}
           title="Friends"
