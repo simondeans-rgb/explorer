@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   BookMarked,
-  ChevronLeft,
   Compass,
   Globe2,
   type LucideIcon,
@@ -312,37 +311,16 @@ export function AppShell() {
     // 'fresh' just closes the welcome.
   }
 
-  // Friends & Almanac are sub-pages of "You" — show a back bar. The four primary
-  // tabs each render their own in-view header, so no extra chrome there.
-  const subPage =
-    section === 'friends'
-      ? 'Friends'
-      : section === 'almanac'
-        ? 'Almanac'
-        : section === 'saved'
-          ? 'Saved'
-          : null;
+  // Friends, Almanac & Saved are sub-pages of "You" — each renders its own
+  // coloured PageHero with a back button, so there's no separate back bar.
+  const backToYou = () => setSection('profile');
 
   return (
     <CoversContext.Provider value={covers}>
     <div className="passport-bg fixed inset-0 flex flex-col">
-      {subPage && (
-        <header className="shrink-0 h-14 px-4 sm:px-6 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setSection('profile')}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-passport-navy dark:text-white"
-          >
-            <ChevronLeft size={20} /> {subPage}
-          </button>
-        </header>
-      )}
       <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
         <div
-          className={cn(
-            'mx-auto w-full max-w-2xl px-4 sm:px-6 pb-32 min-w-0',
-            section === 'passport' ? 'pt-0' : 'pt-1',
-          )}
+          className="mx-auto w-full max-w-2xl px-4 sm:px-6 pb-32 pt-0 min-w-0"
         >
           {section === 'passport' && (
             <PassportView
@@ -437,6 +415,7 @@ export function AppShell() {
               friendPlaces={friendsData.places}
               friendDiscoveries={friendsData.discoveries}
               demo={demo}
+              onBack={backToYou}
             />
           )}
           {section === 'almanac' && (
@@ -449,10 +428,12 @@ export function AppShell() {
               expeditions={expeditions}
               journeyStats={journeyStats}
               memberName={myName}
+              onBack={backToYou}
             />
           )}
           {section === 'saved' && (
             <SavedView
+              onBack={backToYou}
               saved={saved}
               onRemove={(item) =>
                 toggleSaved({

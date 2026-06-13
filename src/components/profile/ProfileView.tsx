@@ -14,6 +14,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useProfilePhoto } from '../../hooks/useProfilePhoto';
 import { memberName } from '../../lib/memberName';
+import { WaveEdge } from '../PageHero';
 import { cn } from '../../lib/cn';
 import type { PassportStats } from '../../lib/stats';
 import type { DiscoveryStats } from '../../lib/discoveryStats';
@@ -71,28 +72,32 @@ export function ProfileView({
 
   return (
     <div className="animate-fade-in space-y-6">
-      {/* Identity hero */}
-      <div className="relative overflow-hidden rounded-3xl bg-brand-gradient text-white shadow-float p-6 text-center">
-        <div
-          className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full border border-white/15"
-          aria-hidden="true"
-        />
-        <div className="relative">
-          <div className="mx-auto h-20 w-20 rounded-full ring-4 ring-white/40 overflow-hidden bg-white/20 flex items-center justify-center shadow-card">
-            {photo ? (
-              <img src={photo} alt="You" className="h-full w-full object-cover" />
-            ) : (
-              <span className="font-display text-3xl font-semibold">
-                {name[0]?.toUpperCase() ?? 'E'}
-              </span>
-            )}
+      {/* Identity hero — full-bleed, melting into the page like the others */}
+      <div className="relative -mx-4 sm:-mx-6">
+        <div className="relative overflow-hidden bg-brand-gradient text-white text-center px-6 pb-12 pt-[max(1.6rem,calc(env(safe-area-inset-top)+0.7rem))]">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 to-transparent mix-blend-soft-light" />
+          <div
+            className="pointer-events-none absolute -right-12 -top-14 h-48 w-48 rounded-full bg-white/10"
+            aria-hidden="true"
+          />
+          <div className="relative">
+            <div className="mx-auto h-24 w-24 rounded-full ring-4 ring-white/40 overflow-hidden bg-white/20 flex items-center justify-center shadow-float">
+              {photo ? (
+                <img src={photo} alt="You" className="h-full w-full object-cover" />
+              ) : (
+                <span className="font-display text-4xl font-semibold">
+                  {name[0]?.toUpperCase() ?? 'E'}
+                </span>
+              )}
+            </div>
+            <h1 className="mt-3 font-display text-[1.8rem] font-semibold capitalize leading-tight">
+              {name || 'Explorer'}
+            </h1>
+            <p className="text-sm text-white/80 mt-0.5 truncate">
+              {user?.email ?? 'Worldly member'}
+            </p>
           </div>
-          <h1 className="mt-3 font-display text-2xl font-semibold capitalize">
-            {name || 'Explorer'}
-          </h1>
-          <p className="text-sm text-white/80 mt-0.5 truncate">
-            {user?.email ?? 'Worldly member'}
-          </p>
+          <WaveEdge />
         </div>
       </div>
 

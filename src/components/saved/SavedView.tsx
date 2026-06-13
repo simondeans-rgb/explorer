@@ -1,6 +1,7 @@
-import { Bookmark, BookmarkX } from 'lucide-react';
+import { Bookmark } from 'lucide-react';
 import type { SavedItem, SavedKind } from '../../lib/saved';
 import { DestinationImage } from '../DestinationImage';
+import { PageHero } from '../PageHero';
 import { countryName } from '../../data/countries';
 
 const KIND_LABEL: Record<SavedKind, string> = {
@@ -15,15 +16,32 @@ const KIND_LABEL: Record<SavedKind, string> = {
 export function SavedView({
   saved,
   onRemove,
+  onBack,
 }: {
   saved: SavedItem[];
   onRemove: (item: SavedItem) => void;
+  onBack?: () => void;
 }) {
+  const hero = (
+    <PageHero
+      eyebrow="Your collection"
+      title="Saved & wishlist"
+      subtitle={
+        saved.length > 0
+          ? `${saved.length} saved · tap a bookmark to remove`
+          : 'Places and memories you want to keep'
+      }
+      icon={Bookmark}
+      gradient="bg-[linear-gradient(135deg,#9B7CFF_0%,#FF6B9A_100%)]"
+      onBack={onBack}
+    />
+  );
+
   if (saved.length === 0) {
     return (
-      <div className="animate-fade-in">
-        <Header count={0} />
-        <div className="mt-6 rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-8 text-center">
+      <div className="animate-fade-in space-y-5">
+        {hero}
+        <div className="rounded-3xl bg-white dark:bg-passport-carddark shadow-card p-8 text-center">
           <div className="mx-auto mb-4 h-16 w-16 rounded-3xl bg-brand-gradient flex items-center justify-center shadow-card">
             <Bookmark size={26} className="text-white" />
           </div>
@@ -40,9 +58,9 @@ export function SavedView({
   }
 
   return (
-    <div className="animate-fade-in">
-      <Header count={saved.length} />
-      <div className="mt-5 grid grid-cols-2 gap-3.5">
+    <div className="animate-fade-in space-y-5">
+      {hero}
+      <div className="grid grid-cols-2 gap-3.5">
         {saved.map((s) => {
           const place = [s.city, s.countryCode ? countryName(s.countryCode) : null]
             .filter(Boolean)
@@ -81,22 +99,5 @@ export function SavedView({
         })}
       </div>
     </div>
-  );
-}
-
-function Header({ count }: { count: number }) {
-  return (
-    <header>
-      <p className="text-sm font-semibold text-coral">Your collection</p>
-      <h1 className="font-display text-[2rem] leading-tight font-semibold text-passport-navy dark:text-white">
-        Saved &amp; wishlist
-      </h1>
-      {count > 0 && (
-        <p className="mt-1 flex items-center gap-1.5 text-sm text-passport-ink2 dark:text-white/55">
-          <BookmarkX size={14} className="text-passport-ink3" />
-          {count} saved · tap a bookmark to remove
-        </p>
-      )}
-    </header>
   );
 }
