@@ -9,9 +9,12 @@ import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { useWorldly } from '../../src/hooks/useWorldly';
+import { useAuth } from '../../src/store/auth';
 
 export default function StoryScreen() {
   const { aggregates, stats, level } = useWorldly();
+  const { user } = useAuth();
+  const firstName = user?.displayName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Alex');
   const discovered = aggregates.filter((a) => a.discovered);
   const [addOpen, setAddOpen] = useState(false);
 
@@ -31,7 +34,7 @@ export default function StoryScreen() {
         </View>
 
         <View style={{ marginTop: 56 }}>
-          <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.9 }}>Hi Alex,</Text>
+          <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.9 }}>Hi {firstName},</Text>
           <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, lineHeight: 40, marginTop: 6 }}>Where will your next story take you?</Text>
           <View className="flex-row items-center bg-white rounded-full" style={{ marginTop: 20, paddingHorizontal: 18, paddingVertical: 14, gap: 10 }}>
             <Search size={18} color={COLORS.coral} />

@@ -2,6 +2,10 @@ import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { Globe2, MapPinned } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
+import { Fab } from '../../components/Fab';
+import { WorldMap } from '../../components/WorldMap';
+import { AddPlaceSheet } from '../../components/AddPlaceSheet';
+import { AddTripSheet } from '../../components/AddTripSheet';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
@@ -13,6 +17,7 @@ type Tab = 'places' | 'journeys';
 export default function AtlasScreen() {
   const { aggregates, discoveries, expeditions } = useWorldly();
   const [tab, setTab] = useState<Tab>('places');
+  const [addOpen, setAddOpen] = useState(false);
   const discovered = aggregates.filter((a) => a.discovered);
 
   const discCount = useMemo(() => {
@@ -21,7 +26,17 @@ export default function AtlasScreen() {
     return m;
   }, [discoveries]);
 
+  const visited = useMemo(
+    () => new Set(aggregates.filter((a) => a.discovered).map((a) => a.code)),
+    [aggregates],
+  );
+  const wishlist = useMemo(
+    () => new Set(aggregates.filter((a) => !a.discovered && a.aspiring).map((a) => a.code)),
+    [aggregates],
+  );
+
   return (
+    <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
     <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 40 }}>
       <PageHero eyebrow="Your collection" title="Atlas" subtitle="Every place you've been — map, country, journey." gradient={GRADIENTS.atlas} />
 
@@ -37,6 +52,24 @@ export default function AtlasScreen() {
           );
         })}
       </View>
+
+      {tab === 'places' ? (
+        <View style={{ paddingHorizontal: 20, marginTop: 14 }}>
+          <WorldMap visited={visited} wishlist={wishlist} />
+          <View className="flex-row" style={{ marginTop: 10, gap: 16, paddingHorizontal: 4 }}>
+            <View className="flex-row items-center" style={{ gap: 6 }}>
+              <View style={{ height: 10, width: 10, borderRadius: 5, backgroundColor: COLORS.coral }} />
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{visited.size} discovered</Text>
+            </View>
+            {wishlist.size > 0 ? (
+              <View className="flex-row items-center" style={{ gap: 6 }}>
+                <View style={{ height: 10, width: 10, borderRadius: 5, backgroundColor: COLORS.lavender }} />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{wishlist.size} wish-listed</Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
 
       <View style={{ paddingHorizontal: 20, marginTop: 14, gap: 10 }}>
         {tab === 'places'
@@ -81,5 +114,13 @@ export default function AtlasScreen() {
             ))}
       </View>
     </ScrollView>
+
+      <Fab onPress={() => setAddOpen(true)} />
+      {tab === 'places' ? (
+        <AddPlaceSheet visible={addOpen} onClose={() => setAddOpen(false)} />
+      ) : (
+        <AddTripSheet visible={addOpen} onClose={() => setAddOpen(false)} />
+      )}
+    </View>
   );
 }
