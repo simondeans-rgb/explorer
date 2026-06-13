@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Check, MapPin, Pencil, Plane, Plus, Sparkles, Users, X } from 'lucide-react';
 import type {
   DiscoveryCategory,
@@ -154,43 +155,48 @@ export function TripDetailModal({
         onMouseDown={(e) => e.stopPropagation()}
         className={cn(
           'w-full sm:max-w-lg max-h-[92vh] overflow-y-auto no-scrollbar',
-          'rounded-t-3xl sm:rounded-3xl shadow-float animate-expand-in',
+          'rounded-t-3xl sm:rounded-3xl shadow-float',
           'bg-passport-cartridge dark:bg-passport-carddark',
         )}
       >
-        {/* Hero + countdown */}
-        <div className="relative">
-          <DestinationImage code={trip.countryCode} className="h-44 flex">
+        {/* Hero + countdown — the image is a shared element that morphs from
+            the tapped countdown card; text/buttons overlay it. */}
+        <div className="relative h-44">
+          <motion.div
+            layoutId={`trip-hero-${trip.id}`}
+            className="absolute inset-0 overflow-hidden"
+          >
+            <DestinationImage code={trip.countryCode} className="h-full w-full" />
             <div className="absolute inset-0 hero-scrim" />
-            <button
-              type="button"
-              aria-label="Close"
-              onClick={onClose}
-              className="absolute right-3 top-3 h-9 w-9 grid place-items-center rounded-full glass text-white"
-            >
-              <X size={18} />
-            </button>
-            <button
-              type="button"
-              aria-label="Edit trip"
-              onClick={onEdit}
-              className="absolute right-14 top-3 h-9 w-9 grid place-items-center rounded-full glass text-white"
-            >
-              <Pencil size={16} />
-            </button>
-            <div className="mt-auto p-4 relative">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-coral shadow-card">
-                <Sparkles size={12} /> {countdownLabel(trip)}
-              </span>
-              <h2 className="mt-2 font-display text-2xl font-semibold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] leading-tight">
-                {trip.title}
-              </h2>
-              <p className="text-sm font-medium text-white/90 mt-0.5">
-                {flagEmoji(trip.countryCode)} {countryName(trip.countryCode)}
-                {dateLabel && ` · ${dateLabel}`}
-              </p>
-            </div>
-          </DestinationImage>
+          </motion.div>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="absolute right-3 top-3 z-10 h-9 w-9 grid place-items-center rounded-full glass text-white"
+          >
+            <X size={18} />
+          </button>
+          <button
+            type="button"
+            aria-label="Edit trip"
+            onClick={onEdit}
+            className="absolute right-14 top-3 z-10 h-9 w-9 grid place-items-center rounded-full glass text-white"
+          >
+            <Pencil size={16} />
+          </button>
+          <div className="absolute inset-x-0 bottom-0 z-10 p-4">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-coral shadow-card">
+              <Sparkles size={12} /> {countdownLabel(trip)}
+            </span>
+            <h2 className="mt-2 font-display text-2xl font-semibold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] leading-tight">
+              {trip.title}
+            </h2>
+            <p className="text-sm font-medium text-white/90 mt-0.5">
+              {flagEmoji(trip.countryCode)} {countryName(trip.countryCode)}
+              {dateLabel && ` · ${dateLabel}`}
+            </p>
+          </div>
         </div>
 
         <div className="px-5 py-5 space-y-6">

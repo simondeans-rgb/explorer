@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { CalendarPlus, ChevronRight } from 'lucide-react';
 import type { Trip } from '../../types';
 import { countryName } from '../../data/countries';
@@ -62,31 +63,37 @@ export function UpcomingTrips({
               key={t.id}
               type="button"
               onClick={() => onOpen(t.id)}
-              className="shrink-0 w-[270px] rounded-[1.75rem] overflow-hidden shadow-float active:scale-[0.98] transition-transform text-left"
+              className="relative shrink-0 w-[270px] h-44 rounded-[1.75rem] overflow-hidden shadow-float text-left active:scale-[0.98] transition-transform"
             >
-              <DestinationImage code={t.countryCode} className="h-44 flex flex-col text-white">
-                {/* stronger bottom scrim keeps the countdown legible */}
+              {/* shared element — only the image morphs into the detail hero */}
+              <motion.div
+                layoutId={`trip-hero-${t.id}`}
+                className="absolute inset-0"
+              >
+                <DestinationImage code={t.countryCode} className="h-full w-full" />
                 <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/35 to-transparent" />
-                <div className="absolute right-3 top-3 text-2xl leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)]">
-                  {flagEmoji(t.countryCode)}
+              </motion.div>
+
+              {/* text overlay — sits over the image, outside the morph */}
+              <div className="absolute right-3 top-3 text-2xl leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)]">
+                {flagEmoji(t.countryCode)}
+              </div>
+              <div className="absolute inset-x-0 bottom-0 p-4 text-white">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-display text-[2.6rem] leading-none font-semibold drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
+                    {c.big}
+                  </span>
+                  <span className="text-sm font-bold uppercase tracking-wide text-white/90 mb-1">
+                    {c.small}
+                  </span>
                 </div>
-                <div className="mt-auto p-4 relative">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="font-display text-[2.6rem] leading-none font-semibold drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
-                      {c.big}
-                    </span>
-                    <span className="text-sm font-bold uppercase tracking-wide text-white/90 mb-1">
-                      {c.small}
-                    </span>
-                  </div>
-                  <div className="mt-1.5 font-display text-lg font-semibold leading-tight drop-shadow line-clamp-1">
-                    {t.title}
-                  </div>
-                  <div className="text-xs font-medium text-white/85 mt-0.5">
-                    {countryName(t.countryCode)}
-                  </div>
+                <div className="mt-1.5 font-display text-lg font-semibold leading-tight drop-shadow line-clamp-1">
+                  {t.title}
                 </div>
-              </DestinationImage>
+                <div className="text-xs font-medium text-white/85 mt-0.5">
+                  {countryName(t.countryCode)}
+                </div>
+              </div>
             </button>
           );
         })}
