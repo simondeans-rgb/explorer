@@ -540,6 +540,7 @@ export function AppShell() {
           {section === 'saved' && (
             <SavedView
               onBack={backToYou}
+              onExplore={() => setSection('discoveries')}
               saved={saved}
               onRemove={(item) =>
                 toggleSaved({
