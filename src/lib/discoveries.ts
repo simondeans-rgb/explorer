@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   onSnapshot,
   query,
   serverTimestamp,
@@ -11,6 +12,7 @@ import {
   type QuerySnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { uploadImage, deleteImage } from './storage';
 import * as local from './localDiscoveries';
 import type {
   Discovery,
@@ -85,6 +87,14 @@ function toDoc(input: DiscoveryInput) {
   };
 }
 
+/** Build the document fields, uploading any new data-URL photo to Storage. */
+async function toDocWithPhoto(userId: string, input: DiscoveryInput) {
+  const img = input.photo
+    ? await uploadImage(userId, 'discoveries', input.photo)
+    : { url: undefined as string | undefined, path: '' };
+  return { ...toDoc({ ...input, photo: img.url }), photoPath: img.path || null };
+}
+
 export async function createDiscovery(
   userId: string,
   input: DiscoveryInput,
@@ -92,7 +102,7 @@ export async function createDiscovery(
   if (!db) return local.createDiscovery(userId, input);
   const ref = await addDoc(collection(db, COLLECTION), {
     userId,
-    ...toDoc(input),
+    ...(await toDocWithPhoto(userId, input)),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -100,17 +110,33 @@ export async function createDiscovery(
 }
 
 export async function updateDiscovery(
+  userId: string,
   id: string,
   input: DiscoveryInput,
 ): Promise<void> {
   if (!db) return local.updateDiscovery(id, input);
-  await updateDoc(doc(db, COLLECTION, id), {
-    ...toDoc(input),
-    updatedAt: serverTimestamp(),
-  });
+  const refd = doc(db, COLLECTION, id);
+  const fields = await toDocWithPhoto(userId, input);
+  // If the photo changed or was removed, clean up the previous Storage object.
+  if (fields.photoPath || !input.photo) {
+    try {
+      const prev = await getDoc(refd);
+      const oldPath = prev.data()?.photoPath as string | undefined;
+      if (oldPath && oldPath !== fields.photoPath) await deleteImage(oldPath);
+    } catch {
+      /* best-effort */
+    }
+  }
+  await updateDoc(refd, { ...fields, updatedAt: serverTimestamp() });
 }
 
 export async function deleteDiscovery(id: string): Promise<void> {
   if (!db) return local.deleteDiscovery(id);
+  try {
+    const snap = await getDoc(doc(db, COLLECTION, id));
+    await deleteImage(snap.data()?.photoPath as string | undefined);
+  } catch {
+    /* best-effort image cleanup */
+  }
   await deleteDoc(doc(db, COLLECTION, id));
 }
