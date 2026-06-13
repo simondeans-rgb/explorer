@@ -1421,20 +1421,20 @@ function EmptyState({
         Add the first country you&rsquo;ve been to — or bring your travels across
         from another app in seconds.
       </p>
-      <div className="flex flex-col gap-2.5 max-w-xs mx-auto">
-        <button
-          type="button"
-          onClick={onImport}
-          className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-brand-gradient text-white font-semibold shadow-card hover:opacity-95 active:scale-[0.99] transition-all"
-        >
-          <Globe2 size={17} /> Import your travels
-        </button>
+      <div className="flex flex-col items-center gap-3 max-w-xs mx-auto">
         <button
           type="button"
           onClick={onAdd}
-          className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-passport-cartridge dark:bg-white/5 text-passport-navy dark:text-white/85 font-semibold hover:bg-passport-paged dark:hover:bg-white/10 active:scale-[0.99] transition-all"
+          className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-brand-gradient text-white font-semibold shadow-card hover:opacity-95 active:scale-[0.99] transition-all"
         >
-          <Plus size={17} /> Add a country
+          <Plus size={17} /> Add your first country
+        </button>
+        <button
+          type="button"
+          onClick={onImport}
+          className="text-sm font-semibold text-passport-ink2 dark:text-white/60 hover:text-passport-navy dark:hover:text-white/90 inline-flex items-center gap-1.5"
+        >
+          <Globe2 size={14} /> or import from another app
         </button>
       </div>
     </div>

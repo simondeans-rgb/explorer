@@ -1,4 +1,4 @@
-import { Bookmark } from 'lucide-react';
+import { Bookmark, Compass } from 'lucide-react';
 import type { SavedItem, SavedKind } from '../../lib/saved';
 import { DestinationImage } from '../DestinationImage';
 import { PageHero } from '../PageHero';
@@ -17,10 +17,12 @@ export function SavedView({
   saved,
   onRemove,
   onBack,
+  onExplore,
 }: {
   saved: SavedItem[];
   onRemove: (item: SavedItem) => void;
   onBack?: () => void;
+  onExplore?: () => void;
 }) {
   const hero = (
     <PageHero
@@ -48,10 +50,19 @@ export function SavedView({
           <p className="font-display text-xl font-semibold text-passport-navy dark:text-white mb-1.5">
             Nothing saved yet
           </p>
-          <p className="text-sm text-passport-ink2 dark:text-white/60 max-w-xs mx-auto">
+          <p className="text-sm text-passport-ink2 dark:text-white/60 max-w-xs mx-auto mb-6">
             Tap the heart on a friend&rsquo;s recommendation or the bookmark on a
             memory to keep it here — and watch it light up your map.
           </p>
+          {onExplore && (
+            <button
+              type="button"
+              onClick={onExplore}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-brand-gradient text-white font-semibold shadow-card hover:opacity-95 active:scale-[0.99] transition-all"
+            >
+              <Compass size={17} /> Find places to save
+            </button>
+          )}
         </div>
       </div>
     );
