@@ -210,6 +210,34 @@ textarea {
   scrollbar-width: none;
 }
 
+/* Celebration confetti — small pieces that fall and fade behind the card. */
+.confetti-piece {
+  position: absolute;
+  top: -8%;
+  width: 9px;
+  height: 14px;
+  opacity: 0;
+  animation: confetti-fall 2.4s cubic-bezier(0.3, 0.7, 0.4, 1) forwards;
+}
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(108vh) rotate(540deg);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti-piece {
+    display: none;
+  }
+}
+
 /* Slow "Ken Burns" drift for hero imagery — gentle life, never distracting.
    Fully disabled when the user prefers reduced motion. */
 @keyframes kenburns {

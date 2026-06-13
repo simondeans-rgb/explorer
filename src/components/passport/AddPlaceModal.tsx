@@ -13,6 +13,7 @@ import {
 } from '../../types';
 import { cn } from '../../lib/cn';
 import { inputClass } from '../../lib/formClass';
+import { useToast } from '../../contexts/toast';
 import { CountryPicker, Field } from '../forms';
 import { RELATIONSHIP_ICON } from './relationshipIcons';
 
@@ -38,6 +39,7 @@ interface Props {
 }
 
 export function AddPlaceModal({ userId, initial, onClose }: Props) {
+  const { toast } = useToast();
   const editing = Boolean(initial.id);
   const [kind, setKind] = useState<PlaceKind>(initial.kind);
   const [countryCode, setCountryCode] = useState(initial.countryCode ?? '');
@@ -47,7 +49,8 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
       : '',
   );
   const [relationships, setRelationships] = useState<Set<Relationship>>(
-    new Set(initial.relationships ?? (initial.kind === 'city' ? ['visited'] : [])),
+    // Default to "visited" so a place can be added in a couple of taps.
+    new Set(initial.relationships ?? ['visited']),
   );
   const [year, setYear] = useState(
     initial.firstYear ? String(initial.firstYear) : '',
@@ -130,6 +133,8 @@ export function AddPlaceModal({ userId, initial, onClose }: Props) {
       if (initial.id) await updatePlace(initial.id, input);
       else await createPlace(userId, input);
       onClose();
+    } catch {
+      toast({ kind: 'error', message: 'Couldn’t save — check your connection' });
     } finally {
       setBusy(false);
     }

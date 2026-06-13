@@ -1,5 +1,6 @@
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ToastProvider } from './contexts/ToastContext';
 import { SignInPage } from './components/auth/SignInPage';
 import { AppShell } from './components/AppShell';
 
@@ -18,7 +19,11 @@ function Shell() {
 
   if (loading && configured) return <Splash />;
   if (!user) return <SignInPage />;
-  return <AppShell />;
+  return (
+    <ToastProvider>
+      <AppShell />
+    </ToastProvider>
+  );
 }
 
 function Splash() {
