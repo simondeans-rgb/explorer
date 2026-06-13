@@ -58,7 +58,7 @@ export function FriendProfileModal({
         onMouseDown={(e) => e.stopPropagation()}
         className={cn(
           'w-full sm:max-w-lg max-h-[92vh] overflow-y-auto no-scrollbar',
-          'rounded-t-3xl sm:rounded-3xl shadow-float animate-rise-in',
+          'rounded-t-3xl sm:rounded-3xl shadow-float animate-expand-in',
           'bg-passport-cartridge dark:bg-passport-carddark',
         )}
       >
