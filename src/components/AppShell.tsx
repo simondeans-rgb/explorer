@@ -15,6 +15,8 @@ import { useCaptures } from '../hooks/useCaptures';
 import { useSaved } from '../hooks/useSaved';
 import { useTrips, isUpcoming } from '../hooks/useTrips';
 import { CoversContext, useCoversMap } from '../hooks/useCovers';
+import { useAchievementWatch } from '../hooks/useAchievementWatch';
+import { useToast } from '../contexts/toast';
 import { createPlace } from '../lib/places';
 import { updateTrip, deleteTrip, type TripInput } from '../lib/trips';
 import { createExpedition } from '../lib/expeditions';
@@ -127,15 +129,20 @@ export function AppShell() {
   }
   function addItinerary(tripId: string, item: ItineraryItem) {
     const t = trips.find((x) => x.id === tripId);
-    if (t) void updateTrip(tripId, { ...tripToInput(t), itinerary: [...t.itinerary, item] });
+    if (t)
+      updateTrip(tripId, { ...tripToInput(t), itinerary: [...t.itinerary, item] }).catch(
+        () => toast({ kind: 'error', message: 'Couldn’t update your itinerary' }),
+      );
   }
   function removeItinerary(tripId: string, itemId: string) {
     const t = trips.find((x) => x.id === tripId);
     if (t)
-      void updateTrip(tripId, {
+      updateTrip(tripId, {
         ...tripToInput(t),
         itinerary: t.itinerary.filter((i) => i.id !== itemId),
-      });
+      }).catch(() =>
+        toast({ kind: 'error', message: 'Couldn’t update your itinerary' }),
+      );
   }
   // Turn a trip that's underway/over into a logged journey, carrying the
   // itinerary into the note, then retire the planned trip.
@@ -147,29 +154,36 @@ export function AppShell() {
       [t.note, stops.length ? `Planned stops: ${stops.join(', ')}` : '']
         .filter(Boolean)
         .join('\n\n') || undefined;
-    await createExpedition(user.uid, {
-      title: t.title,
-      startDate: t.startDate,
-      endDate: t.endDate,
-      countryCodes: [t.countryCode],
-      journeys: [],
-      note,
-    });
-    await deleteTrip(tripId);
-    setActiveTripId(null);
-    setAtlasTab('journeys');
-    setSection('atlas');
+    try {
+      await createExpedition(user.uid, {
+        title: t.title,
+        startDate: t.startDate,
+        endDate: t.endDate,
+        countryCodes: [t.countryCode],
+        journeys: [],
+        note,
+      });
+      await deleteTrip(tripId);
+      setActiveTripId(null);
+      setAtlasTab('journeys');
+      setSection('atlas');
+      toast({ kind: 'success', message: 'Saved as a journey' });
+    } catch {
+      toast({ kind: 'error', message: 'Couldn’t save the journey — try again' });
+    }
   }
 
   // Promote a saved country into a tracked "aspiring" place on the map.
   function addAspiring(code: string) {
     if (!user?.uid) return;
-    void createPlace(user.uid, {
+    createPlace(user.uid, {
       kind: 'country',
       countryCode: code,
       name: countryName(code),
       relationships: ['aspiring'],
-    });
+    })
+      .then(() => toast({ kind: 'success', message: `${countryName(code)} added to your map` }))
+      .catch(() => toast({ kind: 'error', message: 'Couldn’t add that — try again' }));
   }
   const { connections } = useConnections(user?.uid);
   const profile = useProfile(user?.uid, myName);
@@ -184,6 +198,17 @@ export function AppShell() {
   const journeyStats = useMemo(
     () => computeJourneyStats(expeditions),
     [expeditions],
+  );
+
+  // Celebrate level-ups & badge unlocks the moment they're earned.
+  const { toast, celebrate } = useToast();
+  useAchievementWatch(
+    user?.uid,
+    !loading && !discoveriesLoading && !expeditionsLoading,
+    stats,
+    discoveryStats,
+    journeyStats,
+    celebrate,
   );
 
   // ── Year in Review (shareable recap) ────────────────────────────────

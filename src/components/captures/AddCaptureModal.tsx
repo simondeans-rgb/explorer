@@ -5,6 +5,7 @@ import { fileToCompactJpeg } from '../../lib/imageCompress';
 import type { Expedition } from '../../types';
 import { cn } from '../../lib/cn';
 import { inputClass } from '../../lib/formClass';
+import { useToast } from '../../contexts/toast';
 import { CountryPicker, Field } from '../forms';
 
 export interface CaptureModalInitial {
@@ -27,6 +28,7 @@ export function AddCaptureModal({
   expeditions,
   onClose,
 }: Props) {
+  const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [dataUrl, setDataUrl] = useState('');
   const [caption, setCaption] = useState('');
@@ -70,6 +72,8 @@ export function AddCaptureModal({
         caption: caption.trim() || undefined,
       });
       onClose();
+    } catch {
+      toast({ kind: 'error', message: 'Couldn’t save your photo — try again' });
     } finally {
       setBusy(false);
     }

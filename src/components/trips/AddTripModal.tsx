@@ -4,6 +4,7 @@ import { createTrip, deleteTrip, updateTrip } from '../../lib/trips';
 import type { ItineraryItem } from '../../types';
 import { cn } from '../../lib/cn';
 import { inputClass } from '../../lib/formClass';
+import { useToast } from '../../contexts/toast';
 import { CountryPicker, Field } from '../forms';
 
 export interface TripModalInitial {
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function AddTripModal({ userId, initial, onClose, onCreated }: Props) {
+  const { toast } = useToast();
   const editing = Boolean(initial.id);
   const [title, setTitle] = useState(initial.title ?? '');
   const [countryCode, setCountryCode] = useState(initial.countryCode ?? '');
@@ -63,6 +65,8 @@ export function AddTripModal({ userId, initial, onClose, onCreated }: Props) {
         if (id) onCreated?.(id);
       }
       onClose();
+    } catch {
+      toast({ kind: 'error', message: 'Couldn’t save your trip — try again' });
     } finally {
       setBusy(false);
     }

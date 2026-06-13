@@ -10,6 +10,7 @@ import { flagEmoji } from '../../lib/flags';
 import { JOURNEY_MODES, JOURNEY_MODE_META, type Journey, type JourneyMode } from '../../types';
 import { cn } from '../../lib/cn';
 import { inputClass } from '../../lib/formClass';
+import { useToast } from '../../contexts/toast';
 import { AirportPicker, CountryPicker, Field } from '../forms';
 import { JOURNEY_ICON } from './journeyIcons';
 
@@ -36,6 +37,7 @@ function newId(): string {
 }
 
 export function AddExpeditionModal({ userId, initial, onClose }: Props) {
+  const { toast } = useToast();
   const editing = Boolean(initial.id);
   const [title, setTitle] = useState(initial.title ?? '');
   const [startDate, setStartDate] = useState(initial.startDate ?? '');
@@ -106,6 +108,8 @@ export function AddExpeditionModal({ userId, initial, onClose }: Props) {
       if (initial.id) await updateExpedition(initial.id, input);
       else await createExpedition(userId, input);
       onClose();
+    } catch {
+      toast({ kind: 'error', message: 'Couldn’t save — check your connection' });
     } finally {
       setBusy(false);
     }

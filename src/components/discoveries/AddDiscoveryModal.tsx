@@ -19,6 +19,7 @@ import {
 } from '../../types';
 import { cn } from '../../lib/cn';
 import { inputClass } from '../../lib/formClass';
+import { useToast } from '../../contexts/toast';
 import { CountryPicker, Field } from '../forms';
 import { CATEGORY_ICON } from './categoryIcons';
 import { VERDICT_STYLE } from './verdictStyle';
@@ -50,6 +51,7 @@ export function AddDiscoveryModal({
   expeditions,
   onClose,
 }: Props) {
+  const { toast } = useToast();
   const editing = Boolean(initial.id);
   const [name, setName] = useState(initial.name ?? '');
   const [category, setCategory] = useState<DiscoveryCategory>(
@@ -135,6 +137,8 @@ export function AddDiscoveryModal({
       if (initial.id) await updateDiscovery(initial.id, input);
       else await createDiscovery(userId, input);
       onClose();
+    } catch {
+      toast({ kind: 'error', message: 'Couldn’t save — check your connection' });
     } finally {
       setBusy(false);
     }
