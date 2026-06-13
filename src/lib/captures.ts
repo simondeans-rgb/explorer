@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   onSnapshot,
   query,
   serverTimestamp,
@@ -10,6 +11,7 @@ import {
   type QuerySnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { uploadImage, deleteImage } from './storage';
 import * as local from './localCaptures';
 import type { Capture } from '../types';
 
@@ -70,9 +72,11 @@ export async function createCapture(
   input: CaptureInput,
 ): Promise<string | null> {
   if (!db) return local.createCapture(userId, input);
+  const img = await uploadImage(userId, 'captures', input.dataUrl);
   const ref = await addDoc(collection(db, COLLECTION), {
     userId,
-    ...toDoc(input),
+    ...toDoc({ ...input, dataUrl: img.url }),
+    storagePath: img.path || null,
     createdAt: serverTimestamp(),
   });
   return ref.id;
@@ -80,5 +84,11 @@ export async function createCapture(
 
 export async function deleteCapture(id: string): Promise<void> {
   if (!db) return local.deleteCapture(id);
+  try {
+    const snap = await getDoc(doc(db, COLLECTION, id));
+    await deleteImage(snap.data()?.storagePath as string | undefined);
+  } catch {
+    /* best-effort image cleanup */
+  }
   await deleteDoc(doc(db, COLLECTION, id));
 }

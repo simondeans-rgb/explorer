@@ -134,7 +134,7 @@ export function AddDiscoveryModal({
       photo: photo || undefined,
     };
     try {
-      if (initial.id) await updateDiscovery(initial.id, input);
+      if (initial.id) await updateDiscovery(userId, initial.id, input);
       else await createDiscovery(userId, input);
       onClose();
     } catch {

@@ -9,6 +9,7 @@ import {
   persistentMultipleTabManager,
   type Firestore,
 } from 'firebase/firestore';
+import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
 const config = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -26,6 +27,7 @@ export const isFirebaseConfigured = Boolean(
 let app: FirebaseApp | null = null;
 let authInstance: Auth | null = null;
 let dbInstance: Firestore | null = null;
+let storageInstance: FirebaseStorage | null = null;
 
 if (isFirebaseConfigured) {
   app = initializeApp(config);
@@ -36,7 +38,10 @@ if (isFirebaseConfigured) {
       tabManager: persistentMultipleTabManager(),
     }),
   });
+  // Storage is optional — only when a bucket is configured.
+  if (config.storageBucket) storageInstance = getStorage(app);
 }
 
 export const auth = authInstance;
 export const db = dbInstance;
+export const storage = storageInstance;
