@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
+import { router } from 'expo-router';
 import { Globe2, MapPinned } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
 import { Fab } from '../../components/Fab';
@@ -74,7 +75,7 @@ export default function AtlasScreen() {
       <View style={{ paddingHorizontal: 20, marginTop: 14, gap: 10 }}>
         {tab === 'places'
           ? discovered.map((a) => (
-              <View key={a.code} className="bg-white rounded-3xl" style={{ padding: 16 }}>
+              <Pressable key={a.code} onPress={() => router.push(`/country/${a.code}`)} className="bg-white rounded-3xl" style={{ padding: 16 }}>
                 <View className="flex-row items-center" style={{ gap: 12 }}>
                   <Text style={{ fontSize: 30 }}>{flagEmoji(a.code)}</Text>
                   <View style={{ flex: 1 }}>
@@ -101,7 +102,7 @@ export default function AtlasScreen() {
                     </View>
                   ))}
                 </View>
-              </View>
+              </Pressable>
             ))
           : expeditions.map((e) => (
               <View key={e.id} className="bg-white rounded-3xl" style={{ padding: 16 }}>

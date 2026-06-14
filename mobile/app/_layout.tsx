@@ -32,6 +32,7 @@ export default function RootLayout() {
       <DataProvider>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="country/[code]" options={{ animation: 'slide_from_right' }} />
         </Stack>
       </DataProvider>
     </AuthProvider>

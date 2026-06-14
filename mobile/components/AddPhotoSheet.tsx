@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { Camera, ImagePlus, Check, Search, X } from 'lucide-react-native';
@@ -9,7 +9,15 @@ import { COUNTRIES } from '../src/data/countries';
 import { useData } from '../src/store/data';
 import { pickPhotoDataUrl } from '../src/lib/photo';
 
-export function AddPhotoSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+export function AddPhotoSheet({
+  visible,
+  onClose,
+  initialCountryCode,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  initialCountryCode?: string;
+}) {
   const { addCapture } = useData();
   const [photo, setPhoto] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
@@ -17,6 +25,10 @@ export function AddPhotoSheet({ visible, onClose }: { visible: boolean; onClose:
   const [code, setCode] = useState('');
   const [picking, setPicking] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (visible && initialCountryCode) setCode(initialCountryCode);
+  }, [visible, initialCountryCode]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();

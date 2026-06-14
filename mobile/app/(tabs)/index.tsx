@@ -3,6 +3,7 @@ import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
+import { router } from 'expo-router';
 import { Bell, Plus, Search, Camera } from 'lucide-react-native';
 import { WorldlyMark } from '../../components/Brand';
 import { AddPlaceSheet } from '../../components/AddPlaceSheet';
@@ -75,7 +76,7 @@ export default function StoryScreen() {
         <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, paddingHorizontal: 20 }}>Your world</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
           {discovered.map((a) => (
-            <Pressable key={a.code} style={{ width: 132 }}>
+            <Pressable key={a.code} onPress={() => router.push(`/country/${a.code}`)} style={{ width: 132 }}>
               <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 168, borderRadius: 26, padding: 14, justifyContent: 'flex-end' }}>
                 <Text style={{ fontSize: 34, position: 'absolute', top: 12, left: 12 }}>{flagEmoji(a.code)}</Text>
                 <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 18 }}>{countryName(a.code)}</Text>

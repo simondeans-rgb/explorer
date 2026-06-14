@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput } from 'react-native';
+import { router } from 'expo-router';
 import {
   UtensilsCrossed,
   BedDouble,
@@ -125,7 +126,7 @@ export default function ExploreScreen() {
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12, gap: 10 }}>
                   {[...wishlist.keys()].map((code) => (
-                    <Pressable key={code} onPress={() => toggleWishlist(code)}>
+                    <Pressable key={code} onPress={() => router.push(`/country/${code}`)}>
                       <View className="rounded-2xl items-center justify-center" style={{ width: 96, height: 96, backgroundColor: 'rgba(155,124,255,0.12)' }}>
                         <Text style={{ fontSize: 30 }}>{flagEmoji(code)}</Text>
                         <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.navy, marginTop: 4, paddingHorizontal: 6 }}>
@@ -151,7 +152,7 @@ export default function ExploreScreen() {
                     return (
                       <Pressable
                         key={c.code}
-                        onPress={() => !discovered && toggleWishlist(c.code)}
+                        onPress={() => router.push(`/country/${c.code}`)}
                         className="flex-row items-center bg-white"
                         style={{ marginHorizontal: 20, marginBottom: 8, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12, gap: 12 }}
                       >
@@ -166,9 +167,9 @@ export default function ExploreScreen() {
                             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.coral }}>In your world</Text>
                           </View>
                         ) : (
-                          <View className="rounded-full items-center justify-center" style={{ height: 36, width: 36, backgroundColor: saved ? COLORS.lavender : COLORS.warmwhite }}>
+                          <Pressable onPress={() => toggleWishlist(c.code)} hitSlop={8} className="rounded-full items-center justify-center" style={{ height: 36, width: 36, backgroundColor: saved ? COLORS.lavender : COLORS.warmwhite }}>
                             {saved ? <BookmarkCheck size={18} color="#fff" /> : <Bookmark size={18} color={COLORS.ink3} />}
-                          </View>
+                          </Pressable>
                         )}
                       </Pressable>
                     );
