@@ -56,6 +56,7 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="country/[code]" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="wrapped" options={{ animation: 'fade', presentation: 'fullScreenModal' }} />
           </Stack>
           {!onboarded ? <Onboarding onDone={finishOnboarding} /> : null}
         </View>
