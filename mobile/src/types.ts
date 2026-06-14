@@ -213,6 +213,7 @@ export interface Journey {
   to?: string;
   reference?: string; // flight number / ship / service
   seat?: string; // cabin & seat / class
+  vehicle?: string; // aircraft / vehicle type
   date?: string;
   note?: string;
 }

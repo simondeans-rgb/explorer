@@ -1,12 +1,13 @@
 import { Modal, View, Text, Pressable } from 'react-native';
-import { MapPin, Plane, Camera, CalendarDays } from 'lucide-react-native';
+import { MapPin, Compass, Plane, Camera, CalendarDays } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { COLORS } from '../src/lib/theme';
 
-export type ActionKind = 'place' | 'journey' | 'photo' | 'trip';
+export type ActionKind = 'place' | 'discovery' | 'journey' | 'photo' | 'trip';
 
 const OPTIONS: { kind: ActionKind; label: string; hint: string; icon: ComponentType<{ size?: number; color?: string }> }[] = [
   { kind: 'place', label: 'Add a place', hint: 'A country or city you’ve been to', icon: MapPin },
+  { kind: 'discovery', label: 'Add a discovery', hint: 'A place or experience worth remembering', icon: Compass },
   { kind: 'journey', label: 'Log a journey', hint: 'A trip and how you travelled', icon: Plane },
   { kind: 'photo', label: 'Add a photo', hint: 'A memory from your travels', icon: Camera },
   { kind: 'trip', label: 'Plan a trip', hint: 'Somewhere you’re dreaming of', icon: CalendarDays },

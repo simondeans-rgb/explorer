@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router';
 import { WorldlyTabBar } from '../../components/WorldlyTabBar';
 import { ActionMenu, type ActionKind } from '../../components/ActionMenu';
 import { AddPlaceSheet } from '../../components/AddPlaceSheet';
+import { AddDiscoverySheet } from '../../components/AddDiscoverySheet';
 import { AddTripSheet } from '../../components/AddTripSheet';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
 import { AddTripPlanSheet } from '../../components/AddTripPlanSheet';
@@ -32,6 +33,7 @@ export default function TabsLayout() {
         }}
       />
       <AddPlaceSheet visible={sheet === 'place'} onClose={() => setSheet(null)} />
+      <AddDiscoverySheet visible={sheet === 'discovery'} onClose={() => setSheet(null)} />
       <AddTripSheet visible={sheet === 'journey'} onClose={() => setSheet(null)} />
       <AddPhotoSheet visible={sheet === 'photo'} onClose={() => setSheet(null)} />
       <AddTripPlanSheet visible={sheet === 'trip'} onClose={() => setSheet(null)} />

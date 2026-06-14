@@ -11,10 +11,8 @@ import {
   BookOpen,
 } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
-import { Fab } from '../../components/Fab';
 import { DestinationImage } from '../../components/DestinationImage';
 import { DiscoveryCard } from '../../components/DiscoveryCard';
-import { AddDiscoverySheet } from '../../components/AddDiscoverySheet';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
@@ -29,7 +27,6 @@ export default function ExploreScreen() {
   const { addPlace, removePlace } = useData();
   const [tab, setTab] = useState<Tab>('browse');
   const [query, setQuery] = useState('');
-  const [addOpen, setAddOpen] = useState(false);
 
   const discoveredCodes = useMemo(
     () => new Set(aggregates.filter((a) => a.discovered).map((a) => a.code)),
@@ -192,13 +189,6 @@ export default function ExploreScreen() {
           </View>
         )}
       </ScrollView>
-
-      {tab === 'discoveries' ? (
-        <>
-          <Fab onPress={() => setAddOpen(true)} bottom={104} />
-          <AddDiscoverySheet visible={addOpen} onClose={() => setAddOpen(false)} />
-        </>
-      ) : null}
     </View>
   );
 }
