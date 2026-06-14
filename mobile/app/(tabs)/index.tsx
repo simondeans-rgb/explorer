@@ -6,11 +6,13 @@ import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
 import { Bell, Plus, Search, Camera } from 'lucide-react-native';
 import { WorldlyMark } from '../../components/Brand';
+import { DestinationImage } from '../../components/DestinationImage';
 import { AddPlaceSheet } from '../../components/AddPlaceSheet';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
+import { hasDestinationPhoto } from '../../src/lib/destinationImage';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useData } from '../../src/store/data';
 import { useAuth } from '../../src/store/auth';
@@ -21,6 +23,7 @@ export default function StoryScreen() {
   const { user } = useAuth();
   const firstName = user?.displayName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Alex');
   const discovered = aggregates.filter((a) => a.discovered);
+  const heroCode = discovered.find((a) => hasDestinationPhoto(a.code))?.code ?? 'WW';
   const [addOpen, setAddOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
 
@@ -35,7 +38,7 @@ export default function StoryScreen() {
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
       {/* Hero */}
-      <LinearGradient colors={GRADIENTS.sunrise} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'relative', paddingTop: 64, paddingBottom: 64, paddingHorizontal: 20 }}>
+      <DestinationImage code={heroCode} scrim style={{ position: 'relative', paddingTop: 64, paddingBottom: 64, paddingHorizontal: 20 }}>
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center" style={{ gap: 8 }}>
             <WorldlyMark size={28} />
@@ -47,7 +50,7 @@ export default function StoryScreen() {
         </View>
 
         <View style={{ marginTop: 56 }}>
-          <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.9 }}>Hi {firstName},</Text>
+          <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95 }}>Hi {firstName},</Text>
           <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, lineHeight: 40, marginTop: 6 }}>Where will your next story take you?</Text>
           <View className="flex-row items-center bg-white rounded-full" style={{ marginTop: 20, paddingHorizontal: 18, paddingVertical: 14, gap: 10 }}>
             <Search size={18} color={COLORS.coral} />
@@ -58,7 +61,7 @@ export default function StoryScreen() {
         <Svg width="100%" height={48} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
           <Path d="M0,64 C220,118 460,16 720,44 C980,72 1220,120 1440,70 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
         </Svg>
-      </LinearGradient>
+      </DestinationImage>
 
       {/* Milestone */}
       <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
@@ -89,13 +92,13 @@ export default function StoryScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
             {discovered.map((a) => (
               <Pressable key={a.code} onPress={() => router.push(`/country/${a.code}`)} style={{ width: 132 }}>
-                <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 168, borderRadius: 26, padding: 14, justifyContent: 'flex-end' }}>
+                <DestinationImage code={a.code} scrim style={{ height: 168, borderRadius: 26, padding: 14, justifyContent: 'flex-end' }}>
                   <Text style={{ fontSize: 34, position: 'absolute', top: 12, left: 12 }}>{flagEmoji(a.code)}</Text>
                   <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 18 }}>{countryName(a.code)}</Text>
                   {a.cities.length > 0 ? (
-                    <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, opacity: 0.85, marginTop: 2 }}>{a.cities.length} cities</Text>
+                    <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, opacity: 0.9, marginTop: 2 }}>{a.cities.length} cities</Text>
                   ) : null}
-                </LinearGradient>
+                </DestinationImage>
               </Pressable>
             ))}
           </ScrollView>
