@@ -150,6 +150,9 @@ export interface Place {
   name: string;
   relationships: Relationship[];
   firstYear?: number;
+  /** When you were first here, at the precision the Member gave it
+   *  (ISO `YYYY`, `YYYY-MM`, or `YYYY-MM-DD`). `firstYear` is its year. */
+  firstDate?: string;
   /** Primary residence period (when `lived`). ISO dates. Kept as the earliest
    *  start / latest end for backward compatibility; see `residencePeriods` for
    *  the full set when a Member lived somewhere across several spells. */
