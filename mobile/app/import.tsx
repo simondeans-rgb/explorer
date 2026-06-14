@@ -78,17 +78,20 @@ export default function ImportScreen() {
     setScanBusy(true);
     setScanProgress(0);
     try {
-      const { rows, scanned, denied } = await scanPhotosForCountries((p) => setScanProgress(p.scanned), homeRanges(places));
+      const { rows, scanned, denied, limited } = await scanPhotosForCountries((p) => setScanProgress(p.scanned), homeRanges(places));
       if (denied) {
         setScanMsg('Photo access is needed to detect where you’ve been.');
         return;
       }
+      const limitedNote = limited
+        ? ` Worldly only has access to ${scanned} selected photos — choose “All Photos” in Settings → Worldly → Photos for a full scan.`
+        : '';
       if (rows.length === 0) {
-        setScanMsg(`Scanned ${scanned} photos — none had location data.`);
+        setScanMsg(`Scanned ${scanned} photos — none had usable location data.${limitedNote}`);
         return;
       }
       const added = await importPlaces(rows);
-      setScanMsg(`Scanned ${scanned} photos → found ${rows.length} countries, added ${added} new.`);
+      setScanMsg(`Scanned ${scanned} photos → found ${rows.length} countries, added ${added} new.${limitedNote}`);
     } catch {
       setScanMsg('Could not scan your photos.');
     } finally {
