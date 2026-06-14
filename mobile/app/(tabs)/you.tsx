@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Users } from 'lucide-react-native';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Users, Download } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { useWorldly } from '../../src/hooks/useWorldly';
@@ -128,8 +128,8 @@ export default function YouScreen() {
         </Pressable>
       </View>
 
-      {/* Friends */}
-      <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
+      {/* Friends + Import */}
+      <View style={{ paddingHorizontal: 20, marginTop: 12, gap: 10 }}>
         <Pressable onPress={() => router.push('/friends')} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
           <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: 'rgba(155,124,255,0.14)' }}>
             <Users size={20} color={COLORS.lavender} />
@@ -137,6 +137,16 @@ export default function YouScreen() {
           <View style={{ flex: 1 }}>
             <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>Friends</Text>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Your share code, requests and circle.</Text>
+          </View>
+          <ChevronRight size={20} color={COLORS.ink3} />
+        </Pressable>
+        <Pressable onPress={() => router.push('/import')} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
+          <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: 'rgba(36,209,195,0.14)' }}>
+            <Download size={20} color={COLORS.aqua} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>Import travels</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Flighty CSV, a country list, or your photos.</Text>
           </View>
           <ChevronRight size={20} color={COLORS.ink3} />
         </Pressable>
