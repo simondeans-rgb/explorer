@@ -10,6 +10,7 @@ import { useData } from '../src/store/data';
 import { buildImportPlan } from '../src/lib/flightyImport';
 import { parseCountryList } from '../src/lib/listImport';
 import { scanPhotosForCountries } from '../src/lib/photoScan';
+import { homeRanges } from '../src/lib/residence';
 
 export default function ImportScreen() {
   const { importPlaces, importExpeditions, places } = useData();
@@ -77,7 +78,7 @@ export default function ImportScreen() {
     setScanBusy(true);
     setScanProgress(0);
     try {
-      const { rows, scanned, denied } = await scanPhotosForCountries((p) => setScanProgress(p.scanned));
+      const { rows, scanned, denied } = await scanPhotosForCountries((p) => setScanProgress(p.scanned), homeRanges(places));
       if (denied) {
         setScanMsg('Photo access is needed to detect where you’ve been.');
         return;
@@ -127,7 +128,7 @@ export default function ImportScreen() {
         </Card>
 
         {/* Photos */}
-        <Card icon={Images} title="Scan your photos" body="We read each photo’s location tag and date (on your device only) to detect the countries you’ve visited — and record them in the right year. Scanning your whole library can take a minute.">
+        <Card icon={Images} title="Scan your photos" body="We read each photo’s location tag and date (on your device only) to detect the countries you’ve visited, in the right year — and skip anywhere you lived at the time, so home doesn’t count as a trip. Scanning your whole library can take a minute.">
           <Pressable onPress={scanPhotos} disabled={scanBusy} style={btn(scanBusy)}>
             {scanBusy ? (
               <Text style={btnText}>Scanning… {scanProgress} photos</Text>
