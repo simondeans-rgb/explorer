@@ -6,6 +6,7 @@
 import * as MediaLibrary from 'expo-media-library';
 import * as Location from 'expo-location';
 import type { PlaceRow } from './flightyImport';
+import { isHome, type HomeRange } from './residence';
 
 export interface ScanProgress {
   scanned: number;
@@ -19,10 +20,12 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
-/** Scan the whole library (paged) for geotagged photos. `maxAssets` is a safety
- *  ceiling for very large libraries; it scans everything below that. */
+/** Scan the whole library (paged) for geotagged photos. Photos taken while you
+ *  lived somewhere (per `home`) are ignored, so home time isn't recorded as a
+ *  trip. `maxAssets` is a safety ceiling for very large libraries. */
 export async function scanPhotosForCountries(
   onProgress?: (p: ScanProgress) => void,
+  home: HomeRange[] = [],
   maxAssets = 30000,
 ): Promise<{ rows: PlaceRow[]; scanned: number; denied?: boolean }> {
   const perm = await MediaLibrary.requestPermissionsAsync();
@@ -65,6 +68,8 @@ export async function scanPhotosForCountries(
           coordCache.set(key, code);
         }
         if (!code) continue;
+        // Ignore photos taken while you lived there — that's home, not a trip.
+        if (isHome(home, code, asset.creationTime ?? Date.now())) continue;
         // creationTime is ms since epoch; keep the EARLIEST year per country.
         const year = asset.creationTime ? new Date(asset.creationTime).getFullYear() : undefined;
         const prev = earliestYear.get(code);
