@@ -14,80 +14,97 @@ export interface ScanProgress {
   done: boolean;
 }
 
+export interface ScanResult {
+  rows: PlaceRow[];
+  scanned: number;
+  denied?: boolean;
+  limited?: boolean;
+  partial?: boolean; // stopped early on an unexpected error
+}
+
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
 }
 
-/** Resolve `p`, or null if it doesn't settle within `ms` — so a single asset
- *  that hangs (e.g. an iCloud download) can never freeze the whole scan. */
-function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
-  return Promise.race([p.catch(() => null), new Promise<null>((res) => setTimeout(() => res(null), ms))]);
-}
-
-/** Local-only asset info (no iCloud network round-trip, which can hang), with a
- *  hard timeout fallback. */
-function assetInfo(a: MediaLibrary.Asset) {
-  return withTimeout(MediaLibrary.getAssetInfoAsync(a, { shouldDownloadFromNetwork: false }), 4000);
+/** Resolve `p`, or null if it rejects or doesn't settle within `ms` — so a
+ *  single asset that hangs (e.g. an iCloud lookup) can't freeze the scan. */
+function safeAssetInfo(a: MediaLibrary.Asset, ms: number): Promise<MediaLibrary.AssetInfo | null> {
+  let work: Promise<MediaLibrary.AssetInfo | null>;
+  try {
+    work = MediaLibrary.getAssetInfoAsync(a, { shouldDownloadFromNetwork: false }).catch(() => null);
+  } catch {
+    return Promise.resolve(null);
+  }
+  return Promise.race([work, new Promise<null>((res) => setTimeout(() => res(null), ms))]);
 }
 
 /** Scan the whole library (paged) for geotagged photos. Photos taken while you
  *  lived somewhere (per `home`) are ignored, so home time isn't recorded as a
- *  trip. `maxAssets` is a safety ceiling for very large libraries. */
+ *  trip. Never throws — returns whatever it gathered. */
 export async function scanPhotosForCountries(
   onProgress?: (p: ScanProgress) => void,
   home: HomeRange[] = [],
   maxAssets = 30000,
-): Promise<{ rows: PlaceRow[]; scanned: number; denied?: boolean; limited?: boolean }> {
-  // Ask for full ("all") access; on iOS the user may still grant "limited".
-  const perm = await MediaLibrary.requestPermissionsAsync(false, ['photo']);
+): Promise<ScanResult> {
+  let perm;
+  try {
+    perm = await MediaLibrary.requestPermissionsAsync();
+  } catch {
+    return { rows: [], scanned: 0, denied: true };
+  }
   if (!perm.granted) return { rows: [], scanned: 0, denied: true };
   const limited = perm.accessPrivileges === 'limited';
 
   const coordCache = new Map<string, string | null>();
-  const earliestYear = new Map<string, number | undefined>(); // code -> earliest year seen
+  const earliestYear = new Map<string, number | undefined>();
   let after: string | undefined;
   let scanned = 0;
+  let partial = false;
 
-  while (scanned < maxAssets) {
-    const page = await MediaLibrary.getAssetsAsync({
-      first: 100,
-      after,
-      mediaType: MediaLibrary.MediaType.photo,
-      sortBy: [MediaLibrary.SortBy.creationTime],
-    });
-    if (page.assets.length === 0) break;
+  try {
+    while (scanned < maxAssets) {
+      const page = await MediaLibrary.getAssetsAsync({
+        first: 100,
+        after,
+        mediaType: MediaLibrary.MediaType.photo,
+      });
+      if (page.assets.length === 0) break;
 
-    // Fetch GPS in small parallel batches (getAssetInfoAsync is a native call).
-    for (const group of chunk(page.assets, 8)) {
-      const infos = await Promise.all(group.map((a) => assetInfo(a)));
-      for (let i = 0; i < group.length; i++) {
-        scanned++;
-        const asset = group[i];
-        const loc = infos[i]?.location;
-        if (!loc) continue;
-        const key = `${loc.latitude.toFixed(1)},${loc.longitude.toFixed(1)}`;
-        let code = coordCache.get(key);
-        if (code === undefined) {
-          code = countryAt(loc.longitude, loc.latitude) ?? null;
-          coordCache.set(key, code);
+      for (const group of chunk(page.assets, 6)) {
+        const infos = await Promise.all(group.map((a) => safeAssetInfo(a, 4000)));
+        for (let i = 0; i < group.length; i++) {
+          scanned++;
+          const loc = infos[i]?.location;
+          if (!loc || typeof loc.latitude !== 'number') continue;
+          const key = `${loc.latitude.toFixed(1)},${loc.longitude.toFixed(1)}`;
+          let code = coordCache.get(key);
+          if (code === undefined) {
+            try {
+              code = countryAt(loc.longitude, loc.latitude) ?? null;
+            } catch {
+              code = null;
+            }
+            coordCache.set(key, code);
+          }
+          if (!code) continue;
+          const ts = group[i].creationTime ?? Date.now();
+          if (isHome(home, code, ts)) continue; // home time isn't a trip
+          const year = group[i].creationTime ? new Date(group[i].creationTime).getFullYear() : undefined;
+          const prev = earliestYear.get(code);
+          if (!earliestYear.has(code)) earliestYear.set(code, year);
+          else if (year && (!prev || year < prev)) earliestYear.set(code, year);
         }
-        if (!code) continue;
-        // Ignore photos taken while you lived there — that's home, not a trip.
-        if (isHome(home, code, asset.creationTime ?? Date.now())) continue;
-        // creationTime is ms since epoch; keep the EARLIEST year per country.
-        const year = asset.creationTime ? new Date(asset.creationTime).getFullYear() : undefined;
-        const prev = earliestYear.get(code);
-        if (!earliestYear.has(code)) earliestYear.set(code, year);
-        else if (year && (!prev || year < prev)) earliestYear.set(code, year);
+        onProgress?.({ scanned, countries: earliestYear.size, done: false });
+        if (scanned >= maxAssets) break;
       }
-      onProgress?.({ scanned, countries: earliestYear.size, done: false });
-      if (scanned >= maxAssets) break;
-    }
 
-    if (!page.hasNextPage) break;
-    after = page.endCursor;
+      if (!page.hasNextPage) break;
+      after = page.endCursor;
+    }
+  } catch {
+    partial = true; // return whatever we managed to collect
   }
 
   onProgress?.({ scanned, countries: earliestYear.size, done: true });
@@ -96,5 +113,5 @@ export async function scanPhotosForCountries(
     countryCode: code,
     firstYear: year,
   }));
-  return { rows, scanned, limited };
+  return { rows, scanned, limited, partial };
 }
