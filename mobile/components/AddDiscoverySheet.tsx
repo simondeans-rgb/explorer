@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import {
   Check,
@@ -32,7 +32,15 @@ const CATEGORY_ICON: Record<DiscoveryCategory, ComponentType<{ size?: number; co
   nature: Mountain,
 };
 
-export function AddDiscoverySheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+export function AddDiscoverySheet({
+  visible,
+  onClose,
+  initialCountryCode,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  initialCountryCode?: string;
+}) {
   const { addDiscovery } = useData();
   const [name, setName] = useState('');
   const [category, setCategory] = useState<DiscoveryCategory>('food');
@@ -40,6 +48,10 @@ export function AddDiscoverySheet({ visible, onClose }: { visible: boolean; onCl
   const [query, setQuery] = useState('');
   const [code, setCode] = useState('');
   const [verdict, setVerdict] = useState<RecommendationVerdict>('recommend');
+
+  useEffect(() => {
+    if (visible && initialCountryCode) setCode(initialCountryCode);
+  }, [visible, initialCountryCode]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
