@@ -10,9 +10,50 @@ import { useData } from '../src/store/data';
 
 const REL_OPTIONS = RELATIONSHIPS.filter((r) => r !== 'aspiring');
 const thisYear = new Date().getFullYear();
-const YEARS = Array.from({ length: 30 }, (_, i) => thisYear - i);
+const YEARS = Array.from({ length: 40 }, (_, i) => thisYear - i);
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 type Kind = 'country' | 'city';
+type Precision = 'year' | 'month' | 'day';
+
+function isoOf(year: number | null, month: number | null, day: string, prec: Precision): string | undefined {
+  if (!year) return undefined;
+  if (prec === 'year') return `${year}`;
+  const mm = String((month ?? 0) + 1).padStart(2, '0');
+  if (prec === 'month') return `${year}-${mm}`;
+  const n = Number(day);
+  return n >= 1 && n <= 31 ? `${year}-${mm}-${String(n).padStart(2, '0')}` : `${year}-${mm}`;
+}
+
+function YearRow({ value, onChange }: { value: number | null; onChange: (y: number | null) => void }) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 8, gap: 8 }}>
+      {YEARS.map((y) => {
+        const active = value === y;
+        return (
+          <Pressable key={y} onPress={() => onChange(active ? null : y)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.coral : '#fff' }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink2 }}>{y}</Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+function MonthRow({ value, onChange }: { value: number | null; onChange: (m: number) => void }) {
+  return (
+    <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 4, gap: 6 }}>
+      {MONTHS.map((m, i) => {
+        const active = value === i;
+        return (
+          <Pressable key={m} onPress={() => onChange(i)} className="rounded-full" style={{ paddingHorizontal: 12, paddingVertical: 7, backgroundColor: active ? COLORS.navy : '#fff' }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{m}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
 
 export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { addPlace } = useData();
@@ -21,7 +62,18 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
   const [code, setCode] = useState('');
   const [city, setCity] = useState('');
   const [rels, setRels] = useState<Set<Relationship>>(new Set(['visited']));
+
+  const [prec, setPrec] = useState<Precision>('year');
   const [year, setYear] = useState<number | null>(null);
+  const [month, setMonth] = useState<number | null>(null);
+  const [day, setDay] = useState('');
+
+  // Residence end (when Lived/Based).
+  const [present, setPresent] = useState(true);
+  const [endYear, setEndYear] = useState<number | null>(null);
+  const [endMonth, setEndMonth] = useState<number | null>(null);
+
+  const isResidence = rels.has('lived') || rels.has('based');
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -35,7 +87,13 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
     setCode('');
     setCity('');
     setRels(new Set(['visited']));
+    setPrec('year');
     setYear(null);
+    setMonth(null);
+    setDay('');
+    setPresent(true);
+    setEndYear(null);
+    setEndMonth(null);
   }
   function close() {
     reset();
@@ -43,12 +101,25 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
   }
   function save() {
     if (!ready) return;
+    const firstDate = isoOf(year, month, day, prec);
+    let livedFrom: string | undefined;
+    let livedTo: string | undefined;
+    let residencePeriods: { from: string; to?: string }[] | undefined;
+    if (isResidence && firstDate) {
+      livedFrom = firstDate;
+      livedTo = present ? undefined : isoOf(endYear, endMonth, '', endMonth != null ? 'month' : 'year');
+      residencePeriods = [{ from: firstDate, ...(livedTo ? { to: livedTo } : {}) }];
+    }
     addPlace({
       kind,
       countryCode: code,
       name: kind === 'city' ? city.trim() : undefined,
       relationships: [...rels],
       firstYear: year ?? undefined,
+      firstDate,
+      livedFrom,
+      livedTo,
+      residencePeriods,
     });
     close();
   }
@@ -81,13 +152,7 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
         {/* City name */}
         {kind === 'city' ? (
           <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 10 }}>
-            <TextInput
-              value={city}
-              onChangeText={setCity}
-              placeholder="City name, e.g. Kyoto"
-              placeholderTextColor={COLORS.ink3}
-              style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }}
-            />
+            <TextInput value={city} onChangeText={setCity} placeholder="City name, e.g. Kyoto" placeholderTextColor={COLORS.ink3} style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />
           </View>
         ) : null}
 
@@ -95,18 +160,10 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
         <Text style={LBL}>{kind === 'city' ? 'WHICH COUNTRY?' : 'COUNTRY'}</Text>
         <View className="flex-row items-center bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
           <Search size={18} color={COLORS.ink3} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search countries"
-            placeholderTextColor={COLORS.ink3}
-            style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }}
-          />
+          <TextInput value={query} onChangeText={setQuery} placeholder="Search countries" placeholderTextColor={COLORS.ink3} style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />
         </View>
         {code && !query ? (
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2, paddingHorizontal: 20, marginTop: 8 }}>
-            {flagEmoji(code)} {countryName(code)}
-          </Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2, paddingHorizontal: 20, marginTop: 8 }}>{flagEmoji(code)} {countryName(code)}</Text>
         ) : (
           <ScrollView style={{ maxHeight: 200, marginTop: 6 }} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
             {results.map((c) => {
@@ -135,20 +192,47 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
           })}
         </View>
 
-        {/* year */}
-        <Text style={LBL}>FIRST VISITED (OPTIONAL)</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 8, gap: 8 }}>
-          {YEARS.map((y) => {
-            const active = year === y;
-            return (
-              <Pressable key={y} onPress={() => setYear(active ? null : y)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.coral : '#fff' }}>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink2 }}>{y}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        {/* when */}
+        <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 20, marginTop: 16 }}>
+          <Text style={{ ...LBL, paddingHorizontal: 0, marginTop: 0 }}>{isResidence ? 'LIVED FROM' : 'WHEN (OPTIONAL)'}</Text>
+          <View className="flex-row bg-white rounded-full" style={{ padding: 3, gap: 3 }}>
+            {(['year', 'month', 'day'] as Precision[]).map((p) => {
+              const active = prec === p;
+              return (
+                <Pressable key={p} onPress={() => setPrec(p)} className="rounded-full" style={{ paddingHorizontal: 11, paddingVertical: 5, backgroundColor: active ? COLORS.coral : 'transparent' }}>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{p === 'year' ? 'Year' : p === 'month' ? 'Month' : 'Exact'}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+        <YearRow value={year} onChange={setYear} />
+        {prec !== 'year' ? <MonthRow value={month} onChange={setMonth} /> : null}
+        {prec === 'day' ? (
+          <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, marginTop: 8, paddingHorizontal: 14, paddingVertical: 10, width: 110 }}>
+            <TextInput value={day} onChangeText={setDay} placeholder="Day" keyboardType="number-pad" maxLength={2} placeholderTextColor={COLORS.ink3} style={{ fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink }} />
+          </View>
+        ) : null}
 
-        <Pressable onPress={save} disabled={!ready} className="rounded-2xl items-center justify-center flex-row" style={{ marginHorizontal: 20, marginTop: 16, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: ready ? 1 : 0.4, gap: 8 }}>
+        {/* residence end */}
+        {isResidence ? (
+          <>
+            <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 20, marginTop: 16 }}>
+              <Text style={{ ...LBL, paddingHorizontal: 0, marginTop: 0 }}>LIVED UNTIL</Text>
+              <Pressable onPress={() => setPresent((v) => !v)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: present ? COLORS.navy : '#fff' }}>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: present ? '#fff' : COLORS.ink2 }}>{present ? 'Still here ✓' : 'Still here'}</Text>
+              </Pressable>
+            </View>
+            {!present ? (
+              <>
+                <YearRow value={endYear} onChange={setEndYear} />
+                <MonthRow value={endMonth} onChange={setEndMonth} />
+              </>
+            ) : null}
+          </>
+        ) : null}
+
+        <Pressable onPress={save} disabled={!ready} className="rounded-2xl items-center justify-center flex-row" style={{ marginHorizontal: 20, marginTop: 18, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: ready ? 1 : 0.4, gap: 8 }}>
           <Check size={18} color="#fff" />
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Add to your world</Text>
         </Pressable>

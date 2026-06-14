@@ -12,7 +12,11 @@ import { parseCountryList } from '../src/lib/listImport';
 import { scanPhotosForCountries } from '../src/lib/photoScan';
 
 export default function ImportScreen() {
-  const { importPlaces, importExpeditions } = useData();
+  const { importPlaces, importExpeditions, places } = useData();
+  // Countries you live in — so imported trips aren't labelled as visits home.
+  const homeCodes = new Set(
+    places.filter((p) => p.relationships.some((r) => r === 'lived' || r === 'based')).map((p) => p.countryCode),
+  );
 
   // Flighty
   const [csvBusy, setCsvBusy] = useState(false);
@@ -35,7 +39,7 @@ export default function ImportScreen() {
     setCsvBusy(true);
     try {
       const text = await readAsStringAsync(res.assets[0].uri);
-      const plan = buildImportPlan(text);
+      const plan = buildImportPlan(text, homeCodes);
       if (plan.flightCount === 0) {
         setCsvMsg("Couldn't find flights in that file. Export your Flighty history as CSV and try again.");
         return;

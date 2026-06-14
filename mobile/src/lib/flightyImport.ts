@@ -101,7 +101,7 @@ function parseFlights(text: string): Flight[] {
 
 const DAY = 86_400_000;
 
-export function buildImportPlan(text: string): ImportPlan {
+export function buildImportPlan(text: string, homeCodes: Set<string> = new Set()): ImportPlan {
   const flights = parseFlights(text).filter((f) => !f.canceled);
   const places = new Map<string, PlaceRow>();
   const addAirport = (iata: string, year?: number) => {
@@ -140,8 +140,18 @@ export function buildImportPlan(text: string): ImportPlan {
     }
     const start = seg[0].date;
     const end = seg[seg.length - 1].date;
-    const dest = airportInfo(seg[seg.length - 1].to);
-    const title = dest ? `${countryName(dest.country)} · ${start.slice(0, 4)}` : `Trip · ${start.slice(0, 4)}`;
+    // Title the trip after the destination — not the home country you flew from
+    // or back to (so living in London doesn't read as "a trip to the UK").
+    let destCode: string | undefined;
+    for (let k = seg.length - 1; k >= 0; k--) {
+      const ti = airportInfo(seg[k].to);
+      if (ti && !homeCodes.has(ti.country)) {
+        destCode = ti.country;
+        break;
+      }
+    }
+    if (!destCode) destCode = airportInfo(seg[seg.length - 1].to)?.country;
+    const title = destCode ? `${countryName(destCode)} · ${start.slice(0, 4)}` : `Trip · ${start.slice(0, 4)}`;
     expeditions.push({ title, startDate: start, endDate: end, countryCodes: [...codes], journeys });
     seg = [];
   };

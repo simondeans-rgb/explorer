@@ -35,6 +35,7 @@ import type {
   Trip,
   Journey,
   Relationship,
+  ResidencePeriod,
   PlaceKind,
   DiscoveryCategory,
   RecommendationVerdict,
@@ -69,6 +70,10 @@ interface DataApi extends DataShape {
     name?: string;
     relationships: Relationship[];
     firstYear?: number;
+    firstDate?: string;
+    livedFrom?: string;
+    livedTo?: string;
+    residencePeriods?: ResidencePeriod[];
   }) => void;
   removePlace: (id: string) => void;
   addDiscovery: (input: {
@@ -181,6 +186,10 @@ function placeFromDoc(id: string, d: DocumentData): Place {
     name: d.name ?? '',
     relationships: (d.relationships ?? []) as Relationship[],
     firstYear: typeof d.firstYear === 'number' ? d.firstYear : undefined,
+    firstDate: d.firstDate || undefined,
+    livedFrom: d.livedFrom || undefined,
+    livedTo: d.livedTo || undefined,
+    residencePeriods: Array.isArray(d.residencePeriods) ? (d.residencePeriods as ResidencePeriod[]) : undefined,
     note: d.note || undefined,
     createdAt: millis(d.createdAt),
     updatedAt: millis(d.updatedAt),
@@ -397,6 +406,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
             name,
             relationships: input.relationships,
             firstYear: input.firstYear ?? null,
+            firstDate: input.firstDate ?? null,
+            livedFrom: input.livedFrom ?? null,
+            livedTo: input.livedTo ?? null,
+            residencePeriods: input.residencePeriods ?? null,
             note: null,
           });
         } else {
@@ -409,6 +422,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
             name,
             relationships: input.relationships,
             firstYear: input.firstYear,
+            firstDate: input.firstDate,
+            livedFrom: input.livedFrom,
+            livedTo: input.livedTo,
+            residencePeriods: input.residencePeriods,
             createdAt: now,
             updatedAt: now,
           };
