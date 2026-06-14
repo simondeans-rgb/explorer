@@ -17,6 +17,7 @@ import {
   onSnapshot,
   query,
   serverTimestamp,
+  updateDoc,
   where,
   type DocumentData,
 } from 'firebase/firestore';
@@ -589,15 +590,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
       },
       removeTrip: (id) => remove('trips', id),
       importPlaces: async (rows) => {
-        // Skip places already present (same country code, or same city name).
         const existing = localRef.current.places;
-        const haveCountry = new Set(existing.filter((p) => p.kind === 'country').map((p) => p.countryCode));
-        const haveCity = new Set(existing.filter((p) => p.kind === 'city').map((p) => `${p.countryCode}|${p.name.toLowerCase()}`));
-        const fresh = rows.filter((r) => {
-          if (r.kind === 'country') return !haveCountry.has(r.countryCode);
-          return !haveCity.has(`${r.countryCode}|${(r.name ?? '').toLowerCase()}`);
-        });
-        if (fresh.length === 0) return 0;
+        const keyOf = (kind: PlaceKind, code: string, name?: string) =>
+          kind === 'country' ? `country|${code}` : `city|${code}|${(name ?? '').toLowerCase()}`;
+        const byKey = new Map(existing.map((p) => [keyOf(p.kind, p.countryCode, p.name), p]));
+
+        const fresh: typeof rows = [];
+        // Existing places whose firstYear should move earlier from this import.
+        const updates: { id: string; firstYear: number }[] = [];
+        for (const r of rows) {
+          const found = byKey.get(keyOf(r.kind, r.countryCode, r.name));
+          if (!found) {
+            fresh.push(r);
+          } else if (r.firstYear && (!found.firstYear || r.firstYear < found.firstYear)) {
+            updates.push({ id: found.id, firstYear: r.firstYear });
+          }
+        }
+        if (fresh.length === 0 && updates.length === 0) return 0;
 
         if (cloud && fdb && uid) {
           for (const r of fresh) {
@@ -613,6 +622,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
               updatedAt: serverTimestamp(),
             }).catch(() => {});
           }
+          for (const u of updates) {
+            await updateDoc(doc(fdb, 'places', u.id), { firstYear: u.firstYear, updatedAt: serverTimestamp() }).catch(() => {});
+          }
         } else {
           const now = Date.now();
           const created: Place[] = fresh.map((r) => ({
@@ -626,8 +638,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
             createdAt: now,
             updatedAt: now,
           }));
+          const updateMap = new Map(updates.map((u) => [u.id, u.firstYear]));
           const cur = localRef.current;
-          persistLocal({ ...cur, places: [...cur.places, ...created] });
+          const nextPlaces = cur.places.map((p) =>
+            updateMap.has(p.id) ? { ...p, firstYear: updateMap.get(p.id)!, updatedAt: now } : p,
+          );
+          persistLocal({ ...cur, places: [...nextPlaces, ...created] });
         }
         return fresh.length;
       },

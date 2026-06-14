@@ -1,26 +1,36 @@
 // Scan the photo library for geotagged photos and turn the locations into
-// visited countries. Uses expo-media-library to read each asset's GPS and
-// expo-location to reverse-geocode it to an ISO country code.
+// visited countries — recording each country against the EARLIEST photo year
+// so the year-in-review and Atlas year filters stay accurate. Uses
+// expo-media-library for GPS + capture date and expo-location to reverse-
+// geocode to an ISO country code.
 import * as MediaLibrary from 'expo-media-library';
 import * as Location from 'expo-location';
 import type { PlaceRow } from './flightyImport';
 
 export interface ScanProgress {
   scanned: number;
-  max: number;
   countries: number;
+  done: boolean;
 }
 
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+/** Scan the whole library (paged) for geotagged photos. `maxAssets` is a safety
+ *  ceiling for very large libraries; it scans everything below that. */
 export async function scanPhotosForCountries(
   onProgress?: (p: ScanProgress) => void,
-  maxAssets = 250,
+  maxAssets = 30000,
 ): Promise<{ rows: PlaceRow[]; scanned: number; denied?: boolean }> {
   const perm = await MediaLibrary.requestPermissionsAsync();
   if (!perm.granted) return { rows: [], scanned: 0, denied: true };
   await Location.requestForegroundPermissionsAsync().catch(() => {});
 
   const coordCache = new Map<string, string | null>();
-  const countries = new Map<string, number | undefined>(); // code -> earliest year
+  const earliestYear = new Map<string, number | undefined>(); // code -> earliest year seen
   let after: string | undefined;
   let scanned = 0;
 
@@ -33,45 +43,46 @@ export async function scanPhotosForCountries(
     });
     if (page.assets.length === 0) break;
 
-    for (const asset of page.assets) {
-      scanned++;
-      try {
-        const info = await MediaLibrary.getAssetInfoAsync(asset);
-        const loc = info.location;
-        if (loc) {
-          const key = `${loc.latitude.toFixed(1)},${loc.longitude.toFixed(1)}`;
-          let code = coordCache.get(key);
-          if (code === undefined) {
-            try {
-              const geo = await Location.reverseGeocodeAsync({ latitude: loc.latitude, longitude: loc.longitude });
-              code = geo[0]?.isoCountryCode ?? null;
-            } catch {
-              code = null;
-            }
-            coordCache.set(key, code);
+    // Fetch GPS in small parallel batches (getAssetInfoAsync is a native call).
+    for (const group of chunk(page.assets, 8)) {
+      const infos = await Promise.all(
+        group.map((a) => MediaLibrary.getAssetInfoAsync(a).catch(() => null)),
+      );
+      for (let i = 0; i < group.length; i++) {
+        scanned++;
+        const asset = group[i];
+        const loc = infos[i]?.location;
+        if (!loc) continue;
+        const key = `${loc.latitude.toFixed(1)},${loc.longitude.toFixed(1)}`;
+        let code = coordCache.get(key);
+        if (code === undefined) {
+          try {
+            const geo = await Location.reverseGeocodeAsync({ latitude: loc.latitude, longitude: loc.longitude });
+            code = geo[0]?.isoCountryCode ? geo[0].isoCountryCode.toUpperCase() : null;
+          } catch {
+            code = null;
           }
-          if (code) {
-            const year = asset.creationTime ? new Date(asset.creationTime).getFullYear() : undefined;
-            const prev = countries.get(code);
-            if (!countries.has(code) || (year && (!prev || year < prev))) countries.set(code, year);
-          }
+          coordCache.set(key, code);
         }
-      } catch {
-        /* skip unreadable asset */
+        if (!code) continue;
+        // creationTime is ms since epoch; keep the EARLIEST year per country.
+        const year = asset.creationTime ? new Date(asset.creationTime).getFullYear() : undefined;
+        const prev = earliestYear.get(code);
+        if (!earliestYear.has(code)) earliestYear.set(code, year);
+        else if (year && (!prev || year < prev)) earliestYear.set(code, year);
       }
-      if (scanned % 5 === 0 || scanned >= maxAssets) {
-        onProgress?.({ scanned, max: maxAssets, countries: countries.size });
-      }
+      onProgress?.({ scanned, countries: earliestYear.size, done: false });
       if (scanned >= maxAssets) break;
     }
+
     if (!page.hasNextPage) break;
     after = page.endCursor;
   }
 
-  onProgress?.({ scanned, max: maxAssets, countries: countries.size });
-  const rows: PlaceRow[] = [...countries.entries()].map(([code, year]) => ({
+  onProgress?.({ scanned, countries: earliestYear.size, done: true });
+  const rows: PlaceRow[] = [...earliestYear.entries()].map(([code, year]) => ({
     kind: 'country',
-    countryCode: code.toUpperCase(),
+    countryCode: code,
     firstYear: year,
   }));
   return { rows, scanned };
