@@ -20,6 +20,18 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
+/** Resolve `p`, or null if it doesn't settle within `ms` — so a single asset
+ *  that hangs (e.g. an iCloud download) can never freeze the whole scan. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([p.catch(() => null), new Promise<null>((res) => setTimeout(() => res(null), ms))]);
+}
+
+/** Local-only asset info (no iCloud network round-trip, which can hang), with a
+ *  hard timeout fallback. */
+function assetInfo(a: MediaLibrary.Asset) {
+  return withTimeout(MediaLibrary.getAssetInfoAsync(a, { shouldDownloadFromNetwork: false }), 4000);
+}
+
 /** Scan the whole library (paged) for geotagged photos. Photos taken while you
  *  lived somewhere (per `home`) are ignored, so home time isn't recorded as a
  *  trip. `maxAssets` is a safety ceiling for very large libraries. */
@@ -27,9 +39,11 @@ export async function scanPhotosForCountries(
   onProgress?: (p: ScanProgress) => void,
   home: HomeRange[] = [],
   maxAssets = 30000,
-): Promise<{ rows: PlaceRow[]; scanned: number; denied?: boolean }> {
-  const perm = await MediaLibrary.requestPermissionsAsync();
+): Promise<{ rows: PlaceRow[]; scanned: number; denied?: boolean; limited?: boolean }> {
+  // Ask for full ("all") access; on iOS the user may still grant "limited".
+  const perm = await MediaLibrary.requestPermissionsAsync(false, ['photo']);
   if (!perm.granted) return { rows: [], scanned: 0, denied: true };
+  const limited = perm.accessPrivileges === 'limited';
 
   const coordCache = new Map<string, string | null>();
   const earliestYear = new Map<string, number | undefined>(); // code -> earliest year seen
@@ -47,9 +61,7 @@ export async function scanPhotosForCountries(
 
     // Fetch GPS in small parallel batches (getAssetInfoAsync is a native call).
     for (const group of chunk(page.assets, 8)) {
-      const infos = await Promise.all(
-        group.map((a) => MediaLibrary.getAssetInfoAsync(a).catch(() => null)),
-      );
+      const infos = await Promise.all(group.map((a) => assetInfo(a)));
       for (let i = 0; i < group.length; i++) {
         scanned++;
         const asset = group[i];
@@ -84,5 +96,5 @@ export async function scanPhotosForCountries(
     countryCode: code,
     firstYear: year,
   }));
-  return { rows, scanned };
+  return { rows, scanned, limited };
 }
