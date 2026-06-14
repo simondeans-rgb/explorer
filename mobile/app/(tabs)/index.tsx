@@ -74,19 +74,32 @@ export default function StoryScreen() {
       {/* Your world rail */}
       <View style={{ paddingTop: 18 }}>
         <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, paddingHorizontal: 20 }}>Your world</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
-          {discovered.map((a) => (
-            <Pressable key={a.code} onPress={() => router.push(`/country/${a.code}`)} style={{ width: 132 }}>
-              <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 168, borderRadius: 26, padding: 14, justifyContent: 'flex-end' }}>
-                <Text style={{ fontSize: 34, position: 'absolute', top: 12, left: 12 }}>{flagEmoji(a.code)}</Text>
-                <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 18 }}>{countryName(a.code)}</Text>
-                {a.cities.length > 0 ? (
-                  <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, opacity: 0.85, marginTop: 2 }}>{a.cities.length} cities</Text>
-                ) : null}
-              </LinearGradient>
-            </Pressable>
-          ))}
-        </ScrollView>
+        {discovered.length === 0 ? (
+          <Pressable onPress={() => setAddOpen(true)} className="bg-white rounded-3xl items-center" style={{ marginHorizontal: 20, marginTop: 12, paddingVertical: 28, paddingHorizontal: 20 }}>
+            <Text style={{ fontSize: 40 }}>🌍</Text>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy, marginTop: 8 }}>Start your map</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 4, textAlign: 'center' }}>
+              Add the first country you've been to and watch your world fill in.
+            </Text>
+            <View className="rounded-full" style={{ marginTop: 14, backgroundColor: COLORS.coral, paddingHorizontal: 20, paddingVertical: 10 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: '#fff' }}>Add a country</Text>
+            </View>
+          </Pressable>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
+            {discovered.map((a) => (
+              <Pressable key={a.code} onPress={() => router.push(`/country/${a.code}`)} style={{ width: 132 }}>
+                <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 168, borderRadius: 26, padding: 14, justifyContent: 'flex-end' }}>
+                  <Text style={{ fontSize: 34, position: 'absolute', top: 12, left: 12 }}>{flagEmoji(a.code)}</Text>
+                  <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 18 }}>{countryName(a.code)}</Text>
+                  {a.cities.length > 0 ? (
+                    <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, opacity: 0.85, marginTop: 2 }}>{a.cities.length} cities</Text>
+                  ) : null}
+                </LinearGradient>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
       </View>
 
       {/* Memories */}

@@ -73,6 +73,24 @@ export default function AtlasScreen() {
       ) : null}
 
       <View style={{ paddingHorizontal: 20, marginTop: 14, gap: 10 }}>
+        {tab === 'places' && discovered.length === 0 ? (
+          <View className="bg-white rounded-3xl items-center" style={{ paddingVertical: 28, paddingHorizontal: 20 }}>
+            <Text style={{ fontSize: 36 }}>🗺️</Text>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy, marginTop: 8 }}>No places yet</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 4, textAlign: 'center' }}>
+              Tap + to add the first country you've been to.
+            </Text>
+          </View>
+        ) : null}
+        {tab === 'journeys' && expeditions.length === 0 ? (
+          <View className="bg-white rounded-3xl items-center" style={{ paddingVertical: 28, paddingHorizontal: 20 }}>
+            <Text style={{ fontSize: 36 }}>✈️</Text>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy, marginTop: 8 }}>No journeys yet</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 4, textAlign: 'center' }}>
+              Tap + to record a trip and how you travelled.
+            </Text>
+          </View>
+        ) : null}
         {tab === 'places'
           ? discovered.map((a) => (
               <Pressable key={a.code} onPress={() => router.push(`/country/${a.code}`)} className="bg-white rounded-3xl" style={{ padding: 16 }}>
