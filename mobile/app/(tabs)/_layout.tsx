@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { BookMarked, Compass, Globe2, UserRound } from 'lucide-react-native';
+import { BookMarked, Compass, Globe2, UserRound, Users } from 'lucide-react-native';
 import { COLORS } from '../../src/lib/theme';
 
 export default function TabsLayout() {
@@ -16,6 +16,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: 'Story', tabBarIcon: ({ color, size }) => <BookMarked color={color} size={size} /> }} />
       <Tabs.Screen name="atlas" options={{ title: 'Atlas', tabBarIcon: ({ color, size }) => <Globe2 color={color} size={size} /> }} />
       <Tabs.Screen name="explore" options={{ title: 'Explore', tabBarIcon: ({ color, size }) => <Compass color={color} size={size} /> }} />
+      <Tabs.Screen name="friends" options={{ title: 'Friends', tabBarIcon: ({ color, size }) => <Users color={color} size={size} /> }} />
       <Tabs.Screen name="you" options={{ title: 'You', tabBarIcon: ({ color, size }) => <UserRound color={color} size={size} /> }} />
     </Tabs>
   );
