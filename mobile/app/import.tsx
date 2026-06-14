@@ -73,7 +73,7 @@ export default function ImportScreen() {
     setScanBusy(true);
     setScanProgress(0);
     try {
-      const { rows, scanned, denied } = await scanPhotosForCountries((p) => setScanProgress(p.scanned), 250);
+      const { rows, scanned, denied } = await scanPhotosForCountries((p) => setScanProgress(p.scanned));
       if (denied) {
         setScanMsg('Photo access is needed to detect where you’ve been.');
         return;
@@ -123,10 +123,10 @@ export default function ImportScreen() {
         </Card>
 
         {/* Photos */}
-        <Card icon={Images} title="Scan your photos" body="We read the location tags on your recent photos (on your device only) to detect the countries you’ve visited.">
+        <Card icon={Images} title="Scan your photos" body="We read each photo’s location tag and date (on your device only) to detect the countries you’ve visited — and record them in the right year. Scanning your whole library can take a minute.">
           <Pressable onPress={scanPhotos} disabled={scanBusy} style={btn(scanBusy)}>
             {scanBusy ? (
-              <Text style={btnText}>Scanning… {scanProgress}</Text>
+              <Text style={btnText}>Scanning… {scanProgress} photos</Text>
             ) : (
               <Text style={btnText}>Scan my photos</Text>
             )}
