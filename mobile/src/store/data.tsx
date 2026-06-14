@@ -31,6 +31,7 @@ import type {
   Discovery,
   Expedition,
   Capture,
+  Trip,
   Journey,
   Relationship,
   PlaceKind,
@@ -44,6 +45,7 @@ import {
   SEED_DISCOVERIES,
   SEED_EXPEDITIONS,
   SEED_CAPTURES,
+  SEED_TRIPS,
 } from '../lib/seed';
 import { db, storage } from '../lib/firebase';
 import { useAuth } from './auth';
@@ -53,6 +55,7 @@ interface DataShape {
   discoveries: Discovery[];
   expeditions: Expedition[];
   captures: Capture[];
+  trips: Trip[];
 }
 
 interface DataApi extends DataShape {
@@ -95,10 +98,22 @@ interface DataApi extends DataShape {
     caption?: string;
   }) => Promise<void>;
   removeCapture: (id: string) => void;
+  addTrip: (input: {
+    title: string;
+    countryCode: string;
+    startDate: string;
+    endDate?: string;
+    note?: string;
+  }) => void;
+  removeTrip: (id: string) => void;
+  /** Bulk import places (countries/cities), de-duplicating by code+name. */
+  importPlaces: (
+    rows: { kind: PlaceKind; countryCode: string; name?: string; firstYear?: number }[],
+  ) => Promise<number>;
 }
 
 const KEY = 'worldly:data:v1';
-type Coll = 'places' | 'discoveries' | 'expeditions' | 'captures';
+type Coll = 'places' | 'discoveries' | 'expeditions' | 'captures' | 'trips';
 
 const noop = () => {};
 const DataContext = createContext<DataApi>({
@@ -106,6 +121,7 @@ const DataContext = createContext<DataApi>({
   discoveries: [],
   expeditions: [],
   captures: [],
+  trips: [],
   loaded: false,
   cloud: false,
   addPlace: noop,
@@ -116,6 +132,9 @@ const DataContext = createContext<DataApi>({
   removeExpedition: noop,
   addCapture: async () => {},
   removeCapture: noop,
+  addTrip: noop,
+  removeTrip: noop,
+  importPlaces: async () => 0,
 });
 
 export function useData(): DataApi {
@@ -197,11 +216,27 @@ function captureFromDoc(id: string, d: DocumentData): Capture {
   };
 }
 
+function tripFromDoc(id: string, d: DocumentData): Trip {
+  return {
+    id,
+    userId: d.userId,
+    title: d.title ?? '',
+    countryCode: d.countryCode ?? '',
+    startDate: d.startDate ?? '',
+    endDate: d.endDate || undefined,
+    itinerary: Array.isArray(d.itinerary) ? d.itinerary : [],
+    note: d.note || undefined,
+    createdAt: millis(d.createdAt),
+    updatedAt: millis(d.updatedAt),
+  };
+}
+
 const SEED: DataShape = {
   places: SEED_PLACES,
   discoveries: SEED_DISCOVERIES,
   expeditions: SEED_EXPEDITIONS,
   captures: SEED_CAPTURES,
+  trips: SEED_TRIPS,
 };
 
 const EMPTY: DataShape = {
@@ -209,6 +244,7 @@ const EMPTY: DataShape = {
   discoveries: [],
   expeditions: [],
   captures: [],
+  trips: [],
 };
 
 export function DataProvider({ children }: { children: ReactNode }) {
@@ -238,6 +274,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             discoveries: parsed.discoveries ?? [],
             expeditions: parsed.expeditions ?? [],
             captures: parsed.captures ?? [],
+            trips: parsed.trips ?? [],
           };
           localRef.current = merged;
           setData(merged);
@@ -268,11 +305,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       discoveries: false,
       expeditions: false,
       captures: false,
+      trips: false,
     };
     const markReady = (c: Coll) => {
       if (!ready[c]) {
         ready[c] = true;
-        if (ready.places && ready.discoveries && ready.expeditions && ready.captures) {
+        if (ready.places && ready.discoveries && ready.expeditions && ready.captures && ready.trips) {
           setLoaded(true);
         }
       }
@@ -294,6 +332,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       onSnapshot(q('captures'), (snap) => {
         setData((p) => ({ ...p, captures: snap.docs.map((d) => captureFromDoc(d.id, d.data())) }));
         markReady('captures');
+      }),
+      onSnapshot(q('trips'), (snap) => {
+        setData((p) => ({ ...p, trips: snap.docs.map((d) => tripFromDoc(d.id, d.data())) }));
+        markReady('trips');
       }),
     ];
     return () => unsubs.forEach((u) => u());
@@ -504,6 +546,78 @@ export function DataProvider({ children }: { children: ReactNode }) {
           const cur = localRef.current;
           persistLocal({ ...cur, captures: cur.captures.filter((c) => c.id !== id) });
         }
+      },
+      addTrip: (input) => {
+        if (cloud && fdb && uid) {
+          cloudCreate('trips', {
+            title: input.title.trim(),
+            countryCode: input.countryCode,
+            startDate: input.startDate,
+            endDate: input.endDate || null,
+            itinerary: [],
+            note: input.note?.trim() || null,
+          });
+        } else {
+          const now = Date.now();
+          const trip: Trip = {
+            id: newId(),
+            userId: 'me',
+            title: input.title.trim(),
+            countryCode: input.countryCode,
+            startDate: input.startDate,
+            endDate: input.endDate || undefined,
+            itinerary: [],
+            note: input.note?.trim() || undefined,
+            createdAt: now,
+            updatedAt: now,
+          };
+          const cur = localRef.current;
+          persistLocal({ ...cur, trips: [trip, ...cur.trips] });
+        }
+      },
+      removeTrip: (id) => remove('trips', id),
+      importPlaces: async (rows) => {
+        // Skip places already present (same country code, or same city name).
+        const existing = localRef.current.places;
+        const haveCountry = new Set(existing.filter((p) => p.kind === 'country').map((p) => p.countryCode));
+        const haveCity = new Set(existing.filter((p) => p.kind === 'city').map((p) => `${p.countryCode}|${p.name.toLowerCase()}`));
+        const fresh = rows.filter((r) => {
+          if (r.kind === 'country') return !haveCountry.has(r.countryCode);
+          return !haveCity.has(`${r.countryCode}|${(r.name ?? '').toLowerCase()}`);
+        });
+        if (fresh.length === 0) return 0;
+
+        if (cloud && fdb && uid) {
+          for (const r of fresh) {
+            await addDoc(collection(fdb, 'places'), {
+              userId: uid,
+              kind: r.kind,
+              countryCode: r.countryCode,
+              name: r.kind === 'country' ? countryName(r.countryCode) : (r.name ?? '').trim(),
+              relationships: ['visited'],
+              firstYear: r.firstYear ?? null,
+              note: null,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            }).catch(() => {});
+          }
+        } else {
+          const now = Date.now();
+          const created: Place[] = fresh.map((r) => ({
+            id: newId(),
+            userId: 'me',
+            kind: r.kind,
+            countryCode: r.countryCode,
+            name: r.kind === 'country' ? countryName(r.countryCode) : (r.name ?? '').trim(),
+            relationships: ['visited'],
+            firstYear: r.firstYear,
+            createdAt: now,
+            updatedAt: now,
+          }));
+          const cur = localRef.current;
+          persistLocal({ ...cur, places: [...cur.places, ...created] });
+        }
+        return fresh.length;
       },
     };
   }, [data, loaded, cloud, uid]);

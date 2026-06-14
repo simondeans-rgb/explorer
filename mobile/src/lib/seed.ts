@@ -1,6 +1,6 @@
 // Sample data so the app renders real, computed stats (level, badges, counts)
 // from the shared engines until the live Firestore layer is wired in.
-import type { Place, Discovery, Expedition, Capture } from '../types';
+import type { Place, Discovery, Expedition, Capture, Trip } from '../types';
 
 const now = Date.now();
 const day = 86_400_000;
@@ -163,6 +163,23 @@ export const SEED_EXPEDITIONS: Expedition[] = [
     countryCodes: ['IS'],
     journeys: [{ id: 'j3', mode: 'road', from: 'Reykjavik', to: 'Vík' }],
     createdAt: now - day * 400,
+    updatedAt: now,
+  },
+];
+
+const nextYear = new Date().getFullYear() + 1;
+
+export const SEED_TRIPS: Trip[] = [
+  {
+    id: 't1',
+    userId: 'demo',
+    title: 'New Zealand adventure',
+    countryCode: 'NZ',
+    startDate: `${nextYear}-02-10`,
+    endDate: `${nextYear}-02-26`,
+    itinerary: [],
+    note: 'Milford Sound + the South Island road trip.',
+    createdAt: now,
     updatedAt: now,
   },
 ];

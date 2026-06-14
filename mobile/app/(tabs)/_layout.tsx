@@ -1,23 +1,40 @@
+import { useState } from 'react';
 import { Tabs } from 'expo-router';
-import { BookMarked, Compass, Globe2, UserRound, Users } from 'lucide-react-native';
-import { COLORS } from '../../src/lib/theme';
+import { WorldlyTabBar } from '../../components/WorldlyTabBar';
+import { ActionMenu, type ActionKind } from '../../components/ActionMenu';
+import { AddPlaceSheet } from '../../components/AddPlaceSheet';
+import { AddTripSheet } from '../../components/AddTripSheet';
+import { AddPhotoSheet } from '../../components/AddPhotoSheet';
+import { AddTripPlanSheet } from '../../components/AddTripPlanSheet';
 
 export default function TabsLayout() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [sheet, setSheet] = useState<ActionKind | null>(null);
+
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: COLORS.coral,
-        tabBarInactiveTintColor: COLORS.ink3,
-        tabBarStyle: { borderTopWidth: 0, height: 84, paddingTop: 8, paddingBottom: 24 },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
-      }}
-    >
-      <Tabs.Screen name="index" options={{ title: 'Story', tabBarIcon: ({ color, size }) => <BookMarked color={color} size={size} /> }} />
-      <Tabs.Screen name="atlas" options={{ title: 'Atlas', tabBarIcon: ({ color, size }) => <Globe2 color={color} size={size} /> }} />
-      <Tabs.Screen name="explore" options={{ title: 'Explore', tabBarIcon: ({ color, size }) => <Compass color={color} size={size} /> }} />
-      <Tabs.Screen name="friends" options={{ title: 'Friends', tabBarIcon: ({ color, size }) => <Users color={color} size={size} /> }} />
-      <Tabs.Screen name="you" options={{ title: 'You', tabBarIcon: ({ color, size }) => <UserRound color={color} size={size} /> }} />
-    </Tabs>
+    <>
+      <Tabs
+        screenOptions={{ headerShown: false }}
+        tabBar={(props) => <WorldlyTabBar {...props} onFab={() => setMenuOpen(true)} />}
+      >
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="atlas" />
+        <Tabs.Screen name="explore" />
+        <Tabs.Screen name="you" />
+      </Tabs>
+
+      <ActionMenu
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onPick={(kind) => {
+          setMenuOpen(false);
+          setSheet(kind);
+        }}
+      />
+      <AddPlaceSheet visible={sheet === 'place'} onClose={() => setSheet(null)} />
+      <AddTripSheet visible={sheet === 'journey'} onClose={() => setSheet(null)} />
+      <AddPhotoSheet visible={sheet === 'photo'} onClose={() => setSheet(null)} />
+      <AddTripPlanSheet visible={sheet === 'trip'} onClose={() => setSheet(null)} />
+    </>
   );
 }

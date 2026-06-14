@@ -3,17 +3,18 @@ import { View, Text, ScrollView, Pressable, TextInput, Share, ActivityIndicator 
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
 import { Copy, Share2, UserPlus, Check, X, Users } from 'lucide-react-native';
-import { PageHero } from '../../components/PageHero';
-import { AuthSheet } from '../../components/AuthSheet';
-import { COLORS, GRADIENTS } from '../../src/lib/theme';
-import { flagEmoji } from '../../src/lib/flags';
-import { useAuth } from '../../src/store/auth';
-import { useFriends } from '../../src/hooks/useFriends';
+import { PageHero } from '../components/PageHero';
+import { AuthSheet } from '../components/AuthSheet';
+import { COLORS, GRADIENTS } from '../src/lib/theme';
+import { flagEmoji } from '../src/lib/flags';
+import { router } from 'expo-router';
+import { useAuth } from '../src/store/auth';
+import { useFriends } from '../src/hooks/useFriends';
 import {
   sendRequest,
   acceptConnection,
   removeConnection,
-} from '../../src/lib/connections';
+} from '../src/lib/connections';
 
 export default function FriendsScreen() {
   const { user } = useAuth();
@@ -78,7 +79,7 @@ export default function FriendsScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
         <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-          <PageHero eyebrow="Your circle" title="Friends" subtitle="See where the people you travel with have been." gradient={GRADIENTS.atlas} imageCode="WW" />
+          <PageHero eyebrow="Your circle" title="Friends" subtitle="See where the people you travel with have been." gradient={GRADIENTS.atlas} imageCode="WW" onBack={() => router.back()} />
           <View style={{ paddingHorizontal: 20, marginTop: 20, alignItems: 'center' }}>
             <View className="rounded-full items-center justify-center" style={{ height: 72, width: 72, backgroundColor: 'rgba(155,124,255,0.14)' }}>
               <Users size={30} color={COLORS.lavender} />
@@ -100,7 +101,7 @@ export default function FriendsScreen() {
   // --- Signed in ------------------------------------------------------------
   return (
     <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-      <PageHero eyebrow="Your circle" title="Friends" subtitle="See where the people you travel with have been." gradient={GRADIENTS.atlas} imageCode="WW" />
+      <PageHero eyebrow="Your circle" title="Friends" subtitle="See where the people you travel with have been." gradient={GRADIENTS.atlas} imageCode="WW" onBack={() => router.back()} />
 
       {/* Your code */}
       <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
