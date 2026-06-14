@@ -9,11 +9,15 @@ import {
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
+  addDoc,
   collection,
-  doc,
-  setDoc,
   deleteDoc,
+  doc,
   onSnapshot,
+  query,
+  serverTimestamp,
+  where,
+  type DocumentData,
 } from 'firebase/firestore';
 import type {
   Place,
@@ -106,6 +110,54 @@ function clean<T extends object>(obj: T): T {
   ) as T;
 }
 
+// --- Firestore <-> domain converters (mirror the web src/lib/*.ts contract:
+//     top-level collections keyed by a `userId` field, serverTimestamp dates) --
+function millis(ts: { toMillis?: () => number } | undefined): number {
+  return ts?.toMillis?.() ?? Date.now();
+}
+function placeFromDoc(id: string, d: DocumentData): Place {
+  return {
+    id,
+    userId: d.userId,
+    kind: (d.kind ?? 'country') as PlaceKind,
+    countryCode: d.countryCode ?? '',
+    name: d.name ?? '',
+    relationships: (d.relationships ?? []) as Relationship[],
+    firstYear: typeof d.firstYear === 'number' ? d.firstYear : undefined,
+    note: d.note || undefined,
+    createdAt: millis(d.createdAt),
+    updatedAt: millis(d.updatedAt),
+  };
+}
+function discoveryFromDoc(id: string, d: DocumentData): Discovery {
+  return {
+    id,
+    userId: d.userId,
+    name: d.name ?? '',
+    category: (d.category ?? 'food') as DiscoveryCategory,
+    countryCode: d.countryCode || undefined,
+    city: d.city || undefined,
+    verdict: (d.verdict || undefined) as RecommendationVerdict | undefined,
+    note: d.note || undefined,
+    createdAt: millis(d.createdAt),
+    updatedAt: millis(d.updatedAt),
+  };
+}
+function expeditionFromDoc(id: string, d: DocumentData): Expedition {
+  return {
+    id,
+    userId: d.userId,
+    title: d.title ?? '',
+    startDate: d.startDate || undefined,
+    endDate: d.endDate || undefined,
+    countryCodes: (d.countryCodes ?? []) as string[],
+    journeys: (d.journeys ?? []) as Journey[],
+    note: d.note || undefined,
+    createdAt: millis(d.createdAt),
+    updatedAt: millis(d.updatedAt),
+  };
+}
+
 const SEED: DataShape = {
   places: SEED_PLACES,
   discoveries: SEED_DISCOVERIES,
@@ -163,17 +215,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
       discoveries: false,
       expeditions: false,
     };
-    const colls: Coll[] = ['places', 'discoveries', 'expeditions'];
-    const unsubs = colls.map((c) =>
-      onSnapshot(collection(fdb, 'users', uid, c), (snap) => {
-        const rows = snap.docs.map((d) => d.data());
-        setData((prev) => ({ ...prev, [c]: rows }) as DataShape);
-        if (!ready[c]) {
-          ready[c] = true;
-          if (colls.every((k) => ready[k])) setLoaded(true);
-        }
+    const markReady = (c: Coll) => {
+      if (!ready[c]) {
+        ready[c] = true;
+        if (ready.places && ready.discoveries && ready.expeditions) setLoaded(true);
+      }
+    };
+    const q = (c: Coll) => query(collection(fdb, c), where('userId', '==', uid));
+    const unsubs = [
+      onSnapshot(q('places'), (snap) => {
+        setData((p) => ({ ...p, places: snap.docs.map((d) => placeFromDoc(d.id, d.data())) }));
+        markReady('places');
       }),
-    );
+      onSnapshot(q('discoveries'), (snap) => {
+        setData((p) => ({ ...p, discoveries: snap.docs.map((d) => discoveryFromDoc(d.id, d.data())) }));
+        markReady('discoveries');
+      }),
+      onSnapshot(q('expeditions'), (snap) => {
+        setData((p) => ({ ...p, expeditions: snap.docs.map((d) => expeditionFromDoc(d.id, d.data())) }));
+        markReady('expeditions');
+      }),
+    ];
     return () => unsubs.forEach((u) => u());
   }, [cloud, uid]);
 
@@ -184,21 +246,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }
 
   const api = useMemo<DataApi>(() => {
-    function add(coll: Coll, entity: Place | Discovery | Expedition, prepend: boolean) {
-      if (cloud && uid && db) {
-        setDoc(doc(db, 'users', uid, coll, entity.id), clean(entity)).catch(() => {});
-      } else {
-        const cur = localRef.current;
-        const list = cur[coll] as (Place | Discovery | Expedition)[];
-        persistLocal({
-          ...cur,
-          [coll]: prepend ? [entity, ...list] : [...list, entity],
-        });
-      }
+    const fdb = db;
+    function cloudCreate(coll: Coll, fields: Record<string, unknown>) {
+      if (!fdb || !uid) return;
+      addDoc(collection(fdb, coll), {
+        userId: uid,
+        ...fields,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }).catch(() => {});
     }
     function remove(coll: Coll, id: string) {
-      if (cloud && uid && db) {
-        deleteDoc(doc(db, 'users', uid, coll, id)).catch(() => {});
+      if (cloud && fdb && uid) {
+        deleteDoc(doc(fdb, coll, id)).catch(() => {});
       } else {
         const cur = localRef.current;
         const list = cur[coll] as { id: string }[];
@@ -211,43 +271,67 @@ export function DataProvider({ children }: { children: ReactNode }) {
       loaded,
       cloud,
       addPlace: (input) => {
-        const now = Date.now();
-        const place: Place = {
-          id: newId(),
-          userId: uid ?? 'me',
-          kind: input.kind,
-          countryCode: input.countryCode,
-          name:
-            input.kind === 'country'
-              ? countryName(input.countryCode)
-              : (input.name ?? '').trim(),
-          relationships: input.relationships,
-          firstYear: input.firstYear,
-          createdAt: now,
-          updatedAt: now,
-        };
-        add('places', place, false);
+        const name =
+          input.kind === 'country'
+            ? countryName(input.countryCode)
+            : (input.name ?? '').trim();
+        if (cloud) {
+          cloudCreate('places', {
+            kind: input.kind,
+            countryCode: input.countryCode,
+            name,
+            relationships: input.relationships,
+            firstYear: input.firstYear ?? null,
+            note: null,
+          });
+        } else {
+          const now = Date.now();
+          const place: Place = {
+            id: newId(),
+            userId: 'me',
+            kind: input.kind,
+            countryCode: input.countryCode,
+            name,
+            relationships: input.relationships,
+            firstYear: input.firstYear,
+            createdAt: now,
+            updatedAt: now,
+          };
+          const cur = localRef.current;
+          persistLocal({ ...cur, places: [...cur.places, place] });
+        }
       },
       removePlace: (id) => remove('places', id),
       addDiscovery: (input) => {
-        const now = Date.now();
-        const discovery: Discovery = {
-          id: newId(),
-          userId: uid ?? 'me',
-          name: input.name.trim(),
-          category: input.category,
-          countryCode: input.countryCode,
-          city: input.city?.trim() || undefined,
-          verdict: input.verdict,
-          note: input.note?.trim() || undefined,
-          createdAt: now,
-          updatedAt: now,
-        };
-        add('discoveries', discovery, true);
+        if (cloud) {
+          cloudCreate('discoveries', {
+            name: input.name.trim(),
+            category: input.category,
+            countryCode: input.countryCode || null,
+            city: input.city?.trim() || null,
+            verdict: input.verdict || null,
+            note: input.note?.trim() || null,
+          });
+        } else {
+          const now = Date.now();
+          const discovery: Discovery = {
+            id: newId(),
+            userId: 'me',
+            name: input.name.trim(),
+            category: input.category,
+            countryCode: input.countryCode,
+            city: input.city?.trim() || undefined,
+            verdict: input.verdict,
+            note: input.note?.trim() || undefined,
+            createdAt: now,
+            updatedAt: now,
+          };
+          const cur = localRef.current;
+          persistLocal({ ...cur, discoveries: [discovery, ...cur.discoveries] });
+        }
       },
       removeDiscovery: (id) => remove('discoveries', id),
       addExpedition: (input) => {
-        const now = Date.now();
         const journeys: Journey[] =
           input.mode && (input.from || input.to)
             ? [
@@ -259,19 +343,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 }) as Journey,
               ]
             : [];
-        const expedition: Expedition = {
-          id: newId(),
-          userId: uid ?? 'me',
-          title: input.title.trim(),
-          startDate: input.startDate,
-          endDate: input.endDate,
-          countryCodes: input.countryCodes,
-          journeys,
-          note: input.note?.trim() || undefined,
-          createdAt: now,
-          updatedAt: now,
-        };
-        add('expeditions', expedition, true);
+        if (cloud) {
+          cloudCreate('expeditions', {
+            title: input.title.trim(),
+            startDate: input.startDate || null,
+            endDate: input.endDate || null,
+            countryCodes: input.countryCodes,
+            journeys,
+            note: input.note?.trim() || null,
+          });
+        } else {
+          const now = Date.now();
+          const expedition: Expedition = {
+            id: newId(),
+            userId: 'me',
+            title: input.title.trim(),
+            startDate: input.startDate,
+            endDate: input.endDate,
+            countryCodes: input.countryCodes,
+            journeys,
+            note: input.note?.trim() || undefined,
+            createdAt: now,
+            updatedAt: now,
+          };
+          const cur = localRef.current;
+          persistLocal({ ...cur, expeditions: [expedition, ...cur.expeditions] });
+        }
       },
       removeExpedition: (id) => remove('expeditions', id),
     };
