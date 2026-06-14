@@ -8,6 +8,7 @@ import {
   BookmarkCheck,
   Check,
   Compass,
+  BookOpen,
 } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
 import { Fab } from '../../components/Fab';
@@ -99,6 +100,19 @@ export default function ExploreScreen() {
                 style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }}
               />
             </View>
+
+            {/* Almanac entry */}
+            {!q ? (
+              <Pressable onPress={() => router.push('/almanac')} style={{ marginHorizontal: 20, marginTop: 12 }}>
+                <DestinationImage code="WW" scrim style={{ height: 96, borderRadius: 20, padding: 16, justifyContent: 'center' }}>
+                  <View className="flex-row items-center" style={{ gap: 6 }}>
+                    <BookOpen size={15} color="#fff" />
+                    <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1, opacity: 0.95 }}>WORLD ALMANAC</Text>
+                  </View>
+                  <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 22, marginTop: 2 }}>Facts, climate & superlatives</Text>
+                </DestinationImage>
+              </Pressable>
+            ) : null}
 
             {/* wishlist summary */}
             {wishlist.size > 0 && !q ? (
