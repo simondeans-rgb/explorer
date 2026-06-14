@@ -1,24 +1,52 @@
-import type { ReactNode } from 'react';
-import { View, type ViewStyle, type StyleProp } from 'react-native';
+import { useEffect, type ReactNode } from 'react';
+import { View, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { destinationImage } from '../src/lib/destinationImage';
 
 /** A country "tile": its bundled destination photo (same imagery as the web)
  *  over an always-on brand gradient, with an optional dark scrim for legible
- *  white text. Children render on top, laid out by the caller. */
+ *  white text. Pass `motion` for a slow Ken-Burns drift on the photo. Children
+ *  render on top, laid out by the caller. */
 export function DestinationImage({
   code,
   style,
   scrim = false,
+  motion = false,
   children,
 }: {
   code: string;
   style?: StyleProp<ViewStyle>;
   scrim?: boolean;
+  motion?: boolean;
   children?: ReactNode;
 }) {
   const { photo, gradient } = destinationImage(code);
+
+  const t = useSharedValue(0);
+  useEffect(() => {
+    if (!motion) return;
+    t.value = withRepeat(
+      withTiming(1, { duration: 19000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+  }, [motion, t]);
+  const kenBurns = useAnimatedStyle(() => ({
+    transform: [
+      { scale: 1.08 + t.value * 0.1 },
+      { translateX: (t.value - 0.5) * 14 },
+      { translateY: (t.value - 0.5) * -18 },
+    ],
+  }));
+
   return (
     <View style={[{ overflow: 'hidden', backgroundColor: gradient[0] }, style]}>
       {/* always-on gradient behind the photo (and the fallback when no photo) */}
@@ -26,22 +54,24 @@ export function DestinationImage({
         colors={gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        style={StyleSheet.absoluteFill}
       />
       {photo ? (
-        <Image
-          source={{ uri: photo }}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-          contentFit="cover"
-          transition={280}
-          cachePolicy="memory-disk"
-        />
+        <Animated.View style={[StyleSheet.absoluteFill, motion ? kenBurns : undefined]}>
+          <Image
+            source={{ uri: photo }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            transition={280}
+            cachePolicy="memory-disk"
+          />
+        </Animated.View>
       ) : null}
       {scrim ? (
         <LinearGradient
           colors={['rgba(20,33,61,0)', 'rgba(20,33,61,0.28)', 'rgba(20,33,61,0.82)']}
           locations={[0.2, 0.56, 1]}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          style={StyleSheet.absoluteFill}
         />
       ) : null}
       {children}

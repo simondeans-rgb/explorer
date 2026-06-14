@@ -6,11 +6,13 @@ import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
  *  the user cancels or denies permission. */
 export async function pickPhotoDataUrl(
   source: 'camera' | 'library',
+  maxWidth = 1280,
+  aspect: [number, number] = [4, 3],
 ): Promise<string | null> {
   const options: ImagePicker.ImagePickerOptions = {
     mediaTypes: ['images'],
     allowsEditing: true,
-    aspect: [4, 3],
+    aspect,
     quality: 1,
   };
 
@@ -30,7 +32,7 @@ export async function pickPhotoDataUrl(
 
   const out = await manipulateAsync(
     asset.uri,
-    [{ resize: { width: 1280 } }],
+    [{ resize: { width: maxWidth } }],
     { compress: 0.6, format: SaveFormat.JPEG, base64: true },
   );
   if (!out.base64) return null;

@@ -122,7 +122,7 @@ export default function WrappedScreen() {
 
 function Slide({ code, height, children }: { code: string; height: number; children: ReactNode }) {
   return (
-    <DestinationImage code={code} scrim style={{ height, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}>
+    <DestinationImage code={code} scrim motion style={{ height, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}>
       {/* extra darkening so big text always reads */}
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(14,16,24,0.35)' }} />
       <View style={{ alignItems: 'center' }}>{children}</View>
