@@ -61,6 +61,7 @@ export default function RootLayout() {
               <Stack.Screen name="country/[code]" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="friends" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="import" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="almanac" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="search" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
               <Stack.Screen name="wrapped" options={{ animation: 'fade', presentation: 'fullScreenModal' }} />
             </Stack>
