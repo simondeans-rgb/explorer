@@ -77,12 +77,16 @@ export async function scanPhotosForCountries(
         for (let i = 0; i < group.length; i++) {
           scanned++;
           const loc = infos[i]?.location;
-          if (!loc || typeof loc.latitude !== 'number') continue;
-          const key = `${loc.latitude.toFixed(1)},${loc.longitude.toFixed(1)}`;
+          if (!loc) continue;
+          // The native module returns lat/lng as strings on iOS — coerce.
+          const lat = Number(loc.latitude);
+          const lng = Number(loc.longitude);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng) || (lat === 0 && lng === 0)) continue;
+          const key = `${lat.toFixed(1)},${lng.toFixed(1)}`;
           let code = coordCache.get(key);
           if (code === undefined) {
             try {
-              code = countryAt(loc.longitude, loc.latitude) ?? null;
+              code = countryAt(lng, lat) ?? null;
             } catch {
               code = null;
             }
