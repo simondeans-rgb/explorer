@@ -1,22 +1,34 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
-import { Bell, Plus, Search } from 'lucide-react-native';
+import { Bell, Plus, Search, Camera } from 'lucide-react-native';
 import { WorldlyMark } from '../../components/Brand';
 import { AddPlaceSheet } from '../../components/AddPlaceSheet';
+import { AddPhotoSheet } from '../../components/AddPhotoSheet';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { useWorldly } from '../../src/hooks/useWorldly';
+import { useData } from '../../src/store/data';
 import { useAuth } from '../../src/store/auth';
 
 export default function StoryScreen() {
   const { aggregates, stats, level } = useWorldly();
+  const { captures, removeCapture } = useData();
   const { user } = useAuth();
   const firstName = user?.displayName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Alex');
   const discovered = aggregates.filter((a) => a.discovered);
   const [addOpen, setAddOpen] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
+
+  function confirmRemoveCapture(id: string) {
+    Alert.alert('Remove memory?', 'This photo will be deleted.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => removeCapture(id) },
+    ]);
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
@@ -75,6 +87,41 @@ export default function StoryScreen() {
           ))}
         </ScrollView>
       </View>
+
+      {/* Memories */}
+      <View style={{ paddingTop: 6 }}>
+        <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 20 }}>
+          <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Memories</Text>
+          <Pressable onPress={() => setPhotoOpen(true)} hitSlop={8} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 12, paddingVertical: 7, gap: 5 }}>
+            <Camera size={14} color={COLORS.coral} />
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>Add</Text>
+          </Pressable>
+        </View>
+        {captures.length > 0 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
+            {captures.map((c) => (
+              <Pressable key={c.id} onLongPress={() => confirmRemoveCapture(c.id)} style={{ width: 168 }}>
+                <View style={{ borderRadius: 22, overflow: 'hidden' }}>
+                  <Image source={{ uri: c.dataUrl }} style={{ width: 168, height: 210 }} contentFit="cover" transition={200} />
+                  <LinearGradient colors={['transparent', 'rgba(0,0,0,0.55)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 90, justifyContent: 'flex-end', padding: 12 }}>
+                    {c.caption ? (
+                      <Text numberOfLines={2} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '600' }}>{c.caption}</Text>
+                    ) : null}
+                    {c.countryCode ? (
+                      <Text style={{ fontSize: 14, marginTop: 2 }}>{flagEmoji(c.countryCode)} <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, opacity: 0.9 }}>{c.city ?? countryName(c.countryCode)}</Text></Text>
+                    ) : null}
+                  </LinearGradient>
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : (
+          <Pressable onPress={() => setPhotoOpen(true)} className="items-center justify-center bg-white rounded-3xl" style={{ marginHorizontal: 20, marginTop: 12, paddingVertical: 30, gap: 8 }}>
+            <Camera size={26} color={COLORS.coral} />
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3 }}>Add your first photo</Text>
+          </Pressable>
+        )}
+      </View>
     </ScrollView>
 
       {/* Floating add button */}
@@ -87,6 +134,7 @@ export default function StoryScreen() {
       </Pressable>
 
       <AddPlaceSheet visible={addOpen} onClose={() => setAddOpen(false)} />
+      <AddPhotoSheet visible={photoOpen} onClose={() => setPhotoOpen(false)} />
     </View>
   );
 }

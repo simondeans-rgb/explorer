@@ -13,16 +13,24 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   onSnapshot,
   query,
   serverTimestamp,
   where,
   type DocumentData,
 } from 'firebase/firestore';
+import {
+  ref,
+  uploadString,
+  getDownloadURL,
+  deleteObject,
+} from 'firebase/storage';
 import type {
   Place,
   Discovery,
   Expedition,
+  Capture,
   Journey,
   Relationship,
   PlaceKind,
@@ -31,14 +39,20 @@ import type {
   JourneyMode,
 } from '../types';
 import { countryName } from '../data/countries';
-import { SEED_PLACES, SEED_DISCOVERIES, SEED_EXPEDITIONS } from '../lib/seed';
-import { db } from '../lib/firebase';
+import {
+  SEED_PLACES,
+  SEED_DISCOVERIES,
+  SEED_EXPEDITIONS,
+  SEED_CAPTURES,
+} from '../lib/seed';
+import { db, storage } from '../lib/firebase';
 import { useAuth } from './auth';
 
 interface DataShape {
   places: Place[];
   discoveries: Discovery[];
   expeditions: Expedition[];
+  captures: Capture[];
 }
 
 interface DataApi extends DataShape {
@@ -73,16 +87,24 @@ interface DataApi extends DataShape {
     note?: string;
   }) => void;
   removeExpedition: (id: string) => void;
+  addCapture: (input: {
+    dataUrl: string;
+    countryCode?: string;
+    city?: string;
+    caption?: string;
+  }) => Promise<void>;
+  removeCapture: (id: string) => void;
 }
 
 const KEY = 'worldly:data:v1';
-type Coll = 'places' | 'discoveries' | 'expeditions';
+type Coll = 'places' | 'discoveries' | 'expeditions' | 'captures';
 
 const noop = () => {};
 const DataContext = createContext<DataApi>({
   places: [],
   discoveries: [],
   expeditions: [],
+  captures: [],
   loaded: false,
   cloud: false,
   addPlace: noop,
@@ -91,6 +113,8 @@ const DataContext = createContext<DataApi>({
   removeDiscovery: noop,
   addExpedition: noop,
   removeExpedition: noop,
+  addCapture: async () => {},
+  removeCapture: noop,
 });
 
 export function useData(): DataApi {
@@ -157,14 +181,33 @@ function expeditionFromDoc(id: string, d: DocumentData): Expedition {
     updatedAt: millis(d.updatedAt),
   };
 }
+function captureFromDoc(id: string, d: DocumentData): Capture {
+  return {
+    id,
+    userId: d.userId,
+    dataUrl: d.dataUrl ?? '',
+    countryCode: d.countryCode || undefined,
+    city: d.city || undefined,
+    expeditionId: d.expeditionId || undefined,
+    discoveryId: d.discoveryId || undefined,
+    caption: d.caption || undefined,
+    createdAt: millis(d.createdAt),
+  };
+}
 
 const SEED: DataShape = {
   places: SEED_PLACES,
   discoveries: SEED_DISCOVERIES,
   expeditions: SEED_EXPEDITIONS,
+  captures: SEED_CAPTURES,
 };
 
-const EMPTY: DataShape = { places: [], discoveries: [], expeditions: [] };
+const EMPTY: DataShape = {
+  places: [],
+  discoveries: [],
+  expeditions: [],
+  captures: [],
+};
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -185,9 +228,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
       try {
         const raw = await AsyncStorage.getItem(KEY);
         if (active && raw) {
-          const parsed = JSON.parse(raw) as DataShape;
-          localRef.current = parsed;
-          setData(parsed);
+          // Backfill arrays added in later versions so older persisted data
+          // (e.g. saved before `captures` existed) still loads cleanly.
+          const parsed = JSON.parse(raw) as Partial<DataShape>;
+          const merged: DataShape = {
+            places: parsed.places ?? [],
+            discoveries: parsed.discoveries ?? [],
+            expeditions: parsed.expeditions ?? [],
+            captures: parsed.captures ?? [],
+          };
+          localRef.current = merged;
+          setData(merged);
         } else {
           localRef.current = SEED;
           setData(SEED);
@@ -214,11 +265,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
       places: false,
       discoveries: false,
       expeditions: false,
+      captures: false,
     };
     const markReady = (c: Coll) => {
       if (!ready[c]) {
         ready[c] = true;
-        if (ready.places && ready.discoveries && ready.expeditions) setLoaded(true);
+        if (ready.places && ready.discoveries && ready.expeditions && ready.captures) {
+          setLoaded(true);
+        }
       }
     };
     const q = (c: Coll) => query(collection(fdb, c), where('userId', '==', uid));
@@ -234,6 +288,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       onSnapshot(q('expeditions'), (snap) => {
         setData((p) => ({ ...p, expeditions: snap.docs.map((d) => expeditionFromDoc(d.id, d.data())) }));
         markReady('expeditions');
+      }),
+      onSnapshot(q('captures'), (snap) => {
+        setData((p) => ({ ...p, captures: snap.docs.map((d) => captureFromDoc(d.id, d.data())) }));
+        markReady('captures');
       }),
     ];
     return () => unsubs.forEach((u) => u());
@@ -371,6 +429,62 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       },
       removeExpedition: (id) => remove('expeditions', id),
+      addCapture: async (input) => {
+        if (cloud && fdb && uid) {
+          let url = input.dataUrl;
+          let storagePath: string | null = null;
+          if (storage && input.dataUrl.startsWith('data:')) {
+            const path = `users/${uid}/captures/${newId()}.jpg`;
+            const r = ref(storage, path);
+            await uploadString(r, input.dataUrl, 'data_url', {
+              contentType: 'image/jpeg',
+              cacheControl: 'public, max-age=31536000, immutable',
+            });
+            url = await getDownloadURL(r);
+            storagePath = path;
+          }
+          await addDoc(collection(fdb, 'captures'), {
+            userId: uid,
+            dataUrl: url,
+            countryCode: input.countryCode || null,
+            city: input.city?.trim() || null,
+            expeditionId: null,
+            discoveryId: null,
+            caption: input.caption?.trim() || null,
+            storagePath,
+            createdAt: serverTimestamp(),
+          });
+        } else {
+          const capture: Capture = {
+            id: newId(),
+            userId: 'me',
+            dataUrl: input.dataUrl,
+            countryCode: input.countryCode,
+            city: input.city?.trim() || undefined,
+            caption: input.caption?.trim() || undefined,
+            createdAt: Date.now(),
+          };
+          const cur = localRef.current;
+          persistLocal({ ...cur, captures: [capture, ...cur.captures] });
+        }
+      },
+      removeCapture: (id) => {
+        if (cloud && fdb && uid) {
+          (async () => {
+            try {
+              const snap = await getDoc(doc(fdb, 'captures', id));
+              const path = snap.data()?.storagePath as string | undefined;
+              if (storage && path) await deleteObject(ref(storage, path));
+            } catch {
+              /* best-effort image cleanup */
+            }
+            deleteDoc(doc(fdb, 'captures', id)).catch(() => {});
+          })();
+        } else {
+          const cur = localRef.current;
+          persistLocal({ ...cur, captures: cur.captures.filter((c) => c.id !== id) });
+        }
+      },
     };
   }, [data, loaded, cloud, uid]);
 
