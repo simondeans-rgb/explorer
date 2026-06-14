@@ -9,6 +9,10 @@ import {
   MapPin,
   Camera,
   Plus,
+  Building2,
+  Coins,
+  Users,
+  Maximize2,
   UtensilsCrossed,
   BedDouble,
   Landmark,
@@ -22,6 +26,7 @@ import { DestinationImage } from '../../components/DestinationImage';
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, continentOf } from '../../src/data/countries';
+import { countryFacts } from '../../src/data/countryFacts';
 import {
   RELATIONSHIP_META,
   DISCOVERY_CATEGORY_META,
@@ -39,6 +44,62 @@ const CATEGORY_ICON: Record<DiscoveryCategory, ComponentType<{ size?: number; co
   experience: Ticket,
   nature: Mountain,
 };
+
+// Best-first: positive verdicts lead, then neutral, then negatives.
+const VERDICT_ORDER: Record<string, number> = {
+  recommend: 0,
+  'hidden-gem': 1,
+  'worth-visiting': 2,
+  _none: 3,
+  overrated: 4,
+  avoid: 5,
+};
+
+const MONTHS = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+
+function fmtNum(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
+  return `${n}`;
+}
+
+function Fact({ icon: Icon, label, value }: { icon: ComponentType<{ size?: number; color?: string }>; label: string; value: string }) {
+  return (
+    <View className="bg-white rounded-2xl" style={{ flexGrow: 1, flexBasis: '47%', padding: 14 }}>
+      <View className="flex-row items-center" style={{ gap: 6 }}>
+        <Icon size={14} color={COLORS.coral} />
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: COLORS.ink3 }}>{label.toUpperCase()}</Text>
+      </View>
+      <Text numberOfLines={1} style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy, marginTop: 4 }}>{value}</Text>
+    </View>
+  );
+}
+
+function TempChart({ temps }: { temps: number[] }) {
+  const max = Math.max(...temps, 1);
+  const min = Math.min(...temps, 0);
+  const span = Math.max(max - min, 1);
+  return (
+    <View className="bg-white rounded-2xl" style={{ padding: 16 }}>
+      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: COLORS.ink3 }}>AVERAGE TEMPERATURE °C</Text>
+      <View className="flex-row items-end" style={{ height: 70, marginTop: 12, gap: 4 }}>
+        {temps.map((t, i) => {
+          const h = 10 + Math.round(((t - min) / span) * 52);
+          return (
+            <View key={i} style={{ flex: 1, alignItems: 'center' }}>
+              <View style={{ width: '100%', height: h, borderRadius: 4, backgroundColor: t >= 24 ? COLORS.coral : t >= 12 ? COLORS.sunburst : COLORS.aqua }} />
+            </View>
+          );
+        })}
+      </View>
+      <View className="flex-row" style={{ marginTop: 6, gap: 4 }}>
+        {MONTHS.map((m, i) => (
+          <Text key={i} style={{ flex: 1, textAlign: 'center', fontFamily: 'PlusJakarta', fontSize: 9, color: COLORS.ink3 }}>{m}</Text>
+        ))}
+      </View>
+    </View>
+  );
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -58,7 +119,14 @@ export default function CountryScreen() {
   const [photoOpen, setPhotoOpen] = useState(false);
 
   const agg = useMemo(() => aggregates.find((a) => a.code === code), [aggregates, code]);
-  const myDiscoveries = useMemo(() => discoveries.filter((d) => d.countryCode === code), [discoveries, code]);
+  const facts = countryFacts(code);
+  const myDiscoveries = useMemo(
+    () =>
+      discoveries
+        .filter((d) => d.countryCode === code)
+        .sort((a, b) => (VERDICT_ORDER[a.verdict ?? '_none'] ?? 3) - (VERDICT_ORDER[b.verdict ?? '_none'] ?? 3)),
+    [discoveries, code],
+  );
   const myJourneys = useMemo(() => expeditions.filter((e) => e.countryCodes.includes(code)), [expeditions, code]);
   const myPhotos = useMemo(() => captures.filter((c) => c.countryCode === code), [captures, code]);
 
@@ -97,6 +165,47 @@ export default function CountryScreen() {
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.navy }}>Photo</Text>
           </Pressable>
         </View>
+
+        {/* About */}
+        {facts ? (
+          <Section title={`About ${name}`}>
+            <View className="flex-row flex-wrap" style={{ gap: 10 }}>
+              <Fact icon={Building2} label="Capital" value={facts.capital} />
+              <Fact icon={Coins} label="Currency" value={facts.currency} />
+              <Fact icon={Users} label="Population" value={fmtNum(facts.population)} />
+              <Fact icon={Maximize2} label="Area" value={`${fmtNum(facts.areaKm2)} km²`} />
+            </View>
+            {facts.temps && facts.temps.length === 12 ? (
+              <View style={{ marginTop: 10 }}>
+                <TempChart temps={facts.temps} />
+              </View>
+            ) : null}
+          </Section>
+        ) : null}
+
+        {/* Landmarks */}
+        {facts?.landmarks && facts.landmarks.length > 0 ? (
+          <Section title="Landmarks & sights">
+            <View style={{ gap: 8 }}>
+              {facts.landmarks.map((l) => {
+                const recorded = myDiscoveries.find((d) => d.landmark === l || d.name.toLowerCase() === l.toLowerCase());
+                return (
+                  <View key={l} className="bg-white rounded-2xl flex-row items-center" style={{ padding: 14, gap: 12 }}>
+                    <View className="rounded-xl items-center justify-center" style={{ height: 38, width: 38, backgroundColor: 'rgba(255,107,154,0.12)' }}>
+                      <Landmark size={18} color={COLORS.coral} />
+                    </View>
+                    <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{l}</Text>
+                    {recorded ? (
+                      <View className="rounded-full" style={{ backgroundColor: 'rgba(36,209,195,0.16)', paddingHorizontal: 10, paddingVertical: 4 }}>
+                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.aqua }}>Visited</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                );
+              })}
+            </View>
+          </Section>
+        ) : null}
 
         {/* Your connection */}
         {rels.length > 0 || agg?.aspiring ? (
