@@ -14,7 +14,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-reanimated';
 import { AuthProvider } from '../src/store/auth';
 import { DataProvider } from '../src/store/data';
+import { CelebrationProvider } from '../src/store/celebration';
 import { Onboarding } from '../components/Onboarding';
+import { AchievementWatcher } from '../components/AchievementWatcher';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -51,15 +53,18 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <DataProvider>
-        <View style={{ flex: 1 }}>
-          <StatusBar style="light" />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="country/[code]" options={{ animation: 'slide_from_right' }} />
-            <Stack.Screen name="wrapped" options={{ animation: 'fade', presentation: 'fullScreenModal' }} />
-          </Stack>
-          {!onboarded ? <Onboarding onDone={finishOnboarding} /> : null}
-        </View>
+        <CelebrationProvider>
+          <View style={{ flex: 1 }}>
+            <StatusBar style="light" />
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="country/[code]" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="wrapped" options={{ animation: 'fade', presentation: 'fullScreenModal' }} />
+            </Stack>
+            <AchievementWatcher />
+            {!onboarded ? <Onboarding onDone={finishOnboarding} /> : null}
+          </View>
+        </CelebrationProvider>
       </DataProvider>
     </AuthProvider>
   );
