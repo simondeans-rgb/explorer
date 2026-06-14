@@ -4,6 +4,7 @@
 // appear on the journeys route map.
 import { airportInfo } from '../data/airports';
 import { countryName } from '../data/countries';
+import { isHome, type HomeRange } from './residence';
 import type { Journey, PlaceKind } from '../types';
 
 export interface PlaceRow {
@@ -101,7 +102,11 @@ function parseFlights(text: string): Flight[] {
 
 const DAY = 86_400_000;
 
-export function buildImportPlan(text: string, homeCodes: Set<string> = new Set()): ImportPlan {
+export function buildImportPlan(
+  text: string,
+  homeCodes: Set<string> = new Set(),
+  home: HomeRange[] = [],
+): ImportPlan {
   const flights = parseFlights(text).filter((f) => !f.canceled);
   const places = new Map<string, PlaceRow>();
   const addAirport = (iata: string, year?: number) => {
@@ -156,16 +161,30 @@ export function buildImportPlan(text: string, homeCodes: Set<string> = new Set()
     seg = [];
   };
 
-  for (let i = 0; i < flights.length; i++) {
-    const f = flights[i];
+  for (const f of flights) {
     const year = Number(f.date.slice(0, 4)) || undefined;
+    const ts = Date.parse(f.date);
+    const fc = airportInfo(f.from)?.country;
+    const tc = airportInfo(f.to)?.country;
+    const fromHome = fc ? isHome(home, fc, ts) : false;
+    const toHome = tc ? isHome(home, tc, ts) : false;
+
+    // A flight entirely within your home country while you lived there is
+    // commuting, not a trip — skip it and close any open trip.
+    if (fromHome && toHome) {
+      if (seg.length) flush();
+      continue;
+    }
+
     addAirport(f.from, year);
     addAirport(f.to, year);
     if (seg.length > 0) {
-      const gap = Date.parse(f.date) - Date.parse(seg[seg.length - 1].date);
+      const gap = ts - Date.parse(seg[seg.length - 1].date);
       if (gap > 2 * DAY) flush();
     }
     seg.push(f);
+    // Landing back home completes the trip.
+    if (toHome) flush();
   }
   flush();
 
