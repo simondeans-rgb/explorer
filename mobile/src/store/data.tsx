@@ -110,6 +110,17 @@ interface DataApi extends DataShape {
   importPlaces: (
     rows: { kind: PlaceKind; countryCode: string; name?: string; firstYear?: number }[],
   ) => Promise<number>;
+  /** Bulk import journeys/expeditions (e.g. from a Flighty CSV). */
+  importExpeditions: (
+    rows: {
+      title: string;
+      startDate?: string;
+      endDate?: string;
+      countryCodes: string[];
+      journeys: Journey[];
+      note?: string;
+    }[],
+  ) => Promise<number>;
 }
 
 const KEY = 'worldly:data:v1';
@@ -135,6 +146,7 @@ const DataContext = createContext<DataApi>({
   addTrip: noop,
   removeTrip: noop,
   importPlaces: async () => 0,
+  importExpeditions: async () => 0,
 });
 
 export function useData(): DataApi {
@@ -618,6 +630,41 @@ export function DataProvider({ children }: { children: ReactNode }) {
           persistLocal({ ...cur, places: [...cur.places, ...created] });
         }
         return fresh.length;
+      },
+      importExpeditions: async (rows) => {
+        if (rows.length === 0) return 0;
+        if (cloud && fdb && uid) {
+          for (const r of rows) {
+            await addDoc(collection(fdb, 'expeditions'), {
+              userId: uid,
+              title: r.title.trim(),
+              startDate: r.startDate || null,
+              endDate: r.endDate || null,
+              countryCodes: r.countryCodes,
+              journeys: r.journeys,
+              note: r.note?.trim() || null,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            }).catch(() => {});
+          }
+        } else {
+          const now = Date.now();
+          const created: Expedition[] = rows.map((r) => ({
+            id: newId(),
+            userId: 'me',
+            title: r.title.trim(),
+            startDate: r.startDate,
+            endDate: r.endDate,
+            countryCodes: r.countryCodes,
+            journeys: r.journeys,
+            note: r.note?.trim() || undefined,
+            createdAt: now,
+            updatedAt: now,
+          }));
+          const cur = localRef.current;
+          persistLocal({ ...cur, expeditions: [...created, ...cur.expeditions] });
+        }
+        return rows.length;
       },
     };
   }, [data, loaded, cloud, uid]);
