@@ -57,8 +57,26 @@ export async function ensureProfile(
     await setDoc(cref, { uid, createdAt: serverTimestamp() });
     break;
   }
-  await setDoc(pref, { uid, code, name, createdAt: serverTimestamp() });
+  await setDoc(pref, { uid, code, name, createdAt: serverTimestamp() }, { merge: true });
   return { uid, code, name };
+}
+
+/** Read the member's profile photo (a compact JPEG data URL), if any. */
+export async function loadProfilePhoto(uid: string): Promise<string | null> {
+  if (!db) return null;
+  try {
+    const snap = await getDoc(doc(db, 'profiles', uid));
+    return snap.exists() ? ((snap.data().photo as string | undefined) ?? null) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Save (or clear, with null) the member's profile photo. Writes `uid` too so
+ *  the create/update passes the profiles security rule even on first write. */
+export async function saveProfilePhoto(uid: string, photo: string | null): Promise<void> {
+  if (!db) return;
+  await setDoc(doc(db, 'profiles', uid), { uid, photo }, { merge: true });
 }
 
 export async function resolveCode(code: string): Promise<string | null> {

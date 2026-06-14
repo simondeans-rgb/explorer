@@ -124,7 +124,7 @@ export default function CountryScreen() {
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 48 }}>
         {/* Hero */}
-        <DestinationImage code={code} scrim style={{ position: 'relative', paddingTop: 60, paddingBottom: 52, paddingHorizontal: 20, minHeight: 240, justifyContent: 'flex-end' }}>
+        <DestinationImage code={code} scrim motion style={{ position: 'relative', paddingTop: 60, paddingBottom: 52, paddingHorizontal: 20, minHeight: 240, justifyContent: 'flex-end' }}>
           <Pressable onPress={() => router.back()} hitSlop={8} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, left: 20 }}>
             <ChevronLeft size={20} color="#fff" />
           </Pressable>

@@ -38,7 +38,7 @@ export default function StoryScreen() {
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
       {/* Hero */}
-      <DestinationImage code={heroCode} scrim style={{ position: 'relative', paddingTop: 64, paddingBottom: 64, paddingHorizontal: 20 }}>
+      <DestinationImage code={heroCode} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 64, paddingHorizontal: 20 }}>
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center" style={{ gap: 8 }}>
             <WorldlyMark size={28} />
