@@ -1,6 +1,6 @@
 // Sample data so the app renders real, computed stats (level, badges, counts)
 // from the shared engines until the live Firestore layer is wired in.
-import type { Place, Discovery, Expedition } from '../types';
+import type { Place, Discovery, Expedition, Capture } from '../types';
 
 const now = Date.now();
 const day = 86_400_000;
@@ -85,6 +85,50 @@ export const SEED_DISCOVERIES: Discovery[] = [
   disc('d10', 'Blue Lagoon', 'nature', 'IS', 'Reykjavik', 'recommend'),
   disc('d11', 'Time Out Market', 'food', 'PT', 'Lisbon', 'recommend'),
   disc('d12', 'Grand Palace', 'culture', 'TH', 'Bangkok', 'worth-visiting'),
+];
+
+const capture = (
+  id: string,
+  dataUrl: string,
+  countryCode: string,
+  city: string,
+  caption: string,
+  daysAgo: number,
+): Capture => ({
+  id,
+  userId: 'demo',
+  dataUrl,
+  countryCode,
+  city,
+  caption,
+  createdAt: now - day * daysAgo,
+});
+
+export const SEED_CAPTURES: Capture[] = [
+  capture(
+    'cap1',
+    'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=600&q=60',
+    'JP',
+    'Tokyo',
+    'Neon nights in Shinjuku',
+    8,
+  ),
+  capture(
+    'cap2',
+    'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=600&q=60',
+    'IT',
+    'Rome',
+    'Golden hour at the Colosseum',
+    40,
+  ),
+  capture(
+    'cap3',
+    'https://images.unsplash.com/photo-1504109586057-7a2ae83d1338?auto=format&fit=crop&w=600&q=60',
+    'IS',
+    'Vík',
+    'Black sand and big skies',
+    120,
+  ),
 ];
 
 export const SEED_EXPEDITIONS: Expedition[] = [
