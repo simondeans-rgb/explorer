@@ -40,7 +40,7 @@ export default function ImportScreen() {
     setCsvBusy(true);
     try {
       const text = await readAsStringAsync(res.assets[0].uri);
-      const plan = buildImportPlan(text, homeCodes);
+      const plan = buildImportPlan(text, homeCodes, homeRanges(places));
       if (plan.flightCount === 0) {
         setCsvMsg("Couldn't find flights in that file. Export your Flighty history as CSV and try again.");
         return;
