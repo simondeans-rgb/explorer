@@ -1,12 +1,12 @@
 // Scan the photo library for geotagged photos and turn the locations into
 // visited countries — recording each country against the EARLIEST photo year
 // so the year-in-review and Atlas year filters stay accurate. Uses
-// expo-media-library for GPS + capture date and expo-location to reverse-
-// geocode to an ISO country code.
+// expo-media-library for GPS + capture date and an OFFLINE point-in-polygon
+// lookup (no OS reverse geocoder, which iOS rate-limits/hangs).
 import * as MediaLibrary from 'expo-media-library';
-import * as Location from 'expo-location';
 import type { PlaceRow } from './flightyImport';
 import { isHome, type HomeRange } from './residence';
+import { countryAt } from './geoLookup';
 
 export interface ScanProgress {
   scanned: number;
@@ -30,7 +30,6 @@ export async function scanPhotosForCountries(
 ): Promise<{ rows: PlaceRow[]; scanned: number; denied?: boolean }> {
   const perm = await MediaLibrary.requestPermissionsAsync();
   if (!perm.granted) return { rows: [], scanned: 0, denied: true };
-  await Location.requestForegroundPermissionsAsync().catch(() => {});
 
   const coordCache = new Map<string, string | null>();
   const earliestYear = new Map<string, number | undefined>(); // code -> earliest year seen
@@ -59,12 +58,7 @@ export async function scanPhotosForCountries(
         const key = `${loc.latitude.toFixed(1)},${loc.longitude.toFixed(1)}`;
         let code = coordCache.get(key);
         if (code === undefined) {
-          try {
-            const geo = await Location.reverseGeocodeAsync({ latitude: loc.latitude, longitude: loc.longitude });
-            code = geo[0]?.isoCountryCode ? geo[0].isoCountryCode.toUpperCase() : null;
-          } catch {
-            code = null;
-          }
+          code = countryAt(loc.longitude, loc.latitude) ?? null;
           coordCache.set(key, code);
         }
         if (!code) continue;
