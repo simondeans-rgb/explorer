@@ -5,6 +5,7 @@ import { Globe2, MapPinned } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
 import { Fab } from '../../components/Fab';
 import { WorldMap } from '../../components/WorldMap';
+import { DestinationImage } from '../../components/DestinationImage';
 import { AddPlaceSheet } from '../../components/AddPlaceSheet';
 import { AddTripSheet } from '../../components/AddTripSheet';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
@@ -39,7 +40,7 @@ export default function AtlasScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
     <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 40 }}>
-      <PageHero eyebrow="Your collection" title="Atlas" subtitle="Every place you've been — map, country, journey." gradient={GRADIENTS.atlas} />
+      <PageHero eyebrow="Your collection" title="Atlas" subtitle="Every place you've been — map, country, journey." gradient={GRADIENTS.atlas} imageCode="WW" />
 
       {/* segmented control */}
       <View className="flex-row bg-white rounded-2xl" style={{ marginHorizontal: 20, marginTop: 6, padding: 5, gap: 5 }}>
@@ -92,44 +93,54 @@ export default function AtlasScreen() {
           </View>
         ) : null}
         {tab === 'places'
-          ? discovered.map((a) => (
-              <Pressable key={a.code} onPress={() => router.push(`/country/${a.code}`)} className="bg-white rounded-3xl" style={{ padding: 16 }}>
-                <View className="flex-row items-center" style={{ gap: 12 }}>
-                  <Text style={{ fontSize: 30 }}>{flagEmoji(a.code)}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy }}>{countryName(a.code)}</Text>
-                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>
+          ? discovered.map((a) => {
+              const chips = a.relationships.filter((r) => r !== 'aspiring');
+              return (
+                <Pressable key={a.code} onPress={() => router.push(`/country/${a.code}`)} className="bg-white rounded-3xl" style={{ overflow: 'hidden' }}>
+                  <DestinationImage code={a.code} scrim style={{ height: 132, padding: 14, justifyContent: 'flex-end' }}>
+                    <Text style={{ fontSize: 30, position: 'absolute', top: 12, left: 14 }}>{flagEmoji(a.code)}</Text>
+                    {discCount[a.code] ? (
+                      <View className="rounded-full" style={{ position: 'absolute', top: 12, right: 14, backgroundColor: 'rgba(255,255,255,0.92)', paddingHorizontal: 10, paddingVertical: 4 }}>
+                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>{discCount[a.code]} found</Text>
+                      </View>
+                    ) : null}
+                    <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 22 }}>{countryName(a.code)}</Text>
+                    <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.95 }}>
                       {a.continent}{a.firstYear ? ` · since ${a.firstYear}` : ''}
                     </Text>
-                  </View>
-                  {discCount[a.code] ? (
-                    <View className="rounded-full" style={{ backgroundColor: COLORS.warmwhite, paddingHorizontal: 10, paddingVertical: 4 }}>
-                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>{discCount[a.code]} found</Text>
+                  </DestinationImage>
+                  {chips.length > 0 || a.cities.length > 0 ? (
+                    <View className="flex-row flex-wrap" style={{ gap: 6, padding: 14 }}>
+                      {chips.map((r) => (
+                        <View key={r} className="rounded-full" style={{ backgroundColor: 'rgba(20,33,61,0.06)', paddingHorizontal: 10, paddingVertical: 4 }}>
+                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink2 }}>{RELATIONSHIP_META[r].label}</Text>
+                        </View>
+                      ))}
+                      {a.cities.map((c) => (
+                        <View key={c.id} className="rounded-full" style={{ backgroundColor: 'rgba(20,33,61,0.04)', paddingHorizontal: 10, paddingVertical: 4 }}>
+                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink2 }}>{c.name}</Text>
+                        </View>
+                      ))}
                     </View>
                   ) : null}
-                </View>
-                <View className="flex-row flex-wrap" style={{ gap: 6, marginTop: 10 }}>
-                  {a.relationships.filter((r) => r !== 'aspiring').map((r) => (
-                    <View key={r} className="rounded-full" style={{ backgroundColor: 'rgba(20,33,61,0.06)', paddingHorizontal: 10, paddingVertical: 4 }}>
-                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink2 }}>{RELATIONSHIP_META[r].label}</Text>
-                    </View>
-                  ))}
-                  {a.cities.map((c) => (
-                    <View key={c.id} className="rounded-full" style={{ backgroundColor: 'rgba(20,33,61,0.04)', paddingHorizontal: 10, paddingVertical: 4 }}>
-                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink2 }}>{c.name}</Text>
-                    </View>
-                  ))}
-                </View>
-              </Pressable>
-            ))
+                </Pressable>
+              );
+            })
           : expeditions.map((e) => (
-              <View key={e.id} className="bg-white rounded-3xl" style={{ padding: 16 }}>
-                <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy }}>{e.title}</Text>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2 }}>
-                  {e.countryCodes.map((c) => flagEmoji(c)).join(' ')}  ·  {e.startDate?.slice(0, 4)}
-                  {e.journeys[0] ? ` · ${JOURNEY_MODE_META[e.journeys[0].mode].label}` : ''}
-                </Text>
-              </View>
+              <Pressable
+                key={e.id}
+                onPress={() => e.countryCodes[0] && router.push(`/country/${e.countryCodes[0]}`)}
+                className="bg-white rounded-3xl"
+                style={{ overflow: 'hidden' }}
+              >
+                <DestinationImage code={e.countryCodes[0] ?? 'WW'} scrim style={{ height: 132, padding: 14, justifyContent: 'flex-end' }}>
+                  <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 22 }}>{e.title}</Text>
+                  <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.95 }}>
+                    {e.countryCodes.map((c) => flagEmoji(c)).join(' ')}  ·  {e.startDate?.slice(0, 4)}
+                    {e.journeys[0] ? ` · ${JOURNEY_MODE_META[e.journeys[0].mode].label}` : ''}
+                  </Text>
+                </DestinationImage>
+              </Pressable>
             ))}
       </View>
     </ScrollView>

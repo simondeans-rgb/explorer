@@ -7,6 +7,7 @@ import {
   PlusJakartaSans_700Bold,
 } from '@expo-google-fonts/plus-jakarta-sans';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -51,6 +52,7 @@ export default function RootLayout() {
     <AuthProvider>
       <DataProvider>
         <View style={{ flex: 1 }}>
+          <StatusBar style="light" />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="country/[code]" options={{ animation: 'slide_from_right' }} />

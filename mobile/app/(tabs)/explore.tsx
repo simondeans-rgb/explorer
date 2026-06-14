@@ -17,6 +17,7 @@ import {
 import type { ComponentType } from 'react';
 import { PageHero } from '../../components/PageHero';
 import { Fab } from '../../components/Fab';
+import { DestinationImage } from '../../components/DestinationImage';
 import { AddDiscoverySheet } from '../../components/AddDiscoverySheet';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
@@ -89,7 +90,7 @@ export default function ExploreScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-        <PageHero eyebrow="The world, country by country" title="Explore" subtitle="Find destinations and keep the places worth remembering." gradient={GRADIENTS.explore} />
+        <PageHero eyebrow="The world, country by country" title="Explore" subtitle="Find destinations and keep the places worth remembering." gradient={GRADIENTS.explore} imageCode="WW" />
 
         {/* segmented control */}
         <View className="flex-row bg-white rounded-2xl" style={{ marginHorizontal: 20, marginTop: 6, padding: 5, gap: 5 }}>
@@ -127,12 +128,12 @@ export default function ExploreScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12, gap: 10 }}>
                   {[...wishlist.keys()].map((code) => (
                     <Pressable key={code} onPress={() => router.push(`/country/${code}`)}>
-                      <View className="rounded-2xl items-center justify-center" style={{ width: 96, height: 96, backgroundColor: 'rgba(155,124,255,0.12)' }}>
-                        <Text style={{ fontSize: 30 }}>{flagEmoji(code)}</Text>
-                        <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.navy, marginTop: 4, paddingHorizontal: 6 }}>
+                      <DestinationImage code={code} scrim style={{ width: 116, height: 116, borderRadius: 18, padding: 10, justifyContent: 'flex-end' }}>
+                        <Text style={{ fontSize: 24, position: 'absolute', top: 8, left: 10 }}>{flagEmoji(code)}</Text>
+                        <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700' }}>
                           {countryName(code)}
                         </Text>
-                      </View>
+                      </DestinationImage>
                     </Pressable>
                   ))}
                 </ScrollView>

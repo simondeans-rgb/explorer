@@ -3,6 +3,7 @@ import { View, Text, ScrollView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { CloudOff, Cloud, LogOut } from 'lucide-react-native';
+import { DestinationImage } from '../../components/DestinationImage';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useAuth } from '../../src/store/auth';
@@ -26,18 +27,18 @@ export default function YouScreen() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 40 }}>
       {/* Identity hero */}
-      <LinearGradient colors={GRADIENTS.you} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'relative', paddingTop: 64, paddingBottom: 56, alignItems: 'center' }}>
-        <View className="rounded-full items-center justify-center bg-white/20" style={{ height: 92, width: 92, borderWidth: 3, borderColor: 'rgba(255,255,255,0.4)' }}>
+      <DestinationImage code="WW" scrim style={{ position: 'relative', paddingTop: 64, paddingBottom: 56, alignItems: 'center' }}>
+        <View className="rounded-full items-center justify-center bg-white/20" style={{ height: 92, width: 92, borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)' }}>
           <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 40 }}>{initial}</Text>
         </View>
         <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 30, marginTop: 12 }}>{displayName}</Text>
-        <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.85, marginTop: 2 }}>
+        <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.9, marginTop: 2 }}>
           {user ? 'Synced member' : 'Worldly member'}
         </Text>
         <Svg width="100%" height={42} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
           <Path d="M0,64 C220,118 460,16 720,44 C980,72 1220,120 1440,70 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
         </Svg>
-      </LinearGradient>
+      </DestinationImage>
 
       {/* Explorer level */}
       <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
