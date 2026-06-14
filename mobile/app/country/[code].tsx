@@ -124,16 +124,18 @@ export default function CountryScreen() {
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 48 }}>
         {/* Hero */}
-        <DestinationImage code={code} scrim motion style={{ position: 'relative', paddingTop: 60, paddingBottom: 52, paddingHorizontal: 20, minHeight: 240, justifyContent: 'flex-end' }}>
+        <DestinationImage code={code} scrim motion style={{ position: 'relative', paddingTop: 60, paddingBottom: 52, minHeight: 240, justifyContent: 'flex-end' }}>
           <Pressable onPress={() => router.back()} hitSlop={8} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, left: 20 }}>
             <ChevronLeft size={20} color="#fff" />
           </Pressable>
-          <Text style={{ fontSize: 52 }}>{flagEmoji(code)}</Text>
-          <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, marginTop: 6 }}>{name}</Text>
-          <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95, marginTop: 2 }}>
-            {continent ?? 'Somewhere on Earth'}
-            {agg?.firstYear ? ` · since ${agg.firstYear}` : ''}
-          </Text>
+          <View style={{ paddingHorizontal: 20 }}>
+            <Text style={{ fontSize: 52 }}>{flagEmoji(code)}</Text>
+            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, marginTop: 6 }}>{name}</Text>
+            <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95, marginTop: 2 }}>
+              {continent ?? 'Somewhere on Earth'}
+              {agg?.firstYear ? ` · since ${agg.firstYear}` : ''}
+            </Text>
+          </View>
           <Svg width="100%" height={42} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
             <Path d="M0,64 C220,118 460,16 720,44 C980,72 1220,120 1440,70 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
           </Svg>

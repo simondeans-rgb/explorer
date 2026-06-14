@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { Bell, Search, Camera, CalendarDays } from 'lucide-react-native';
+import { Search, Camera, CalendarDays } from 'lucide-react-native';
 import { WorldlyMark } from '../../components/Brand';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AddPlaceSheet } from '../../components/AddPlaceSheet';
@@ -56,24 +56,21 @@ export default function StoryScreen() {
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 110 }}>
       {/* Hero */}
-      <DestinationImage code={heroCode} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 64, paddingHorizontal: 20 }}>
-        <View className="flex-row items-center justify-between">
+      <DestinationImage code={heroCode} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 64 }}>
+        <View style={{ paddingHorizontal: 20 }}>
           <View className="flex-row items-center" style={{ gap: 8 }}>
             <WorldlyMark size={28} />
             <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 22 }}>worldly</Text>
           </View>
-          <View className="h-10 w-10 rounded-full items-center justify-center bg-white/20">
-            <Bell size={18} color="#fff" />
-          </View>
-        </View>
 
-        <View style={{ marginTop: 56 }}>
-          <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95 }}>Hi {firstName},</Text>
-          <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, lineHeight: 40, marginTop: 6 }}>Where will your next story take you?</Text>
-          <Pressable onPress={() => router.push('/search')} className="flex-row items-center bg-white rounded-full" style={{ marginTop: 20, paddingHorizontal: 18, paddingVertical: 14, gap: 10 }}>
-            <Search size={18} color={COLORS.coral} />
-            <Text style={{ color: COLORS.ink2, fontFamily: 'PlusJakarta', fontSize: 15 }}>Search places, food & journeys…</Text>
-          </Pressable>
+          <View style={{ marginTop: 56 }}>
+            <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95 }}>Hi {firstName},</Text>
+            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, lineHeight: 40, marginTop: 6 }}>Where will your next story take you?</Text>
+            <Pressable onPress={() => router.push('/search')} className="flex-row items-center bg-white rounded-full" style={{ marginTop: 20, paddingHorizontal: 18, paddingVertical: 14, gap: 10 }}>
+              <Search size={18} color={COLORS.coral} />
+              <Text style={{ color: COLORS.ink2, fontFamily: 'PlusJakarta', fontSize: 15 }}>Search places, food & journeys…</Text>
+            </Pressable>
+          </View>
         </View>
 
         <Svg width="100%" height={48} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>

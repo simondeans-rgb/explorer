@@ -28,8 +28,8 @@ export function PageHero({
 }) {
   const pageColor = dark ? COLORS.night : COLORS.warmwhite;
 
-  const content = (
-    <>
+  const inner = (
+    <View style={{ paddingHorizontal: 20 }}>
       {onBack && (
         <Pressable
           onPress={onBack}
@@ -51,33 +51,39 @@ export function PageHero({
           {subtitle}
         </Text>
       ) : null}
-
-      <Svg
-        width="100%"
-        height={42}
-        viewBox="0 0 1440 120"
-        preserveAspectRatio="none"
-        style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}
-      >
-        <Path
-          d="M0,64 C220,118 460,16 720,44 C980,72 1220,120 1440,70 L1440,121 L0,121 Z"
-          fill={pageColor}
-        />
-      </Svg>
-    </>
+    </View>
   );
 
-  const padding = { position: 'relative' as const, paddingTop: 64, paddingBottom: 52, paddingHorizontal: 20 };
+  // The wave is a full-bleed child of the (un-padded) container so it reaches
+  // both edges — an absolute child gets inset by container padding otherwise.
+  const wave = (
+    <Svg
+      width="100%"
+      height={42}
+      viewBox="0 0 1440 120"
+      preserveAspectRatio="none"
+      style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}
+    >
+      <Path
+        d="M0,64 C220,118 460,16 720,44 C980,72 1220,120 1440,70 L1440,121 L0,121 Z"
+        fill={pageColor}
+      />
+    </Svg>
+  );
+
+  const padding = { position: 'relative' as const, paddingTop: 64, paddingBottom: 52 };
 
   return (
     <View>
       {imageCode ? (
         <DestinationImage code={imageCode} scrim style={padding}>
-          {content}
+          {inner}
+          {wave}
         </DestinationImage>
       ) : (
         <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={padding}>
-          {content}
+          {inner}
+          {wave}
         </LinearGradient>
       )}
     </View>
