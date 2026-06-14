@@ -74,7 +74,8 @@ interface DataApi extends DataShape {
     city?: string;
     verdict?: RecommendationVerdict;
     note?: string;
-  }) => void;
+    photo?: string;
+  }) => Promise<void>;
   removeDiscovery: (id: string) => void;
   addExpedition: (input: {
     title: string;
@@ -109,7 +110,7 @@ const DataContext = createContext<DataApi>({
   cloud: false,
   addPlace: noop,
   removePlace: noop,
-  addDiscovery: noop,
+  addDiscovery: async () => {},
   removeDiscovery: noop,
   addExpedition: noop,
   removeExpedition: noop,
@@ -163,6 +164,7 @@ function discoveryFromDoc(id: string, d: DocumentData): Discovery {
     city: d.city || undefined,
     verdict: (d.verdict || undefined) as RecommendationVerdict | undefined,
     note: d.note || undefined,
+    photo: d.photo || undefined,
     createdAt: millis(d.createdAt),
     updatedAt: millis(d.updatedAt),
   };
@@ -360,15 +362,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       },
       removePlace: (id) => remove('places', id),
-      addDiscovery: (input) => {
-        if (cloud) {
-          cloudCreate('discoveries', {
+      addDiscovery: async (input) => {
+        if (cloud && fdb && uid) {
+          let photoUrl: string | null = null;
+          let photoPath: string | null = null;
+          if (storage && input.photo?.startsWith('data:')) {
+            const path = `users/${uid}/discoveries/${newId()}.jpg`;
+            const r = ref(storage, path);
+            await uploadString(r, input.photo, 'data_url', {
+              contentType: 'image/jpeg',
+              cacheControl: 'public, max-age=31536000, immutable',
+            });
+            photoUrl = await getDownloadURL(r);
+            photoPath = path;
+          }
+          await addDoc(collection(fdb, 'discoveries'), {
+            userId: uid,
             name: input.name.trim(),
             category: input.category,
             countryCode: input.countryCode || null,
             city: input.city?.trim() || null,
             verdict: input.verdict || null,
             note: input.note?.trim() || null,
+            photo: photoUrl,
+            photoPath,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
           });
         } else {
           const now = Date.now();
@@ -381,6 +400,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             city: input.city?.trim() || undefined,
             verdict: input.verdict,
             note: input.note?.trim() || undefined,
+            photo: input.photo,
             createdAt: now,
             updatedAt: now,
           };

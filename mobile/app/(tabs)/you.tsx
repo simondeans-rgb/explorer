@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
-import { CloudOff, Cloud, LogOut } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { useWorldly } from '../../src/hooks/useWorldly';
@@ -69,6 +70,22 @@ export default function YouScreen() {
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, color: COLORS.ink3, marginTop: 2 }}>{label.toUpperCase()}</Text>
           </View>
         ))}
+      </View>
+
+      {/* Wrapped */}
+      <View style={{ paddingHorizontal: 20, marginTop: 14 }}>
+        <Pressable onPress={() => router.push('/wrapped')}>
+          <LinearGradient colors={GRADIENTS.sunrise} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
+            <View className="rounded-2xl items-center justify-center bg-white/20" style={{ height: 42, width: 42 }}>
+              <Sparkles size={20} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 18 }}>Your world, wrapped</Text>
+              <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.9, marginTop: 1 }}>Your travels in numbers — tap to play.</Text>
+            </View>
+            <ChevronRight size={20} color="#fff" />
+          </LinearGradient>
+        </Pressable>
       </View>
 
       {/* Cloud sync */}
