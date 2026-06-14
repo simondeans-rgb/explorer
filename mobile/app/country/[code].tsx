@@ -6,44 +6,29 @@ import Svg, { Path } from 'react-native-svg';
 import { useLocalSearchParams, router } from 'expo-router';
 import {
   ChevronLeft,
-  MapPin,
   Camera,
   Plus,
   Building2,
   Coins,
   Users,
   Maximize2,
-  UtensilsCrossed,
-  BedDouble,
   Landmark,
-  Ticket,
-  Mountain,
 } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { AddDiscoverySheet } from '../../components/AddDiscoverySheet';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
 import { DestinationImage } from '../../components/DestinationImage';
+import { DiscoveryCard } from '../../components/DiscoveryCard';
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, continentOf } from '../../src/data/countries';
 import { countryFacts } from '../../src/data/countryFacts';
 import {
   RELATIONSHIP_META,
-  DISCOVERY_CATEGORY_META,
-  VERDICT_META,
   JOURNEY_MODE_META,
-  type DiscoveryCategory,
 } from '../../src/types';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useData } from '../../src/store/data';
-
-const CATEGORY_ICON: Record<DiscoveryCategory, ComponentType<{ size?: number; color?: string }>> = {
-  food: UtensilsCrossed,
-  accommodation: BedDouble,
-  culture: Landmark,
-  experience: Ticket,
-  nature: Mountain,
-};
 
 // Best-first: positive verdicts lead, then neutral, then negatives.
 const VERDICT_ORDER: Record<string, number> = {
@@ -258,32 +243,13 @@ export default function CountryScreen() {
           </Section>
         ) : null}
 
-        {/* Discoveries */}
+        {/* Discoveries — best first */}
         {myDiscoveries.length > 0 ? (
           <Section title={`Discoveries (${myDiscoveries.length})`}>
             <View style={{ gap: 10 }}>
-              {myDiscoveries.map((d) => {
-                const Icon = CATEGORY_ICON[d.category];
-                return (
-                  <View key={d.id} className="bg-white rounded-3xl flex-row items-start" style={{ padding: 16, gap: 12 }}>
-                    <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: COLORS.warmwhite }}>
-                      <Icon size={18} color={COLORS.coral} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy }}>{d.name}</Text>
-                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2 }}>
-                        {[d.city, DISCOVERY_CATEGORY_META[d.category].label].filter(Boolean).join(' · ')}
-                      </Text>
-                    </View>
-                    {d.verdict ? (
-                      <View className="rounded-full flex-row items-center" style={{ borderWidth: 1, borderColor: 'rgba(255,107,154,0.4)', paddingHorizontal: 9, paddingVertical: 3, gap: 3 }}>
-                        <MapPin size={10} color={COLORS.coral} />
-                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '700', color: COLORS.coral }}>{VERDICT_META[d.verdict].label}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                );
-              })}
+              {myDiscoveries.map((d) => (
+                <DiscoveryCard key={d.id} discovery={d} />
+              ))}
             </View>
           </Section>
         ) : null}

@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import {
   Check,
   Search,
+  Camera,
+  ImagePlus,
+  X,
   UtensilsCrossed,
   BedDouble,
   Landmark,
@@ -14,6 +18,7 @@ import { SheetShell } from './SheetShell';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES } from '../src/data/countries';
+import { pickPhotoDataUrl } from '../src/lib/photo';
 import {
   DISCOVERY_CATEGORIES,
   DISCOVERY_CATEGORY_META,
@@ -48,10 +53,23 @@ export function AddDiscoverySheet({
   const [query, setQuery] = useState('');
   const [code, setCode] = useState('');
   const [verdict, setVerdict] = useState<RecommendationVerdict>('recommend');
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (visible && initialCountryCode) setCode(initialCountryCode);
   }, [visible, initialCountryCode]);
+
+  async function pick(source: 'camera' | 'library') {
+    setPicking(true);
+    try {
+      const data = await pickPhotoDataUrl(source);
+      if (data) setPhoto(data);
+    } finally {
+      setPicking(false);
+    }
+  }
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -66,21 +84,30 @@ export function AddDiscoverySheet({
     setQuery('');
     setCode('');
     setVerdict('recommend');
+    setPhoto(null);
+    setPicking(false);
+    setSaving(false);
   }
   function close() {
     reset();
     onClose();
   }
-  function save() {
-    if (!name.trim()) return;
-    addDiscovery({
-      name,
-      category,
-      countryCode: code || undefined,
-      city,
-      verdict,
-    });
-    close();
+  async function save() {
+    if (!name.trim() || saving) return;
+    setSaving(true);
+    try {
+      await addDiscovery({
+        name,
+        category,
+        countryCode: code || undefined,
+        city,
+        verdict,
+        photo: photo ?? undefined,
+      });
+      close();
+    } catch {
+      setSaving(false);
+    }
   }
 
   return (
@@ -95,6 +122,29 @@ export function AddDiscoverySheet({
             placeholderTextColor={COLORS.ink3}
             style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }}
           />
+        </View>
+
+        {/* photo */}
+        <View style={{ marginHorizontal: 20, marginTop: 10 }}>
+          {photo ? (
+            <View style={{ position: 'relative' }}>
+              <Image source={{ uri: photo }} style={{ width: '100%', height: 160, borderRadius: 18 }} contentFit="cover" />
+              <Pressable onPress={() => setPhoto(null)} className="absolute rounded-full items-center justify-center" style={{ top: 10, right: 10, height: 32, width: 32, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <X size={16} color="#fff" />
+              </Pressable>
+            </View>
+          ) : (
+            <View className="flex-row" style={{ gap: 10 }}>
+              <Pressable onPress={() => pick('camera')} disabled={picking} className="flex-row items-center justify-center bg-white rounded-2xl" style={{ flex: 1, paddingVertical: 14, gap: 7 }}>
+                <Camera size={18} color={COLORS.coral} />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.navy }}>Photo</Text>
+              </Pressable>
+              <Pressable onPress={() => pick('library')} disabled={picking} className="flex-row items-center justify-center bg-white rounded-2xl" style={{ flex: 1, paddingVertical: 14, gap: 7 }}>
+                <ImagePlus size={18} color={COLORS.coral} />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.navy }}>Library</Text>
+              </Pressable>
+            </View>
+          )}
         </View>
 
         {/* category */}
@@ -191,12 +241,18 @@ export function AddDiscoverySheet({
 
         <Pressable
           onPress={save}
-          disabled={!name.trim()}
+          disabled={!name.trim() || saving}
           className="rounded-2xl items-center justify-center flex-row"
-          style={{ marginHorizontal: 20, marginTop: 20, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: name.trim() ? 1 : 0.4, gap: 8 }}
+          style={{ marginHorizontal: 20, marginTop: 20, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: name.trim() && !saving ? 1 : 0.4, gap: 8 }}
         >
-          <Check size={18} color="#fff" />
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Save discovery</Text>
+          {saving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Check size={18} color="#fff" />
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Save discovery</Text>
+            </>
+          )}
         </Pressable>
       </ScrollView>
     </SheetShell>
