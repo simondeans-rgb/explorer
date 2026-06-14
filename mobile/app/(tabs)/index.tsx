@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { Bell, Plus, Search, Camera } from 'lucide-react-native';
+import { Bell, Search, Camera, CalendarDays } from 'lucide-react-native';
 import { WorldlyMark } from '../../components/Brand';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AddPlaceSheet } from '../../components/AddPlaceSheet';
@@ -20,7 +20,7 @@ import { useFriends } from '../../src/hooks/useFriends';
 
 export default function StoryScreen() {
   const { aggregates, stats, level } = useWorldly();
-  const { captures, removeCapture } = useData();
+  const { captures, removeCapture, trips } = useData();
   const { user } = useAuth();
   const firstName = user?.displayName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Alex');
   const { friends, friendsData } = useFriends(user?.uid, firstName);
@@ -54,7 +54,7 @@ export default function StoryScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 110 }}>
       {/* Hero */}
       <DestinationImage code={heroCode} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 64, paddingHorizontal: 20 }}>
         <View className="flex-row items-center justify-between">
@@ -185,14 +185,38 @@ export default function StoryScreen() {
           </ScrollView>
         </View>
       ) : null}
+
+      {/* Planned trips */}
+      {(() => {
+        const today = new Date().toISOString().slice(0, 10);
+        const upcoming = trips
+          .filter((t) => (t.startDate || '') >= today)
+          .sort((a, b) => a.startDate.localeCompare(b.startDate));
+        if (upcoming.length === 0) return null;
+        return (
+          <View style={{ paddingTop: 18 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, paddingHorizontal: 20 }}>Planned trips</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 12 }}>
+              {upcoming.map((t) => {
+                const days = Math.max(0, Math.ceil((Date.parse(t.startDate) - Date.now()) / 86_400_000));
+                return (
+                  <Pressable key={t.id} onPress={() => router.push(`/country/${t.countryCode}`)} style={{ width: 200 }}>
+                    <DestinationImage code={t.countryCode} scrim style={{ height: 150, borderRadius: 24, padding: 16, justifyContent: 'flex-end' }}>
+                      <View className="flex-row items-center" style={{ gap: 6, position: 'absolute', top: 14, left: 16 }}>
+                        <CalendarDays size={14} color="#fff" />
+                        <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1, opacity: 0.95 }}>{days === 0 ? 'NOW' : `${days} DAYS TO GO`}</Text>
+                      </View>
+                      <Text style={{ fontSize: 22 }}>{flagEmoji(t.countryCode)}</Text>
+                      <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 19, marginTop: 2 }}>{t.title}</Text>
+                    </DestinationImage>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        );
+      })()}
     </ScrollView>
-      <Pressable
-        onPress={() => setAddOpen(true)}
-        className="absolute items-center justify-center rounded-full"
-        style={{ right: 20, bottom: 28, height: 60, width: 60, backgroundColor: COLORS.coral, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 }}
-      >
-        <Plus size={28} color="#fff" strokeWidth={2.6} />
-      </Pressable>
 
       <AddPlaceSheet visible={addOpen} onClose={() => setAddOpen(false)} />
       <AddPhotoSheet visible={photoOpen} onClose={() => setPhotoOpen(false)} />

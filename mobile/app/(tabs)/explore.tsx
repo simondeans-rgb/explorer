@@ -71,7 +71,7 @@ export default function ExploreScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
         <PageHero eyebrow="The world, country by country" title="Explore" subtitle="Find destinations and keep the places worth remembering." gradient={GRADIENTS.explore} imageCode="WW" />
 
         {/* segmented control */}
@@ -195,7 +195,7 @@ export default function ExploreScreen() {
 
       {tab === 'discoveries' ? (
         <>
-          <Fab onPress={() => setAddOpen(true)} />
+          <Fab onPress={() => setAddOpen(true)} bottom={104} />
           <AddDiscoverySheet visible={addOpen} onClose={() => setAddOpen(false)} />
         </>
       ) : null}

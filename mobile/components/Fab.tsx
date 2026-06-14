@@ -1,16 +1,17 @@
+import type { ReactNode } from 'react';
 import { Pressable } from 'react-native';
 import { Plus } from 'lucide-react-native';
 import { COLORS } from '../src/lib/theme';
 
 /** The coral floating action button shared across screens that can add an item. */
-export function Fab({ onPress }: { onPress: () => void }) {
+export function Fab({ onPress, bottom = 28, icon }: { onPress: () => void; bottom?: number; icon?: ReactNode }) {
   return (
     <Pressable
       onPress={onPress}
       className="absolute items-center justify-center rounded-full"
       style={{
         right: 20,
-        bottom: 28,
+        bottom,
         height: 60,
         width: 60,
         backgroundColor: COLORS.coral,
@@ -21,7 +22,7 @@ export function Fab({ onPress }: { onPress: () => void }) {
         elevation: 6,
       }}
     >
-      <Plus size={28} color="#fff" strokeWidth={2.6} />
+      {icon ?? <Plus size={28} color="#fff" strokeWidth={2.6} />}
     </Pressable>
   );
 }

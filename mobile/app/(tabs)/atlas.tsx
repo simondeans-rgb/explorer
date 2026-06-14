@@ -3,11 +3,8 @@ import { View, Text, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Globe2, MapPinned } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
-import { Fab } from '../../components/Fab';
 import { WorldMap } from '../../components/WorldMap';
 import { DestinationImage } from '../../components/DestinationImage';
-import { AddPlaceSheet } from '../../components/AddPlaceSheet';
-import { AddTripSheet } from '../../components/AddTripSheet';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
@@ -19,7 +16,6 @@ type Tab = 'places' | 'journeys';
 export default function AtlasScreen() {
   const { aggregates, discoveries, expeditions } = useWorldly();
   const [tab, setTab] = useState<Tab>('places');
-  const [addOpen, setAddOpen] = useState(false);
   const discovered = aggregates.filter((a) => a.discovered);
 
   const discCount = useMemo(() => {
@@ -39,7 +35,7 @@ export default function AtlasScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
-    <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 110 }}>
       <PageHero eyebrow="Your collection" title="Atlas" subtitle="Every place you've been — map, country, journey." gradient={GRADIENTS.atlas} imageCode="WW" />
 
       {/* segmented control */}
@@ -144,13 +140,6 @@ export default function AtlasScreen() {
             ))}
       </View>
     </ScrollView>
-
-      <Fab onPress={() => setAddOpen(true)} />
-      {tab === 'places' ? (
-        <AddPlaceSheet visible={addOpen} onClose={() => setAddOpen(false)} />
-      ) : (
-        <AddTripSheet visible={addOpen} onClose={() => setAddOpen(false)} />
-      )}
     </View>
   );
 }

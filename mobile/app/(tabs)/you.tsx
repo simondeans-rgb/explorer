@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera } from 'lucide-react-native';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Users } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { useWorldly } from '../../src/hooks/useWorldly';
@@ -55,7 +55,7 @@ export default function YouScreen() {
   ];
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 110 }}>
       {/* Identity hero */}
       <DestinationImage code="WW" scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 56, alignItems: 'center' }}>
         <Pressable onPress={changeAvatar} disabled={!user}>
@@ -125,6 +125,20 @@ export default function YouScreen() {
             </View>
             <ChevronRight size={20} color="#fff" />
           </LinearGradient>
+        </Pressable>
+      </View>
+
+      {/* Friends */}
+      <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
+        <Pressable onPress={() => router.push('/friends')} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
+          <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: 'rgba(155,124,255,0.14)' }}>
+            <Users size={20} color={COLORS.lavender} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>Friends</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Your share code, requests and circle.</Text>
+          </View>
+          <ChevronRight size={20} color={COLORS.ink3} />
         </Pressable>
       </View>
 
