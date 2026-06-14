@@ -16,16 +16,34 @@ import { hasDestinationPhoto } from '../../src/lib/destinationImage';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useData } from '../../src/store/data';
 import { useAuth } from '../../src/store/auth';
+import { useFriends } from '../../src/hooks/useFriends';
 
 export default function StoryScreen() {
   const { aggregates, stats, level } = useWorldly();
   const { captures, removeCapture } = useData();
   const { user } = useAuth();
   const firstName = user?.displayName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Alex');
+  const { friends, friendsData } = useFriends(user?.uid, firstName);
   const discovered = aggregates.filter((a) => a.discovered);
   const heroCode = discovered.find((a) => hasDestinationPhoto(a.code))?.code ?? 'WW';
   const [addOpen, setAddOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
+
+  // "Fresh from your circle": each friend's discovered countries (deduped).
+  const circle = (() => {
+    const nameByUid = new Map(friends.map((f) => [f.uid, f.name]));
+    const seen = new Set<string>();
+    const items: { uid: string; name: string; code: string }[] = [];
+    for (const p of friendsData.places) {
+      if (!p.countryCode || !p.relationships.some((r) => r !== 'aspiring')) continue;
+      const key = `${p.userId}:${p.countryCode}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      items.push({ uid: p.userId, name: nameByUid.get(p.userId) ?? 'Friend', code: p.countryCode });
+      if (items.length >= 12) break;
+    }
+    return items;
+  })();
 
   function confirmRemoveCapture(id: string) {
     Alert.alert('Remove memory?', 'This photo will be deleted.', [
@@ -139,9 +157,35 @@ export default function StoryScreen() {
           </Pressable>
         )}
       </View>
-    </ScrollView>
 
-      {/* Floating add button */}
+      {/* Fresh from your circle */}
+      {circle.length > 0 ? (
+        <View style={{ paddingTop: 18 }}>
+          <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 20 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Fresh from your circle</Text>
+            <Pressable onPress={() => router.push('/friends')} hitSlop={8}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.coral }}>See all</Text>
+            </Pressable>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 12 }}>
+            {circle.map((item) => (
+              <Pressable key={`${item.uid}:${item.code}`} onPress={() => router.push(`/country/${item.code}`)} style={{ width: 144 }}>
+                <DestinationImage code={item.code} scrim style={{ height: 176, borderRadius: 24, padding: 12, justifyContent: 'flex-end' }}>
+                  <View className="flex-row items-center" style={{ gap: 6, position: 'absolute', top: 10, left: 10 }}>
+                    <View className="rounded-full items-center justify-center" style={{ height: 26, width: 26, backgroundColor: 'rgba(255,255,255,0.3)' }}>
+                      <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 13 }}>{item.name.charAt(0).toUpperCase()}</Text>
+                    </View>
+                    <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', maxWidth: 92 }}>{item.name}</Text>
+                  </View>
+                  <Text style={{ fontSize: 22 }}>{flagEmoji(item.code)}</Text>
+                  <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 17, marginTop: 2 }}>{countryName(item.code)}</Text>
+                </DestinationImage>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+    </ScrollView>
       <Pressable
         onPress={() => setAddOpen(true)}
         className="absolute items-center justify-center rounded-full"
