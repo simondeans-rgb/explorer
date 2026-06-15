@@ -9,7 +9,7 @@ import {
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import { AuthProvider } from '../src/store/auth';
 import { DataProvider } from '../src/store/data';
@@ -17,6 +17,13 @@ import { CelebrationProvider } from '../src/store/celebration';
 import { OnboardingProvider, useOnboarding } from '../src/store/onboarding';
 import { Onboarding } from '../components/Onboarding';
 import { AchievementWatcher } from '../components/AchievementWatcher';
+import { GlobalTabBar } from '../components/GlobalTabBar';
+import { ActionMenu, type ActionKind } from '../components/ActionMenu';
+import { AddPlaceSheet } from '../components/AddPlaceSheet';
+import { AddDiscoverySheet } from '../components/AddDiscoverySheet';
+import { AddTripSheet } from '../components/AddTripSheet';
+import { AddPhotoSheet } from '../components/AddPhotoSheet';
+import { AddTripPlanSheet } from '../components/AddTripPlanSheet';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -43,6 +50,8 @@ export default function RootLayout() {
 function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
   const { ready, visible, finish } = useOnboarding();
   const appReady = fontsLoaded && ready;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [sheet, setSheet] = useState<ActionKind | null>(null);
 
   useEffect(() => {
     if (appReady) SplashScreen.hideAsync();
@@ -62,7 +71,25 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
         <Stack.Screen name="search" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
         <Stack.Screen name="wrapped" options={{ animation: 'fade', presentation: 'fullScreenModal' }} />
       </Stack>
+
       <AchievementWatcher />
+
+      {/* Global, always-visible navigation bar + its action menu / sheets. */}
+      <GlobalTabBar onFab={() => setMenuOpen(true)} />
+      <ActionMenu
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onPick={(kind) => {
+          setMenuOpen(false);
+          setSheet(kind);
+        }}
+      />
+      <AddPlaceSheet visible={sheet === 'place'} onClose={() => setSheet(null)} />
+      <AddDiscoverySheet visible={sheet === 'discovery'} onClose={() => setSheet(null)} />
+      <AddTripSheet visible={sheet === 'journey'} onClose={() => setSheet(null)} />
+      <AddPhotoSheet visible={sheet === 'photo'} onClose={() => setSheet(null)} />
+      <AddTripPlanSheet visible={sheet === 'trip'} onClose={() => setSheet(null)} />
+
       {visible ? <Onboarding onDone={finish} /> : null}
     </View>
   );
