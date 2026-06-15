@@ -11,7 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { Globe2, Camera, Users } from 'lucide-react-native';
-import { WorldlyMark } from './Brand';
+import { WorldlyIcon } from './WorldlyLogo';
 import { COLORS, GRADIENTS, type Gradient } from '../src/lib/theme';
 
 const { width } = Dimensions.get('window');
@@ -51,7 +51,15 @@ const SLIDES: Slide[] = [
 ];
 
 function SlideIcon({ kind }: { kind: Slide['icon'] }) {
-  if (kind === 'mark') return <WorldlyMark size={84} />;
+  if (kind === 'mark')
+    return (
+      <View
+        className="rounded-3xl items-center justify-center bg-white"
+        style={{ paddingHorizontal: 26, paddingVertical: 30 }}
+      >
+        <WorldlyIcon height={88} />
+      </View>
+    );
   const Icon = kind === 'globe' ? Globe2 : kind === 'camera' ? Camera : Users;
   return (
     <View className="rounded-full items-center justify-center bg-white/20" style={{ height: 120, width: 120 }}>

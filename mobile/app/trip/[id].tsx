@@ -54,13 +54,19 @@ export default function TripScreen() {
             <ChevronLeft size={20} color="#fff" />
           </Pressable>
           <View style={{ paddingHorizontal: 20 }}>
-            <View className="flex-row items-center" style={{ gap: 6 }}>
-              <CalendarDays size={14} color="#fff" />
-              <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1, opacity: 0.95 }}>
-                {days === 0 ? 'HAPPENING NOW' : `${days} DAYS TO GO`}
+            <View className="flex-row items-center" style={{ gap: 5 }}>
+              <CalendarDays size={12} color="#fff" />
+              <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '800', letterSpacing: 1.5, opacity: 0.9, textShadowColor: 'rgba(0,0,0,0.45)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 }}>
+                {days === 0 ? 'HAPPENING NOW' : 'COUNTING DOWN'}
               </Text>
             </View>
-            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 34, marginTop: 4 }}>{trip.title}</Text>
+            {days > 0 ? (
+              <View className="flex-row items-baseline" style={{ gap: 8, marginTop: 2 }}>
+                <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 56, lineHeight: 58, textShadowColor: 'rgba(0,0,0,0.45)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 }}>{days}</Text>
+                <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', opacity: 0.95, textShadowColor: 'rgba(0,0,0,0.45)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 }}>{days === 1 ? 'day to go' : 'days to go'}</Text>
+              </View>
+            ) : null}
+            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 34, marginTop: 6 }}>{trip.title}</Text>
             <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95, marginTop: 2 }}>
               {flagEmoji(trip.countryCode)} {countryName(trip.countryCode)}
               {trip.startDate ? ` · ${trip.startDate.slice(0, 7)}` : ''}
