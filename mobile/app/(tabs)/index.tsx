@@ -6,7 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
 import { Search, Camera } from 'lucide-react-native';
 import { WorldlyLogo } from '../../components/WorldlyLogo';
-import { Squiggle, SquiggleFlourish } from '../../components/Squiggle';
+import { Squiggle } from '../../components/Squiggle';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AddPlaceSheet } from '../../components/AddPlaceSheet';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
@@ -80,9 +80,6 @@ export default function StoryScreen() {
             </Pressable>
             <View style={{ marginTop: 16, alignSelf: 'flex-start' }}>
               <Text className="text-white" style={{ fontFamily: 'Caveat', fontSize: 26, lineHeight: 28 }}>Life is better when you explore.</Text>
-              <View style={{ marginTop: 0, marginLeft: 6 }}>
-                <SquiggleFlourish width={172} height={53} color={COLORS.coral} />
-              </View>
             </View>
           </View>
         </View>
@@ -108,11 +105,13 @@ export default function StoryScreen() {
             <Pressable onPress={() => router.push(`/trip/${t.id}`)} style={{ width: cardW }}>
               <DestinationImage code={t.countryCode} scrim style={{ height, borderRadius: 24, padding: 18, justifyContent: 'flex-end' }}>
                 <Text style={{ fontSize: 22, position: 'absolute', top: 14, right: 16 }}>{flagEmoji(t.countryCode)}</Text>
-                <View className="flex-row items-baseline" style={{ gap: 8 }}>
+                <View className="flex-row items-end" style={{ gap: 8 }}>
                   <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: numSize, lineHeight: numSize, ...shadow }}>{days === 0 ? '0' : days}</Text>
-                  <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13, letterSpacing: 2, opacity: 0.92, marginBottom: numSize * 0.12, ...shadow }}>
-                    {days === 0 ? 'TODAY' : days === 1 ? 'DAY TO GO' : 'DAYS TO GO'}
-                  </Text>
+                  <View style={{ flex: 1, marginBottom: numSize * 0.16 }}>
+                    <Text numberOfLines={2} className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 12, letterSpacing: 1.5, lineHeight: 14, opacity: 0.92, ...shadow }}>
+                      {days === 0 ? 'TODAY' : days === 1 ? 'DAY TO GO' : 'DAYS TO GO'}
+                    </Text>
+                  </View>
                 </View>
                 <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 24, marginTop: 10, ...shadow }}>{t.title}</Text>
                 <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.9, marginTop: 1, ...shadow }}>{countryName(t.countryCode)}</Text>
