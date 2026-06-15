@@ -232,7 +232,7 @@ export default function ExploreScreen() {
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink3 }}>Tap + to keep the first place worth remembering.</Text>
             ) : null}
             {discoveries.map((d) => (
-              <DiscoveryCard key={d.id} discovery={d} onPress={() => d.countryCode && router.push(`/country/${d.countryCode}`)} />
+              <DiscoveryCard key={d.id} discovery={d} onPress={() => router.push(`/discovery/${d.id}`)} />
             ))}
           </View>
         )}

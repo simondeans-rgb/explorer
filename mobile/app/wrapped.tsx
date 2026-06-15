@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { View, Text, ScrollView, Pressable, Share, useWindowDimensions } from 'react-native';
-import { router } from 'expo-router';
+import { goBack } from '../src/lib/nav';
 import { X, Share2 } from 'lucide-react-native';
 import { DestinationImage } from '../components/DestinationImage';
 import { WorldlyMark } from '../components/Brand';
@@ -113,7 +113,7 @@ export default function WrappedScreen() {
       </ScrollView>
 
       {/* Close */}
-      <Pressable onPress={() => router.back()} hitSlop={8} className="absolute rounded-full items-center justify-center" style={{ top: 56, right: 20, height: 40, width: 40, backgroundColor: 'rgba(0,0,0,0.35)' }}>
+      <Pressable onPress={goBack} hitSlop={8} className="absolute rounded-full items-center justify-center" style={{ top: 56, right: 20, height: 40, width: 40, backgroundColor: 'rgba(0,0,0,0.35)' }}>
         <X size={20} color="#fff" />
       </Pressable>
     </View>

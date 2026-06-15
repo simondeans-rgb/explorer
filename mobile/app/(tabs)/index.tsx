@@ -78,6 +78,37 @@ export default function StoryScreen() {
         </Svg>
       </DestinationImage>
 
+      {/* Counting Down */}
+      {(() => {
+        const today = new Date().toISOString().slice(0, 10);
+        const upcoming = trips
+          .filter((t) => (t.startDate || '') >= today)
+          .sort((a, b) => a.startDate.localeCompare(b.startDate));
+        if (upcoming.length === 0) return null;
+        return (
+          <View style={{ paddingTop: 18 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, paddingHorizontal: 20 }}>Counting Down</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 12 }}>
+              {upcoming.map((t) => {
+                const days = Math.max(0, Math.ceil((Date.parse(t.startDate) - Date.now()) / 86_400_000));
+                return (
+                  <Pressable key={t.id} onPress={() => router.push(`/trip/${t.id}`)} style={{ width: 200 }}>
+                    <DestinationImage code={t.countryCode} scrim style={{ height: 150, borderRadius: 24, padding: 16, justifyContent: 'flex-end' }}>
+                      <View className="flex-row items-center" style={{ gap: 6, position: 'absolute', top: 14, left: 16 }}>
+                        <CalendarDays size={14} color="#fff" />
+                        <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1, opacity: 0.95 }}>{days === 0 ? 'NOW' : `${days} DAYS TO GO`}</Text>
+                      </View>
+                      <Text style={{ fontSize: 22 }}>{flagEmoji(t.countryCode)}</Text>
+                      <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 19, marginTop: 2 }}>{t.title}</Text>
+                    </DestinationImage>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        );
+      })()}
+
       {/* Milestone */}
       <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
         <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 26, padding: 20 }}>
@@ -183,36 +214,6 @@ export default function StoryScreen() {
         </View>
       ) : null}
 
-      {/* Planned trips */}
-      {(() => {
-        const today = new Date().toISOString().slice(0, 10);
-        const upcoming = trips
-          .filter((t) => (t.startDate || '') >= today)
-          .sort((a, b) => a.startDate.localeCompare(b.startDate));
-        if (upcoming.length === 0) return null;
-        return (
-          <View style={{ paddingTop: 18 }}>
-            <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, paddingHorizontal: 20 }}>Planned trips</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 12 }}>
-              {upcoming.map((t) => {
-                const days = Math.max(0, Math.ceil((Date.parse(t.startDate) - Date.now()) / 86_400_000));
-                return (
-                  <Pressable key={t.id} onPress={() => router.push(`/trip/${t.id}`)} style={{ width: 200 }}>
-                    <DestinationImage code={t.countryCode} scrim style={{ height: 150, borderRadius: 24, padding: 16, justifyContent: 'flex-end' }}>
-                      <View className="flex-row items-center" style={{ gap: 6, position: 'absolute', top: 14, left: 16 }}>
-                        <CalendarDays size={14} color="#fff" />
-                        <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1, opacity: 0.95 }}>{days === 0 ? 'NOW' : `${days} DAYS TO GO`}</Text>
-                      </View>
-                      <Text style={{ fontSize: 22 }}>{flagEmoji(t.countryCode)}</Text>
-                      <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 19, marginTop: 2 }}>{t.title}</Text>
-                    </DestinationImage>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-        );
-      })()}
     </ScrollView>
 
       <AddPlaceSheet visible={addOpen} onClose={() => setAddOpen(false)} />

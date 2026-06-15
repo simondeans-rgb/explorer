@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, Plus, Trash2, MapPin, CalendarDays, Users } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AddItinerarySheet } from '../../components/AddItinerarySheet';
@@ -12,6 +12,7 @@ import { VERDICT_META, DISCOVERY_CATEGORY_META } from '../../src/types';
 import { useData } from '../../src/store/data';
 import { useAuth } from '../../src/store/auth';
 import { useFriends } from '../../src/hooks/useFriends';
+import { goBack } from '../../src/lib/nav';
 
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,7 +37,7 @@ export default function TripScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.warmwhite, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
         <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy }}>Trip not found</Text>
-        <Pressable onPress={() => router.back()} style={{ marginTop: 14 }}><Text style={{ fontFamily: 'PlusJakarta', color: COLORS.coral, fontWeight: '700' }}>Go back</Text></Pressable>
+        <Pressable onPress={goBack} style={{ marginTop: 14 }}><Text style={{ fontFamily: 'PlusJakarta', color: COLORS.coral, fontWeight: '700' }}>Go back</Text></Pressable>
       </View>
     );
   }
@@ -49,7 +50,7 @@ export default function TripScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 112 }}>
         {/* Hero */}
         <DestinationImage code={trip.countryCode} scrim motion style={{ position: 'relative', paddingTop: 60, paddingBottom: 52, minHeight: 230, justifyContent: 'flex-end' }}>
-          <Pressable onPress={() => router.back()} hitSlop={8} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, left: 20 }}>
+          <Pressable onPress={goBack} hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: "absolute", top: 60, left: 20, zIndex: 20 }}>
             <ChevronLeft size={20} color="#fff" />
           </Pressable>
           <View style={{ paddingHorizontal: 20 }}>
