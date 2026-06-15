@@ -33,6 +33,7 @@ import type {
   Expedition,
   Capture,
   Trip,
+  ItineraryItem,
   Journey,
   Relationship,
   ResidencePeriod,
@@ -112,6 +113,8 @@ interface DataApi extends DataShape {
     note?: string;
   }) => void;
   removeTrip: (id: string) => void;
+  addItineraryItem: (tripId: string, item: Omit<ItineraryItem, 'id'>) => void;
+  removeItineraryItem: (tripId: string, itemId: string) => void;
   /** Bulk import places (countries/cities), de-duplicating by code+name. */
   importPlaces: (
     rows: { kind: PlaceKind; countryCode: string; name?: string; firstYear?: number }[],
@@ -151,6 +154,8 @@ const DataContext = createContext<DataApi>({
   removeCapture: noop,
   addTrip: noop,
   removeTrip: noop,
+  addItineraryItem: noop,
+  removeItineraryItem: noop,
   importPlaces: async () => 0,
   importExpeditions: async () => 0,
 });
@@ -606,6 +611,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       },
       removeTrip: (id) => remove('trips', id),
+      addItineraryItem: (tripId, item) => {
+        const trip = data.trips.find((t) => t.id === tripId);
+        if (!trip) return;
+        const itinerary: ItineraryItem[] = [...trip.itinerary, clean({ id: newId(), ...item }) as ItineraryItem];
+        if (cloud && fdb && uid) {
+          updateDoc(doc(fdb, 'trips', tripId), { itinerary, updatedAt: serverTimestamp() }).catch(() => {});
+        } else {
+          const cur = localRef.current;
+          persistLocal({ ...cur, trips: cur.trips.map((t) => (t.id === tripId ? { ...t, itinerary, updatedAt: Date.now() } : t)) });
+        }
+      },
+      removeItineraryItem: (tripId, itemId) => {
+        const trip = data.trips.find((t) => t.id === tripId);
+        if (!trip) return;
+        const itinerary = trip.itinerary.filter((i) => i.id !== itemId);
+        if (cloud && fdb && uid) {
+          updateDoc(doc(fdb, 'trips', tripId), { itinerary, updatedAt: serverTimestamp() }).catch(() => {});
+        } else {
+          const cur = localRef.current;
+          persistLocal({ ...cur, trips: cur.trips.map((t) => (t.id === tripId ? { ...t, itinerary, updatedAt: Date.now() } : t)) });
+        }
+      },
       importPlaces: async (rows) => {
         const existing = localRef.current.places;
         const keyOf = (kind: PlaceKind, code: string, name?: string) =>

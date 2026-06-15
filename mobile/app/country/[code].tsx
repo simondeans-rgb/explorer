@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, ScrollView, Pressable, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
@@ -13,6 +13,7 @@ import {
   Users,
   Maximize2,
   Landmark,
+  X,
 } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { AddDiscoverySheet } from '../../components/AddDiscoverySheet';
@@ -26,9 +27,12 @@ import { countryFacts } from '../../src/data/countryFacts';
 import {
   RELATIONSHIP_META,
   JOURNEY_MODE_META,
+  VERDICT_META,
 } from '../../src/types';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useData } from '../../src/store/data';
+import { useAuth } from '../../src/store/auth';
+import { useFriends } from '../../src/hooks/useFriends';
 
 // Best-first: positive verdicts lead, then neutral, then negatives.
 const VERDICT_ORDER: Record<string, number> = {
@@ -100,8 +104,36 @@ export default function CountryScreen() {
   const code = (rawCode ?? '').toUpperCase();
   const { aggregates, discoveries, expeditions } = useWorldly();
   const { captures } = useData();
+  const { user } = useAuth();
+  const myName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
+  const { friends, friendsData } = useFriends(user?.uid, myName);
   const [discOpen, setDiscOpen] = useState(false);
+  const [discName, setDiscName] = useState<string | undefined>(undefined);
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [whoModal, setWhoModal] = useState<{ landmark: string; people: { name: string; verdict?: string }[] } | null>(null);
+
+  // Friends' discoveries in this country, with the friend's name attached.
+  const friendDiscoveries = useMemo(() => {
+    const nameByUid = new Map(friends.map((f) => [f.uid, f.name]));
+    return friendsData.discoveries
+      .filter((d) => d.countryCode === code)
+      .map((d) => ({ name: d.name, verdict: d.verdict, uid: d.userId, friend: nameByUid.get(d.userId) ?? 'Friend' }));
+  }, [friendsData.discoveries, friends, code]);
+
+  function friendsForLandmark(landmark: string) {
+    const ll = landmark.toLowerCase();
+    const seen = new Map<string, { name: string; verdict?: string }>();
+    for (const d of friendDiscoveries) {
+      const dn = d.name.toLowerCase();
+      if (dn.includes(ll) || ll.includes(dn)) seen.set(d.uid, { name: d.friend, verdict: d.verdict });
+    }
+    return [...seen.values()];
+  }
+
+  function openAddDiscovery(name?: string) {
+    setDiscName(name);
+    setDiscOpen(true);
+  }
 
   const agg = useMemo(() => aggregates.find((a) => a.code === code), [aggregates, code]);
   const facts = countryFacts(code);
@@ -143,7 +175,7 @@ export default function CountryScreen() {
 
         {/* Quick actions */}
         <View className="flex-row" style={{ paddingHorizontal: 20, marginTop: 14, gap: 10 }}>
-          <Pressable onPress={() => setDiscOpen(true)} className="flex-row items-center justify-center bg-white rounded-2xl" style={{ flex: 1, paddingVertical: 13, gap: 7 }}>
+          <Pressable onPress={() => openAddDiscovery()} className="flex-row items-center justify-center bg-white rounded-2xl" style={{ flex: 1, paddingVertical: 13, gap: 7 }}>
             <Plus size={16} color={COLORS.coral} />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.navy }}>Discovery</Text>
           </Pressable>
@@ -176,17 +208,31 @@ export default function CountryScreen() {
             <View style={{ gap: 8 }}>
               {facts.landmarks.map((l) => {
                 const recorded = myDiscoveries.find((d) => d.landmark === l || d.name.toLowerCase() === l.toLowerCase());
+                const fl = friendsForLandmark(l);
                 return (
-                  <View key={l} className="bg-white rounded-2xl flex-row items-center" style={{ padding: 14, gap: 12 }}>
+                  <View key={l} className="bg-white rounded-2xl flex-row items-center" style={{ padding: 14, gap: 10 }}>
                     <View className="rounded-xl items-center justify-center" style={{ height: 38, width: 38, backgroundColor: 'rgba(255,107,154,0.12)' }}>
                       <Landmark size={18} color={COLORS.coral} />
                     </View>
-                    <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{l}</Text>
-                    {recorded ? (
-                      <View className="rounded-full" style={{ backgroundColor: 'rgba(36,209,195,0.16)', paddingHorizontal: 10, paddingVertical: 4 }}>
-                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.aqua }}>Visited</Text>
-                      </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{l}</Text>
+                      {recorded ? (
+                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.aqua, marginTop: 1 }}>You've been ✓</Text>
+                      ) : null}
+                    </View>
+
+                    {/* friends who visited */}
+                    {fl.length > 0 ? (
+                      <Pressable onPress={() => setWhoModal({ landmark: l, people: fl })} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(155,124,255,0.14)', paddingHorizontal: 8, paddingVertical: 5, gap: 4 }}>
+                        <Users size={13} color={COLORS.lavender} />
+                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.lavender }}>{fl.length}</Text>
+                      </Pressable>
                     ) : null}
+
+                    {/* add to discoveries */}
+                    <Pressable onPress={() => openAddDiscovery(l)} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 34, width: 34, backgroundColor: COLORS.coral }}>
+                      <Plus size={18} color="#fff" strokeWidth={2.6} />
+                    </Pressable>
                   </View>
                 );
               })}
@@ -284,8 +330,36 @@ export default function CountryScreen() {
         ) : null}
       </ScrollView>
 
-      <AddDiscoverySheet visible={discOpen} onClose={() => setDiscOpen(false)} initialCountryCode={code} />
+      <AddDiscoverySheet visible={discOpen} onClose={() => { setDiscOpen(false); setDiscName(undefined); }} initialCountryCode={code} initialName={discName} />
       <AddPhotoSheet visible={photoOpen} onClose={() => setPhotoOpen(false)} initialCountryCode={code} />
+
+      {/* Who visited this landmark */}
+      <Modal visible={!!whoModal} transparent animationType="fade" onRequestClose={() => setWhoModal(null)}>
+        <Pressable onPress={() => setWhoModal(null)} style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 32, backgroundColor: 'rgba(14,16,24,0.5)' }}>
+          <Pressable onPress={(e) => e.stopPropagation()} className="bg-white rounded-3xl" style={{ padding: 20 }}>
+            <View className="flex-row items-start justify-between" style={{ gap: 12 }}>
+              <Text style={{ flex: 1, fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy }}>{whoModal?.landmark}</Text>
+              <Pressable onPress={() => setWhoModal(null)} hitSlop={8} className="rounded-full items-center justify-center" style={{ height: 30, width: 30, backgroundColor: COLORS.warmwhite }}>
+                <X size={16} color={COLORS.ink2} />
+              </Pressable>
+            </View>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2, marginBottom: 12 }}>Visited by your circle</Text>
+            <View style={{ gap: 8 }}>
+              {(whoModal?.people ?? []).map((p, i) => (
+                <View key={i} className="flex-row items-center" style={{ gap: 10 }}>
+                  <View className="rounded-full items-center justify-center" style={{ height: 36, width: 36, backgroundColor: 'rgba(155,124,255,0.16)' }}>
+                    <Text style={{ fontFamily: 'Fraunces', fontSize: 15, color: COLORS.lavender }}>{p.name.charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{p.name}</Text>
+                  {p.verdict ? (
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{VERDICT_META[p.verdict as keyof typeof VERDICT_META]?.label}</Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
