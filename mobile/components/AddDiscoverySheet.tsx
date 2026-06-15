@@ -41,10 +41,14 @@ export function AddDiscoverySheet({
   visible,
   onClose,
   initialCountryCode,
+  initialName,
+  initialCategory,
 }: {
   visible: boolean;
   onClose: () => void;
   initialCountryCode?: string;
+  initialName?: string;
+  initialCategory?: DiscoveryCategory;
 }) {
   const { addDiscovery } = useData();
   const [name, setName] = useState('');
@@ -58,8 +62,11 @@ export function AddDiscoverySheet({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (visible && initialCountryCode) setCode(initialCountryCode);
-  }, [visible, initialCountryCode]);
+    if (!visible) return;
+    if (initialCountryCode) setCode(initialCountryCode);
+    if (initialName) setName(initialName);
+    if (initialCategory) setCategory(initialCategory);
+  }, [visible, initialCountryCode, initialName, initialCategory]);
 
   async function pick(source: 'camera' | 'library') {
     setPicking(true);

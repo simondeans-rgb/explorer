@@ -197,7 +197,7 @@ export default function StoryScreen() {
               {upcoming.map((t) => {
                 const days = Math.max(0, Math.ceil((Date.parse(t.startDate) - Date.now()) / 86_400_000));
                 return (
-                  <Pressable key={t.id} onPress={() => router.push(`/country/${t.countryCode}`)} style={{ width: 200 }}>
+                  <Pressable key={t.id} onPress={() => router.push(`/trip/${t.id}`)} style={{ width: 200 }}>
                     <DestinationImage code={t.countryCode} scrim style={{ height: 150, borderRadius: 24, padding: 16, justifyContent: 'flex-end' }}>
                       <View className="flex-row items-center" style={{ gap: 6, position: 'absolute', top: 14, left: 16 }}>
                         <CalendarDays size={14} color="#fff" />

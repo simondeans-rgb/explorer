@@ -65,6 +65,7 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="country/[code]" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="trip/[id]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="friends" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="import" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="almanac" options={{ animation: 'slide_from_right' }} />
