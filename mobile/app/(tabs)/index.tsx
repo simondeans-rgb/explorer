@@ -67,7 +67,7 @@ export default function StoryScreen() {
               <Text style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13.5, letterSpacing: 0.2, color: COLORS.coral }}>Remember everything.</Text>
             </View>
             <View style={{ marginTop: 5 }}>
-              <Squiggle width={118} height={11} color={COLORS.coral} />
+              <Squiggle width={130} height={16} color={COLORS.coral} />
             </View>
           </View>
 
@@ -78,10 +78,10 @@ export default function StoryScreen() {
               <Search size={18} color={COLORS.coral} />
               <Text style={{ color: COLORS.ink2, fontFamily: 'PlusJakarta', fontSize: 15 }}>Search places, food & journeys…</Text>
             </Pressable>
-            <View style={{ marginTop: 18, alignSelf: 'flex-start' }}>
+            <View style={{ marginTop: 16, alignSelf: 'flex-start' }}>
               <Text className="text-white" style={{ fontFamily: 'Caveat', fontSize: 26, lineHeight: 28 }}>Life is better when you explore.</Text>
-              <View style={{ marginTop: 1, marginLeft: 4 }}>
-                <SquiggleFlourish width={150} height={24} color={COLORS.coral} />
+              <View style={{ marginTop: 0, marginLeft: 6 }}>
+                <SquiggleFlourish width={172} height={53} color={COLORS.coral} />
               </View>
             </View>
           </View>

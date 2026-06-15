@@ -2,12 +2,12 @@ import Svg, { Path } from 'react-native-svg';
 
 const CORAL = '#FF6B9A';
 
-/** A short hand-drawn wavy underline (used under the brand tagline). */
+/** A simple hand-drawn tapered underline stroke (used under the brand tagline). */
 export function Squiggle({
-  width = 120,
-  height = 12,
+  width = 130,
+  height = 16,
   color = CORAL,
-  strokeWidth = 3.4,
+  strokeWidth = 4,
 }: {
   width?: number;
   height?: number;
@@ -15,9 +15,9 @@ export function Squiggle({
   strokeWidth?: number;
 }) {
   return (
-    <Svg width={width} height={height} viewBox="0 0 120 12" fill="none">
+    <Svg width={width} height={height} viewBox="0 0 180 22" fill="none">
       <Path
-        d="M3 7 Q18 2 33 7 T63 7 T93 7 T117 7"
+        d="M8 15 C46 9 104 7 172 11"
         stroke={color}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
@@ -27,13 +27,13 @@ export function Squiggle({
   );
 }
 
-/** A flowing hand-drawn squiggle underline with an upward flick (used under
- *  the script tagline). */
+/** A hand-drawn swoosh that arcs right then doubles back into a small hook
+ *  (used under the script tagline). */
 export function SquiggleFlourish({
-  width = 150,
-  height = 26,
+  width = 172,
+  height = 53,
   color = CORAL,
-  strokeWidth = 3.4,
+  strokeWidth = 4.5,
 }: {
   width?: number;
   height?: number;
@@ -41,9 +41,9 @@ export function SquiggleFlourish({
   strokeWidth?: number;
 }) {
   return (
-    <Svg width={width} height={height} viewBox="0 0 150 26" fill="none">
+    <Svg width={width} height={height} viewBox="0 0 260 80" fill="none">
       <Path
-        d="M3 14 Q20 6 38 13 T74 13 T110 12 C126 11 138 12 147 5"
+        d="M12 30 C60 14 150 12 205 22 C224 26 236 27 242 31 C248 41 200 53 150 60 C138 63 128 60 126 52"
         stroke={color}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
