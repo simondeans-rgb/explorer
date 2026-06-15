@@ -103,7 +103,7 @@ export default function AlmanacScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 48 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 112 }}>
         <PageHero
           eyebrow="Your travel story"
           title="The Almanac"

@@ -102,7 +102,7 @@ export default function ImportScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 48 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 112 }}>
         <PageHero eyebrow="Bring your history in" title="Import travels" subtitle="Add the places you’ve already been, three quick ways." gradient={GRADIENTS.atlas} imageCode="WW" onBack={() => router.back()} />
 
         {/* Flighty */}
