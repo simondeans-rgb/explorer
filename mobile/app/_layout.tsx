@@ -6,6 +6,7 @@ import {
   PlusJakartaSans_500Medium,
   PlusJakartaSans_700Bold,
 } from '@expo-google-fonts/plus-jakarta-sans';
+import { Caveat_600SemiBold } from '@expo-google-fonts/caveat';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -32,6 +33,7 @@ export default function RootLayout() {
     Fraunces: Fraunces_600SemiBold,
     PlusJakarta: PlusJakartaSans_500Medium,
     'PlusJakarta-Bold': PlusJakartaSans_700Bold,
+    Caveat: Caveat_600SemiBold,
   });
 
   return (

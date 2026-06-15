@@ -4,8 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { Search, Camera, CalendarDays } from 'lucide-react-native';
-import { WorldlyIcon } from '../../components/WorldlyLogo';
+import { Search, Camera } from 'lucide-react-native';
+import { WorldlyLogo } from '../../components/WorldlyLogo';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AddPlaceSheet } from '../../components/AddPlaceSheet';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
@@ -60,21 +60,25 @@ export default function StoryScreen() {
       <DestinationImage code={heroCode} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 64 }}>
         <View style={{ paddingHorizontal: 20 }}>
           <View style={{ alignSelf: 'flex-start' }}>
-            <WorldlyIcon height={48} />
+            <WorldlyLogo white height={30} />
           </View>
 
-          <View style={{ marginTop: 56 }}>
+          <View style={{ marginTop: 50 }}>
             <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95 }}>Hi {firstName},</Text>
             <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, lineHeight: 40, marginTop: 6 }}>Where will your next story take you?</Text>
             <Pressable onPress={() => router.push('/search')} className="flex-row items-center bg-white rounded-full" style={{ marginTop: 20, paddingHorizontal: 18, paddingVertical: 14, gap: 10 }}>
               <Search size={18} color={COLORS.coral} />
               <Text style={{ color: COLORS.ink2, fontFamily: 'PlusJakarta', fontSize: 15 }}>Search places, food & journeys…</Text>
             </Pressable>
+            <View style={{ marginTop: 18, alignSelf: 'flex-start' }}>
+              <Text className="text-white" style={{ fontFamily: 'Caveat', fontSize: 26, lineHeight: 28 }}>Life is better when you explore</Text>
+              <View style={{ height: 3, borderRadius: 2, marginTop: 2, backgroundColor: COLORS.sunburst, width: '88%' }} />
+            </View>
           </View>
         </View>
 
         <Svg width="100%" height={48} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
-          <Path d="M0,64 C220,118 460,16 720,44 C980,72 1220,120 1440,70 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
+          <Path d="M0,72 C240,44 480,40 720,58 C960,76 1200,92 1440,72 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
         </Svg>
       </DestinationImage>
 
@@ -88,25 +92,20 @@ export default function StoryScreen() {
 
         const TripCard = ({ t, cardW, height }: { t: (typeof upcoming)[number]; cardW: number; height: number }) => {
           const days = Math.max(0, Math.ceil((Date.parse(t.startDate) - Date.now()) / 86_400_000));
-          const numSize = height > 160 ? 52 : 40; // big, readable countdown number (web poster guide)
-          const shadow = { textShadowColor: 'rgba(0,0,0,0.45)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 };
+          const numSize = height > 160 ? 58 : 46; // big, readable countdown number
+          const shadow = { textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 7 };
           return (
             <Pressable onPress={() => router.push(`/trip/${t.id}`)} style={{ width: cardW }}>
-              <DestinationImage code={t.countryCode} scrim style={{ height, borderRadius: 24, padding: 16, justifyContent: 'flex-end' }}>
-                <View style={{ position: 'absolute', top: 14, left: 16 }}>
-                  <View className="flex-row items-center" style={{ gap: 5 }}>
-                    <CalendarDays size={12} color="#fff" />
-                    <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '800', letterSpacing: 1.5, opacity: 0.9, ...shadow }}>COUNTING DOWN</Text>
-                  </View>
-                  <View className="flex-row items-baseline" style={{ gap: 7, marginTop: 2 }}>
-                    <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: numSize, lineHeight: numSize + 2, ...shadow }}>{days === 0 ? 'Now' : days}</Text>
-                    {days > 0 ? (
-                      <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', opacity: 0.95, ...shadow }}>{days === 1 ? 'day to go' : 'days to go'}</Text>
-                    ) : null}
-                  </View>
+              <DestinationImage code={t.countryCode} scrim style={{ height, borderRadius: 24, padding: 18, justifyContent: 'flex-end' }}>
+                <Text style={{ fontSize: 22, position: 'absolute', top: 14, right: 16 }}>{flagEmoji(t.countryCode)}</Text>
+                <View className="flex-row items-baseline" style={{ gap: 8 }}>
+                  <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: numSize, lineHeight: numSize, ...shadow }}>{days === 0 ? '0' : days}</Text>
+                  <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13, letterSpacing: 2, opacity: 0.92, marginBottom: numSize * 0.12, ...shadow }}>
+                    {days === 0 ? 'TODAY' : days === 1 ? 'DAY TO GO' : 'DAYS TO GO'}
+                  </Text>
                 </View>
-                <Text style={{ fontSize: 22 }}>{flagEmoji(t.countryCode)}</Text>
-                <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 22, marginTop: 2 }}>{t.title}</Text>
+                <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 24, marginTop: 10, ...shadow }}>{t.title}</Text>
+                <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.9, marginTop: 1, ...shadow }}>{countryName(t.countryCode)}</Text>
               </DestinationImage>
             </Pressable>
           );
@@ -114,7 +113,7 @@ export default function StoryScreen() {
 
         return (
           <View style={{ paddingTop: 18 }}>
-            <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, paddingHorizontal: 20 }}>Counting Down</Text>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, paddingHorizontal: 20 }}>Counting down</Text>
             {upcoming.length === 1 ? (
               // Single planned trip → full-width card.
               <View style={{ paddingHorizontal: 20, paddingVertical: 14 }}>

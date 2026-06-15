@@ -99,7 +99,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                 <SlideIcon kind={s.icon} />
               </View>
               <Svg width="100%" height={48} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
-                <Path d="M0,64 C220,118 460,16 720,44 C980,72 1220,120 1440,70 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
+                <Path d="M0,72 C240,44 480,40 720,58 C960,76 1200,92 1440,72 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
               </Svg>
             </LinearGradient>
             <View style={{ paddingHorizontal: 32, paddingTop: 28 }}>
