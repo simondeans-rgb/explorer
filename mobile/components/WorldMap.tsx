@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { View, ScrollView } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { geoEqualEarth, geoPath } from 'd3-geo';
 import {
@@ -45,23 +45,44 @@ export function WorldMap({
     });
   }, [visited, wishlist]);
 
+  // Measure our width so the inner zoom surface has a concrete size.
+  const [w, setW] = useState(0);
+
   return (
-    <View style={{ borderRadius: 24, overflow: 'hidden', backgroundColor: '#F4F5FA' }}>
-      <Svg width="100%" height={VIEW_H} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}>
-        <Rect x={0} y={0} width={VIEW_W} height={VIEW_H} fill="#F4F5FA" />
-        {paths.map((p) =>
-          p.d ? (
-            <Path
-              key={p.key}
-              d={p.d}
-              fill={p.fill}
-              stroke={MAP_STROKE}
-              strokeWidth={0.3}
-              onPress={p.code && onPressCountry ? () => onPressCountry(p.code as string) : undefined}
-            />
-          ) : null,
-        )}
-      </Svg>
+    <View
+      onLayout={(e) => setW(e.nativeEvent.layout.width)}
+      style={{ borderRadius: 24, overflow: 'hidden', backgroundColor: '#F4F5FA', height: VIEW_H }}
+    >
+      {w > 0 ? (
+        // iOS ScrollView gives native pinch-zoom + pan for free; taps still
+        // reach the country paths. (Android degrades to a static, tappable map.)
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ width: w, height: VIEW_H }}
+          maximumZoomScale={6}
+          minimumZoomScale={1}
+          bouncesZoom
+          pinchGestureEnabled
+          showsHorizontalScrollIndicator={false}
+          showsVerticalScrollIndicator={false}
+        >
+          <Svg width={w} height={VIEW_H} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}>
+            <Rect x={0} y={0} width={VIEW_W} height={VIEW_H} fill="#F4F5FA" />
+            {paths.map((p) =>
+              p.d ? (
+                <Path
+                  key={p.key}
+                  d={p.d}
+                  fill={p.fill}
+                  stroke={MAP_STROKE}
+                  strokeWidth={0.3}
+                  onPress={p.code && onPressCountry ? () => onPressCountry(p.code as string) : undefined}
+                />
+              ) : null,
+            )}
+          </Svg>
+        </ScrollView>
+      ) : null}
     </View>
   );
 }

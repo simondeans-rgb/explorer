@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput } from 'react-native';
 import { router } from 'expo-router';
-import { Globe2, MapPinned, Search } from 'lucide-react-native';
+import { Globe2, MapPinned, Search, Share2 } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
 import { WorldMap } from '../../components/WorldMap';
 import { RouteMap } from '../../components/RouteMap';
@@ -12,7 +12,9 @@ import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
 import { RELATIONSHIP_META, JOURNEY_MODE_META, CONTINENTS, type Continent } from '../../src/types';
 import { routeSegments } from '../../src/lib/journeyGeo';
+import { shareMapPoster } from '../../src/lib/mapPoster';
 import { useWorldly } from '../../src/hooks/useWorldly';
+import { useAuth } from '../../src/store/auth';
 
 type SortBy = 'az' | 'found' | 'recent';
 
@@ -60,6 +62,28 @@ export default function AtlasScreen() {
     return m;
   }, [discovered]);
   const worldPct = (stats.countriesDiscovered / COUNTRIES.length) * 100;
+
+  const { user } = useAuth();
+  const [sharing, setSharing] = useState(false);
+  async function shareMap() {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      await shareMapPoster({
+        firstName: user?.displayName || (user?.email ? user.email.split('@')[0] : 'Explorer'),
+        countries: stats.countriesDiscovered,
+        cities: stats.citiesDiscovered,
+        continents: stats.continentsDiscovered,
+        pct: worldPct,
+        visited: new Set(discovered.map((a) => a.code)),
+        flagCodes: stats.flagCodes,
+      });
+    } catch {
+      // user cancelled or share unavailable — no-op
+    } finally {
+      setSharing(false);
+    }
+  }
 
   const discCount = useMemo(() => {
     const m: Record<string, number> = {};
@@ -152,7 +176,7 @@ export default function AtlasScreen() {
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{wishlist.size} wish-listed</Text>
               </View>
             ) : null}
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginLeft: 'auto' }}>Tap a country ›</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginLeft: 'auto' }}>Pinch to zoom · tap a country ›</Text>
           </View>
 
           {/* Your world — overview stats + continent progress (all-time) */}
@@ -192,6 +216,11 @@ export default function AtlasScreen() {
                   );
                 })}
               </View>
+
+              <Pressable onPress={shareMap} disabled={sharing} className="flex-row items-center justify-center rounded-2xl" style={{ marginTop: 18, paddingVertical: 13, backgroundColor: COLORS.coral, gap: 8, opacity: sharing ? 0.6 : 1 }}>
+                <Share2 size={16} color="#fff" />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: '#fff' }}>{sharing ? 'Preparing…' : 'Share my map'}</Text>
+              </Pressable>
             </View>
           ) : null}
         </View>
