@@ -8,11 +8,13 @@ import { DestinationImage } from '../../components/DestinationImage';
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { COUNTRIES, countryName } from '../../src/data/countries';
+import { countryFacts } from '../../src/data/countryFacts';
 import { pickPhotoDataUrl } from '../../src/lib/photo';
 import { goBack } from '../../src/lib/nav';
 import {
   DISCOVERY_CATEGORIES,
   DISCOVERY_CATEGORY_META,
+  DISCOVERY_SUBCATEGORIES,
   RECOMMENDATION_VERDICTS,
   VERDICT_META,
   type DiscoveryCategory,
@@ -22,14 +24,17 @@ import { useData } from '../../src/store/data';
 
 export default function DiscoveryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { discoveries, updateDiscovery, removeDiscovery } = useData();
+  const { discoveries, updateDiscovery, removeDiscovery, expeditions } = useData();
   const discovery = discoveries.find((d) => d.id === id);
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState<DiscoveryCategory>('food');
+  const [subcategory, setSubcategory] = useState<string | undefined>(undefined);
   const [city, setCity] = useState('');
   const [query, setQuery] = useState('');
   const [code, setCode] = useState('');
+  const [landmark, setLandmark] = useState('');
+  const [expeditionId, setExpeditionId] = useState('');
   const [verdict, setVerdict] = useState<RecommendationVerdict | undefined>(undefined);
   const [note, setNote] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
@@ -42,8 +47,11 @@ export default function DiscoveryScreen() {
     if (discovery && !hydrated) {
       setName(discovery.name);
       setCategory(discovery.category);
+      setSubcategory(discovery.subcategory);
       setCity(discovery.city ?? '');
       setCode(discovery.countryCode ?? '');
+      setLandmark(discovery.landmark ?? '');
+      setExpeditionId(discovery.expeditionId ?? '');
       setVerdict(discovery.verdict);
       setNote(discovery.note ?? '');
       setPhoto(discovery.photo ?? null);
@@ -56,6 +64,9 @@ export default function DiscoveryScreen() {
     const list = q ? COUNTRIES.filter((c) => c.name.toLowerCase().includes(q)) : COUNTRIES;
     return list.slice(0, 24);
   }, [query]);
+
+  const subcategories = DISCOVERY_SUBCATEGORIES[category];
+  const landmarks = useMemo(() => (code ? countryFacts(code)?.landmarks ?? [] : []), [code]);
 
   async function pick(source: 'camera' | 'library') {
     setPicking(true);
@@ -74,8 +85,11 @@ export default function DiscoveryScreen() {
       await updateDiscovery(discovery.id, {
         name,
         category,
+        subcategory,
         countryCode: code || undefined,
         city,
+        landmark: landmark || undefined,
+        expeditionId: expeditionId || undefined,
         verdict,
         note,
         photo,
@@ -157,8 +171,21 @@ export default function DiscoveryScreen() {
           {DISCOVERY_CATEGORIES.map((c) => {
             const active = category === c;
             return (
-              <Pressable key={c} onPress={() => setCategory(c)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navy : '#fff' }}>
+              <Pressable key={c} onPress={() => { setCategory(c); setSubcategory(undefined); }} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navy : '#fff' }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{DISCOVERY_CATEGORY_META[c].label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* type / subcategory */}
+        <Text style={LBL}>TYPE</Text>
+        <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 8, gap: 8 }}>
+          {subcategories.map((s) => {
+            const active = subcategory === s.id;
+            return (
+              <Pressable key={s.id} onPress={() => setSubcategory(active ? undefined : s.id)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navy : '#fff' }}>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{s.label}</Text>
               </Pressable>
             );
           })}
@@ -181,7 +208,7 @@ export default function DiscoveryScreen() {
             {results.map((c) => {
               const active = code === c.code;
               return (
-                <Pressable key={c.code} onPress={() => { setCode(c.code); setQuery(''); }} className="flex-row items-center" style={{ paddingHorizontal: 20, paddingVertical: 10, gap: 12, backgroundColor: active ? 'rgba(255,107,154,0.10)' : 'transparent' }}>
+                <Pressable key={c.code} onPress={() => { setCode(c.code); setQuery(''); setLandmark(''); }} className="flex-row items-center" style={{ paddingHorizontal: 20, paddingVertical: 10, gap: 12, backgroundColor: active ? 'rgba(255,107,154,0.10)' : 'transparent' }}>
                   <Text style={{ fontSize: 22 }}>{flagEmoji(c.code)}</Text>
                   <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.navy }}>{c.name}</Text>
                   {active ? <Check size={18} color={COLORS.coral} /> : null}
@@ -189,6 +216,40 @@ export default function DiscoveryScreen() {
               );
             })}
           </ScrollView>
+        ) : null}
+
+        {/* landmark — only when the country has known landmarks */}
+        {landmarks.length > 0 ? (
+          <>
+            <Text style={LBL}>LANDMARK</Text>
+            <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 8, gap: 8 }}>
+              {landmarks.map((l) => {
+                const active = landmark === l;
+                return (
+                  <Pressable key={l} onPress={() => setLandmark(active ? '' : l)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navy : '#fff' }}>
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{l}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        ) : null}
+
+        {/* expedition — only when the user has expeditions to attach to */}
+        {expeditions.length > 0 ? (
+          <>
+            <Text style={LBL}>EXPEDITION</Text>
+            <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 8, gap: 8 }}>
+              {expeditions.map((e) => {
+                const active = expeditionId === e.id;
+                return (
+                  <Pressable key={e.id} onPress={() => setExpeditionId(active ? '' : e.id)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navy : '#fff' }}>
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{e.title}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
         ) : null}
 
         {/* verdict */}

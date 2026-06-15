@@ -80,8 +80,11 @@ interface DataApi extends DataShape {
   addDiscovery: (input: {
     name: string;
     category: DiscoveryCategory;
+    subcategory?: string;
     countryCode?: string;
     city?: string;
+    landmark?: string;
+    expeditionId?: string;
     verdict?: RecommendationVerdict;
     note?: string;
     photo?: string;
@@ -91,8 +94,11 @@ interface DataApi extends DataShape {
     input: {
       name: string;
       category: DiscoveryCategory;
+      subcategory?: string;
       countryCode?: string;
       city?: string;
+      landmark?: string;
+      expeditionId?: string;
       verdict?: RecommendationVerdict;
       note?: string;
       /** data: URL = new photo to upload, https URL = keep, null = remove. */
@@ -220,8 +226,11 @@ function discoveryFromDoc(id: string, d: DocumentData): Discovery {
     userId: d.userId,
     name: d.name ?? '',
     category: (d.category ?? 'food') as DiscoveryCategory,
+    subcategory: d.subcategory || undefined,
     countryCode: d.countryCode || undefined,
     city: d.city || undefined,
+    landmark: d.landmark || undefined,
+    expeditionId: d.expeditionId || undefined,
     verdict: (d.verdict || undefined) as RecommendationVerdict | undefined,
     note: d.note || undefined,
     photo: d.photo || undefined,
@@ -471,8 +480,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
             userId: uid,
             name: input.name.trim(),
             category: input.category,
+            subcategory: input.subcategory || null,
             countryCode: input.countryCode || null,
             city: input.city?.trim() || null,
+            landmark: input.landmark?.trim() || null,
+            expeditionId: input.expeditionId || null,
             verdict: input.verdict || null,
             note: input.note?.trim() || null,
             photo: photoUrl,
@@ -487,8 +499,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
             userId: 'me',
             name: input.name.trim(),
             category: input.category,
+            subcategory: input.subcategory || undefined,
             countryCode: input.countryCode,
             city: input.city?.trim() || undefined,
+            landmark: input.landmark?.trim() || undefined,
+            expeditionId: input.expeditionId || undefined,
             verdict: input.verdict,
             note: input.note?.trim() || undefined,
             photo: input.photo,
@@ -515,8 +530,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           const fields: Record<string, unknown> = {
             name: input.name.trim(),
             category: input.category,
+            subcategory: input.subcategory || null,
             countryCode: input.countryCode || null,
             city: input.city?.trim() || null,
+            landmark: input.landmark?.trim() || null,
+            expeditionId: input.expeditionId || null,
             verdict: input.verdict || null,
             note: input.note?.trim() || null,
             photo,
@@ -534,8 +552,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     ...d,
                     name: input.name.trim(),
                     category: input.category,
+                    subcategory: input.subcategory || undefined,
                     countryCode: input.countryCode || undefined,
                     city: input.city?.trim() || undefined,
+                    landmark: input.landmark?.trim() || undefined,
+                    expeditionId: input.expeditionId || undefined,
                     verdict: input.verdict,
                     note: input.note?.trim() || undefined,
                     photo: input.photo === null ? undefined : (input.photo ?? d.photo),
