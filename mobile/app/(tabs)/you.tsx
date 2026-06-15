@@ -4,11 +4,12 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Users, Download, ScrollText } from 'lucide-react-native';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Users, Download, ScrollText, RotateCcw } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useAuth } from '../../src/store/auth';
+import { useOnboarding } from '../../src/store/onboarding';
 import { AuthSheet } from '../../components/AuthSheet';
 import { pickPhotoDataUrl } from '../../src/lib/photo';
 import { ensureProfile, loadProfilePhoto, saveProfilePhoto } from '../../src/lib/profile';
@@ -16,6 +17,7 @@ import { ensureProfile, loadProfilePhoto, saveProfilePhoto } from '../../src/lib
 export default function YouScreen() {
   const { stats, discoveryStats, journeyStats, level, badges } = useWorldly();
   const { configured, user, signOutUser } = useAuth();
+  const { replay } = useOnboarding();
   const [authOpen, setAuthOpen] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
   const earned = badges.filter((b) => b.earned).length;
@@ -223,6 +225,14 @@ export default function YouScreen() {
           ))}
         </View>
       </View>
+
+      {/* Replay intro */}
+      <Pressable onPress={replay} hitSlop={8} style={{ alignItems: 'center', marginTop: 28, paddingVertical: 8 }}>
+        <View className="flex-row items-center" style={{ gap: 6 }}>
+          <RotateCcw size={14} color={COLORS.ink3} />
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: COLORS.ink3 }}>Replay the welcome tour</Text>
+        </View>
+      </Pressable>
 
       <AuthSheet visible={authOpen} onClose={() => setAuthOpen(false)} />
     </ScrollView>

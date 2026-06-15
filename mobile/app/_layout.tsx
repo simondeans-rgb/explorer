@@ -9,18 +9,16 @@ import {
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { AuthProvider } from '../src/store/auth';
 import { DataProvider } from '../src/store/data';
 import { CelebrationProvider } from '../src/store/celebration';
+import { OnboardingProvider, useOnboarding } from '../src/store/onboarding';
 import { Onboarding } from '../components/Onboarding';
 import { AchievementWatcher } from '../components/AchievementWatcher';
 
 SplashScreen.preventAutoHideAsync();
-
-const ONBOARD_KEY = 'worldly:onboarded:v1';
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -28,48 +26,44 @@ export default function RootLayout() {
     PlusJakarta: PlusJakartaSans_500Medium,
     'PlusJakarta-Bold': PlusJakartaSans_700Bold,
   });
-  // null = still reading the flag; true/false once known.
-  const [onboarded, setOnboarded] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    AsyncStorage.getItem(ONBOARD_KEY)
-      .then((v) => setOnboarded(v === '1'))
-      .catch(() => setOnboarded(true));
-  }, []);
-
-  const ready = loaded && onboarded !== null;
-
-  useEffect(() => {
-    if (ready) SplashScreen.hideAsync();
-  }, [ready]);
-
-  if (!ready) return null;
-
-  function finishOnboarding() {
-    setOnboarded(true);
-    AsyncStorage.setItem(ONBOARD_KEY, '1').catch(() => {});
-  }
 
   return (
-    <AuthProvider>
-      <DataProvider>
-        <CelebrationProvider>
-          <View style={{ flex: 1 }}>
-            <StatusBar style="light" />
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="country/[code]" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="friends" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="import" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="almanac" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="search" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
-              <Stack.Screen name="wrapped" options={{ animation: 'fade', presentation: 'fullScreenModal' }} />
-            </Stack>
-            <AchievementWatcher />
-            {!onboarded ? <Onboarding onDone={finishOnboarding} /> : null}
-          </View>
-        </CelebrationProvider>
-      </DataProvider>
-    </AuthProvider>
+    <OnboardingProvider>
+      <AuthProvider>
+        <DataProvider>
+          <CelebrationProvider>
+            <RootContent fontsLoaded={loaded} />
+          </CelebrationProvider>
+        </DataProvider>
+      </AuthProvider>
+    </OnboardingProvider>
+  );
+}
+
+function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
+  const { ready, visible, finish } = useOnboarding();
+  const appReady = fontsLoaded && ready;
+
+  useEffect(() => {
+    if (appReady) SplashScreen.hideAsync();
+  }, [appReady]);
+
+  if (!appReady) return null;
+
+  return (
+    <View style={{ flex: 1 }}>
+      <StatusBar style="light" />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="country/[code]" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="friends" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="import" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="almanac" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="search" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
+        <Stack.Screen name="wrapped" options={{ animation: 'fade', presentation: 'fullScreenModal' }} />
+      </Stack>
+      <AchievementWatcher />
+      {visible ? <Onboarding onDone={finish} /> : null}
+    </View>
   );
 }

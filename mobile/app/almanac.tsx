@@ -6,10 +6,12 @@ import {
   Plane, Home, Briefcase, GraduationCap, Anchor, Sparkles, Compass,
   TrainFront, Ship, Car,
   UtensilsCrossed, BedDouble, Landmark, Ticket, Mountain,
+  Globe2, Building2, Map as MapIcon, Award,
 } from 'lucide-react-native';
 import { PageHero } from '../components/PageHero';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
+import { hasDestinationPhoto } from '../src/lib/destinationImage';
 import { evaluateRecognitions } from '../src/lib/recognitions';
 import {
   CONTINENTS,
@@ -80,13 +82,15 @@ export default function AlmanacScreen() {
   const yearDiscoveries = yearView ? discoveries.filter((d) => new Date(d.createdAt).getFullYear() === edition) : [];
   const yearExpeditions = yearView ? expeditions.filter((e) => expeditionYear(e) === edition) : [];
 
-  const figures: [string, number][] = [
-    ['Countries discovered', stats.countriesDiscovered],
-    ['Cities discovered', stats.citiesDiscovered],
-    ['Journeys completed', expeditions.length],
-    ['Discoveries made', discoveryStats.total],
-    ['Continents reached', stats.continentsDiscovered],
-    ['Recognitions earned', earned.length],
+  const heroCode = discovered.find((a) => hasDestinationPhoto(a.code))?.code ?? 'WW';
+
+  const figures: [string, number, IconCmp][] = [
+    ['Countries discovered', stats.countriesDiscovered, Globe2],
+    ['Cities discovered', stats.citiesDiscovered, Building2],
+    ['Journeys completed', expeditions.length, Plane],
+    ['Discoveries made', discoveryStats.total, Compass],
+    ['Continents reached', stats.continentsDiscovered, MapIcon],
+    ['Recognitions earned', earned.length, Award],
   ];
 
   const catRows: [keyof typeof discoveryStats.byCategory, string, IconCmp][] = [
@@ -105,6 +109,7 @@ export default function AlmanacScreen() {
           title="The Almanac"
           subtitle="A beautiful record of everywhere you've been — published from your own world."
           gradient={['#FFB84D', '#FF6B9A', '#9B7CFF']}
+          imageCode={heroCode}
           onBack={() => router.back()}
         />
 
@@ -120,10 +125,13 @@ export default function AlmanacScreen() {
           <>
             {/* figures */}
             <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 16, gap: 10 }}>
-              {figures.map(([label, value]) => (
-                <View key={label} className="bg-white rounded-3xl" style={{ flexBasis: '47%', flexGrow: 1, paddingHorizontal: 16, paddingVertical: 18 }}>
-                  <Text style={{ fontFamily: 'Fraunces', fontSize: 32, color: COLORS.coral }}>{value}</Text>
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: COLORS.ink3, marginTop: 4 }}>{label.toUpperCase()}</Text>
+              {figures.map(([label, value, Icon]) => (
+                <View key={label} className="bg-white rounded-3xl" style={{ flexBasis: '47%', flexGrow: 1, paddingHorizontal: 16, paddingVertical: 16 }}>
+                  <View className="rounded-xl items-center justify-center" style={{ height: 30, width: 30, backgroundColor: 'rgba(255,107,154,0.12)', marginBottom: 8 }}>
+                    <Icon size={16} color={COLORS.coral} />
+                  </View>
+                  <Text style={{ fontFamily: 'Fraunces', fontSize: 34, color: COLORS.coral, lineHeight: 38 }}>{value}</Text>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: COLORS.ink3, marginTop: 2 }}>{label.toUpperCase()}</Text>
                 </View>
               ))}
             </View>
@@ -168,11 +176,13 @@ export default function AlmanacScreen() {
                   const list = byContinent.get(c) ?? [];
                   return (
                     <View key={c} className="bg-white rounded-2xl" style={{ padding: 16 }}>
-                      <View className="flex-row items-baseline justify-between" style={{ marginBottom: 8 }}>
+                      <View className="flex-row items-center justify-between" style={{ marginBottom: 10 }}>
                         <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy }}>{c}</Text>
-                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{list.length} {list.length === 1 ? 'country' : 'countries'}</Text>
+                        <View className="rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 10, paddingVertical: 3 }}>
+                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.coral }}>{list.length} {list.length === 1 ? 'country' : 'countries'}</Text>
+                        </View>
                       </View>
-                      <Text style={{ fontSize: 24, lineHeight: 30 }}>{list.map((a) => flagEmoji(a.code)).join(' ')}</Text>
+                      <Text style={{ fontSize: 24, lineHeight: 32 }}>{list.map((a) => flagEmoji(a.code)).join('  ')}</Text>
                     </View>
                   );
                 })}
