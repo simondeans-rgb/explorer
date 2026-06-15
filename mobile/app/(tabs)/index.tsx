@@ -6,6 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
 import { Search, Camera } from 'lucide-react-native';
 import { WorldlyLogo } from '../../components/WorldlyLogo';
+import { Squiggle, SquiggleFlourish } from '../../components/Squiggle';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AddPlaceSheet } from '../../components/AddPlaceSheet';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
@@ -59,11 +60,18 @@ export default function StoryScreen() {
       {/* Hero */}
       <DestinationImage code={heroCode} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 64 }}>
         <View style={{ paddingHorizontal: 20 }}>
-          <View style={{ alignSelf: 'flex-start' }}>
-            <WorldlyLogo white height={30} />
+          <View style={{ alignItems: 'center' }}>
+            <WorldlyLogo white height={58} />
+            <View className="flex-row items-center" style={{ marginTop: 10 }}>
+              <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13.5, letterSpacing: 0.2 }}>Explore more. </Text>
+              <Text style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13.5, letterSpacing: 0.2, color: '#B7A6FF' }}>Remember everything.</Text>
+            </View>
+            <View style={{ marginTop: 5 }}>
+              <Squiggle width={118} height={10} color="#B7A6FF" />
+            </View>
           </View>
 
-          <View style={{ marginTop: 50 }}>
+          <View style={{ marginTop: 30 }}>
             <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95 }}>Hi {firstName},</Text>
             <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, lineHeight: 40, marginTop: 6 }}>Where will your next story take you?</Text>
             <Pressable onPress={() => router.push('/search')} className="flex-row items-center bg-white rounded-full" style={{ marginTop: 20, paddingHorizontal: 18, paddingVertical: 14, gap: 10 }}>
@@ -71,8 +79,10 @@ export default function StoryScreen() {
               <Text style={{ color: COLORS.ink2, fontFamily: 'PlusJakarta', fontSize: 15 }}>Search places, food & journeys…</Text>
             </Pressable>
             <View style={{ marginTop: 18, alignSelf: 'flex-start' }}>
-              <Text className="text-white" style={{ fontFamily: 'Caveat', fontSize: 26, lineHeight: 28 }}>Life is better when you explore</Text>
-              <View style={{ height: 3, borderRadius: 2, marginTop: 2, backgroundColor: COLORS.sunburst, width: '88%' }} />
+              <Text className="text-white" style={{ fontFamily: 'Caveat', fontSize: 26, lineHeight: 28 }}>Life is better when you explore.</Text>
+              <View style={{ marginTop: 1, marginLeft: 4 }}>
+                <SquiggleFlourish width={150} height={24} color="#B7A6FF" />
+              </View>
             </View>
           </View>
         </View>
