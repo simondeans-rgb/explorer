@@ -9,7 +9,7 @@ import {
   X,
   UtensilsCrossed,
   BedDouble,
-  Landmark,
+  Landmark as LandmarkIcon,
   Ticket,
   Mountain,
 } from 'lucide-react-native';
@@ -18,10 +18,12 @@ import { SheetShell } from './SheetShell';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES } from '../src/data/countries';
+import { countryFacts } from '../src/data/countryFacts';
 import { pickPhotoDataUrl } from '../src/lib/photo';
 import {
   DISCOVERY_CATEGORIES,
   DISCOVERY_CATEGORY_META,
+  DISCOVERY_SUBCATEGORIES,
   RECOMMENDATION_VERDICTS,
   VERDICT_META,
   type DiscoveryCategory,
@@ -32,10 +34,23 @@ import { useData } from '../src/store/data';
 const CATEGORY_ICON: Record<DiscoveryCategory, ComponentType<{ size?: number; color?: string }>> = {
   food: UtensilsCrossed,
   accommodation: BedDouble,
-  culture: Landmark,
+  culture: LandmarkIcon,
   experience: Ticket,
   nature: Mountain,
 };
+
+const SectionLabel = ({ children }: { children: string }) => (
+  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 1, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 16 }}>
+    {children}
+  </Text>
+);
+
+/** A small pill toggle used for the chip groups. */
+const Chip = ({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) => (
+  <Pressable onPress={onPress} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navy : '#fff' }}>
+    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{label}</Text>
+  </Pressable>
+);
 
 export function AddDiscoverySheet({
   visible,
@@ -50,13 +65,17 @@ export function AddDiscoverySheet({
   initialName?: string;
   initialCategory?: DiscoveryCategory;
 }) {
-  const { addDiscovery } = useData();
+  const { addDiscovery, expeditions } = useData();
   const [name, setName] = useState('');
   const [category, setCategory] = useState<DiscoveryCategory>('food');
+  const [subcategory, setSubcategory] = useState<string | undefined>(undefined);
   const [city, setCity] = useState('');
   const [query, setQuery] = useState('');
   const [code, setCode] = useState('');
-  const [verdict, setVerdict] = useState<RecommendationVerdict>('recommend');
+  const [landmark, setLandmark] = useState('');
+  const [expeditionId, setExpeditionId] = useState('');
+  const [verdict, setVerdict] = useState<RecommendationVerdict | undefined>(undefined);
+  const [note, setNote] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -84,13 +103,33 @@ export function AddDiscoverySheet({
     return list.slice(0, 30);
   }, [query]);
 
+  const subcategories = DISCOVERY_SUBCATEGORIES[category];
+  const landmarks = useMemo(() => (code ? countryFacts(code)?.landmarks ?? [] : []), [code]);
+
+  function chooseCategory(c: DiscoveryCategory) {
+    setCategory(c);
+    setSubcategory(undefined); // finer type is per-category — clear when category changes
+  }
+  function chooseLandmark(l: string) {
+    if (landmark === l) {
+      setLandmark('');
+      return;
+    }
+    setLandmark(l);
+    if (!name.trim()) setName(l); // mirror web: prefill the name from the landmark
+  }
+
   function reset() {
     setName('');
     setCategory('food');
+    setSubcategory(undefined);
     setCity('');
     setQuery('');
     setCode('');
-    setVerdict('recommend');
+    setLandmark('');
+    setExpeditionId('');
+    setVerdict(undefined);
+    setNote('');
     setPhoto(null);
     setPicking(false);
     setSaving(false);
@@ -106,9 +145,13 @@ export function AddDiscoverySheet({
       await addDiscovery({
         name,
         category,
+        subcategory,
         countryCode: code || undefined,
         city,
+        landmark: landmark || undefined,
+        expeditionId: expeditionId || undefined,
         verdict,
+        note,
         photo: photo ?? undefined,
       });
       close();
@@ -155,9 +198,7 @@ export function AddDiscoverySheet({
         </View>
 
         {/* category */}
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 1, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 16 }}>
-          CATEGORY
-        </Text>
+        <SectionLabel>CATEGORY</SectionLabel>
         <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 8, gap: 8 }}>
           {DISCOVERY_CATEGORIES.map((c) => {
             const active = category === c;
@@ -165,7 +206,7 @@ export function AddDiscoverySheet({
             return (
               <Pressable
                 key={c}
-                onPress={() => setCategory(c)}
+                onPress={() => chooseCategory(c)}
                 className="flex-row items-center rounded-full"
                 style={{ paddingHorizontal: 14, paddingVertical: 9, gap: 6, backgroundColor: active ? COLORS.navy : '#fff' }}
               >
@@ -178,24 +219,21 @@ export function AddDiscoverySheet({
           })}
         </View>
 
-        {/* city */}
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 1, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 16 }}>
-          CITY (OPTIONAL)
-        </Text>
-        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
-          <TextInput
-            value={city}
-            onChangeText={setCity}
-            placeholder="e.g. Tokyo"
-            placeholderTextColor={COLORS.ink3}
-            style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }}
-          />
+        {/* type / subcategory */}
+        <SectionLabel>TYPE (OPTIONAL)</SectionLabel>
+        <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 8, gap: 8 }}>
+          {subcategories.map((s) => (
+            <Chip
+              key={s.id}
+              label={s.label}
+              active={subcategory === s.id}
+              onPress={() => setSubcategory(subcategory === s.id ? undefined : s.id)}
+            />
+          ))}
         </View>
 
         {/* country */}
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 1, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 16 }}>
-          COUNTRY (OPTIONAL)
-        </Text>
+        <SectionLabel>COUNTRY (OPTIONAL)</SectionLabel>
         <View className="flex-row items-center bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
           <Search size={18} color={COLORS.ink3} />
           <TextInput
@@ -212,7 +250,10 @@ export function AddDiscoverySheet({
             return (
               <Pressable
                 key={c.code}
-                onPress={() => setCode(active ? '' : c.code)}
+                onPress={() => {
+                  setCode(active ? '' : c.code);
+                  setLandmark(''); // landmarks are country-specific
+                }}
                 className="flex-row items-center"
                 style={{ paddingHorizontal: 20, paddingVertical: 10, gap: 12, backgroundColor: active ? 'rgba(255,107,154,0.10)' : 'transparent' }}
               >
@@ -224,17 +265,56 @@ export function AddDiscoverySheet({
           })}
         </ScrollView>
 
+        {/* city */}
+        <SectionLabel>CITY (OPTIONAL)</SectionLabel>
+        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
+          <TextInput
+            value={city}
+            onChangeText={setCity}
+            placeholder="e.g. Tokyo"
+            placeholderTextColor={COLORS.ink3}
+            style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }}
+          />
+        </View>
+
+        {/* landmark — only when a country is chosen and it has known landmarks */}
+        {landmarks.length > 0 ? (
+          <>
+            <SectionLabel>LANDMARK (OPTIONAL)</SectionLabel>
+            <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 8, gap: 8 }}>
+              {landmarks.map((l) => (
+                <Chip key={l} label={l} active={landmark === l} onPress={() => chooseLandmark(l)} />
+              ))}
+            </View>
+          </>
+        ) : null}
+
+        {/* expedition — only when the user has trips/expeditions to attach to */}
+        {expeditions.length > 0 ? (
+          <>
+            <SectionLabel>EXPEDITION (OPTIONAL)</SectionLabel>
+            <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 8, gap: 8 }}>
+              {expeditions.map((e) => (
+                <Chip
+                  key={e.id}
+                  label={e.title}
+                  active={expeditionId === e.id}
+                  onPress={() => setExpeditionId(expeditionId === e.id ? '' : e.id)}
+                />
+              ))}
+            </View>
+          </>
+        ) : null}
+
         {/* verdict */}
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 1, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 16 }}>
-          YOUR VERDICT
-        </Text>
+        <SectionLabel>YOUR VERDICT (OPTIONAL)</SectionLabel>
         <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 8, gap: 8 }}>
           {RECOMMENDATION_VERDICTS.map((v) => {
             const active = verdict === v;
             return (
               <Pressable
                 key={v}
-                onPress={() => setVerdict(v)}
+                onPress={() => setVerdict(active ? undefined : v)}
                 className="rounded-full"
                 style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.coral : '#fff' }}
               >
@@ -244,6 +324,19 @@ export function AddDiscoverySheet({
               </Pressable>
             );
           })}
+        </View>
+
+        {/* note */}
+        <SectionLabel>A DETAIL WORTH REMEMBERING (OPTIONAL)</SectionLabel>
+        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
+          <TextInput
+            value={note}
+            onChangeText={setNote}
+            placeholder="Why it stayed with you…"
+            placeholderTextColor={COLORS.ink3}
+            multiline
+            style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink, minHeight: 72, textAlignVertical: 'top' }}
+          />
         </View>
 
         <Pressable
