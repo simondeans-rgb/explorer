@@ -14,13 +14,16 @@ const VIEW_W = 360;
 const VIEW_H = 200;
 
 /** An Equal-Earth world map drawn with react-native-svg. Discovered countries
- *  glow coral, wish-list countries lavender, the rest a soft grey. */
+ *  glow coral, wish-list countries lavender, the rest a soft grey. Tap a
+ *  country to open it. */
 export function WorldMap({
   visited,
   wishlist,
+  onPressCountry,
 }: {
   visited: Set<string>;
   wishlist?: Set<string>;
+  onPressCountry?: (code: string) => void;
 }) {
   const paths = useMemo(() => {
     // Fit the whole world into our viewBox, then render each country to a path.
@@ -38,7 +41,7 @@ export function WorldMap({
           : code && wishlist?.has(code)
             ? MAP_FILL_WISHLIST
             : MAP_FILL_UNVISITED;
-      return { key: `${code ?? 'x'}-${i}`, d, fill };
+      return { key: `${code ?? 'x'}-${i}`, d, fill, code };
     });
   }, [visited, wishlist]);
 
@@ -48,7 +51,14 @@ export function WorldMap({
         <Rect x={0} y={0} width={VIEW_W} height={VIEW_H} fill="#F4F5FA" />
         {paths.map((p) =>
           p.d ? (
-            <Path key={p.key} d={p.d} fill={p.fill} stroke={MAP_STROKE} strokeWidth={0.3} />
+            <Path
+              key={p.key}
+              d={p.d}
+              fill={p.fill}
+              stroke={MAP_STROKE}
+              strokeWidth={0.3}
+              onPress={p.code && onPressCountry ? () => onPressCountry(p.code as string) : undefined}
+            />
           ) : null,
         )}
       </Svg>

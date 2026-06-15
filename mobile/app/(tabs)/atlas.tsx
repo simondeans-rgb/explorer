@@ -1,17 +1,27 @@
 import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput } from 'react-native';
 import { router } from 'expo-router';
-import { Globe2, MapPinned } from 'lucide-react-native';
+import { Globe2, MapPinned, Search } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
 import { WorldMap } from '../../components/WorldMap';
 import { RouteMap } from '../../components/RouteMap';
 import { DestinationImage } from '../../components/DestinationImage';
+import { ScoreRing } from '../../components/ScoreRing';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
-import { countryName } from '../../src/data/countries';
-import { RELATIONSHIP_META, JOURNEY_MODE_META } from '../../src/types';
+import { countryName, COUNTRIES } from '../../src/data/countries';
+import { RELATIONSHIP_META, JOURNEY_MODE_META, CONTINENTS, type Continent } from '../../src/types';
 import { routeSegments } from '../../src/lib/journeyGeo';
 import { useWorldly } from '../../src/hooks/useWorldly';
+
+type SortBy = 'az' | 'found' | 'recent';
+
+// Total countries we know about per continent — the denominator for progress.
+const TOTAL_BY_CONTINENT: Record<string, number> = (() => {
+  const m: Record<string, number> = {};
+  for (const c of COUNTRIES) m[c.continent] = (m[c.continent] ?? 0) + 1;
+  return m;
+})();
 
 type Tab = 'places' | 'journeys';
 type Scope = 'all' | number;
@@ -36,10 +46,20 @@ function ScopeChips({ scope, years, onChange }: { scope: Scope; years: number[];
 }
 
 export default function AtlasScreen() {
-  const { aggregates, discoveries, expeditions } = useWorldly();
+  const { aggregates, discoveries, expeditions, stats } = useWorldly();
   const [tab, setTab] = useState<Tab>('places');
   const [scope, setScope] = useState<Scope>('all');
+  const [query, setQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortBy>('az');
   const discovered = useMemo(() => aggregates.filter((a) => a.discovered), [aggregates]);
+
+  // Discovered-country count per continent (numerator for progress).
+  const discByContinent = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const a of discovered) if (a.continent) m[a.continent] = (m[a.continent] ?? 0) + 1;
+    return m;
+  }, [discovered]);
+  const worldPct = (stats.countriesDiscovered / COUNTRIES.length) * 100;
 
   const discCount = useMemo(() => {
     const m: Record<string, number> = {};
@@ -69,6 +89,24 @@ export default function AtlasScreen() {
     scope === 'all' || a.firstYear === scope || a.cities.some((c) => c.firstYear === scope);
 
   const shownPlaces = useMemo(() => discovered.filter(inScope), [discovered, scope]);
+
+  // Search + sort applied to the country list (not the map/legend).
+  const listPlaces = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let list = shownPlaces;
+    if (q) {
+      list = list.filter(
+        (a) => countryName(a.code).toLowerCase().includes(q) || a.cities.some((c) => c.name.toLowerCase().includes(q)),
+      );
+    }
+    const byName = (a: (typeof list)[number], b: (typeof list)[number]) => countryName(a.code).localeCompare(countryName(b.code));
+    const sorted = [...list];
+    if (sortBy === 'found') sorted.sort((a, b) => (discCount[b.code] ?? 0) - (discCount[a.code] ?? 0) || byName(a, b));
+    else if (sortBy === 'recent') sorted.sort((a, b) => (b.firstYear ?? 0) - (a.firstYear ?? 0) || byName(a, b));
+    else sorted.sort(byName);
+    return sorted;
+  }, [shownPlaces, query, sortBy, discCount]);
+
   const visited = useMemo(() => new Set(shownPlaces.map((a) => a.code)), [shownPlaces]);
   const wishlist = useMemo(
     () => (scope === 'all' ? new Set(aggregates.filter((a) => !a.discovered && a.aspiring).map((a) => a.code)) : new Set<string>()),
@@ -102,8 +140,8 @@ export default function AtlasScreen() {
       {tab === 'places' ? (
         <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
           <ScopeChips scope={scope} years={placeYears} onChange={setScope} />
-          <WorldMap visited={visited} wishlist={wishlist} />
-          <View className="flex-row" style={{ marginTop: 10, gap: 16, paddingHorizontal: 4 }}>
+          <WorldMap visited={visited} wishlist={wishlist} onPressCountry={(code) => router.push(`/country/${code}`)} />
+          <View className="flex-row items-center" style={{ marginTop: 10, gap: 16, paddingHorizontal: 4 }}>
             <View className="flex-row items-center" style={{ gap: 6 }}>
               <View style={{ height: 10, width: 10, borderRadius: 5, backgroundColor: COLORS.coral }} />
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{visited.size} discovered{scope === 'all' ? '' : ` in ${scope}`}</Text>
@@ -114,7 +152,48 @@ export default function AtlasScreen() {
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{wishlist.size} wish-listed</Text>
               </View>
             ) : null}
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginLeft: 'auto' }}>Tap a country ›</Text>
           </View>
+
+          {/* Your world — overview stats + continent progress (all-time) */}
+          {discovered.length > 0 ? (
+            <View className="bg-white rounded-3xl" style={{ marginTop: 14, padding: 18 }}>
+              <View className="flex-row" style={{ gap: 8 }}>
+                {[
+                  { n: String(stats.countriesDiscovered), l: 'Countries' },
+                  { n: `${worldPct < 10 ? worldPct.toFixed(1) : Math.round(worldPct)}%`, l: 'of the world' },
+                  { n: String(stats.citiesDiscovered), l: 'Cities' },
+                  { n: String(expeditions.length), l: 'Journeys' },
+                ].map((s) => (
+                  <View key={s.l} style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: 'Fraunces', fontSize: 24, color: COLORS.navy }}>{s.n}</Text>
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginTop: 1 }}>{s.l}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <View className="flex-row items-center justify-between" style={{ marginTop: 18, marginBottom: 10 }}>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 1, color: COLORS.ink3 }}>CONTINENTS</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>{stats.continentsDiscovered} / {CONTINENTS.filter((c) => TOTAL_BY_CONTINENT[c]).length}</Text>
+              </View>
+              <View style={{ gap: 9 }}>
+                {CONTINENTS.filter((c) => TOTAL_BY_CONTINENT[c]).map((c: Continent) => {
+                  const total = TOTAL_BY_CONTINENT[c];
+                  const got = discByContinent[c] ?? 0;
+                  const pct = total ? got / total : 0;
+                  return (
+                    <View key={c} className="flex-row items-center" style={{ gap: 10 }}>
+                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink2, width: 96 }}>{c}</Text>
+                      <View style={{ flex: 1, height: 7, borderRadius: 4, backgroundColor: 'rgba(20,33,61,0.07)', overflow: 'hidden' }}>
+                        <View style={{ width: `${Math.max(pct * 100, got > 0 ? 6 : 0)}%`, height: 7, borderRadius: 4, backgroundColor: got > 0 ? COLORS.coral : 'transparent' }} />
+                      </View>
+                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, width: 42, textAlign: 'right' }}>{got}/{total}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
         </View>
       ) : (
         <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
@@ -148,16 +227,40 @@ export default function AtlasScreen() {
             </Text>
           </View>
         ) : null}
+
+        {/* search + sort (Places) */}
+        {tab === 'places' && shownPlaces.length > 0 ? (
+          <>
+            <View className="flex-row items-center bg-white rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 10, gap: 8 }}>
+              <Search size={18} color={COLORS.ink3} />
+              <TextInput value={query} onChangeText={setQuery} placeholder="Search your countries & cities" placeholderTextColor={COLORS.ink3} style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink }} />
+            </View>
+            <View className="flex-row" style={{ gap: 8 }}>
+              {([['az', 'A–Z'], ['found', 'Most found'], ['recent', 'Recent']] as [SortBy, string][]).map(([id, label]) => {
+                const active = sortBy === id;
+                return (
+                  <Pressable key={id} onPress={() => setSortBy(id)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: active ? COLORS.navy : '#fff' }}>
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        ) : null}
+        {tab === 'places' && shownPlaces.length > 0 && listPlaces.length === 0 ? (
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, textAlign: 'center', paddingVertical: 16 }}>No countries match “{query}”.</Text>
+        ) : null}
+
         {tab === 'places'
-          ? shownPlaces.map((a) => {
+          ? listPlaces.map((a) => {
               const chips = a.relationships.filter((r) => r !== 'aspiring');
               return (
                 <Pressable key={a.code} onPress={() => router.push(`/country/${a.code}`)} className="bg-white rounded-3xl" style={{ overflow: 'hidden' }}>
                   <DestinationImage code={a.code} scrim style={{ height: 132, padding: 14, justifyContent: 'flex-end' }}>
                     <Text style={{ fontSize: 30, position: 'absolute', top: 12, left: 14 }}>{flagEmoji(a.code)}</Text>
-                    {discCount[a.code] ? (
-                      <View className="rounded-full" style={{ position: 'absolute', top: 12, right: 14, backgroundColor: 'rgba(255,255,255,0.92)', paddingHorizontal: 10, paddingVertical: 4 }}>
-                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>{discCount[a.code]} found</Text>
+                    {a.discoveryScore > 0 ? (
+                      <View style={{ position: 'absolute', top: 10, right: 12 }}>
+                        <ScoreRing score={a.discoveryScore} size={40} />
                       </View>
                     ) : null}
                     <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 22 }}>{countryName(a.code)}</Text>
@@ -165,8 +268,13 @@ export default function AtlasScreen() {
                       {a.continent}{a.firstYear ? ` · since ${a.firstYear}` : ''}
                     </Text>
                   </DestinationImage>
-                  {chips.length > 0 || a.cities.length > 0 ? (
+                  {chips.length > 0 || a.cities.length > 0 || discCount[a.code] ? (
                     <View className="flex-row flex-wrap" style={{ gap: 6, padding: 14 }}>
+                      {discCount[a.code] ? (
+                        <View className="rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 10, paddingVertical: 4 }}>
+                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.coral }}>{discCount[a.code]} {discCount[a.code] === 1 ? 'discovery' : 'discoveries'}</Text>
+                        </View>
+                      ) : null}
                       {chips.map((r) => (
                         <View key={r} className="rounded-full" style={{ backgroundColor: 'rgba(20,33,61,0.06)', paddingHorizontal: 10, paddingVertical: 4 }}>
                           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink2 }}>{RELATIONSHIP_META[r].label}</Text>
