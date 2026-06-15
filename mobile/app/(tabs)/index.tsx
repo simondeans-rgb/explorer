@@ -64,10 +64,10 @@ export default function StoryScreen() {
             <WorldlyLogo white height={58} />
             <View className="flex-row items-center" style={{ marginTop: 10 }}>
               <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13.5, letterSpacing: 0.2 }}>Explore more. </Text>
-              <Text style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13.5, letterSpacing: 0.2, color: '#B7A6FF' }}>Remember everything.</Text>
+              <Text style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13.5, letterSpacing: 0.2, color: COLORS.coral }}>Remember everything.</Text>
             </View>
             <View style={{ marginTop: 5 }}>
-              <Squiggle width={118} height={10} color="#B7A6FF" />
+              <Squiggle width={118} height={11} color={COLORS.coral} />
             </View>
           </View>
 
@@ -81,7 +81,7 @@ export default function StoryScreen() {
             <View style={{ marginTop: 18, alignSelf: 'flex-start' }}>
               <Text className="text-white" style={{ fontFamily: 'Caveat', fontSize: 26, lineHeight: 28 }}>Life is better when you explore.</Text>
               <View style={{ marginTop: 1, marginLeft: 4 }}>
-                <SquiggleFlourish width={150} height={24} color="#B7A6FF" />
+                <SquiggleFlourish width={150} height={24} color={COLORS.coral} />
               </View>
             </View>
           </View>
