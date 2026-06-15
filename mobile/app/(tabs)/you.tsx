@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
@@ -25,29 +26,33 @@ export default function YouScreen() {
   const displayName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'Alex');
   const initial = displayName.charAt(0).toUpperCase();
 
-  // Load the synced profile photo (and ensure the profile doc exists first so a
-  // later photo write passes the security rules).
+  const LOCAL_AVATAR_KEY = 'worldly:avatar:local';
+
+  // Load the photo: from the synced profile when signed in (ensuring the doc
+  // exists first), or from local storage in demo mode.
   useEffect(() => {
-    if (!user) {
-      setAvatar(null);
-      return;
-    }
     let active = true;
-    ensureProfile(user.uid, displayName)
-      .then(() => loadProfilePhoto(user.uid))
-      .then((p) => active && setAvatar(p))
-      .catch(() => {});
+    if (user) {
+      ensureProfile(user.uid, displayName)
+        .then(() => loadProfilePhoto(user.uid))
+        .then((p) => active && setAvatar(p))
+        .catch(() => {});
+    } else {
+      AsyncStorage.getItem(LOCAL_AVATAR_KEY)
+        .then((p) => active && setAvatar(p))
+        .catch(() => {});
+    }
     return () => {
       active = false;
     };
   }, [user, displayName]);
 
   async function changeAvatar() {
-    if (!user) return;
     const data = await pickPhotoDataUrl('library', 512, [1, 1]);
     if (!data) return;
     setAvatar(data);
-    saveProfilePhoto(user.uid, data).catch(() => {});
+    if (user) saveProfilePhoto(user.uid, data).catch(() => {});
+    else AsyncStorage.setItem(LOCAL_AVATAR_KEY, data).catch(() => {});
   }
   const statItems: [string, number][] = [
     ['Countries', stats.countriesDiscovered],
@@ -60,7 +65,7 @@ export default function YouScreen() {
     <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 110 }}>
       {/* Identity hero */}
       <DestinationImage code="WW" scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 56, alignItems: 'center' }}>
-        <Pressable onPress={changeAvatar} disabled={!user}>
+        <Pressable onPress={changeAvatar}>
           <View className="rounded-full items-center justify-center bg-white/20" style={{ height: 92, width: 92, borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)', overflow: 'hidden' }}>
             {avatar ? (
               <Image source={{ uri: avatar }} style={{ height: 92, width: 92 }} contentFit="cover" />
@@ -68,11 +73,9 @@ export default function YouScreen() {
               <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 40 }}>{initial}</Text>
             )}
           </View>
-          {user ? (
-            <View className="absolute rounded-full items-center justify-center" style={{ bottom: 0, right: 0, height: 30, width: 30, backgroundColor: COLORS.coral, borderWidth: 2, borderColor: '#fff' }}>
-              <Camera size={14} color="#fff" />
-            </View>
-          ) : null}
+          <View className="absolute rounded-full items-center justify-center" style={{ bottom: 0, right: 0, height: 30, width: 30, backgroundColor: COLORS.coral, borderWidth: 2, borderColor: '#fff' }}>
+            <Camera size={14} color="#fff" />
+          </View>
         </Pressable>
         <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 30, marginTop: 12 }}>{displayName}</Text>
         <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.9, marginTop: 2 }}>
