@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput } from 'react-native';
 import { router } from 'expo-router';
+import { goBack } from '../src/lib/nav';
 import { X, Search as SearchIcon } from 'lucide-react-native';
 import { DestinationImage } from '../components/DestinationImage';
 import { DiscoveryCard } from '../components/DiscoveryCard';
@@ -64,7 +65,7 @@ export default function SearchScreen() {
               style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }}
             />
           </View>
-          <Pressable onPress={() => router.back()} hitSlop={8} className="rounded-full items-center justify-center" style={{ height: 44, width: 44, backgroundColor: '#fff' }}>
+          <Pressable onPress={goBack} hitSlop={8} className="rounded-full items-center justify-center" style={{ height: 44, width: 44, backgroundColor: '#fff' }}>
             <X size={20} color={COLORS.ink2} />
           </Pressable>
         </View>
@@ -108,7 +109,7 @@ export default function SearchScreen() {
             <Text style={H}>YOUR DISCOVERIES</Text>
             <View style={{ paddingHorizontal: 20, gap: 10 }}>
               {discoveryHits.map((d) => (
-                <DiscoveryCard key={d.id} discovery={d} onPress={() => d.countryCode && router.push(`/country/${d.countryCode}`)} />
+                <DiscoveryCard key={d.id} discovery={d} onPress={() => router.push(`/discovery/${d.id}`)} />
               ))}
             </View>
           </View>

@@ -9,6 +9,7 @@ import {
   Globe2, Building2, Map as MapIcon, Award,
 } from 'lucide-react-native';
 import { PageHero } from '../components/PageHero';
+import { goBack } from '../src/lib/nav';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { hasDestinationPhoto } from '../src/lib/destinationImage';
@@ -110,7 +111,7 @@ export default function AlmanacScreen() {
           subtitle="A beautiful record of everywhere you've been — published from your own world."
           gradient={['#FFB84D', '#FF6B9A', '#9B7CFF']}
           imageCode={heroCode}
-          onBack={() => router.back()}
+          onBack={goBack}
         />
 
         {/* edition chips */}

@@ -86,6 +86,19 @@ interface DataApi extends DataShape {
     note?: string;
     photo?: string;
   }) => Promise<void>;
+  updateDiscovery: (
+    id: string,
+    input: {
+      name: string;
+      category: DiscoveryCategory;
+      countryCode?: string;
+      city?: string;
+      verdict?: RecommendationVerdict;
+      note?: string;
+      /** data: URL = new photo to upload, https URL = keep, null = remove. */
+      photo?: string | null;
+    },
+  ) => Promise<void>;
   removeDiscovery: (id: string) => void;
   addExpedition: (input: {
     title: string;
@@ -147,6 +160,7 @@ const DataContext = createContext<DataApi>({
   addPlace: noop,
   removePlace: noop,
   addDiscovery: async () => {},
+  updateDiscovery: async () => {},
   removeDiscovery: noop,
   addExpedition: noop,
   removeExpedition: noop,
@@ -483,6 +497,53 @@ export function DataProvider({ children }: { children: ReactNode }) {
           };
           const cur = localRef.current;
           persistLocal({ ...cur, discoveries: [discovery, ...cur.discoveries] });
+        }
+      },
+      updateDiscovery: async (id, input) => {
+        if (cloud && fdb && uid) {
+          let photo: string | null = input.photo ?? null;
+          let photoPath: string | null | undefined; // undefined = leave doc field untouched
+          if (storage && input.photo && input.photo.startsWith('data:')) {
+            const path = `users/${uid}/discoveries/${newId()}.jpg`;
+            const r = ref(storage, path);
+            await uploadString(r, input.photo, 'data_url', { contentType: 'image/jpeg', cacheControl: 'public, max-age=31536000, immutable' });
+            photo = await getDownloadURL(r);
+            photoPath = path;
+          } else if (input.photo === null) {
+            photoPath = null;
+          }
+          const fields: Record<string, unknown> = {
+            name: input.name.trim(),
+            category: input.category,
+            countryCode: input.countryCode || null,
+            city: input.city?.trim() || null,
+            verdict: input.verdict || null,
+            note: input.note?.trim() || null,
+            photo,
+            updatedAt: serverTimestamp(),
+          };
+          if (photoPath !== undefined) fields.photoPath = photoPath;
+          await updateDoc(doc(fdb, 'discoveries', id), fields).catch(() => {});
+        } else {
+          const cur = localRef.current;
+          persistLocal({
+            ...cur,
+            discoveries: cur.discoveries.map((d) =>
+              d.id === id
+                ? {
+                    ...d,
+                    name: input.name.trim(),
+                    category: input.category,
+                    countryCode: input.countryCode || undefined,
+                    city: input.city?.trim() || undefined,
+                    verdict: input.verdict,
+                    note: input.note?.trim() || undefined,
+                    photo: input.photo === null ? undefined : (input.photo ?? d.photo),
+                    updatedAt: Date.now(),
+                  }
+                : d,
+            ),
+          });
         }
       },
       removeDiscovery: (id) => remove('discoveries', id),

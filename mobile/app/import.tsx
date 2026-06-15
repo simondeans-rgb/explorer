@@ -5,6 +5,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { readAsStringAsync } from 'expo-file-system/legacy';
 import { Plane, ListChecks, Images, Check } from 'lucide-react-native';
 import { PageHero } from '../components/PageHero';
+import { goBack } from '../src/lib/nav';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
 import { useData } from '../src/store/data';
 import { buildImportPlan } from '../src/lib/flightyImport';
@@ -103,7 +104,7 @@ export default function ImportScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 112 }}>
-        <PageHero eyebrow="Bring your history in" title="Import travels" subtitle="Add the places you’ve already been, three quick ways." gradient={GRADIENTS.atlas} imageCode="WW" onBack={() => router.back()} />
+        <PageHero eyebrow="Bring your history in" title="Import travels" subtitle="Add the places you’ve already been, three quick ways." gradient={GRADIENTS.atlas} imageCode="WW" onBack={goBack} />
 
         {/* Flighty */}
         <Card icon={Plane} title="Flighty CSV" body="Export your flight history from Flighty (Settings → Export) and pick the CSV. We’ll map every flight to countries, cities and trips.">

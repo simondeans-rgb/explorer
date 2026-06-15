@@ -33,6 +33,7 @@ import { useWorldly } from '../../src/hooks/useWorldly';
 import { useData } from '../../src/store/data';
 import { useAuth } from '../../src/store/auth';
 import { useFriends } from '../../src/hooks/useFriends';
+import { goBack } from '../../src/lib/nav';
 
 // Best-first: positive verdicts lead, then neutral, then negatives.
 const VERDICT_ORDER: Record<string, number> = {
@@ -157,7 +158,7 @@ export default function CountryScreen() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 112 }}>
         {/* Hero */}
         <DestinationImage code={code} scrim motion style={{ position: 'relative', paddingTop: 60, paddingBottom: 52, minHeight: 240, justifyContent: 'flex-end' }}>
-          <Pressable onPress={() => router.back()} hitSlop={8} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, left: 20 }}>
+          <Pressable onPress={goBack} hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, left: 20, zIndex: 20 }}>
             <ChevronLeft size={20} color="#fff" />
           </Pressable>
           <View style={{ paddingHorizontal: 20 }}>
@@ -296,7 +297,7 @@ export default function CountryScreen() {
           <Section title={`Discoveries (${myDiscoveries.length})`}>
             <View style={{ gap: 10 }}>
               {myDiscoveries.map((d) => (
-                <DiscoveryCard key={d.id} discovery={d} />
+                <DiscoveryCard key={d.id} discovery={d} onPress={() => router.push(`/discovery/${d.id}`)} />
               ))}
             </View>
           </Section>
