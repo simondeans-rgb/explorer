@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, Share, useWindowDimensions } from 'r
 import { goBack } from '../src/lib/nav';
 import { X, Share2 } from 'lucide-react-native';
 import { DestinationImage } from '../components/DestinationImage';
-import { WorldlyMark } from '../components/Brand';
+import { WorldlyIcon } from '../components/WorldlyLogo';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { hasDestinationPhoto } from '../src/lib/destinationImage';
@@ -36,7 +36,7 @@ export default function WrappedScreen() {
       <ScrollView pagingEnabled showsVerticalScrollIndicator={false} decelerationRate="fast">
         {/* Intro */}
         <Slide code={bg(0)} height={height}>
-          <WorldlyMark size={56} />
+          <WorldlyIcon height={66} />
           <Text style={S.eyebrow}>{firstName}, here's</Text>
           <Text style={S.bigTitle}>Your world, wrapped</Text>
           <Text style={S.sub}>Everywhere you've been, in numbers. Swipe up ↑</Text>
@@ -102,7 +102,7 @@ export default function WrappedScreen() {
 
         {/* Outro */}
         <Slide code={bg(6)} height={height}>
-          <WorldlyMark size={48} />
+          <WorldlyIcon height={58} />
           <Text style={[S.bigTitle, { marginTop: 16 }]}>The world is waiting</Text>
           <Text style={S.sub}>Where will your next story take you?</Text>
           <Pressable onPress={share} className="flex-row items-center rounded-full bg-white" style={{ marginTop: 26, paddingHorizontal: 24, paddingVertical: 14, gap: 8 }}>
