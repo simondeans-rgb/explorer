@@ -1,17 +1,18 @@
 import { Image } from 'expo-image';
 
 const LOCKUP = require('../assets/images/worldly-lockup.png');
+const LOCKUP_WHITE = require('../assets/images/worldly-lockup-white.png');
 const ICON = require('../assets/images/worldly-icon.png');
 
-const LOCKUP_RATIO = 1672 / 450; // colourful "W" cards + "worldly" wordmark, side by side
-const ICON_RATIO = 762 / 450; // colourful "W" cards icon alone
+const LOCKUP_RATIO = 1593 / 415; // colourful "W" cards + "worldly" wordmark, side by side
+const ICON_RATIO = 721 / 415; // colourful "W" cards icon alone
 
-/** The full Worldly lockup (colourful "W" + "worldly" wordmark), sized by height.
- *  Transparent background — the wordmark is dark navy, best on light surfaces. */
-export function WorldlyLogo({ height = 24 }: { height?: number }) {
+/** The full Worldly lockup (colourful "W" cards + "worldly" wordmark), sized by height.
+ *  Transparent background. Pass `white` for the white-wordmark variant on dark surfaces. */
+export function WorldlyLogo({ height = 24, white = false }: { height?: number; white?: boolean }) {
   return (
     <Image
-      source={LOCKUP}
+      source={white ? LOCKUP_WHITE : LOCKUP}
       style={{ height, width: height * LOCKUP_RATIO }}
       contentFit="contain"
     />

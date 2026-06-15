@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Plus, Trash2, MapPin, CalendarDays, Users } from 'lucide-react-native';
+import { ChevronLeft, Plus, Trash2, MapPin, Users } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AddItinerarySheet } from '../../components/AddItinerarySheet';
 import { COLORS } from '../../src/lib/theme';
@@ -54,26 +54,22 @@ export default function TripScreen() {
             <ChevronLeft size={20} color="#fff" />
           </Pressable>
           <View style={{ paddingHorizontal: 20 }}>
-            <View className="flex-row items-center" style={{ gap: 5 }}>
-              <CalendarDays size={12} color="#fff" />
-              <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '800', letterSpacing: 1.5, opacity: 0.9, textShadowColor: 'rgba(0,0,0,0.45)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 }}>
-                {days === 0 ? 'HAPPENING NOW' : 'COUNTING DOWN'}
-              </Text>
-            </View>
             {days > 0 ? (
-              <View className="flex-row items-baseline" style={{ gap: 8, marginTop: 2 }}>
-                <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 56, lineHeight: 58, textShadowColor: 'rgba(0,0,0,0.45)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 }}>{days}</Text>
-                <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', opacity: 0.95, textShadowColor: 'rgba(0,0,0,0.45)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 }}>{days === 1 ? 'day to go' : 'days to go'}</Text>
+              <View className="flex-row items-baseline" style={{ gap: 9 }}>
+                <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 60, lineHeight: 60, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 7 }}>{days}</Text>
+                <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 15, letterSpacing: 2, opacity: 0.92, marginBottom: 8, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 7 }}>{days === 1 ? 'DAY TO GO' : 'DAYS TO GO'}</Text>
               </View>
-            ) : null}
-            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 34, marginTop: 6 }}>{trip.title}</Text>
+            ) : (
+              <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13, letterSpacing: 2, opacity: 0.92, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 7 }}>HAPPENING NOW</Text>
+            )}
+            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 34, marginTop: 8 }}>{trip.title}</Text>
             <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95, marginTop: 2 }}>
               {flagEmoji(trip.countryCode)} {countryName(trip.countryCode)}
               {trip.startDate ? ` · ${trip.startDate.slice(0, 7)}` : ''}
             </Text>
           </View>
           <Svg width="100%" height={42} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
-            <Path d="M0,64 C220,118 460,16 720,44 C980,72 1220,120 1440,70 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
+            <Path d="M0,72 C240,44 480,40 720,58 C960,76 1200,92 1440,72 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
           </Svg>
         </DestinationImage>
 
