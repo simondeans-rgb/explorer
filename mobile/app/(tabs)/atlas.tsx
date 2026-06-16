@@ -6,11 +6,11 @@ import { PageHero } from '../../components/PageHero';
 import { WorldMap } from '../../components/WorldMap';
 import { RouteMap } from '../../components/RouteMap';
 import { DestinationImage } from '../../components/DestinationImage';
-import { ScoreRing } from '../../components/ScoreRing';
+import { AtlasCountryCard } from '../../components/AtlasCountryCard';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
-import { RELATIONSHIP_META, CONTINENTS, type Continent } from '../../src/types';
+import { CONTINENTS, type Continent } from '../../src/types';
 import { routeSegments } from '../../src/lib/journeyGeo';
 import { shareMapPoster } from '../../src/lib/mapPoster';
 import { useWorldly } from '../../src/hooks/useWorldly';
@@ -281,44 +281,9 @@ export default function AtlasScreen() {
         ) : null}
 
         {tab === 'places'
-          ? listPlaces.map((a) => {
-              const chips = a.relationships.filter((r) => r !== 'aspiring');
-              return (
-                <Pressable key={a.code} onPress={() => router.push(`/country/${a.code}`)} className="bg-white rounded-3xl" style={{ overflow: 'hidden' }}>
-                  <DestinationImage code={a.code} scrim style={{ height: 132, padding: 14, justifyContent: 'flex-end' }}>
-                    <Text style={{ fontSize: 30, position: 'absolute', top: 12, left: 14 }}>{flagEmoji(a.code)}</Text>
-                    {a.discoveryScore > 0 ? (
-                      <View style={{ position: 'absolute', top: 10, right: 12 }}>
-                        <ScoreRing score={a.discoveryScore} size={40} />
-                      </View>
-                    ) : null}
-                    <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 22 }}>{countryName(a.code)}</Text>
-                    <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.95 }}>
-                      {a.continent}{a.firstYear ? ` · since ${a.firstYear}` : ''}
-                    </Text>
-                  </DestinationImage>
-                  {chips.length > 0 || a.cities.length > 0 || discCount[a.code] ? (
-                    <View className="flex-row flex-wrap" style={{ gap: 6, padding: 14 }}>
-                      {discCount[a.code] ? (
-                        <View className="rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 10, paddingVertical: 4 }}>
-                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.coral }}>{discCount[a.code]} {discCount[a.code] === 1 ? 'discovery' : 'discoveries'}</Text>
-                        </View>
-                      ) : null}
-                      {chips.map((r) => (
-                        <View key={r} className="rounded-full" style={{ backgroundColor: 'rgba(20,33,61,0.06)', paddingHorizontal: 10, paddingVertical: 4 }}>
-                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink2 }}>{RELATIONSHIP_META[r].label}</Text>
-                        </View>
-                      ))}
-                      {a.cities.map((c) => (
-                        <View key={c.id} className="rounded-full" style={{ backgroundColor: 'rgba(20,33,61,0.04)', paddingHorizontal: 10, paddingVertical: 4 }}>
-                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink2 }}>{c.name}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  ) : null}
-                </Pressable>
-              );
-            })
+          ? listPlaces.map((a) => (
+              <AtlasCountryCard key={a.code} aggregate={a} discoveries={discCount[a.code] ?? 0} />
+            ))
           : shownJourneys.map((e) => (
               <Pressable
                 key={e.id}
