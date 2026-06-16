@@ -9,7 +9,7 @@ import { useData } from '../store/data';
  *  (AsyncStorage). Swaps to Firestore subscriptions in a later slice without
  *  changing any screen that consumes this. */
 export function useWorldly() {
-  const { places, discoveries, expeditions } = useData();
+  const { places, discoveries, expeditions, captures } = useData();
 
   return useMemo(() => {
     const aggregates = aggregateByCountry(places);
@@ -21,6 +21,7 @@ export function useWorldly() {
       stats,
       discovery: discoveryStats,
       journeys: journeyStats,
+      captures: captures.length,
     });
     return {
       places,
@@ -33,5 +34,5 @@ export function useWorldly() {
       level,
       badges,
     };
-  }, [places, discoveries, expeditions]);
+  }, [places, discoveries, expeditions, captures]);
 }

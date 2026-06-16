@@ -18,7 +18,9 @@ export function useAchievementWatch(
   badges: Badge[],
   celebrate: (item: CelebrationItem) => void,
 ) {
-  const key = `worldly:ach:${uid ?? 'local'}`;
+  // v2: bumped when the badge set expanded, so the baseline re-seeds silently
+  // for everyone (no flood of pops for already-met new milestones).
+  const key = `worldly:ach:v2:${uid ?? 'local'}`;
   const baseline = useRef<Baseline | null>(null);
   const [baselineLoaded, setBaselineLoaded] = useState(false);
 
