@@ -541,7 +541,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             updatedAt: serverTimestamp(),
           };
           if (photoPath !== undefined) fields.photoPath = photoPath;
-          await updateDoc(doc(fdb, 'discoveries', id), fields).catch(() => {});
+          await updateDoc(doc(fdb, 'discoveries', id), fields);
         } else {
           const cur = localRef.current;
           persistLocal({
@@ -787,7 +787,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
               note: r.note?.trim() || null,
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
-            }).catch(() => {});
+            });
           }
         } else {
           const now = Date.now();

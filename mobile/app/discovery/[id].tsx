@@ -21,10 +21,12 @@ import {
   type RecommendationVerdict,
 } from '../../src/types';
 import { useData } from '../../src/store/data';
+import { useToast } from '../../src/store/toast';
 
 export default function DiscoveryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { discoveries, updateDiscovery, removeDiscovery, expeditions } = useData();
+  const { toast } = useToast();
   const discovery = discoveries.find((d) => d.id === id);
 
   const [name, setName] = useState('');
@@ -94,9 +96,11 @@ export default function DiscoveryScreen() {
         note,
         photo,
       });
+      toast.success('Changes saved');
       goBack();
     } catch {
       setSaving(false);
+      toast.error("Couldn't save — check your connection and try again.");
     }
   }
 

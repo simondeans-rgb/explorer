@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import { AuthProvider } from '../src/store/auth';
 import { DataProvider } from '../src/store/data';
+import { ToastProvider } from '../src/store/toast';
 import { CelebrationProvider } from '../src/store/celebration';
 import { OnboardingProvider, useOnboarding } from '../src/store/onboarding';
 import { Onboarding } from '../components/Onboarding';
@@ -40,9 +41,11 @@ export default function RootLayout() {
     <OnboardingProvider>
       <AuthProvider>
         <DataProvider>
-          <CelebrationProvider>
-            <RootContent fontsLoaded={loaded} />
-          </CelebrationProvider>
+          <ToastProvider>
+            <CelebrationProvider>
+              <RootContent fontsLoaded={loaded} />
+            </CelebrationProvider>
+          </ToastProvider>
         </DataProvider>
       </AuthProvider>
     </OnboardingProvider>

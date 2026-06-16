@@ -7,6 +7,7 @@ import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES, countryName } from '../src/data/countries';
 import { RELATIONSHIPS, RELATIONSHIP_META, type Relationship } from '../src/types';
 import { useData } from '../src/store/data';
+import { useToast } from '../src/store/toast';
 
 const REL_OPTIONS = RELATIONSHIPS.filter((r) => r !== 'aspiring');
 const thisYear = new Date().getFullYear();
@@ -57,6 +58,7 @@ function MonthRow({ value, onChange }: { value: number | null; onChange: (m: num
 
 export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { addPlace } = useData();
+  const { toast } = useToast();
   const [kind, setKind] = useState<Kind>('country');
   const [query, setQuery] = useState('');
   const [code, setCode] = useState('');
@@ -121,6 +123,7 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
       livedTo,
       residencePeriods,
     });
+    toast.success(kind === 'city' ? 'City added' : 'Country added');
     close();
   }
   function toggleRel(r: Relationship) {
