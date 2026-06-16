@@ -5,6 +5,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, Trash2, Plus, Check, Search, Plane, TrainFront, Ship, Car, Anchor } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { DestinationImage } from '../../components/DestinationImage';
+import { RouteBuilder } from '../../components/RouteBuilder';
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
@@ -75,6 +76,7 @@ export default function JourneyScreen() {
   const [codes, setCodes] = useState<string[]>([]);
   const [legs, setLegs] = useState<Leg[]>([emptyLeg()]);
   const [query, setQuery] = useState('');
+  const [showRoute, setShowRoute] = useState(false);
   const [saving, setSaving] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
@@ -222,11 +224,19 @@ export default function JourneyScreen() {
         {/* legs */}
         <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 20, marginTop: 20 }}>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy }}>Legs</Text>
-          <Pressable onPress={addLeg} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 12, paddingVertical: 7, gap: 5 }}>
-            <Plus size={14} color={COLORS.coral} />
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>Add leg</Text>
-          </Pressable>
+          <View className="flex-row items-center" style={{ gap: 14 }}>
+            <Pressable onPress={() => setShowRoute((v) => !v)} hitSlop={8}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: showRoute ? COLORS.coral : COLORS.ink3 }}>Multi-stop</Text>
+            </Pressable>
+            <Pressable onPress={addLeg} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 12, paddingVertical: 7, gap: 5 }}>
+              <Plus size={14} color={COLORS.coral} />
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>Add leg</Text>
+            </Pressable>
+          </View>
         </View>
+        {showRoute ? (
+          <RouteBuilder onAdd={(rl) => { setLegs((prev) => [...prev, ...rl.map((l) => ({ ...emptyLeg(l.mode), from: l.from, to: l.to }))]); setShowRoute(false); }} />
+        ) : null}
         {legs.map((leg, i) => {
           const meta = JOURNEY_MODE_META[leg.mode];
           return (
