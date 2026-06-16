@@ -1,4 +1,4 @@
-import { memo, useEffect, type ReactNode } from 'react';
+import { memo, useEffect, useState, type ReactNode } from 'react';
 import { View, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,7 +13,7 @@ import { destinationImage } from '../src/lib/destinationImage';
 
 /** The slow Ken-Burns drift — only mounted when `motion` is on, so static
  *  tiles pay none of the reanimated cost (Explore can show dozens at once). */
-function KenBurnsImage({ photo }: { photo: string }) {
+function KenBurnsImage({ photo, transition = 280 }: { photo: string; transition?: number }) {
   const t = useSharedValue(0);
   useEffect(() => {
     t.value = withRepeat(withTiming(1, { duration: 19000, easing: Easing.inOut(Easing.ease) }), -1, true);
@@ -27,7 +27,7 @@ function KenBurnsImage({ photo }: { photo: string }) {
   }));
   return (
     <Animated.View style={[StyleSheet.absoluteFill, style]}>
-      <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" transition={280} cachePolicy="memory-disk" />
+      <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" transition={transition} cachePolicy="memory-disk" />
     </Animated.View>
   );
 }
@@ -38,18 +38,34 @@ function KenBurnsImage({ photo }: { photo: string }) {
  *  render on top, laid out by the caller. */
 export const DestinationImage = memo(function DestinationImage({
   code,
+  codes,
+  rotateMs = 7000,
   style,
   scrim = false,
   motion = false,
   children,
 }: {
   code: string;
+  /** When 2+ codes are given, the photo cross-fades between them on a timer. */
+  codes?: string[];
+  rotateMs?: number;
   style?: StyleProp<ViewStyle>;
   scrim?: boolean;
   motion?: boolean;
   children?: ReactNode;
 }) {
-  const { photo, gradient } = destinationImage(code);
+  const rotate = !!codes && codes.length > 1;
+  const list = rotate ? (codes as string[]) : [code];
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (!rotate) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % list.length), rotateMs);
+    return () => clearInterval(t);
+  }, [rotate, list.length, rotateMs]);
+
+  const gradient = destinationImage(list[0]).gradient;
+  const photo = destinationImage(list[idx % list.length]).photo;
+  const transition = rotate ? 800 : 280;
 
   return (
     <View style={[{ overflow: 'hidden', backgroundColor: gradient[0] }, style]}>
@@ -62,9 +78,9 @@ export const DestinationImage = memo(function DestinationImage({
       />
       {photo ? (
         motion ? (
-          <KenBurnsImage photo={photo} />
+          <KenBurnsImage photo={photo} transition={transition} />
         ) : (
-          <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" transition={280} cachePolicy="memory-disk" />
+          <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" transition={transition} cachePolicy="memory-disk" />
         )
       ) : null}
       {scrim ? (
