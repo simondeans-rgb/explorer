@@ -8,6 +8,7 @@ import { router } from 'expo-router';
 import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Users, Download, ScrollText, RotateCcw } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AchievementBadge } from '../../components/AchievementBadge';
+import { HERO_CODES } from '../../src/lib/heroImages';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useAuth } from '../../src/store/auth';
@@ -65,7 +66,7 @@ export default function YouScreen() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 110 }}>
       {/* Identity hero */}
-      <DestinationImage code="WW" scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 56, alignItems: 'center' }}>
+      <DestinationImage code={HERO_CODES.you[0]} codes={HERO_CODES.you} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 56, alignItems: 'center' }}>
         <Pressable onPress={changeAvatar}>
           <View className="rounded-full items-center justify-center bg-white/20" style={{ height: 92, width: 92, borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)', overflow: 'hidden' }}>
             {avatar ? (

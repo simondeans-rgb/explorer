@@ -15,6 +15,8 @@ export function PageHero({
   subtitle,
   gradient,
   imageCode,
+  imageCodes,
+  motion = false,
   onBack,
   dark = false,
 }: {
@@ -23,6 +25,9 @@ export function PageHero({
   subtitle?: string;
   gradient: import('../src/lib/theme').Gradient;
   imageCode?: string;
+  /** 2+ codes → the hero photo cross-fades between them on a timer. */
+  imageCodes?: string[];
+  motion?: boolean;
   onBack?: () => void;
   dark?: boolean;
 }) {
@@ -75,8 +80,8 @@ export function PageHero({
 
   return (
     <View>
-      {imageCode ? (
-        <DestinationImage code={imageCode} scrim style={padding}>
+      {imageCode || (imageCodes && imageCodes.length) ? (
+        <DestinationImage code={imageCode ?? imageCodes![0]} codes={imageCodes} scrim motion={motion} style={padding}>
           {inner}
           {wave}
         </DestinationImage>

@@ -23,6 +23,7 @@ import { countryName, COUNTRIES } from '../../src/data/countries';
 import { CONTINENTS, type Continent } from '../../src/types';
 import { COUNTRY_FACTS, type CountryFacts } from '../../src/data/countryFacts';
 import { useWorldly } from '../../src/hooks/useWorldly';
+import { HERO_CODES } from '../../src/lib/heroImages';
 import { useData } from '../../src/store/data';
 
 type Tab = 'browse' | 'discoveries';
@@ -150,7 +151,7 @@ export default function ExploreScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
-        <PageHero eyebrow="The world, by the numbers" title="Explore" subtitle="Superlatives, your wishlist, and every country to dive into." gradient={GRADIENTS.explore} imageCode="WW" />
+        <PageHero eyebrow="The world, by the numbers" title="Explore" subtitle="Superlatives, your wishlist, and every country to dive into." gradient={GRADIENTS.explore} imageCodes={HERO_CODES.explore} motion />
 
         {/* segmented control */}
         <View className="flex-row bg-white rounded-2xl" style={{ marginHorizontal: 20, marginTop: 6, padding: 5, gap: 5 }}>

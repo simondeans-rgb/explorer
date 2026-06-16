@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -15,6 +15,7 @@ import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
 import { useWorldly } from '../../src/hooks/useWorldly';
+import { HERO_CODES } from '../../src/lib/heroImages';
 import { useData } from '../../src/store/data';
 import { useAuth } from '../../src/store/auth';
 import { useFriends } from '../../src/hooks/useFriends';
@@ -27,7 +28,15 @@ export default function StoryScreen() {
   const firstName = user?.displayName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Alex');
   const { friends, friendsData } = useFriends(user?.uid, firstName);
   const discovered = aggregates.filter((a) => a.discovered);
-  const heroCode = discovered.find((a) => hasDestinationPhoto(a.code))?.code ?? 'WW';
+  // Rotate through your own discovered countries first, padded with defaults to 4.
+  const heroCodes = useMemo(() => {
+    const out = [...new Set(discovered.filter((a) => hasDestinationPhoto(a.code)).map((a) => a.code))].slice(0, 4);
+    for (const c of HERO_CODES.story) {
+      if (out.length >= 4) break;
+      if (!out.includes(c)) out.push(c);
+    }
+    return out;
+  }, [discovered]);
   const [addOpen, setAddOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
 
@@ -58,7 +67,7 @@ export default function StoryScreen() {
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 110 }}>
       {/* Hero */}
-      <DestinationImage code={heroCode} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 64 }}>
+      <DestinationImage code={heroCodes[0]} codes={heroCodes} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 64 }}>
         <View style={{ paddingHorizontal: 20 }}>
           <View style={{ alignItems: 'center' }}>
             <WorldlyLogo white height={58} />
