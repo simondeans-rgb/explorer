@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { Search, Camera } from 'lucide-react-native';
+import { Search, Camera, ChevronRight } from 'lucide-react-native';
 import { WorldlyLogo } from '../../components/WorldlyLogo';
 import { Squiggle } from '../../components/Squiggle';
 import { DestinationImage } from '../../components/DestinationImage';
@@ -140,20 +140,33 @@ export default function StoryScreen() {
         );
       })()}
 
-      {/* Milestone */}
-      <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
-        <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 26, padding: 20 }}>
-          <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1.5, opacity: 0.85 }}>EXPLORER LEVEL {level.level}</Text>
-          <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 40, marginTop: 2 }}>{level.title}</Text>
-          <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.9, marginTop: 4 }}>
-            {stats.countriesDiscovered} countries · {stats.continentsDiscovered} continents · {level.xp.toLocaleString()} XP
-          </Text>
-        </LinearGradient>
+      {/* Milestone → achievements */}
+      <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+        <Pressable onPress={() => router.push('/achievements')}>
+          <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 26, padding: 20 }}>
+            <View className="flex-row items-start justify-between">
+              <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1.5, opacity: 0.85 }}>EXPLORER LEVEL {level.level}</Text>
+              <ChevronRight size={18} color="rgba(255,255,255,0.85)" />
+            </View>
+            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 40, marginTop: 2 }}>{level.title}</Text>
+            <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.9, marginTop: 4 }}>
+              {stats.countriesDiscovered} countries · {stats.continentsDiscovered} continents · {level.xp.toLocaleString()} XP
+            </Text>
+          </LinearGradient>
+        </Pressable>
       </View>
 
       {/* Your world rail */}
-      <View style={{ paddingTop: 18 }}>
-        <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, paddingHorizontal: 20 }}>Your world</Text>
+      <View style={{ marginTop: 24 }}>
+        <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 20 }}>
+          <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Your world</Text>
+          {discovered.length > 0 ? (
+            <Pressable onPress={() => router.push('/atlas')} hitSlop={8} className="flex-row items-center" style={{ gap: 2 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.coral }}>See all</Text>
+              <ChevronRight size={15} color={COLORS.coral} />
+            </Pressable>
+          ) : null}
+        </View>
         {discovered.length === 0 ? (
           <Pressable onPress={() => setAddOpen(true)} className="bg-white rounded-3xl items-center" style={{ marginHorizontal: 20, marginTop: 12, paddingVertical: 28, paddingHorizontal: 20 }}>
             <Text style={{ fontSize: 40 }}>🌍</Text>
@@ -183,7 +196,7 @@ export default function StoryScreen() {
       </View>
 
       {/* Memories */}
-      <View style={{ paddingTop: 6 }}>
+      <View style={{ marginTop: 24 }}>
         <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 20 }}>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Memories</Text>
           <Pressable onPress={() => setPhotoOpen(true)} hitSlop={8} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 12, paddingVertical: 7, gap: 5 }}>
@@ -219,7 +232,7 @@ export default function StoryScreen() {
 
       {/* Fresh from your circle */}
       {circle.length > 0 ? (
-        <View style={{ paddingTop: 18 }}>
+        <View style={{ marginTop: 24 }}>
           <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 20 }}>
             <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Fresh from your circle</Text>
             <Pressable onPress={() => router.push('/friends')} hitSlop={8}>
