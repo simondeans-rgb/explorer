@@ -10,7 +10,7 @@ import { ScoreRing } from '../../components/ScoreRing';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
-import { RELATIONSHIP_META, JOURNEY_MODE_META, CONTINENTS, type Continent } from '../../src/types';
+import { RELATIONSHIP_META, CONTINENTS, type Continent } from '../../src/types';
 import { routeSegments } from '../../src/lib/journeyGeo';
 import { shareMapPoster } from '../../src/lib/mapPoster';
 import { useWorldly } from '../../src/hooks/useWorldly';
@@ -322,7 +322,7 @@ export default function AtlasScreen() {
           : shownJourneys.map((e) => (
               <Pressable
                 key={e.id}
-                onPress={() => e.countryCodes[0] && router.push(`/country/${e.countryCodes[0]}`)}
+                onPress={() => router.push(`/journey/${e.id}`)}
                 className="bg-white rounded-3xl"
                 style={{ overflow: 'hidden' }}
               >
@@ -330,8 +330,11 @@ export default function AtlasScreen() {
                   <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 22 }}>{e.title}</Text>
                   <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.95 }}>
                     {e.countryCodes.map((c) => flagEmoji(c)).join(' ')}  ·  {e.startDate?.slice(0, 4)}
-                    {e.journeys[0] ? ` · ${JOURNEY_MODE_META[e.journeys[0].mode].label}` : ''}
+                    {e.journeys.length ? ` · ${e.journeys.length} ${e.journeys.length === 1 ? 'leg' : 'legs'}` : ''}
                   </Text>
+                  {e.note ? (
+                    <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, opacity: 0.8, marginTop: 1 }}>{e.note}</Text>
+                  ) : null}
                 </DestinationImage>
               </Pressable>
             ))}
