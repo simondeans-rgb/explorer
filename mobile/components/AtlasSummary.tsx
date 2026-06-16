@@ -20,8 +20,8 @@ const CONTINENT_COLOR: Record<string, string> = {
 };
 
 /** A circular "% of the world" gauge for a light surface. */
-function WorldRing({ pct, size = 92 }: { pct: number; size?: number }) {
-  const stroke = 9;
+function WorldRing({ pct, size = 116 }: { pct: number; size?: number }) {
+  const stroke = 11;
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
   const p = Math.max(0, Math.min(100, pct)) / 100;
@@ -44,23 +44,21 @@ function WorldRing({ pct, size = 92 }: { pct: number; size?: number }) {
             transform={`rotate(-90 ${size / 2} ${size / 2})`}
           />
         </Svg>
-        <Text style={{ fontFamily: 'Fraunces', fontSize: 24, color: COLORS.navy }}>{label}%</Text>
+        <Text style={{ fontFamily: 'Fraunces', fontSize: size * 0.27, color: COLORS.navy }}>{label}%</Text>
       </View>
-      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginTop: 4 }}>of the world</Text>
+      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 4 }}>of the world</Text>
     </View>
   );
 }
 
 function StatRow({ icon: Icon, color, tint, value, label }: { icon: ComponentType<{ size?: number; color?: string }>; color: string; tint: string; value: number; label: string }) {
   return (
-    <View className="flex-row items-center" style={{ gap: 10 }}>
-      <View className="rounded-2xl items-center justify-center" style={{ height: 34, width: 34, backgroundColor: tint }}>
-        <Icon size={17} color={color} />
+    <View className="flex-row items-center" style={{ gap: 12 }}>
+      <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: tint }}>
+        <Icon size={20} color={color} />
       </View>
-      <View>
-        <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, lineHeight: 22 }}>{value}</Text>
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3 }}>{label}</Text>
-      </View>
+      <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '600', color: COLORS.ink2 }}>{label}</Text>
+      <Text style={{ fontFamily: 'Fraunces', fontSize: 28, color: COLORS.navy }}>{value}</Text>
     </View>
   );
 }
@@ -104,9 +102,9 @@ export const AtlasSummary = memo(function AtlasSummary({
       <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, marginBottom: 14 }}>Your world</Text>
 
       {/* hero: % ring + stats */}
-      <View className="flex-row items-center" style={{ gap: 18 }}>
+      <View className="flex-row items-center" style={{ gap: 20 }}>
         <WorldRing pct={worldPct} />
-        <View style={{ flex: 1, gap: 12 }}>
+        <View style={{ flex: 1, gap: 16 }}>
           <StatRow icon={Globe2} color={COLORS.coral} tint="rgba(255,107,154,0.14)" value={stats.countriesDiscovered} label="Countries" />
           <StatRow icon={Building2} color="#12A594" tint="rgba(36,209,195,0.16)" value={stats.citiesDiscovered} label="Cities" />
           <StatRow icon={Plane} color={COLORS.lavender} tint="rgba(155,124,255,0.16)" value={journeys} label="Journeys" />
