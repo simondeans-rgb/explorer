@@ -7,6 +7,7 @@ import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES } from '../src/data/countries';
 import { useData } from '../src/store/data';
+import { useToast } from '../src/store/toast';
 import { pickPhotoDataUrl } from '../src/lib/photo';
 
 export function AddPhotoSheet({
@@ -19,6 +20,7 @@ export function AddPhotoSheet({
   initialCountryCode?: string;
 }) {
   const { addCapture } = useData();
+  const { toast } = useToast();
   const [photo, setPhoto] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [query, setQuery] = useState('');
@@ -62,9 +64,11 @@ export function AddPhotoSheet({
     setSaving(true);
     try {
       await addCapture({ dataUrl: photo, countryCode: code || undefined, caption });
+      toast.success('Memory saved');
       close();
     } catch {
       setSaving(false);
+      toast.error("Couldn't save — check your connection and try again.");
     }
   }
 

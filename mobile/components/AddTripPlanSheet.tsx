@@ -6,6 +6,7 @@ import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES } from '../src/data/countries';
 import { useData } from '../src/store/data';
+import { useToast } from '../src/store/toast';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const thisYear = new Date().getFullYear();
@@ -13,6 +14,7 @@ const YEARS = [thisYear, thisYear + 1, thisYear + 2];
 
 export function AddTripPlanSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { addTrip } = useData();
+  const { toast } = useToast();
   const [title, setTitle] = useState('');
   const [query, setQuery] = useState('');
   const [code, setCode] = useState('');
@@ -42,6 +44,7 @@ export function AddTripPlanSheet({ visible, onClose }: { visible: boolean; onClo
     if (!code || !title.trim()) return;
     const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
     addTrip({ title, countryCode: code, startDate, note });
+    toast.success('Trip planned');
     close();
   }
 

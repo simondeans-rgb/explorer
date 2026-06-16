@@ -30,6 +30,7 @@ import {
   type RecommendationVerdict,
 } from '../src/types';
 import { useData } from '../src/store/data';
+import { useToast } from '../src/store/toast';
 
 const CATEGORY_ICON: Record<DiscoveryCategory, ComponentType<{ size?: number; color?: string }>> = {
   food: UtensilsCrossed,
@@ -66,6 +67,7 @@ export function AddDiscoverySheet({
   initialCategory?: DiscoveryCategory;
 }) {
   const { addDiscovery, expeditions } = useData();
+  const { toast } = useToast();
   const [name, setName] = useState('');
   const [category, setCategory] = useState<DiscoveryCategory>('food');
   const [subcategory, setSubcategory] = useState<string | undefined>(undefined);
@@ -154,9 +156,11 @@ export function AddDiscoverySheet({
         note,
         photo: photo ?? undefined,
       });
+      toast.success('Discovery saved');
       close();
     } catch {
       setSaving(false);
+      toast.error("Couldn't save — check your connection and try again.");
     }
   }
 

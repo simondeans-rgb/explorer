@@ -8,6 +8,7 @@ import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES } from '../src/data/countries';
 import { JOURNEY_MODES, JOURNEY_MODE_META, type Journey, type JourneyMode } from '../src/types';
 import { useData } from '../src/store/data';
+import { useToast } from '../src/store/toast';
 
 const MODE_ICON: Record<JourneyMode, ComponentType<{ size?: number; color?: string }>> = {
   flight: Plane,
@@ -43,6 +44,7 @@ const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s.trim());
 
 export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { importExpeditions } = useData();
+  const { toast } = useToast();
   const [title, setTitle] = useState('');
   const [query, setQuery] = useState('');
   const [codes, setCodes] = useState<Set<string>>(new Set());
@@ -111,9 +113,11 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
           journeys,
         },
       ]);
+      toast.success('Journey saved');
       close();
     } catch {
       setSaving(false);
+      toast.error("Couldn't save — check your connection and try again.");
     }
   }
 
