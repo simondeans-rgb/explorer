@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator } from 
 import { Check, Search, Plus, Trash2, Plane, TrainFront, Ship, Car, Anchor } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { SheetShell } from './SheetShell';
+import { RouteBuilder } from './RouteBuilder';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES } from '../src/data/countries';
@@ -49,6 +50,7 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
   const [query, setQuery] = useState('');
   const [codes, setCodes] = useState<Set<string>>(new Set());
   const [legs, setLegs] = useState<Leg[]>([emptyLeg()]);
+  const [showRoute, setShowRoute] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const results = useMemo(() => {
@@ -208,10 +210,18 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
           );
         })}
 
-        <Pressable onPress={addLeg} className="flex-row items-center justify-center rounded-2xl" style={{ marginHorizontal: 20, marginTop: 10, paddingVertical: 13, gap: 7, borderWidth: 1.5, borderColor: 'rgba(255,107,154,0.4)', borderStyle: 'dashed' }}>
-          <Plus size={16} color={COLORS.coral} />
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.coral }}>Add another leg</Text>
-        </Pressable>
+        <View className="flex-row" style={{ marginHorizontal: 20, marginTop: 10, gap: 10 }}>
+          <Pressable onPress={addLeg} className="flex-row items-center justify-center rounded-2xl" style={{ flex: 1, paddingVertical: 13, gap: 7, borderWidth: 1.5, borderColor: 'rgba(255,107,154,0.4)', borderStyle: 'dashed' }}>
+            <Plus size={16} color={COLORS.coral} />
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.coral }}>Add leg</Text>
+          </Pressable>
+          <Pressable onPress={() => setShowRoute((v) => !v)} className="items-center justify-center rounded-2xl" style={{ paddingHorizontal: 16, backgroundColor: showRoute ? COLORS.navy : COLORS.warmwhite }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: showRoute ? '#fff' : COLORS.ink2 }}>Multi-stop</Text>
+          </Pressable>
+        </View>
+        {showRoute ? (
+          <RouteBuilder onAdd={(rl) => { setLegs((prev) => [...prev.filter((l) => l.from || l.to || l.carrier || l.reference || l.date || l.vehicle || l.note), ...rl.map((l) => ({ ...emptyLeg(l.mode), from: l.from, to: l.to }))]); setShowRoute(false); }} />
+        ) : null}
 
         <Pressable onPress={save} disabled={!ready || saving} className="rounded-2xl items-center justify-center flex-row" style={{ marginHorizontal: 20, marginTop: 16, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: ready && !saving ? 1 : 0.4, gap: 8 }}>
           {saving ? <ActivityIndicator color="#fff" /> : (

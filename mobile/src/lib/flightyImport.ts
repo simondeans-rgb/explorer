@@ -5,7 +5,7 @@
 import { airportInfo } from '../data/airports';
 import { countryName } from '../data/countries';
 import { isHome, type HomeRange } from './residence';
-import type { Journey, PlaceKind } from '../types';
+import type { Journey, PlaceKind, Expedition } from '../types';
 
 export interface PlaceRow {
   kind: PlaceKind;
@@ -27,7 +27,7 @@ export interface ImportPlan {
   flightCount: number;
 }
 
-interface Flight {
+export interface Flight {
   date: string; // YYYY-MM-DD
   from: string; // IATA
   to: string; // IATA
@@ -103,12 +103,11 @@ function parseFlights(text: string): Flight[] {
 
 const DAY = 86_400_000;
 
-export function buildImportPlan(
-  text: string,
+export function planFromFlights(
+  flights: Flight[],
   homeCodes: Set<string> = new Set(),
   home: HomeRange[] = [],
 ): ImportPlan {
-  const flights = parseFlights(text).filter((f) => !f.canceled);
   const places = new Map<string, PlaceRow>();
   const addAirport = (iata: string, year?: number) => {
     const info = airportInfo(iata);
@@ -190,4 +189,45 @@ export function buildImportPlan(
   flush();
 
   return { places: [...places.values()], expeditions, flightCount: flights.length };
+}
+
+/** Parse a Flighty CSV and build the import plan. */
+export function buildImportPlan(
+  text: string,
+  homeCodes: Set<string> = new Set(),
+  home: HomeRange[] = [],
+): ImportPlan {
+  return planFromFlights(parseFlights(text).filter((f) => !f.canceled), homeCodes, home);
+}
+
+/** Pull the 3-letter IATA code out of a "City (XXX)" label. */
+function iataFromLabel(label?: string): string {
+  if (!label) return '';
+  const m = label.match(/\(([A-Z]{3})\)/);
+  return (m ? m[1] : label.trim()).toUpperCase();
+}
+
+/** Reconstruct the imported flights (and which expeditions hold them) from
+ *  existing expeditions, so they can be re-segmented against current residence
+ *  history. Only journeys this importer created (id starts with `imp_`) count. */
+export function flightsFromExpeditions(expeditions: Expedition[]): {
+  flights: Flight[];
+  expeditionIds: string[];
+} {
+  const flights: Flight[] = [];
+  const expeditionIds: string[] = [];
+  for (const e of expeditions) {
+    const imported = e.journeys.filter((j) => j.mode === 'flight' && j.id?.startsWith('imp_'));
+    if (imported.length === 0) continue;
+    expeditionIds.push(e.id);
+    for (const j of imported) {
+      const from = iataFromLabel(j.from);
+      const to = iataFromLabel(j.to);
+      const date = (j.date || e.startDate || '').slice(0, 10);
+      if (from.length !== 3 || to.length !== 3 || !date) continue;
+      flights.push({ date, from, to, flightNo: (j.reference ?? '').trim(), canceled: false });
+    }
+  }
+  flights.sort((a, b) => a.date.localeCompare(b.date));
+  return { flights, expeditionIds };
 }

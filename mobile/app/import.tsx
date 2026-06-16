@@ -1,28 +1,29 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
+import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { readAsStringAsync } from 'expo-file-system/legacy';
-import { Plane, ListChecks, Images, Check } from 'lucide-react-native';
+import { Plane, ListChecks, Images, Check, RefreshCw } from 'lucide-react-native';
 import { PageHero } from '../components/PageHero';
 import { goBack } from '../src/lib/nav';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
 import { useData } from '../src/store/data';
-import { buildImportPlan } from '../src/lib/flightyImport';
+import { buildImportPlan, planFromFlights, flightsFromExpeditions } from '../src/lib/flightyImport';
 import { parseCountryList } from '../src/lib/listImport';
 import { scanPhotosForCountries } from '../src/lib/photoScan';
 import { homeRanges } from '../src/lib/residence';
 
 export default function ImportScreen() {
-  const { importPlaces, importExpeditions, places } = useData();
+  const { importPlaces, importExpeditions, places, expeditions, removeExpedition } = useData();
   // Countries you live in — so imported trips aren't labelled as visits home.
   const homeCodes = new Set(
     places.filter((p) => p.relationships.some((r) => r === 'lived' || r === 'based')).map((p) => p.countryCode),
   );
+  const hasImported = expeditions.some((e) => e.journeys.some((j) => j.id?.startsWith('imp_')));
 
   // Flighty
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvMsg, setCsvMsg] = useState<string | null>(null);
+  const [reBusy, setReBusy] = useState(false);
 
   // List
   const [listText, setListText] = useState('');
@@ -54,6 +55,37 @@ export default function ImportScreen() {
     } finally {
       setCsvBusy(false);
     }
+  }
+
+  async function reevaluate() {
+    setCsvMsg(null);
+    const { flights, expeditionIds } = flightsFromExpeditions(expeditions);
+    if (flights.length === 0) {
+      setCsvMsg('No imported flights to re-evaluate.');
+      return;
+    }
+    setReBusy(true);
+    try {
+      const plan = planFromFlights(flights, homeCodes, homeRanges(places));
+      for (const id of expeditionIds) removeExpedition(id);
+      const added = await importPlaces(plan.places);
+      await importExpeditions(plan.expeditions);
+      setCsvMsg(`Re-evaluated ${flights.length} flights → ${plan.expeditions.length} trips${added ? `, ${added} new places` : ''}.`);
+    } catch {
+      setCsvMsg('Could not re-evaluate your trips.');
+    } finally {
+      setReBusy(false);
+    }
+  }
+  function confirmReevaluate() {
+    Alert.alert(
+      'Re-evaluate imported trips?',
+      'Rebuilds your Flighty-imported trips from your current residence history, replacing the previously imported trips. Manual edits to imported trips will be lost.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Re-evaluate', onPress: reevaluate },
+      ],
+    );
   }
 
   async function importList() {
@@ -108,9 +140,21 @@ export default function ImportScreen() {
 
         {/* Flighty */}
         <Card icon={Plane} title="Flighty CSV" body="Export your flight history from Flighty (Settings → Export) and pick the CSV. We’ll map every flight to countries, cities and trips.">
-          <Pressable onPress={importFlighty} disabled={csvBusy} style={btn(csvBusy)}>
+          <Pressable onPress={importFlighty} disabled={csvBusy || reBusy} style={btn(csvBusy || reBusy)}>
             {csvBusy ? <ActivityIndicator color="#fff" /> : <Text style={btnText}>Choose CSV file</Text>}
           </Pressable>
+          {hasImported ? (
+            <Pressable onPress={confirmReevaluate} disabled={csvBusy || reBusy} className="flex-row items-center justify-center" style={ghostBtn(csvBusy || reBusy)}>
+              {reBusy ? (
+                <ActivityIndicator color={COLORS.ink2} />
+              ) : (
+                <>
+                  <RefreshCw size={15} color={COLORS.ink2} />
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.ink2, marginLeft: 7 }}>Re-evaluate imported trips</Text>
+                </>
+              )}
+            </Pressable>
+          ) : null}
           {csvMsg ? <Msg text={csvMsg} /> : null}
         </Card>
 
@@ -181,3 +225,12 @@ const btn = (disabled: boolean) => ({
   opacity: disabled ? 0.5 : 1,
 });
 const btnText = { fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700' as const, color: '#fff' };
+const ghostBtn = (disabled: boolean) => ({
+  borderRadius: 16,
+  paddingVertical: 12,
+  marginTop: 10,
+  alignItems: 'center' as const,
+  justifyContent: 'center' as const,
+  backgroundColor: 'rgba(20,33,61,0.05)',
+  opacity: disabled ? 0.5 : 1,
+});
