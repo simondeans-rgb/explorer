@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, FlatList, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import type { ComponentType } from 'react';
@@ -38,7 +38,7 @@ function fmtNum(n: number): string {
 
 /** A tappable country tile (image card) used in the continent carousels and
  *  the search grid. Tap opens the country; the bookmark toggles the wishlist. */
-function CountryCard({
+const CountryCard = memo(function CountryCard({
   code,
   width,
   discovered,
@@ -49,7 +49,7 @@ function CountryCard({
   width: number;
   discovered: boolean;
   saved: boolean;
-  onToggle: () => void;
+  onToggle: (code: string) => void;
 }) {
   return (
     <Pressable onPress={() => router.push(`/country/${code}`)} style={{ width }}>
@@ -60,7 +60,7 @@ function CountryCard({
             <Check size={15} color="#fff" />
           </View>
         ) : (
-          <Pressable onPress={onToggle} hitSlop={8} className="rounded-full items-center justify-center" style={{ position: 'absolute', top: 10, right: 12, height: 28, width: 28, backgroundColor: saved ? COLORS.lavender : 'rgba(255,255,255,0.85)' }}>
+          <Pressable onPress={() => onToggle(code)} hitSlop={8} className="rounded-full items-center justify-center" style={{ position: 'absolute', top: 10, right: 12, height: 28, width: 28, backgroundColor: saved ? COLORS.lavender : 'rgba(255,255,255,0.85)' }}>
             {saved ? <BookmarkCheck size={15} color="#fff" /> : <Bookmark size={15} color={COLORS.ink2} />}
           </Pressable>
         )}
@@ -68,7 +68,7 @@ function CountryCard({
       </DestinationImage>
     </Pressable>
   );
-}
+});
 
 function Superlative({ entry, icon: Icon, label, value }: { entry: Entry; icon: ComponentType<{ size?: number; color?: string }>; label: string; value: string }) {
   const [code] = entry;
@@ -107,11 +107,18 @@ export default function ExploreScreen() {
     return m;
   }, [places, discoveredCodes]);
 
-  function toggleWishlist(code: string) {
-    const existing = wishlist.get(code);
-    if (existing) removePlace(existing);
-    else addPlace({ kind: 'country', countryCode: code, relationships: ['aspiring'] });
-  }
+  // Read the live wishlist from a ref so the handler stays stable across
+  // renders — lets the memoised CountryCards skip re-rendering on every toggle.
+  const wishlistRef = useRef(wishlist);
+  wishlistRef.current = wishlist;
+  const toggleWishlist = useCallback(
+    (code: string) => {
+      const existing = wishlistRef.current.get(code);
+      if (existing) removePlace(existing);
+      else addPlace({ kind: 'country', countryCode: code, relationships: ['aspiring'] });
+    },
+    [addPlace, removePlace],
+  );
 
   // Superlatives (from the bundled country facts).
   const month = new Date().getMonth();
@@ -173,7 +180,7 @@ export default function ExploreScreen() {
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink3 }}>No countries found.</Text>
                 ) : null}
                 {searchHits.map((c) => (
-                  <CountryCard key={c.code} code={c.code} width={gridW} discovered={discoveredCodes.has(c.code)} saved={wishlist.has(c.code)} onToggle={() => toggleWishlist(c.code)} />
+                  <CountryCard key={c.code} code={c.code} width={gridW} discovered={discoveredCodes.has(c.code)} saved={wishlist.has(c.code)} onToggle={toggleWishlist} />
                 ))}
               </View>
             ) : (
@@ -198,7 +205,7 @@ export default function ExploreScreen() {
                       showsHorizontalScrollIndicator={false}
                       contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
                       renderItem={({ item }) => (
-                        <CountryCard code={item} width={132} discovered={false} saved onToggle={() => toggleWishlist(item)} />
+                        <CountryCard code={item} width={132} discovered={false} saved onToggle={toggleWishlist} />
                       )}
                     />
                   </>
@@ -217,7 +224,7 @@ export default function ExploreScreen() {
                       initialNumToRender={4}
                       windowSize={3}
                       renderItem={({ item }) => (
-                        <CountryCard code={item.code} width={132} discovered={discoveredCodes.has(item.code)} saved={wishlist.has(item.code)} onToggle={() => toggleWishlist(item.code)} />
+                        <CountryCard code={item.code} width={132} discovered={discoveredCodes.has(item.code)} saved={wishlist.has(item.code)} onToggle={toggleWishlist} />
                       )}
                     />
                   </View>
