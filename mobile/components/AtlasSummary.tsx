@@ -1,11 +1,10 @@
 import { memo, useEffect } from 'react';
 import { View, Text, Pressable } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, { useSharedValue, useAnimatedStyle, withDelay, withTiming, Easing } from 'react-native-reanimated';
 import { Globe2, Building2, Plane, Share2 } from 'lucide-react-native';
 import type { ComponentType } from 'react';
-import { COLORS, GRADIENTS } from '../src/lib/theme';
+import { COLORS } from '../src/lib/theme';
 import { CONTINENTS, type Continent } from '../src/types';
 import type { PassportStats } from '../src/lib/stats';
 
@@ -135,11 +134,9 @@ export const AtlasSummary = memo(function AtlasSummary({
       </View>
 
       {/* share */}
-      <Pressable onPress={onShare} disabled={sharing} style={{ marginTop: 18, opacity: sharing ? 0.6 : 1 }}>
-        <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} className="flex-row items-center justify-center rounded-2xl" style={{ paddingVertical: 14, gap: 8 }}>
-          <Share2 size={16} color="#fff" />
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: '#fff' }}>{sharing ? 'Preparing…' : 'Share my map'}</Text>
-        </LinearGradient>
+      <Pressable onPress={onShare} disabled={sharing} className="flex-row items-center rounded-full" style={{ alignSelf: 'center', marginTop: 18, paddingHorizontal: 18, paddingVertical: 9, gap: 7, backgroundColor: 'rgba(255,107,154,0.12)', opacity: sharing ? 0.6 : 1 }}>
+        <Share2 size={15} color={COLORS.coral} />
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '700', color: COLORS.coral }}>{sharing ? 'Preparing…' : 'Share my map'}</Text>
       </Pressable>
     </View>
   );
