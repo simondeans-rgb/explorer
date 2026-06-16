@@ -19,6 +19,7 @@ export interface ExpeditionRow {
   endDate?: string;
   countryCodes: string[];
   journeys: Journey[];
+  note?: string;
 }
 export interface ImportPlan {
   places: PlaceRow[];
@@ -157,7 +158,7 @@ export function buildImportPlan(
     }
     if (!destCode) destCode = airportInfo(seg[seg.length - 1].to)?.country;
     const title = destCode ? `${countryName(destCode)} · ${start.slice(0, 4)}` : `Trip · ${start.slice(0, 4)}`;
-    expeditions.push({ title, startDate: start, endDate: end, countryCodes: [...codes], journeys });
+    expeditions.push({ title, startDate: start, endDate: end, countryCodes: [...codes], journeys, note: 'Imported from Flighty.' });
     seg = [];
   };
 

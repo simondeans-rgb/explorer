@@ -117,6 +117,17 @@ interface DataApi extends DataShape {
     note?: string;
   }) => void;
   removeExpedition: (id: string) => void;
+  updateExpedition: (
+    id: string,
+    input: {
+      title: string;
+      countryCodes: string[];
+      startDate?: string;
+      endDate?: string;
+      journeys: Journey[];
+      note?: string;
+    },
+  ) => Promise<void>;
   addCapture: (input: {
     dataUrl: string;
     countryCode?: string;
@@ -170,6 +181,7 @@ const DataContext = createContext<DataApi>({
   removeDiscovery: noop,
   addExpedition: noop,
   removeExpedition: noop,
+  updateExpedition: async () => {},
   addCapture: async () => {},
   removeCapture: noop,
   addTrip: noop,
@@ -608,6 +620,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       },
       removeExpedition: (id) => remove('expeditions', id),
+      updateExpedition: async (id, input) => {
+        if (cloud && fdb && uid) {
+          await updateDoc(doc(fdb, 'expeditions', id), {
+            title: input.title.trim(),
+            startDate: input.startDate || null,
+            endDate: input.endDate || null,
+            countryCodes: input.countryCodes,
+            journeys: input.journeys,
+            note: input.note?.trim() || null,
+            updatedAt: serverTimestamp(),
+          });
+        } else {
+          const cur = localRef.current;
+          persistLocal({
+            ...cur,
+            expeditions: cur.expeditions.map((e) =>
+              e.id === id
+                ? {
+                    ...e,
+                    title: input.title.trim(),
+                    startDate: input.startDate || undefined,
+                    endDate: input.endDate || undefined,
+                    countryCodes: input.countryCodes,
+                    journeys: input.journeys,
+                    note: input.note?.trim() || undefined,
+                    updatedAt: Date.now(),
+                  }
+                : e,
+            ),
+          });
+        }
+      },
       addCapture: async (input) => {
         if (cloud && fdb && uid) {
           let url = input.dataUrl;
