@@ -100,7 +100,7 @@ export default function ExploreScreen() {
   const wishlist = useMemo(() => {
     const m = new Map<string, string>();
     for (const p of places) {
-      if (p.kind === 'country' && p.relationships.includes('aspiring') && !discoveredCodes.has(p.countryCode)) {
+      if (p.kind === 'country' && p.relationships?.includes('aspiring') && !discoveredCodes.has(p.countryCode)) {
         m.set(p.countryCode, p.id);
       }
     }

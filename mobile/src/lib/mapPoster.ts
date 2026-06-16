@@ -1,8 +1,10 @@
 // A shareable "my world" poster, rendered to a PDF via expo-print (works in
 // Expo Go) and handed to the native share sheet. Mirrors the web map poster
 // but draws the real highlighted world map.
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+//
+// expo-print / expo-sharing are imported lazily inside shareMapPoster so that
+// merely loading this module (and the Atlas route that imports it) never pulls
+// in a native module at startup — keeping route evaluation crash-proof.
 import { geoEqualEarth, geoPath } from 'd3-geo';
 import { WORLD_FEATURES } from './worldGeo';
 import { flagEmoji } from './flags';
@@ -76,6 +78,8 @@ export function buildMapPosterHtml(input: MapPosterInput): string {
 
 /** Render the poster to a PDF and open the native share sheet. */
 export async function shareMapPoster(input: MapPosterInput): Promise<void> {
+  const Print = await import('expo-print');
+  const Sharing = await import('expo-sharing');
   const html = buildMapPosterHtml(input);
   const { uri } = await Print.printToFileAsync({ html, width: 720, height: 1280 });
   if (await Sharing.isAvailableAsync()) {
