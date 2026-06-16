@@ -1,16 +1,16 @@
 import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput } from 'react-native';
 import { router } from 'expo-router';
-import { Globe2, MapPinned, Search, Share2 } from 'lucide-react-native';
+import { Globe2, MapPinned, Search } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
 import { WorldMap } from '../../components/WorldMap';
 import { RouteMap } from '../../components/RouteMap';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AtlasCountryCard } from '../../components/AtlasCountryCard';
+import { AtlasSummary } from '../../components/AtlasSummary';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
-import { CONTINENTS, type Continent } from '../../src/types';
 import { routeSegments } from '../../src/lib/journeyGeo';
 import { shareMapPoster } from '../../src/lib/mapPoster';
 import { useWorldly } from '../../src/hooks/useWorldly';
@@ -181,47 +181,15 @@ export default function AtlasScreen() {
 
           {/* Your world — overview stats + continent progress (all-time) */}
           {discovered.length > 0 ? (
-            <View className="bg-white rounded-3xl" style={{ marginTop: 14, padding: 18 }}>
-              <View className="flex-row" style={{ gap: 8 }}>
-                {[
-                  { n: String(stats.countriesDiscovered), l: 'Countries' },
-                  { n: `${worldPct < 10 ? worldPct.toFixed(1) : Math.round(worldPct)}%`, l: 'of the world' },
-                  { n: String(stats.citiesDiscovered), l: 'Cities' },
-                  { n: String(expeditions.length), l: 'Journeys' },
-                ].map((s) => (
-                  <View key={s.l} style={{ flex: 1 }}>
-                    <Text style={{ fontFamily: 'Fraunces', fontSize: 24, color: COLORS.navy }}>{s.n}</Text>
-                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginTop: 1 }}>{s.l}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <View className="flex-row items-center justify-between" style={{ marginTop: 18, marginBottom: 10 }}>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 1, color: COLORS.ink3 }}>CONTINENTS</Text>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>{stats.continentsDiscovered} / {CONTINENTS.filter((c) => TOTAL_BY_CONTINENT[c]).length}</Text>
-              </View>
-              <View style={{ gap: 9 }}>
-                {CONTINENTS.filter((c) => TOTAL_BY_CONTINENT[c]).map((c: Continent) => {
-                  const total = TOTAL_BY_CONTINENT[c];
-                  const got = discByContinent[c] ?? 0;
-                  const pct = total ? got / total : 0;
-                  return (
-                    <View key={c} className="flex-row items-center" style={{ gap: 10 }}>
-                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink2, width: 96 }}>{c}</Text>
-                      <View style={{ flex: 1, height: 7, borderRadius: 4, backgroundColor: 'rgba(20,33,61,0.07)', overflow: 'hidden' }}>
-                        <View style={{ width: `${Math.max(pct * 100, got > 0 ? 6 : 0)}%`, height: 7, borderRadius: 4, backgroundColor: got > 0 ? COLORS.coral : 'transparent' }} />
-                      </View>
-                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, width: 42, textAlign: 'right' }}>{got}/{total}</Text>
-                    </View>
-                  );
-                })}
-              </View>
-
-              <Pressable onPress={shareMap} disabled={sharing} className="flex-row items-center justify-center rounded-2xl" style={{ marginTop: 18, paddingVertical: 13, backgroundColor: COLORS.coral, gap: 8, opacity: sharing ? 0.6 : 1 }}>
-                <Share2 size={16} color="#fff" />
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: '#fff' }}>{sharing ? 'Preparing…' : 'Share my map'}</Text>
-              </Pressable>
-            </View>
+            <AtlasSummary
+              stats={stats}
+              worldPct={worldPct}
+              journeys={expeditions.length}
+              discByContinent={discByContinent}
+              totalByContinent={TOTAL_BY_CONTINENT}
+              onShare={shareMap}
+              sharing={sharing}
+            />
           ) : null}
         </View>
       ) : (
