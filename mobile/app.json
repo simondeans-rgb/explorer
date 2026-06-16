@@ -8,9 +8,11 @@
     "scheme": "mobile",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.simmyd23.worldly"
     },
     "android": {
+      "package": "com.simmyd23.worldly",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
