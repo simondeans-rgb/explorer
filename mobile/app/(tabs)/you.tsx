@@ -7,6 +7,7 @@ import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
 import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Users, Download, ScrollText, RotateCcw } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
+import { AchievementBadge } from '../../components/AchievementBadge';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useAuth } from '../../src/store/auth';
@@ -214,19 +215,23 @@ export default function YouScreen() {
       </View>
 
       {/* Achievements */}
-      <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
-        <View className="flex-row items-end justify-between">
+      <View style={{ marginTop: 22 }}>
+        <Pressable onPress={() => router.push('/achievements')} className="flex-row items-end justify-between" style={{ paddingHorizontal: 20 }}>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Achievements</Text>
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{earned}/{badges.length} earned</Text>
-        </View>
-        <View className="flex-row flex-wrap" style={{ marginTop: 12, gap: 10 }}>
-          {badges.map((b) => (
-            <View key={b.id} className="bg-white rounded-2xl items-center" style={{ width: '31%', paddingVertical: 14, opacity: b.earned ? 1 : 0.45 }}>
-              <Text style={{ fontSize: 26 }}>{b.emoji}</Text>
-              <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.navy, marginTop: 4 }}>{b.title}</Text>
-            </View>
-          ))}
-        </View>
+          <View className="flex-row items-center" style={{ gap: 2 }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>{earned}/{badges.length} · See all</Text>
+            <ChevronRight size={15} color={COLORS.coral} />
+          </View>
+        </Pressable>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 18, paddingVertical: 14, gap: 6 }}>
+          {[...badges]
+            .sort((a, b) => Number(b.earned) - Number(a.earned) || b.progress - a.progress)
+            .map((b) => (
+              <Pressable key={b.id} onPress={() => router.push('/achievements')}>
+                <AchievementBadge badge={b} tile={62} />
+              </Pressable>
+            ))}
+        </ScrollView>
       </View>
 
       {/* Replay intro */}
