@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { View, Text, Pressable, ScrollView, TextInput } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, runOnJS } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { X, GripVertical, Sparkles } from 'lucide-react-native';
@@ -31,7 +31,7 @@ export interface Suggestion {
 type Rect = { x: number; y: number; w: number; h: number };
 type DropKey = `slot:${ItinerarySlot}` | 'ideas';
 
-const metaLine = (i: { city?: string; category?: DiscoveryCategory; subcategory?: string; fromFriend?: string }) =>
+export const itineraryMeta = (i: { city?: string; category?: DiscoveryCategory; subcategory?: string; fromFriend?: string }) =>
   [i.city, i.category ? (subcategoryLabel(i.category, i.subcategory) ?? DISCOVERY_CATEGORY_META[i.category].label) : null, i.fromFriend ? `from ${i.fromFriend}` : null]
     .filter(Boolean)
     .join(' · ');
@@ -96,9 +96,11 @@ export function ItineraryPlanner({
   dayCount,
   itinerary,
   suggestions,
+  dayNotes,
   onReorder,
   onAddSuggestion,
   onRemoveItem,
+  onDayNote,
   onOpenItem,
   onOpenSuggestion,
 }: {
@@ -106,14 +108,18 @@ export function ItineraryPlanner({
   dayCount: number;
   itinerary: ItineraryItem[];
   suggestions: Suggestion[];
+  dayNotes: Record<string, string>;
   onReorder: (items: ItineraryItem[]) => void;
   onAddSuggestion: (s: Suggestion, day: number | undefined, slot: ItinerarySlot | undefined) => void;
   onRemoveItem: (id: string) => void;
+  onDayNote: (day: number, text: string) => void;
   onOpenItem: (i: ItineraryItem) => void;
   onOpenSuggestion: (s: Suggestion) => void;
 }) {
   const [day, setDay] = useState(1);
   const [hover, setHover] = useState<DropKey | null>(null);
+  const [noteDraft, setNoteDraft] = useState('');
+  useEffect(() => { setNoteDraft(dayNotes[String(day)] ?? ''); }, [day, dayNotes]);
 
   const zoneRefs = useRef<Partial<Record<DropKey, View | null>>>({});
   const rects = useRef<Partial<Record<DropKey, Rect>>>({});
@@ -237,7 +243,7 @@ export function ItineraryPlanner({
                         else moveItem(it, day, k.slice(5) as ItinerarySlot, y);
                       }}
                     >
-                      <Chrome title={it.name} meta={metaLine(it)} onRemove={() => onRemoveItem(it.id)} />
+                      <Chrome title={it.name} meta={itineraryMeta(it)} onRemove={() => onRemoveItem(it.id)} />
                     </DragCard>
                   </View>
                 ))}
@@ -245,6 +251,23 @@ export function ItineraryPlanner({
             </View>
           );
         })}
+      </View>
+
+      {/* day notes */}
+      <View style={{ marginTop: 14 }}>
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 6 }}>NOTES FOR {dayLabel(day).toUpperCase()}</Text>
+        <View className="bg-white rounded-2xl" style={{ paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: 'rgba(20,33,61,0.06)' }}>
+          <TextInput
+            value={noteDraft}
+            onChangeText={setNoteDraft}
+            onEndEditing={() => onDayNote(day, noteDraft)}
+            onBlur={() => onDayNote(day, noteDraft)}
+            placeholder="Reservations, timings, anything to remember…"
+            placeholderTextColor={COLORS.ink3}
+            multiline
+            style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink, minHeight: 44, textAlignVertical: 'top' }}
+          />
+        </View>
       </View>
 
       {/* ideas tray */}
@@ -273,7 +296,7 @@ export function ItineraryPlanner({
                     if (k && k !== 'ideas') moveItem(it, day, k.slice(5) as ItinerarySlot, y);
                   }}
                 >
-                  <Chrome title={it.name} meta={metaLine(it)} onRemove={() => onRemoveItem(it.id)} />
+                  <Chrome title={it.name} meta={itineraryMeta(it)} onRemove={() => onRemoveItem(it.id)} />
                 </DragCard>
               </View>
             ))}

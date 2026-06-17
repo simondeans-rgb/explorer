@@ -2,28 +2,32 @@ import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Plus, Users, X, UserPlus, LogOut } from 'lucide-react-native';
+import { ChevronLeft, Plus, Users, X, UserPlus, LogOut, FileDown } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AddItinerarySheet } from '../../components/AddItinerarySheet';
-import { ItineraryPlanner, type Suggestion } from '../../components/ItineraryPlanner';
+import { ItineraryPlanner, itineraryMeta, type Suggestion } from '../../components/ItineraryPlanner';
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { countryFacts } from '../../src/data/countryFacts';
-import { VERDICT_META, type RecommendationVerdict } from '../../src/types';
+import { VERDICT_META, ITINERARY_SLOTS, type RecommendationVerdict } from '../../src/types';
+import { buildItineraryHtml, saveItineraryDoc } from '../../src/lib/itineraryDoc';
 import { useData } from '../../src/store/data';
+import { useToast } from '../../src/store/toast';
 import { useAuth } from '../../src/store/auth';
 import { useFriends } from '../../src/hooks/useFriends';
 import { goBack } from '../../src/lib/nav';
 
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { trips, addItineraryItem, removeItineraryItem, reorderItinerary, addTripCollaborator, removeTripCollaborator } = useData();
+  const { trips, addItineraryItem, removeItineraryItem, reorderItinerary, setDayNote, addTripCollaborator, removeTripCollaborator } = useData();
+  const { toast } = useToast();
   const { user } = useAuth();
   const myName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
   const { friends, friendsData } = useFriends(user?.uid, myName);
   const [addOpen, setAddOpen] = useState(false);
   const [crewOpen, setCrewOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [detail, setDetail] = useState<{ title: string; friend?: string; verdict?: RecommendationVerdict; note?: string; sugg?: Suggestion } | null>(null);
 
   const trip = trips.find((t) => t.id === id);
@@ -69,6 +73,44 @@ export default function TripScreen() {
       .map((l) => ({ id: `lm:${l}`, name: l, category: 'culture', subcategory: 'landmark', landmark: true }));
     return [...friendPicks, ...landmarks];
   })();
+
+  async function exportDoc() {
+    if (exporting || !trip) return;
+    setExporting(true);
+    try {
+      const fmt = (n: number) => {
+        if (!trip.startDate) return `Day ${n}`;
+        const d = new Date(trip.startDate);
+        d.setDate(d.getDate() + (n - 1));
+        return d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+      };
+      const days = Array.from({ length: dayCount }, (_, i) => i + 1).map((n) => ({
+        label: `Day ${n} — ${fmt(n)}`,
+        note: trip.dayNotes?.[String(n)],
+        slots: ITINERARY_SLOTS.map((s) => ({
+          label: s.label,
+          items: trip.itinerary.filter((it) => it.day === n && (it.slot ?? 'allday') === s.id).map((it) => ({ name: it.name, meta: itineraryMeta(it) })),
+        })),
+      }));
+      const unscheduled = trip.itinerary.filter((it) => !it.day);
+      if (unscheduled.length) {
+        days.push({ label: 'Ideas (unscheduled)', note: undefined, slots: [{ label: 'Ideas', items: unscheduled.map((it) => ({ name: it.name, meta: itineraryMeta(it) })) }] });
+      }
+      const crew = trip.memberIds.map((m) => (m === user?.uid ? myName : trip.memberNames?.[m] ?? 'Friend'));
+      const html = buildItineraryHtml({
+        title: trip.title,
+        subtitle: `${countryName(trip.countryCode)}${trip.startDate ? ` · ${trip.startDate}${trip.endDate ? ` – ${trip.endDate}` : ''}` : ''}`,
+        crew: trip.memberIds.length > 1 ? crew : undefined,
+        days,
+      });
+      const ok = await saveItineraryDoc(`${trip.title} itinerary`, html);
+      if (!ok) toast.error('Sharing is unavailable on this device.');
+    } catch {
+      toast.error("Couldn't create the document.");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
@@ -186,12 +228,19 @@ export default function TripScreen() {
             dayCount={dayCount}
             itinerary={trip.itinerary}
             suggestions={suggestions}
+            dayNotes={trip.dayNotes ?? {}}
             onReorder={(items) => reorderItinerary(trip.id, items)}
             onAddSuggestion={(s, day, slot) => addItineraryItem(trip.id, { name: s.name, city: s.city, category: s.category, subcategory: s.subcategory, verdict: s.verdict, fromFriend: s.friend, day, slot })}
             onRemoveItem={(itemId) => removeItineraryItem(trip.id, itemId)}
+            onDayNote={(d, t) => setDayNote(trip.id, d, t)}
             onOpenItem={(i) => setDetail({ title: i.name, friend: i.fromFriend, verdict: i.verdict })}
             onOpenSuggestion={(s) => setDetail({ title: s.name, friend: s.friend, verdict: s.verdict, note: s.note, sugg: s })}
           />
+
+          <Pressable onPress={exportDoc} disabled={exporting} className="flex-row items-center justify-center rounded-full" style={{ alignSelf: 'center', marginTop: 18, paddingHorizontal: 18, paddingVertical: 10, gap: 7, backgroundColor: 'rgba(20,33,61,0.05)', opacity: exporting ? 0.6 : 1 }}>
+            <FileDown size={16} color={COLORS.navy} />
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '700', color: COLORS.navy }}>{exporting ? 'Preparing…' : 'Save as Word document'}</Text>
+          </Pressable>
         </View>
       </ScrollView>
 
