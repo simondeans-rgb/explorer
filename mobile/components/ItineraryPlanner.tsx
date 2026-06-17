@@ -21,8 +21,11 @@ export interface Suggestion {
   category?: DiscoveryCategory;
   subcategory?: string;
   verdict?: RecommendationVerdict;
-  friend: string;
+  /** Set when this came from a friend's discovery. */
+  friend?: string;
   note?: string;
+  /** Set for a popular landmark suggestion. */
+  landmark?: boolean;
 }
 
 type Rect = { x: number; y: number; w: number; h: number };
@@ -93,7 +96,7 @@ export function ItineraryPlanner({
   dayCount,
   itinerary,
   suggestions,
-  onMoveItem,
+  onReorder,
   onAddSuggestion,
   onRemoveItem,
   onOpenItem,
@@ -103,7 +106,7 @@ export function ItineraryPlanner({
   dayCount: number;
   itinerary: ItineraryItem[];
   suggestions: Suggestion[];
-  onMoveItem: (id: string, day: number | undefined, slot: ItinerarySlot | undefined) => void;
+  onReorder: (items: ItineraryItem[]) => void;
   onAddSuggestion: (s: Suggestion, day: number | undefined, slot: ItinerarySlot | undefined) => void;
   onRemoveItem: (id: string) => void;
   onOpenItem: (i: ItineraryItem) => void;
@@ -114,14 +117,46 @@ export function ItineraryPlanner({
 
   const zoneRefs = useRef<Partial<Record<DropKey, View | null>>>({});
   const rects = useRef<Partial<Record<DropKey, Rect>>>({});
+  const cardRefs = useRef<Record<string, View | null>>({});
+  const cardRects = useRef<Record<string, Rect>>({});
 
   const measure = () => {
     (Object.keys(zoneRefs.current) as DropKey[]).forEach((k) => {
-      const node = zoneRefs.current[k];
-      node?.measureInWindow((x, y, w, h) => {
-        rects.current[k] = { x, y, w, h };
-      });
+      zoneRefs.current[k]?.measureInWindow((x, y, w, h) => { rects.current[k] = { x, y, w, h }; });
     });
+    cardRects.current = {};
+    Object.keys(cardRefs.current).forEach((id) => {
+      cardRefs.current[id]?.measureInWindow((x, y, w, h) => { cardRects.current[id] = { x, y, w, h }; });
+    });
+  };
+
+  // Move an existing item to a (day, slot) inserting at the drop position so
+  // items can be re-ordered within the same time window.
+  const moveItem = (item: ItineraryItem, targetDay: number | undefined, targetSlot: ItinerarySlot | undefined, dropY: number) => {
+    const without = itinerary.filter((i) => i.id !== item.id);
+    const moved: ItineraryItem = { ...item };
+    delete moved.day;
+    delete moved.slot;
+    if (targetDay !== undefined && targetSlot) {
+      moved.day = targetDay;
+      moved.slot = targetSlot;
+      const slotItems = without.filter((i) => i.day === targetDay && (i.slot ?? 'allday') === targetSlot);
+      let beforeId: string | undefined;
+      for (const si of slotItems) {
+        const r = cardRects.current[si.id];
+        if (r && dropY < r.y + r.h / 2) { beforeId = si.id; break; }
+      }
+      let at: number;
+      if (beforeId) at = without.findIndex((i) => i.id === beforeId);
+      else if (slotItems.length) at = without.findIndex((i) => i.id === slotItems[slotItems.length - 1].id) + 1;
+      else at = without.length;
+      const next = [...without];
+      next.splice(at, 0, moved);
+      onReorder(next);
+    } else {
+      // back to ideas (unscheduled) — drop at the end
+      onReorder([...without, moved]);
+    }
   };
   const zoneAt = (x: number, y: number): DropKey | null => {
     for (const k of Object.keys(rects.current) as DropKey[]) {
@@ -189,21 +224,22 @@ export function ItineraryPlanner({
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: items.length ? 8 : 0, paddingHorizontal: 2 }}>{s.label.toUpperCase()}</Text>
               <View style={{ gap: 8 }}>
                 {items.map((it) => (
-                  <DragCard
-                    key={it.id}
-                    onLift={measure}
-                    onMove={setHoverIf}
-                    onPress={() => onOpenItem(it)}
-                    onDrop={(x, y) => {
-                      setHover(null);
-                      const k = zoneAt(x, y);
-                      if (!k) return;
-                      if (k === 'ideas') onMoveItem(it.id, undefined, undefined);
-                      else onMoveItem(it.id, day, k.slice(5) as ItinerarySlot);
-                    }}
-                  >
-                    <Chrome title={it.name} meta={metaLine(it)} onRemove={() => onRemoveItem(it.id)} />
-                  </DragCard>
+                  <View key={it.id} ref={(r) => { cardRefs.current[it.id] = r; }} collapsable={false}>
+                    <DragCard
+                      onLift={measure}
+                      onMove={setHoverIf}
+                      onPress={() => onOpenItem(it)}
+                      onDrop={(x, y) => {
+                        setHover(null);
+                        const k = zoneAt(x, y);
+                        if (!k) return;
+                        if (k === 'ideas') moveItem(it, undefined, undefined, y);
+                        else moveItem(it, day, k.slice(5) as ItinerarySlot, y);
+                      }}
+                    >
+                      <Chrome title={it.name} meta={metaLine(it)} onRemove={() => onRemoveItem(it.id)} />
+                    </DragCard>
+                  </View>
                 ))}
               </View>
             </View>
@@ -226,35 +262,39 @@ export function ItineraryPlanner({
         ) : (
           <View style={{ gap: 8 }}>
             {ideas.map((it) => (
-              <DragCard
-                key={it.id}
-                onLift={measure}
-                onMove={setHoverIf}
-                onPress={() => onOpenItem(it)}
-                onDrop={(x, y) => {
-                  setHover(null);
-                  const k = zoneAt(x, y);
-                  if (k && k !== 'ideas') onMoveItem(it.id, day, k.slice(5) as ItinerarySlot);
-                }}
-              >
-                <Chrome title={it.name} meta={metaLine(it)} onRemove={() => onRemoveItem(it.id)} />
-              </DragCard>
+              <View key={it.id} ref={(r) => { cardRefs.current[it.id] = r; }} collapsable={false}>
+                <DragCard
+                  onLift={measure}
+                  onMove={setHoverIf}
+                  onPress={() => onOpenItem(it)}
+                  onDrop={(x, y) => {
+                    setHover(null);
+                    const k = zoneAt(x, y);
+                    if (k && k !== 'ideas') moveItem(it, day, k.slice(5) as ItinerarySlot, y);
+                  }}
+                >
+                  <Chrome title={it.name} meta={metaLine(it)} onRemove={() => onRemoveItem(it.id)} />
+                </DragCard>
+              </View>
             ))}
-            {suggestions.map((s) => (
-              <DragCard
-                key={s.id}
-                onLift={measure}
-                onMove={setHoverIf}
-                onPress={() => onOpenSuggestion(s)}
-                onDrop={(x, y) => {
-                  setHover(null);
-                  const k = zoneAt(x, y);
-                  if (k && k !== 'ideas') onAddSuggestion(s, day, k.slice(5) as ItinerarySlot);
-                }}
-              >
-                <Chrome title={s.name} meta={metaLine({ city: s.city, category: s.category, subcategory: s.subcategory, fromFriend: s.friend })} sugg />
-              </DragCard>
-            ))}
+            {suggestions.map((s) => {
+              const meta = s.friend ? `from ${s.friend}` : 'Popular landmark';
+              return (
+                <DragCard
+                  key={s.id}
+                  onLift={measure}
+                  onMove={setHoverIf}
+                  onPress={() => onOpenSuggestion(s)}
+                  onDrop={(x, y) => {
+                    setHover(null);
+                    const k = zoneAt(x, y);
+                    if (k && k !== 'ideas') onAddSuggestion(s, day, k.slice(5) as ItinerarySlot);
+                  }}
+                >
+                  <Chrome title={s.name} meta={meta} sugg />
+                </DragCard>
+              );
+            })}
           </View>
         )}
       </View>

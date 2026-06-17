@@ -9,6 +9,7 @@ import { ItineraryPlanner, type Suggestion } from '../../components/ItineraryPla
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
+import { countryFacts } from '../../src/data/countryFacts';
 import { VERDICT_META, type RecommendationVerdict } from '../../src/types';
 import { useData } from '../../src/store/data';
 import { useAuth } from '../../src/store/auth';
@@ -17,7 +18,7 @@ import { goBack } from '../../src/lib/nav';
 
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { trips, addItineraryItem, removeItineraryItem, updateItineraryItem, addTripCollaborator, removeTripCollaborator } = useData();
+  const { trips, addItineraryItem, removeItineraryItem, reorderItinerary, addTripCollaborator, removeTripCollaborator } = useData();
   const { user } = useAuth();
   const myName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
   const { friends, friendsData } = useFriends(user?.uid, myName);
@@ -57,10 +58,17 @@ export default function TripScreen() {
     return 3;
   })();
 
-  // Friends' picks not already on the plan — draggable into a day.
-  const suggestions: Suggestion[] = friendDiscoveries
-    .filter((d) => !itineraryNames.has(d.name.toLowerCase()))
-    .map((d) => ({ id: d.id, name: d.name, city: d.city, category: d.category, subcategory: d.subcategory, verdict: d.verdict, friend: d.friend, note: d.note }));
+  // Ideas to drag onto a day: friends' picks + this country's popular landmarks.
+  const suggestions: Suggestion[] = (() => {
+    const friendPicks: Suggestion[] = friendDiscoveries
+      .filter((d) => !itineraryNames.has(d.name.toLowerCase()))
+      .map((d) => ({ id: d.id, name: d.name, city: d.city, category: d.category, subcategory: d.subcategory, verdict: d.verdict, friend: d.friend, note: d.note }));
+    const friendNames = new Set(friendPicks.map((s) => s.name.toLowerCase()));
+    const landmarks: Suggestion[] = (countryFacts(trip.countryCode)?.landmarks ?? [])
+      .filter((l) => !itineraryNames.has(l.toLowerCase()) && !friendNames.has(l.toLowerCase()))
+      .map((l) => ({ id: `lm:${l}`, name: l, category: 'culture', subcategory: 'landmark', landmark: true }));
+    return [...friendPicks, ...landmarks];
+  })();
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
@@ -178,7 +186,7 @@ export default function TripScreen() {
             dayCount={dayCount}
             itinerary={trip.itinerary}
             suggestions={suggestions}
-            onMoveItem={(itemId, day, slot) => updateItineraryItem(trip.id, itemId, { day, slot })}
+            onReorder={(items) => reorderItinerary(trip.id, items)}
             onAddSuggestion={(s, day, slot) => addItineraryItem(trip.id, { name: s.name, city: s.city, category: s.category, subcategory: s.subcategory, verdict: s.verdict, fromFriend: s.friend, day, slot })}
             onRemoveItem={(itemId) => removeItineraryItem(trip.id, itemId)}
             onOpenItem={(i) => setDetail({ title: i.name, friend: i.fromFriend, verdict: i.verdict })}
@@ -209,6 +217,8 @@ export default function TripScreen() {
                 <Text style={{ fontFamily: 'Fraunces', fontSize: 15, fontStyle: 'italic', color: COLORS.ink2, marginTop: 14, lineHeight: 21, borderLeftWidth: 2, borderLeftColor: 'rgba(255,107,154,0.5)', paddingLeft: 12 }}>“{detail.note}”</Text>
               ) : detail.friend ? (
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 14 }}>{detail.friend} recommended this — no note left.</Text>
+              ) : detail.sugg?.landmark ? (
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 14 }}>A popular landmark in {countryName(trip.countryCode)} — drag it onto a day to add it.</Text>
               ) : null}
               {detail.sugg ? (
                 <Pressable

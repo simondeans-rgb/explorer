@@ -151,6 +151,8 @@ interface DataApi extends DataShape {
   addItineraryItem: (tripId: string, item: Omit<ItineraryItem, 'id'>) => void;
   removeItineraryItem: (tripId: string, itemId: string) => void;
   updateItineraryItem: (tripId: string, itemId: string, patch: Partial<ItineraryItem>) => void;
+  /** Persist a fully re-ordered itinerary (drag-to-reorder + re-slot). */
+  reorderItinerary: (tripId: string, items: ItineraryItem[]) => void;
   /** Bulk import places (countries/cities), de-duplicating by code+name. */
   importPlaces: (
     rows: { kind: PlaceKind; countryCode: string; name?: string; firstYear?: number }[],
@@ -197,6 +199,7 @@ const DataContext = createContext<DataApi>({
   addItineraryItem: noop,
   removeItineraryItem: noop,
   updateItineraryItem: noop,
+  reorderItinerary: noop,
   importPlaces: async () => 0,
   importExpeditions: async () => 0,
 });
@@ -843,6 +846,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const trip = data.trips.find((t) => t.id === tripId);
         if (!trip) return;
         const itinerary = trip.itinerary.map((i) => (i.id === itemId ? clean({ ...i, ...patch }) as ItineraryItem : i));
+        if (cloud && fdb && uid) {
+          updateDoc(doc(fdb, 'trips', tripId), { itinerary, updatedAt: serverTimestamp() }).catch(() => {});
+        } else {
+          const cur = localRef.current;
+          persistLocal({ ...cur, trips: cur.trips.map((t) => (t.id === tripId ? { ...t, itinerary, updatedAt: Date.now() } : t)) });
+        }
+      },
+      reorderItinerary: (tripId, items) => {
+        const itinerary = items.map((i) => clean({ ...i }) as ItineraryItem);
         if (cloud && fdb && uid) {
           updateDoc(doc(fdb, 'trips', tripId), { itinerary, updatedAt: serverTimestamp() }).catch(() => {});
         } else {
