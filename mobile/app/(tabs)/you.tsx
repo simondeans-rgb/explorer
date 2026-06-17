@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
@@ -9,6 +9,7 @@ import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Users, Downloa
 import { DestinationImage } from '../../components/DestinationImage';
 import { AchievementBadge } from '../../components/AchievementBadge';
 import { HERO_CODES } from '../../src/lib/heroImages';
+import { hasDestinationPhoto } from '../../src/lib/destinationImage';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useAuth } from '../../src/store/auth';
@@ -18,7 +19,22 @@ import { pickPhotoDataUrl } from '../../src/lib/photo';
 import { ensureProfile, loadProfilePhoto, saveProfilePhoto } from '../../src/lib/profile';
 
 export default function YouScreen() {
-  const { stats, discoveryStats, journeyStats, level, badges } = useWorldly();
+  const { stats, discoveryStats, journeyStats, level, badges, aggregates } = useWorldly();
+
+  // Wrapped rotates through your own countries (recent first), padded to 4.
+  const wrappedCodes = useMemo(() => {
+    const mine = aggregates
+      .filter((a) => a.discovered && hasDestinationPhoto(a.code))
+      .sort((a, b) => (b.firstYear ?? 0) - (a.firstYear ?? 0))
+      .map((a) => a.code);
+    const out = [...new Set(mine)].slice(0, 4);
+    for (const c of ['BR', 'JP', 'IN', 'ZA']) {
+      if (out.length >= 4) break;
+      if (!out.includes(c)) out.push(c);
+    }
+    return out;
+  }, [aggregates]);
+  const almanacCodes = ['PE', 'EG', 'GR', 'IT'];
   const { configured, user, signOutUser } = useAuth();
   const { replay } = useOnboarding();
   const [authOpen, setAuthOpen] = useState(false);
@@ -123,7 +139,7 @@ export default function YouScreen() {
       <View className="flex-row" style={{ paddingHorizontal: 20, marginTop: 14, gap: 12 }}>
         <Pressable onPress={() => router.push('/wrapped')} style={{ flex: 1 }}>
           <View style={{ borderRadius: 24, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } }}>
-            <DestinationImage code="BR" scrim style={{ borderRadius: 24, minHeight: 150, padding: 16, justifyContent: 'space-between' }}>
+            <DestinationImage code={wrappedCodes[0]} codes={wrappedCodes} rotateMs={8000} scrim style={{ borderRadius: 24, minHeight: 150, padding: 16, justifyContent: 'space-between' }}>
               <View className="rounded-2xl items-center justify-center bg-white/25" style={{ height: 40, width: 40 }}>
                 <Sparkles size={20} color="#fff" />
               </View>
@@ -136,7 +152,7 @@ export default function YouScreen() {
         </Pressable>
         <Pressable onPress={() => router.push('/almanac')} style={{ flex: 1 }}>
           <View style={{ borderRadius: 24, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } }}>
-            <DestinationImage code="PE" scrim style={{ borderRadius: 24, minHeight: 150, padding: 16, justifyContent: 'space-between' }}>
+            <DestinationImage code={almanacCodes[0]} codes={almanacCodes} rotateMs={9500} scrim style={{ borderRadius: 24, minHeight: 150, padding: 16, justifyContent: 'space-between' }}>
               <View className="rounded-2xl items-center justify-center bg-white/25" style={{ height: 40, width: 40 }}>
                 <ScrollText size={20} color="#fff" />
               </View>
