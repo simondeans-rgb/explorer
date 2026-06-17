@@ -420,13 +420,17 @@ export interface ItineraryItem {
  *  growing itinerary of places to visit. Powers the Story countdown. */
 export interface Trip {
   id: string;
-  userId: string;
+  userId: string; // the owner
   title: string;
   countryCode: string;
   startDate: string; // ISO yyyy-mm-dd
   endDate?: string; // ISO yyyy-mm-dd
   itinerary: ItineraryItem[];
   note?: string;
+  /** Everyone who can see/edit this trip (owner + invited friends). */
+  memberIds: string[];
+  /** uid → display name, for showing collaborators. */
+  memberNames?: Record<string, string>;
   createdAt: number;
   updatedAt: number;
 }

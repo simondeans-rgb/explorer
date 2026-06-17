@@ -173,6 +173,7 @@ export const SEED_TRIPS: Trip[] = [
   {
     id: 't1',
     userId: 'demo',
+    memberIds: ['demo'],
     title: 'New Zealand adventure',
     countryCode: 'NZ',
     startDate: `${nextYear}-02-10`,

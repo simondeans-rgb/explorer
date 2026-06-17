@@ -10,6 +10,8 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   addDoc,
+  arrayRemove,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
@@ -143,6 +145,9 @@ interface DataApi extends DataShape {
     note?: string;
   }) => void;
   removeTrip: (id: string) => void;
+  /** Invite a friend to collaborate on a trip's itinerary. */
+  addTripCollaborator: (tripId: string, owner: { uid: string; name: string }, friend: { uid: string; name: string }) => void;
+  removeTripCollaborator: (tripId: string, memberUid: string) => void;
   addItineraryItem: (tripId: string, item: Omit<ItineraryItem, 'id'>) => void;
   removeItineraryItem: (tripId: string, itemId: string) => void;
   /** Bulk import places (countries/cities), de-duplicating by code+name. */
@@ -186,6 +191,8 @@ const DataContext = createContext<DataApi>({
   removeCapture: noop,
   addTrip: noop,
   removeTrip: noop,
+  addTripCollaborator: noop,
+  removeTripCollaborator: noop,
   addItineraryItem: noop,
   removeItineraryItem: noop,
   importPlaces: async () => 0,
@@ -288,6 +295,8 @@ function tripFromDoc(id: string, d: DocumentData): Trip {
     endDate: d.endDate || undefined,
     itinerary: Array.isArray(d.itinerary) ? d.itinerary : [],
     note: d.note || undefined,
+    memberIds: Array.isArray(d.memberIds) ? d.memberIds : [d.userId],
+    memberNames: (d.memberNames as Record<string, string>) ?? {},
     createdAt: millis(d.createdAt),
     updatedAt: millis(d.updatedAt),
   };
@@ -378,6 +387,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     };
     const q = (c: Coll) => query(collection(fdb, c), where('userId', '==', uid));
+    // Own + shared trips are kept separately and merged (deduped by id).
+    const ownTrips = { current: [] as Trip[] };
+    const sharedTrips = { current: [] as Trip[] };
+    const mergeTrips = () => {
+      const m = new Map<string, Trip>();
+      for (const t of ownTrips.current) m.set(t.id, t);
+      for (const t of sharedTrips.current) if (!m.has(t.id)) m.set(t.id, t);
+      const merged = [...m.values()];
+      setData((p) => ({ ...p, trips: merged }));
+    };
     const unsubs = [
       onSnapshot(q('places'), (snap) => {
         setData((p) => ({ ...p, places: snap.docs.map((d) => placeFromDoc(d.id, d.data())) }));
@@ -395,10 +414,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setData((p) => ({ ...p, captures: snap.docs.map((d) => captureFromDoc(d.id, d.data())) }));
         markReady('captures');
       }),
+      // Trips: your own + trips friends have invited you to collaborate on.
+      // Two queries merged (Firestore can't OR), deduped by id.
       onSnapshot(q('trips'), (snap) => {
-        setData((p) => ({ ...p, trips: snap.docs.map((d) => tripFromDoc(d.id, d.data())) }));
+        ownTrips.current = snap.docs.map((d) => tripFromDoc(d.id, d.data()));
+        mergeTrips();
         markReady('trips');
       }),
+      onSnapshot(
+        query(collection(fdb, 'trips'), where('memberIds', 'array-contains', uid)),
+        (snap) => {
+          sharedTrips.current = snap.docs.map((d) => tripFromDoc(d.id, d.data()));
+          mergeTrips();
+        },
+        () => {
+          // permission-denied until the trips rule is deployed — ignore.
+        },
+      ),
     ];
     return () => unsubs.forEach((u) => u());
   }, [cloud, uid]);
@@ -717,23 +749,69 @@ export function DataProvider({ children }: { children: ReactNode }) {
             endDate: input.endDate || null,
             itinerary: [],
             note: input.note?.trim() || null,
+            memberIds: [uid],
+            memberNames: {},
           });
         } else {
           const now = Date.now();
+          const me = uid ?? 'me';
           const trip: Trip = {
             id: newId(),
-            userId: 'me',
+            userId: me,
             title: input.title.trim(),
             countryCode: input.countryCode,
             startDate: input.startDate,
             endDate: input.endDate || undefined,
             itinerary: [],
             note: input.note?.trim() || undefined,
+            memberIds: [me],
+            memberNames: {},
             createdAt: now,
             updatedAt: now,
           };
           const cur = localRef.current;
           persistLocal({ ...cur, trips: [trip, ...cur.trips] });
+        }
+      },
+      addTripCollaborator: (tripId, owner, friend) => {
+        if (cloud && fdb && uid) {
+          updateDoc(doc(fdb, 'trips', tripId), {
+            memberIds: arrayUnion(friend.uid),
+            [`memberNames.${friend.uid}`]: friend.name,
+            [`memberNames.${owner.uid}`]: owner.name,
+            updatedAt: serverTimestamp(),
+          }).catch(() => {});
+        } else {
+          const cur = localRef.current;
+          persistLocal({
+            ...cur,
+            trips: cur.trips.map((t) =>
+              t.id === tripId
+                ? {
+                    ...t,
+                    memberIds: t.memberIds.includes(friend.uid) ? t.memberIds : [...t.memberIds, friend.uid],
+                    memberNames: { ...t.memberNames, [friend.uid]: friend.name, [owner.uid]: owner.name },
+                    updatedAt: Date.now(),
+                  }
+                : t,
+            ),
+          });
+        }
+      },
+      removeTripCollaborator: (tripId, memberUid) => {
+        if (cloud && fdb && uid) {
+          updateDoc(doc(fdb, 'trips', tripId), {
+            memberIds: arrayRemove(memberUid),
+            updatedAt: serverTimestamp(),
+          }).catch(() => {});
+        } else {
+          const cur = localRef.current;
+          persistLocal({
+            ...cur,
+            trips: cur.trips.map((t) =>
+              t.id === tripId ? { ...t, memberIds: t.memberIds.filter((m) => m !== memberUid), updatedAt: Date.now() } : t,
+            ),
+          });
         }
       },
       removeTrip: (id) => remove('trips', id),
