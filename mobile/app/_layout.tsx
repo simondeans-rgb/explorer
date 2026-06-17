@@ -1,5 +1,6 @@
 import '../global.css';
 import { View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useFonts } from 'expo-font';
 import { Fraunces_600SemiBold } from '@expo-google-fonts/fraunces';
 import {
@@ -38,17 +39,19 @@ export default function RootLayout() {
   });
 
   return (
-    <OnboardingProvider>
-      <AuthProvider>
-        <DataProvider>
-          <ToastProvider>
-            <CelebrationProvider>
-              <RootContent fontsLoaded={loaded} />
-            </CelebrationProvider>
-          </ToastProvider>
-        </DataProvider>
-      </AuthProvider>
-    </OnboardingProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <OnboardingProvider>
+        <AuthProvider>
+          <DataProvider>
+            <ToastProvider>
+              <CelebrationProvider>
+                <RootContent fontsLoaded={loaded} />
+              </CelebrationProvider>
+            </ToastProvider>
+          </DataProvider>
+        </AuthProvider>
+      </OnboardingProvider>
+    </GestureHandlerRootView>
   );
 }
 

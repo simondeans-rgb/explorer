@@ -2,13 +2,14 @@ import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Plus, Trash2, MapPin, Users, X, UserPlus, LogOut } from 'lucide-react-native';
+import { ChevronLeft, Plus, Users, X, UserPlus, LogOut } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AddItinerarySheet } from '../../components/AddItinerarySheet';
+import { ItineraryPlanner, type Suggestion } from '../../components/ItineraryPlanner';
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
-import { VERDICT_META, DISCOVERY_CATEGORY_META, subcategoryLabel } from '../../src/types';
+import { VERDICT_META, type RecommendationVerdict } from '../../src/types';
 import { useData } from '../../src/store/data';
 import { useAuth } from '../../src/store/auth';
 import { useFriends } from '../../src/hooks/useFriends';
@@ -16,12 +17,13 @@ import { goBack } from '../../src/lib/nav';
 
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { trips, addItineraryItem, removeItineraryItem, addTripCollaborator, removeTripCollaborator } = useData();
+  const { trips, addItineraryItem, removeItineraryItem, updateItineraryItem, addTripCollaborator, removeTripCollaborator } = useData();
   const { user } = useAuth();
   const myName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
   const { friends, friendsData } = useFriends(user?.uid, myName);
   const [addOpen, setAddOpen] = useState(false);
   const [crewOpen, setCrewOpen] = useState(false);
+  const [detail, setDetail] = useState<{ title: string; friend?: string; verdict?: RecommendationVerdict; note?: string; sugg?: Suggestion } | null>(null);
 
   const trip = trips.find((t) => t.id === id);
 
@@ -31,7 +33,7 @@ export default function TripScreen() {
     const nameByUid = new Map(friends.map((f) => [f.uid, f.name]));
     return friendsData.discoveries
       .filter((d) => d.countryCode === trip.countryCode)
-      .map((d) => ({ id: d.id, name: d.name, city: d.city, verdict: d.verdict, category: d.category, subcategory: d.subcategory, friend: nameByUid.get(d.userId) ?? 'Friend' }));
+      .map((d) => ({ id: d.id, name: d.name, city: d.city, verdict: d.verdict, category: d.category, subcategory: d.subcategory, note: d.note, friend: nameByUid.get(d.userId) ?? 'Friend' }));
   }, [trip, friends, friendsData.discoveries]);
 
   if (!trip) {
@@ -45,6 +47,20 @@ export default function TripScreen() {
 
   const days = Math.max(0, Math.ceil((Date.parse(trip.startDate) - Date.now()) / 86_400_000));
   const itineraryNames = new Set(trip.itinerary.map((i) => i.name.toLowerCase()));
+
+  // Number of days in the trip (defaults to 3 when no end date is set).
+  const dayCount = (() => {
+    if (trip.endDate && trip.startDate) {
+      const n = Math.floor((Date.parse(trip.endDate) - Date.parse(trip.startDate)) / 86_400_000) + 1;
+      return Math.min(Math.max(n, 1), 21);
+    }
+    return 3;
+  })();
+
+  // Friends' picks not already on the plan — draggable into a day.
+  const suggestions: Suggestion[] = friendDiscoveries
+    .filter((d) => !itineraryNames.has(d.name.toLowerCase()))
+    .map((d) => ({ id: d.id, name: d.name, city: d.city, category: d.category, subcategory: d.subcategory, verdict: d.verdict, friend: d.friend, note: d.note }));
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
@@ -115,9 +131,11 @@ export default function TripScreen() {
                     </View>
                   );
                 })}
-                {trip.memberIds.length === 1 ? (
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, lineHeight: 17 }}>Add a friend and you can build this itinerary together — everyone on the trip can edit it.</Text>
-                ) : null}
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, lineHeight: 17 }}>
+                  {trip.memberIds.length === 1
+                    ? 'Add a friend and you can build this itinerary together — everyone on the trip can edit it.'
+                    : 'Everyone here can view and edit the itinerary together.'}
+                </Text>
               </View>
 
               {crewOpen && isOwner ? (
@@ -144,83 +162,67 @@ export default function TripScreen() {
           );
         })() : null}
 
-        {/* Itinerary */}
+        {/* Itinerary planner — drag ideas onto days */}
         <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
-          <View className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
-            <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Your itinerary</Text>
+          <View className="flex-row items-center justify-between" style={{ marginBottom: 6 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Plan your days</Text>
             <Pressable onPress={() => setAddOpen(true)} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 12, paddingVertical: 7, gap: 5 }}>
               <Plus size={14} color={COLORS.coral} />
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>Add</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>Add idea</Text>
             </Pressable>
           </View>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginBottom: 14, lineHeight: 17 }}>Long-press a card and drag it onto a day &amp; time. Tap to see details.</Text>
 
-          {trip.itinerary.length === 0 ? (
-            <View className="bg-white rounded-3xl items-center" style={{ paddingVertical: 26, paddingHorizontal: 20 }}>
-              <Text style={{ fontSize: 32 }}>🗒️</Text>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 8, textAlign: 'center' }}>
-                Nothing planned yet. Add places, or pull ideas from your friends below.
-              </Text>
-            </View>
-          ) : (
-            <View style={{ gap: 8 }}>
-              {trip.itinerary.map((it) => (
-                <View key={it.id} className="bg-white rounded-2xl flex-row items-center" style={{ padding: 14, gap: 12 }}>
-                  <View className="rounded-xl items-center justify-center" style={{ height: 34, width: 34, backgroundColor: COLORS.warmwhite }}>
-                    <MapPin size={16} color={COLORS.coral} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{it.name}</Text>
-                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>
-                      {[it.city, it.category ? (subcategoryLabel(it.category, it.subcategory) ?? DISCOVERY_CATEGORY_META[it.category].label) : null, it.fromFriend ? `from ${it.fromFriend}` : null].filter(Boolean).join(' · ')}
-                    </Text>
-                  </View>
-                  <Pressable onPress={() => removeItineraryItem(trip.id, it.id)} hitSlop={6}>
-                    <Trash2 size={18} color={COLORS.ink3} />
-                  </Pressable>
-                </View>
-              ))}
-            </View>
-          )}
+          <ItineraryPlanner
+            startDate={trip.startDate}
+            dayCount={dayCount}
+            itinerary={trip.itinerary}
+            suggestions={suggestions}
+            onMoveItem={(itemId, day, slot) => updateItineraryItem(trip.id, itemId, { day, slot })}
+            onAddSuggestion={(s, day, slot) => addItineraryItem(trip.id, { name: s.name, city: s.city, category: s.category, subcategory: s.subcategory, verdict: s.verdict, fromFriend: s.friend, day, slot })}
+            onRemoveItem={(itemId) => removeItineraryItem(trip.id, itemId)}
+            onOpenItem={(i) => setDetail({ title: i.name, friend: i.fromFriend, verdict: i.verdict })}
+            onOpenSuggestion={(s) => setDetail({ title: s.name, friend: s.friend, verdict: s.verdict, note: s.note, sugg: s })}
+          />
         </View>
-
-        {/* From your circle */}
-        {friendDiscoveries.length > 0 ? (
-          <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
-            <View className="flex-row items-center" style={{ gap: 6, marginBottom: 12 }}>
-              <Users size={16} color={COLORS.lavender} />
-              <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>From your circle</Text>
-            </View>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: -6, marginBottom: 12 }}>
-              Places your friends found in {countryName(trip.countryCode)} — tap + to add to your plan.
-            </Text>
-            <View style={{ gap: 8 }}>
-              {friendDiscoveries.map((d) => {
-                const added = itineraryNames.has(d.name.toLowerCase());
-                return (
-                  <View key={d.id} className="bg-white rounded-2xl flex-row items-center" style={{ padding: 14, gap: 12 }}>
-                    <View className="rounded-full items-center justify-center" style={{ height: 34, width: 34, backgroundColor: 'rgba(155,124,255,0.16)' }}>
-                      <Text style={{ fontFamily: 'Fraunces', fontSize: 14, color: COLORS.lavender }}>{d.friend.charAt(0).toUpperCase()}</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{d.name}</Text>
-                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>
-                        {[d.city, d.friend, d.verdict ? VERDICT_META[d.verdict].label : null].filter(Boolean).join(' · ')}
-                      </Text>
-                    </View>
-                    {added ? (
-                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.aqua }}>Added</Text>
-                    ) : (
-                      <Pressable onPress={() => addItineraryItem(trip.id, { name: d.name, city: d.city, category: d.category, subcategory: d.subcategory, verdict: d.verdict, fromFriend: d.friend })} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 34, width: 34, backgroundColor: COLORS.coral }}>
-                        <Plus size={18} color="#fff" strokeWidth={2.6} />
-                      </Pressable>
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        ) : null}
       </ScrollView>
+
+      {/* Detail overlay */}
+      {detail ? (
+          <Pressable onPress={() => setDetail(null)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(14,16,24,0.5)', alignItems: 'center', justifyContent: 'center', padding: 30 }}>
+            <Pressable onPress={() => {}} className="bg-white rounded-3xl" style={{ width: '100%', maxWidth: 360, padding: 22 }}>
+              <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>{detail.title}</Text>
+              <View className="flex-row items-center" style={{ gap: 8, marginTop: 8 }}>
+                {detail.friend ? (
+                  <View className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(155,124,255,0.14)', paddingHorizontal: 10, paddingVertical: 5, gap: 5 }}>
+                    <Users size={13} color={COLORS.lavender} />
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.lavender }}>{detail.friend}</Text>
+                  </View>
+                ) : null}
+                {detail.verdict ? (
+                  <View className="rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 10, paddingVertical: 5 }}>
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>{VERDICT_META[detail.verdict].label}</Text>
+                  </View>
+                ) : null}
+              </View>
+              {detail.note ? (
+                <Text style={{ fontFamily: 'Fraunces', fontSize: 15, fontStyle: 'italic', color: COLORS.ink2, marginTop: 14, lineHeight: 21, borderLeftWidth: 2, borderLeftColor: 'rgba(255,107,154,0.5)', paddingLeft: 12 }}>“{detail.note}”</Text>
+              ) : detail.friend ? (
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 14 }}>{detail.friend} recommended this — no note left.</Text>
+              ) : null}
+              {detail.sugg ? (
+                <Pressable
+                  onPress={() => { const s = detail.sugg!; addItineraryItem(trip.id, { name: s.name, city: s.city, category: s.category, subcategory: s.subcategory, verdict: s.verdict, fromFriend: s.friend }); setDetail(null); }}
+                  className="rounded-2xl items-center justify-center flex-row"
+                  style={{ marginTop: 18, paddingVertical: 13, backgroundColor: COLORS.coral, gap: 7 }}
+                >
+                  <Plus size={16} color="#fff" />
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: '#fff' }}>Add to ideas</Text>
+                </Pressable>
+              ) : null}
+            </Pressable>
+          </Pressable>
+      ) : null}
 
       <AddItinerarySheet tripId={trip.id} visible={addOpen} onClose={() => setAddOpen(false)} />
     </View>
