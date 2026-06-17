@@ -35,6 +35,7 @@ export function LandmarkDetailSheet({
   name,
   countryCode,
   placeLabel,
+  hint,
   photo,
   own,
   friends = [],
@@ -45,6 +46,8 @@ export function LandmarkDetailSheet({
   countryCode?: string;
   /** A subtitle line, e.g. "Tokyo · Japan". */
   placeLabel?: string;
+  /** Country name, used to disambiguate the Wikipedia lookup. */
+  hint?: string;
   /** The user's or a friend's own photo — takes priority over the stock image. */
   photo?: string;
   /** The current user's own saved info, when they've recorded this place. */
@@ -52,7 +55,7 @@ export function LandmarkDetailSheet({
   /** Friends who saved this place. */
   friends?: LandmarkPerson[];
 }) {
-  const info = useLandmarkInfo(name, visible);
+  const info = useLandmarkInfo(name, visible, hint);
   const heroUri = photo ?? info?.image ?? undefined;
   const loading = info === undefined;
   const description = info?.description;

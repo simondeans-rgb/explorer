@@ -262,6 +262,7 @@ export default function TripScreen() {
         name={detail?.name}
         countryCode={trip.countryCode}
         placeLabel={[detail?.city, countryName(trip.countryCode)].filter(Boolean).join(' · ')}
+        hint={countryName(trip.countryCode)}
         photo={detail?.photo}
         own={detail?.own}
         friends={detail?.friends ?? []}
