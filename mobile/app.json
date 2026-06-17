@@ -35,6 +35,12 @@
           "resizeMode": "contain",
           "backgroundColor": "#FAFAFC"
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Worldly uses your location to add the city and country you're visiting to your travel map."
+        }
       ]
     ],
     "experiments": {

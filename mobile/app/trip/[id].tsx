@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Plus, X, UserPlus, LogOut, FileDown } from 'lucide-react-native';
+import { ChevronLeft, Plus, X, UserPlus, LogOut, FileDown, Navigation } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AddItinerarySheet } from '../../components/AddItinerarySheet';
 import { ItineraryPlanner, itineraryMeta, type Suggestion } from '../../components/ItineraryPlanner';
@@ -14,6 +14,7 @@ import { countryFacts } from '../../src/data/countryFacts';
 import { landmarkCity } from '../../src/data/landmarkCities';
 import { ITINERARY_SLOTS, type RecommendationVerdict } from '../../src/types';
 import { buildItineraryHtml, saveItineraryDoc } from '../../src/lib/itineraryDoc';
+import { detectLocation } from '../../src/lib/checkIn';
 import { useData } from '../../src/store/data';
 import { useToast } from '../../src/store/toast';
 import { useAuth } from '../../src/store/auth';
@@ -22,7 +23,7 @@ import { goBack } from '../../src/lib/nav';
 
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { trips, addItineraryItem, removeItineraryItem, reorderItinerary, setDayNote, addTripCollaborator, removeTripCollaborator } = useData();
+  const { trips, places, addPlace, addItineraryItem, removeItineraryItem, reorderItinerary, setDayNote, setTripTracking, addTripCollaborator, removeTripCollaborator } = useData();
   const { toast } = useToast();
   const { user } = useAuth();
   const myName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
@@ -30,6 +31,7 @@ export default function TripScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [crewOpen, setCrewOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [detail, setDetail] = useState<{ name: string; city?: string; photo?: string; own?: { verdict?: RecommendationVerdict; note?: string } | null; friends: LandmarkPerson[] } | null>(null);
 
   const trip = trips.find((t) => t.id === id);
@@ -42,6 +44,69 @@ export default function TripScreen() {
       .filter((d) => d.countryCode === trip.countryCode)
       .map((d) => ({ id: d.id, name: d.name, city: d.city, verdict: d.verdict, category: d.category, subcategory: d.subcategory, note: d.note, photo: d.photo, friend: nameByUid.get(d.userId) ?? 'Friend' }));
   }, [trip, friends, friendsData.discoveries]);
+
+  // Is today within the trip's date window? (Foreground auto check-in only runs
+  // while a tracked trip is live, so it effectively stops itself at trip's end.)
+  const tripActive = useMemo(() => {
+    if (!trip) return false;
+    const today = new Date().toISOString().slice(0, 10);
+    if (trip.startDate && today < trip.startDate) return false;
+    if (trip.endDate && today > trip.endDate) return false;
+    return true;
+  }, [trip]);
+
+  // Read the live places via a ref so the check-in callback stays stable and
+  // always dedupes against the latest map.
+  const placesRef = useRef(places);
+  placesRef.current = places;
+  const checkingRef = useRef(false);
+
+  const runCheckIn = useCallback(
+    async (silent: boolean) => {
+      if (checkingRef.current) return;
+      checkingRef.current = true;
+      setChecking(true);
+      try {
+        const res = await detectLocation();
+        if (res.status !== 'ok') {
+          if (!silent) {
+            if (res.status === 'denied') toast.error('Turn on location access for Worldly to check in.');
+            else if (res.status === 'unavailable') toast.error('Location services are off on this device.');
+            else toast.error("Couldn't find your location — try again.");
+          }
+          return;
+        }
+        const cc = res.countryCode;
+        const today = new Date().toISOString().slice(0, 10);
+        const cur = placesRef.current;
+        const added: string[] = [];
+        const hasCountry = cur.some((p) => p.kind === 'country' && p.countryCode === cc && p.relationships.some((r) => r !== 'aspiring'));
+        if (!hasCountry) {
+          addPlace({ kind: 'country', countryCode: cc, relationships: ['visited'], firstDate: today });
+          added.push(countryName(cc) || cc);
+        }
+        if (res.city) {
+          const hasCity = cur.some((p) => p.kind === 'city' && p.countryCode === cc && p.name.trim().toLowerCase() === res.city!.trim().toLowerCase());
+          if (!hasCity) {
+            addPlace({ kind: 'city', countryCode: cc, name: res.city, relationships: ['visited'], firstDate: today });
+            added.push(res.city);
+          }
+        }
+        if (added.length) toast.success(`Added ${added.join(' · ')} to your map ✓`);
+        else if (!silent) toast.info(`You're in ${res.city ? `${res.city}, ` : ''}${countryName(cc) || cc} — already on your map.`);
+      } finally {
+        checkingRef.current = false;
+        setChecking(false);
+      }
+    },
+    [addPlace, toast],
+  );
+
+  // When a tracked trip is open and live, quietly check in on entry.
+  useEffect(() => {
+    if (trip?.autoTrack && tripActive) runCheckIn(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip?.id, trip?.autoTrack, tripActive]);
 
   if (!trip) {
     return (
@@ -223,6 +288,48 @@ export default function TripScreen() {
             </View>
           );
         })() : null}
+
+        {/* Travel log — auto-add the places you visit (foreground check-in) */}
+        <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
+          <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, marginBottom: 12 }}>Travel log</Text>
+          <View className="bg-white rounded-3xl" style={{ padding: 16, gap: 12 }}>
+            <View className="flex-row items-center" style={{ gap: 12 }}>
+              <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(36,209,195,0.14)' }}>
+                <Navigation size={19} color={COLORS.aqua} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>Auto-add places I visit</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{trip.autoTrack ? (tripActive ? 'On — checking in while you travel' : 'On — resumes during your trip dates') : 'Off'}</Text>
+              </View>
+              <Switch
+                value={!!trip.autoTrack}
+                onValueChange={(v) => { setTripTracking(trip.id, v); if (v) runCheckIn(false); }}
+                trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.aqua }}
+                thumbColor="#fff"
+              />
+            </View>
+
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, lineHeight: 18 }}>
+              Open Worldly while you're travelling and we'll add the city &amp; country you're in to your map. Tracking pauses on its own once the trip ends — and only runs while the app is open, so it's easy on your battery.
+            </Text>
+
+            <Pressable
+              onPress={() => runCheckIn(false)}
+              disabled={checking}
+              className="rounded-2xl items-center justify-center flex-row"
+              style={{ paddingVertical: 13, gap: 8, backgroundColor: 'rgba(36,209,195,0.12)', opacity: checking ? 0.6 : 1 }}
+            >
+              {checking ? (
+                <ActivityIndicator color={COLORS.aqua} />
+              ) : (
+                <>
+                  <Navigation size={16} color={COLORS.aqua} />
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.aqua }}>Check in here now</Text>
+                </>
+              )}
+            </Pressable>
+          </View>
+        </View>
 
         {/* Itinerary planner — drag ideas onto days */}
         <View style={{ paddingHorizontal: 20, marginTop: 22 }}>

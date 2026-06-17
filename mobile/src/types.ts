@@ -449,6 +449,9 @@ export interface Trip {
   memberNames?: Record<string, string>;
   /** Free-text note per day, keyed by day number as a string. */
   dayNotes?: Record<string, string>;
+  /** When on, opening Worldly during the trip auto-adds the city/country
+   *  you're currently in to your map (foreground check-in). */
+  autoTrack?: boolean;
   createdAt: number;
   updatedAt: number;
 }

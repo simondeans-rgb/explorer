@@ -149,6 +149,7 @@ interface DataApi extends DataShape {
   addTripCollaborator: (tripId: string, owner: { uid: string; name: string }, friend: { uid: string; name: string }) => void;
   removeTripCollaborator: (tripId: string, memberUid: string) => void;
   setDayNote: (tripId: string, day: number, note: string) => void;
+  setTripTracking: (tripId: string, on: boolean) => void;
   addItineraryItem: (tripId: string, item: Omit<ItineraryItem, 'id'>) => void;
   removeItineraryItem: (tripId: string, itemId: string) => void;
   updateItineraryItem: (tripId: string, itemId: string, patch: Partial<ItineraryItem>) => void;
@@ -198,6 +199,7 @@ const DataContext = createContext<DataApi>({
   addTripCollaborator: noop,
   removeTripCollaborator: noop,
   setDayNote: noop,
+  setTripTracking: noop,
   addItineraryItem: noop,
   removeItineraryItem: noop,
   updateItineraryItem: noop,
@@ -305,6 +307,7 @@ function tripFromDoc(id: string, d: DocumentData): Trip {
     memberIds: Array.isArray(d.memberIds) ? d.memberIds : [d.userId],
     memberNames: (d.memberNames as Record<string, string>) ?? {},
     dayNotes: (d.dayNotes as Record<string, string>) ?? {},
+    autoTrack: !!d.autoTrack,
     createdAt: millis(d.createdAt),
     updatedAt: millis(d.updatedAt),
   };
@@ -823,6 +826,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
               else delete dayNotes[String(day)];
               return { ...t, dayNotes, updatedAt: Date.now() };
             }),
+          });
+        }
+      },
+      setTripTracking: (tripId, on) => {
+        if (cloud && fdb && uid) {
+          updateDoc(doc(fdb, 'trips', tripId), { autoTrack: on, updatedAt: serverTimestamp() }).catch(() => {});
+        } else {
+          const cur = localRef.current;
+          persistLocal({
+            ...cur,
+            trips: cur.trips.map((t) => (t.id === tripId ? { ...t, autoTrack: on, updatedAt: Date.now() } : t)),
           });
         }
       },
