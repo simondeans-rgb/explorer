@@ -7,6 +7,7 @@ import { DestinationImage } from '../../components/DestinationImage';
 import { AddItinerarySheet } from '../../components/AddItinerarySheet';
 import { ItineraryPlanner, itineraryMeta, type Suggestion } from '../../components/ItineraryPlanner';
 import { LandmarkDetailSheet, type LandmarkPerson } from '../../components/LandmarkDetailSheet';
+import { LocationPrimingSheet } from '../../components/LocationPrimingSheet';
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
@@ -33,6 +34,7 @@ export default function TripScreen() {
   const [crewOpen, setCrewOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [primeOpen, setPrimeOpen] = useState(false);
   const [detail, setDetail] = useState<{ name: string; city?: string; photo?: string; own?: { verdict?: RecommendationVerdict; note?: string } | null; friends: LandmarkPerson[] } | null>(null);
 
   const trip = trips.find((t) => t.id === id);
@@ -334,7 +336,7 @@ export default function TripScreen() {
               </View>
               <Switch
                 value={!!trip.autoTrack}
-                onValueChange={onToggleTracking}
+                onValueChange={(v) => (v ? setPrimeOpen(true) : onToggleTracking(false))}
                 trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.aqua }}
                 thumbColor="#fff"
               />
@@ -407,6 +409,13 @@ export default function TripScreen() {
         photo={detail?.photo}
         own={detail?.own}
         friends={detail?.friends ?? []}
+      />
+
+      <LocationPrimingSheet
+        visible={primeOpen}
+        background={backgroundTrackingAvailable()}
+        onClose={() => setPrimeOpen(false)}
+        onContinue={() => { setPrimeOpen(false); onToggleTracking(true); }}
       />
 
       <AddItinerarySheet tripId={trip.id} visible={addOpen} onClose={() => setAddOpen(false)} />
