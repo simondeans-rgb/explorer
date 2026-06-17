@@ -11,6 +11,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
+  sendPasswordResetEmail,
   signOut,
   type User,
 } from 'firebase/auth';
@@ -24,6 +25,7 @@ interface AuthApi {
   user: User | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   signOutUser: () => Promise<void>;
 }
 
@@ -33,6 +35,7 @@ const AuthContext = createContext<AuthApi>({
   user: null,
   signIn: async () => {},
   signUp: async () => {},
+  resetPassword: async () => {},
   signOutUser: async () => {},
 });
 
@@ -70,6 +73,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           password,
         );
         if (name.trim()) await updateProfile(cred.user, { displayName: name.trim() });
+      },
+      resetPassword: async (email) => {
+        if (!auth) throw new Error('Cloud sync is not configured.');
+        await sendPasswordResetEmail(auth, email.trim());
       },
       signOutUser: async () => {
         if (auth) await signOut(auth);

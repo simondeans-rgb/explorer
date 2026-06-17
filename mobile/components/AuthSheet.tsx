@@ -8,19 +8,36 @@ import { useAuth } from '../src/store/auth';
 type Mode = 'in' | 'up';
 
 export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
   const [mode, setMode] = useState<Mode>('in');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  async function forgot() {
+    setError(null);
+    setNotice(null);
+    if (!email.trim()) {
+      setError('Enter your email above, then tap “Forgot password”.');
+      return;
+    }
+    try {
+      await resetPassword(email);
+      setNotice('Check your inbox — we’ve sent a password reset link.');
+    } catch {
+      setNotice('If that email has an account, a reset link is on its way.');
+    }
+  }
 
   function reset() {
     setName('');
     setEmail('');
     setPassword('');
     setError(null);
+    setNotice(null);
     setBusy(false);
   }
   function close() {
@@ -93,8 +110,17 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
           />
         </View>
 
+        {mode === 'in' ? (
+          <Pressable onPress={forgot} hitSlop={6} style={{ alignSelf: 'flex-end', marginTop: 10 }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: COLORS.coral }}>Forgot password?</Text>
+          </Pressable>
+        ) : null}
+
         {error ? (
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: '#E0245E', marginTop: 12 }}>{error}</Text>
+        ) : null}
+        {notice ? (
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.aqua, marginTop: 12 }}>{notice}</Text>
         ) : null}
 
         <Pressable
@@ -119,6 +145,7 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
           onPress={() => {
             setMode(mode === 'in' ? 'up' : 'in');
             setError(null);
+            setNotice(null);
           }}
           style={{ marginTop: 14, alignItems: 'center' }}
         >

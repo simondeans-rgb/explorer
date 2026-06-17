@@ -48,6 +48,21 @@
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Worldly accesses your photos so you can set a profile picture and add photos to your discoveries and trips.",
+          "cameraPermission": "Worldly uses your camera so you can take a profile picture or a photo for a discovery."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Worldly accesses your photo library to find geotagged photos and detect the countries and cities you've visited.",
+          "savePhotosPermission": "Worldly saves a photo to your library when you choose to.",
+          "isAccessMediaLocationEnabled": true
+        }
       ]
     ],
     "experiments": {
