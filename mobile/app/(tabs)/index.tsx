@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { Search, Camera, ChevronRight } from 'lucide-react-native';
+import { Search, Camera, ChevronRight, Users, UserPlus } from 'lucide-react-native';
 import { WorldlyLogo } from '../../components/WorldlyLogo';
 import { Squiggle } from '../../components/Squiggle';
 import { DestinationImage } from '../../components/DestinationImage';
@@ -265,7 +265,24 @@ export default function StoryScreen() {
             ))}
           </ScrollView>
         </View>
-      ) : null}
+      ) : (
+        <View style={{ marginTop: 24, paddingHorizontal: 20 }}>
+          <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, marginBottom: 12 }}>Your circle</Text>
+          <Pressable onPress={() => router.push('/friends')} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 16, gap: 14 }}>
+            <View className="rounded-2xl items-center justify-center" style={{ height: 46, width: 46, backgroundColor: 'rgba(155,124,255,0.14)' }}>
+              <Users size={22} color={COLORS.lavender} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy }}>Travel better together</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 1, lineHeight: 17 }}>Connect with friends to see where they've been and swap recommendations.</Text>
+            </View>
+            <View className="rounded-full flex-row items-center" style={{ backgroundColor: COLORS.coral, paddingHorizontal: 14, paddingVertical: 8, gap: 5 }}>
+              <UserPlus size={14} color="#fff" />
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: '#fff' }}>Connect</Text>
+            </View>
+          </Pressable>
+        </View>
+      )}
 
     </ScrollView>
 

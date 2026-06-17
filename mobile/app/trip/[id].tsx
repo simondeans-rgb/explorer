@@ -8,7 +8,7 @@ import { AddItinerarySheet } from '../../components/AddItinerarySheet';
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
-import { VERDICT_META, DISCOVERY_CATEGORY_META } from '../../src/types';
+import { VERDICT_META, DISCOVERY_CATEGORY_META, subcategoryLabel } from '../../src/types';
 import { useData } from '../../src/store/data';
 import { useAuth } from '../../src/store/auth';
 import { useFriends } from '../../src/hooks/useFriends';
@@ -30,7 +30,7 @@ export default function TripScreen() {
     const nameByUid = new Map(friends.map((f) => [f.uid, f.name]));
     return friendsData.discoveries
       .filter((d) => d.countryCode === trip.countryCode)
-      .map((d) => ({ id: d.id, name: d.name, city: d.city, verdict: d.verdict, category: d.category, friend: nameByUid.get(d.userId) ?? 'Friend' }));
+      .map((d) => ({ id: d.id, name: d.name, city: d.city, verdict: d.verdict, category: d.category, subcategory: d.subcategory, friend: nameByUid.get(d.userId) ?? 'Friend' }));
   }, [trip, friends, friendsData.discoveries]);
 
   if (!trip) {
@@ -106,7 +106,7 @@ export default function TripScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{it.name}</Text>
                     <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>
-                      {[it.city, it.category ? DISCOVERY_CATEGORY_META[it.category].label : null, it.fromFriend ? `from ${it.fromFriend}` : null].filter(Boolean).join(' · ')}
+                      {[it.city, it.category ? (subcategoryLabel(it.category, it.subcategory) ?? DISCOVERY_CATEGORY_META[it.category].label) : null, it.fromFriend ? `from ${it.fromFriend}` : null].filter(Boolean).join(' · ')}
                     </Text>
                   </View>
                   <Pressable onPress={() => removeItineraryItem(trip.id, it.id)} hitSlop={6}>
@@ -145,7 +145,7 @@ export default function TripScreen() {
                     {added ? (
                       <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.aqua }}>Added</Text>
                     ) : (
-                      <Pressable onPress={() => addItineraryItem(trip.id, { name: d.name, city: d.city, category: d.category, verdict: d.verdict, fromFriend: d.friend })} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 34, width: 34, backgroundColor: COLORS.coral }}>
+                      <Pressable onPress={() => addItineraryItem(trip.id, { name: d.name, city: d.city, category: d.category, subcategory: d.subcategory, verdict: d.verdict, fromFriend: d.friend })} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 34, width: 34, backgroundColor: COLORS.coral }}>
                         <Plus size={18} color="#fff" strokeWidth={2.6} />
                       </Pressable>
                     )}

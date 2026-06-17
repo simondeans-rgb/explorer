@@ -409,6 +409,8 @@ export interface ItineraryItem {
   name: string;
   city?: string;
   category?: DiscoveryCategory;
+  /** Optional finer type within the category (id from DISCOVERY_SUBCATEGORIES). */
+  subcategory?: string;
   /** The friend who recommended it, if it came from a friend. */
   fromFriend?: string;
   verdict?: RecommendationVerdict;
