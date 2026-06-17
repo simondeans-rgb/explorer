@@ -303,7 +303,9 @@ export function ItineraryPlanner({
               </View>
             ))}
             {suggestions.map((s) => {
-              const meta = s.friend ? `from ${s.friend}` : 'Popular landmark';
+              const meta = s.friend
+                ? `from ${s.friend}`
+                : [s.city, 'Popular landmark'].filter(Boolean).join(' · ');
               return (
                 <DragCard
                   key={s.id}
