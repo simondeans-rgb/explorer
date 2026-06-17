@@ -414,7 +414,20 @@ export interface ItineraryItem {
   /** The friend who recommended it, if it came from a friend. */
   fromFriend?: string;
   verdict?: RecommendationVerdict;
+  /** 1-based day of the trip this is scheduled on (undefined = an unscheduled idea). */
+  day?: number;
+  /** Time-of-day slot within the day. */
+  slot?: ItinerarySlot;
 }
+
+export type ItinerarySlot = 'allday' | 'morning' | 'afternoon' | 'evening';
+
+export const ITINERARY_SLOTS: { id: ItinerarySlot; label: string }[] = [
+  { id: 'allday', label: 'All day' },
+  { id: 'morning', label: 'Morning' },
+  { id: 'afternoon', label: 'Afternoon' },
+  { id: 'evening', label: 'Evening' },
+];
 
 /** An upcoming trip the Member is planning: a destination, planned dates, and a
  *  growing itinerary of places to visit. Powers the Story countdown. */
