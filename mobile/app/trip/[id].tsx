@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Plus, Trash2, MapPin, Users } from 'lucide-react-native';
+import { ChevronLeft, Plus, Trash2, MapPin, Users, X, UserPlus, LogOut } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AddItinerarySheet } from '../../components/AddItinerarySheet';
 import { COLORS } from '../../src/lib/theme';
@@ -16,11 +16,12 @@ import { goBack } from '../../src/lib/nav';
 
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { trips, addItineraryItem, removeItineraryItem } = useData();
+  const { trips, addItineraryItem, removeItineraryItem, addTripCollaborator, removeTripCollaborator } = useData();
   const { user } = useAuth();
   const myName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
   const { friends, friendsData } = useFriends(user?.uid, myName);
   const [addOpen, setAddOpen] = useState(false);
+  const [crewOpen, setCrewOpen] = useState(false);
 
   const trip = trips.find((t) => t.id === id);
 
@@ -78,6 +79,70 @@ export default function TripScreen() {
             <Text style={{ fontFamily: 'Fraunces', fontSize: 15, fontStyle: 'italic', color: COLORS.ink2, borderLeftWidth: 2, borderLeftColor: 'rgba(255,107,154,0.5)', paddingLeft: 12 }}>{trip.note}</Text>
           </View>
         ) : null}
+
+        {/* Trip crew — collaborate on the itinerary */}
+        {user ? (() => {
+          const isOwner = trip.userId === user.uid;
+          const available = friends.filter((f) => !trip.memberIds.includes(f.uid));
+          const nameOf = (m: string) => (m === user.uid ? 'You' : trip.memberNames?.[m] ?? friends.find((f) => f.uid === m)?.name ?? 'Friend');
+          return (
+            <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
+              <View className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
+                <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Trip crew</Text>
+                {isOwner && available.length > 0 ? (
+                  <Pressable onPress={() => setCrewOpen((v) => !v)} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(155,124,255,0.14)', paddingHorizontal: 12, paddingVertical: 7, gap: 5 }}>
+                    <UserPlus size={14} color={COLORS.lavender} />
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.lavender }}>Add friend</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+
+              <View className="bg-white rounded-3xl" style={{ padding: 14, gap: 12 }}>
+                {trip.memberIds.map((m) => {
+                  const owner = m === trip.userId;
+                  const label = nameOf(m);
+                  return (
+                    <View key={m} className="flex-row items-center" style={{ gap: 10 }}>
+                      <View className="rounded-full items-center justify-center" style={{ height: 34, width: 34, backgroundColor: 'rgba(155,124,255,0.16)' }}>
+                        <Text style={{ fontFamily: 'Fraunces', fontSize: 14, color: COLORS.lavender }}>{label.charAt(0).toUpperCase()}</Text>
+                      </View>
+                      <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{label}</Text>
+                      {owner ? (
+                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.ink3 }}>OWNER</Text>
+                      ) : isOwner ? (
+                        <Pressable onPress={() => removeTripCollaborator(trip.id, m)} hitSlop={8}><X size={16} color={COLORS.ink3} /></Pressable>
+                      ) : null}
+                    </View>
+                  );
+                })}
+                {trip.memberIds.length === 1 ? (
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, lineHeight: 17 }}>Add a friend and you can build this itinerary together — everyone on the trip can edit it.</Text>
+                ) : null}
+              </View>
+
+              {crewOpen && isOwner ? (
+                <View className="bg-white rounded-3xl" style={{ marginTop: 10, padding: 8 }}>
+                  {available.map((f) => (
+                    <Pressable key={f.uid} onPress={() => { addTripCollaborator(trip.id, { uid: user.uid, name: myName }, { uid: f.uid, name: f.name }); setCrewOpen(false); }} className="flex-row items-center" style={{ paddingHorizontal: 8, paddingVertical: 10, gap: 10 }}>
+                      <View className="rounded-full items-center justify-center" style={{ height: 30, width: 30, backgroundColor: 'rgba(255,107,154,0.14)' }}>
+                        <Text style={{ fontFamily: 'Fraunces', fontSize: 13, color: COLORS.coral }}>{f.name.charAt(0).toUpperCase()}</Text>
+                      </View>
+                      <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.navy }}>{f.name}</Text>
+                      <Plus size={16} color={COLORS.coral} />
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+
+              {!isOwner ? (
+                <Pressable onPress={() => { removeTripCollaborator(trip.id, user.uid); goBack(); }} className="flex-row items-center justify-center" style={{ marginTop: 12, paddingVertical: 8, gap: 6 }}>
+                  <LogOut size={15} color={COLORS.ink3} />
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.ink3 }}>Leave this trip</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          );
+        })() : null}
 
         {/* Itinerary */}
         <View style={{ paddingHorizontal: 20, marginTop: 22 }}>

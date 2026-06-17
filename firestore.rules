@@ -59,9 +59,18 @@ service cloud.firestore {
       allow create: if createIsOwner();
     }
 
-    // Planned trips stay private to their owner.
+    // Planned trips: the owner, plus any friend invited to collaborate
+    // (listed in memberIds), may read and edit the shared itinerary. Only the
+    // owner may delete. The userId fallback keeps pre-collaboration trips valid.
     match /trips/{tripId} {
-      allow read, update, delete: if isOwner();
+      function tripMember() {
+        return signedIn() && (
+          resource.data.userId == request.auth.uid
+          || (resource.data.memberIds is list && request.auth.uid in resource.data.memberIds)
+        );
+      }
+      allow read, update: if tripMember();
+      allow delete: if isOwner();
       allow create: if createIsOwner();
     }
 
