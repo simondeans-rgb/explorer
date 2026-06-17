@@ -59,12 +59,18 @@ export function AddDiscoverySheet({
   initialCountryCode,
   initialName,
   initialCategory,
+  initialCity,
+  initialSubcategory,
+  initialLandmark,
 }: {
   visible: boolean;
   onClose: () => void;
   initialCountryCode?: string;
   initialName?: string;
   initialCategory?: DiscoveryCategory;
+  initialCity?: string;
+  initialSubcategory?: string;
+  initialLandmark?: string;
 }) {
   const { addDiscovery, expeditions } = useData();
   const { toast } = useToast();
@@ -87,7 +93,10 @@ export function AddDiscoverySheet({
     if (initialCountryCode) setCode(initialCountryCode);
     if (initialName) setName(initialName);
     if (initialCategory) setCategory(initialCategory);
-  }, [visible, initialCountryCode, initialName, initialCategory]);
+    if (initialCity) setCity(initialCity);
+    if (initialSubcategory) setSubcategory(initialSubcategory);
+    if (initialLandmark) setLandmark(initialLandmark);
+  }, [visible, initialCountryCode, initialName, initialCategory, initialCity, initialSubcategory, initialLandmark]);
 
   async function pick(source: 'camera' | 'library') {
     setPicking(true);

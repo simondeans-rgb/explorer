@@ -2,15 +2,16 @@ import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Plus, Users, X, UserPlus, LogOut, FileDown } from 'lucide-react-native';
+import { ChevronLeft, Plus, X, UserPlus, LogOut, FileDown } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AddItinerarySheet } from '../../components/AddItinerarySheet';
 import { ItineraryPlanner, itineraryMeta, type Suggestion } from '../../components/ItineraryPlanner';
+import { LandmarkDetailSheet, type LandmarkPerson } from '../../components/LandmarkDetailSheet';
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { countryFacts } from '../../src/data/countryFacts';
-import { VERDICT_META, ITINERARY_SLOTS, type RecommendationVerdict } from '../../src/types';
+import { ITINERARY_SLOTS, type RecommendationVerdict } from '../../src/types';
 import { buildItineraryHtml, saveItineraryDoc } from '../../src/lib/itineraryDoc';
 import { useData } from '../../src/store/data';
 import { useToast } from '../../src/store/toast';
@@ -28,7 +29,7 @@ export default function TripScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [crewOpen, setCrewOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [detail, setDetail] = useState<{ title: string; friend?: string; verdict?: RecommendationVerdict; note?: string; sugg?: Suggestion } | null>(null);
+  const [detail, setDetail] = useState<{ name: string; city?: string; photo?: string; own?: { verdict?: RecommendationVerdict; note?: string } | null; friends: LandmarkPerson[] } | null>(null);
 
   const trip = trips.find((t) => t.id === id);
 
@@ -38,7 +39,7 @@ export default function TripScreen() {
     const nameByUid = new Map(friends.map((f) => [f.uid, f.name]));
     return friendsData.discoveries
       .filter((d) => d.countryCode === trip.countryCode)
-      .map((d) => ({ id: d.id, name: d.name, city: d.city, verdict: d.verdict, category: d.category, subcategory: d.subcategory, note: d.note, friend: nameByUid.get(d.userId) ?? 'Friend' }));
+      .map((d) => ({ id: d.id, name: d.name, city: d.city, verdict: d.verdict, category: d.category, subcategory: d.subcategory, note: d.note, photo: d.photo, friend: nameByUid.get(d.userId) ?? 'Friend' }));
   }, [trip, friends, friendsData.discoveries]);
 
   if (!trip) {
@@ -66,13 +67,23 @@ export default function TripScreen() {
   const suggestions: Suggestion[] = (() => {
     const friendPicks: Suggestion[] = friendDiscoveries
       .filter((d) => !itineraryNames.has(d.name.toLowerCase()))
-      .map((d) => ({ id: d.id, name: d.name, city: d.city, category: d.category, subcategory: d.subcategory, verdict: d.verdict, friend: d.friend, note: d.note }));
+      .map((d) => ({ id: d.id, name: d.name, city: d.city, category: d.category, subcategory: d.subcategory, verdict: d.verdict, friend: d.friend, note: d.note, photo: d.photo }));
     const friendNames = new Set(friendPicks.map((s) => s.name.toLowerCase()));
     const landmarks: Suggestion[] = (countryFacts(trip.countryCode)?.landmarks ?? [])
       .filter((l) => !itineraryNames.has(l.toLowerCase()) && !friendNames.has(l.toLowerCase()))
       .map((l) => ({ id: `lm:${l}`, name: l, category: 'culture', subcategory: 'landmark', landmark: true }));
     return [...friendPicks, ...landmarks];
   })();
+
+  // Open the detail sheet for a place — gathering any friends who saved it
+  // (matched by name) so a friend's recommendation shows alongside the
+  // landmark's photo + description.
+  const openDetail = (name: string, photo?: string, city?: string) => {
+    const ll = name.toLowerCase();
+    const matches = friendDiscoveries.filter((d) => d.name.toLowerCase() === ll);
+    const friends: LandmarkPerson[] = matches.map((d) => ({ name: d.friend, verdict: d.verdict, note: d.note }));
+    setDetail({ name, city, photo: photo ?? matches.find((d) => d.photo)?.photo, friends });
+  };
 
   async function exportDoc() {
     if (exporting || !trip) return;
@@ -233,8 +244,8 @@ export default function TripScreen() {
             onAddSuggestion={(s, day, slot) => addItineraryItem(trip.id, { name: s.name, city: s.city, category: s.category, subcategory: s.subcategory, verdict: s.verdict, fromFriend: s.friend, day, slot })}
             onRemoveItem={(itemId) => removeItineraryItem(trip.id, itemId)}
             onDayNote={(d, t) => setDayNote(trip.id, d, t)}
-            onOpenItem={(i) => setDetail({ title: i.name, friend: i.fromFriend, verdict: i.verdict })}
-            onOpenSuggestion={(s) => setDetail({ title: s.name, friend: s.friend, verdict: s.verdict, note: s.note, sugg: s })}
+            onOpenItem={(i) => openDetail(i.name, undefined, i.city)}
+            onOpenSuggestion={(s) => openDetail(s.name, s.photo, s.city)}
           />
 
           <Pressable onPress={exportDoc} disabled={exporting} className="flex-row items-center justify-center rounded-full" style={{ alignSelf: 'center', marginTop: 18, paddingHorizontal: 18, paddingVertical: 10, gap: 7, backgroundColor: 'rgba(20,33,61,0.05)', opacity: exporting ? 0.6 : 1 }}>
@@ -244,44 +255,17 @@ export default function TripScreen() {
         </View>
       </ScrollView>
 
-      {/* Detail overlay */}
-      {detail ? (
-          <Pressable onPress={() => setDetail(null)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(14,16,24,0.5)', alignItems: 'center', justifyContent: 'center', padding: 30 }}>
-            <Pressable onPress={() => {}} className="bg-white rounded-3xl" style={{ width: '100%', maxWidth: 360, padding: 22 }}>
-              <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>{detail.title}</Text>
-              <View className="flex-row items-center" style={{ gap: 8, marginTop: 8 }}>
-                {detail.friend ? (
-                  <View className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(155,124,255,0.14)', paddingHorizontal: 10, paddingVertical: 5, gap: 5 }}>
-                    <Users size={13} color={COLORS.lavender} />
-                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.lavender }}>{detail.friend}</Text>
-                  </View>
-                ) : null}
-                {detail.verdict ? (
-                  <View className="rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 10, paddingVertical: 5 }}>
-                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>{VERDICT_META[detail.verdict].label}</Text>
-                  </View>
-                ) : null}
-              </View>
-              {detail.note ? (
-                <Text style={{ fontFamily: 'Fraunces', fontSize: 15, fontStyle: 'italic', color: COLORS.ink2, marginTop: 14, lineHeight: 21, borderLeftWidth: 2, borderLeftColor: 'rgba(255,107,154,0.5)', paddingLeft: 12 }}>“{detail.note}”</Text>
-              ) : detail.friend ? (
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 14 }}>{detail.friend} recommended this — no note left.</Text>
-              ) : detail.sugg?.landmark ? (
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 14 }}>A popular landmark in {countryName(trip.countryCode)} — drag it onto a day to add it.</Text>
-              ) : null}
-              {detail.sugg ? (
-                <Pressable
-                  onPress={() => { const s = detail.sugg!; addItineraryItem(trip.id, { name: s.name, city: s.city, category: s.category, subcategory: s.subcategory, verdict: s.verdict, fromFriend: s.friend }); setDetail(null); }}
-                  className="rounded-2xl items-center justify-center flex-row"
-                  style={{ marginTop: 18, paddingVertical: 13, backgroundColor: COLORS.coral, gap: 7 }}
-                >
-                  <Plus size={16} color="#fff" />
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: '#fff' }}>Add to ideas</Text>
-                </Pressable>
-              ) : null}
-            </Pressable>
-          </Pressable>
-      ) : null}
+      {/* Place / landmark detail */}
+      <LandmarkDetailSheet
+        visible={!!detail}
+        onClose={() => setDetail(null)}
+        name={detail?.name}
+        countryCode={trip.countryCode}
+        placeLabel={[detail?.city, countryName(trip.countryCode)].filter(Boolean).join(' · ')}
+        photo={detail?.photo}
+        own={detail?.own}
+        friends={detail?.friends ?? []}
+      />
 
       <AddItinerarySheet tripId={trip.id} visible={addOpen} onClose={() => setAddOpen(false)} />
     </View>
