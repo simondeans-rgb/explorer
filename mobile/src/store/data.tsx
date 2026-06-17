@@ -148,6 +148,7 @@ interface DataApi extends DataShape {
   /** Invite a friend to collaborate on a trip's itinerary. */
   addTripCollaborator: (tripId: string, owner: { uid: string; name: string }, friend: { uid: string; name: string }) => void;
   removeTripCollaborator: (tripId: string, memberUid: string) => void;
+  setDayNote: (tripId: string, day: number, note: string) => void;
   addItineraryItem: (tripId: string, item: Omit<ItineraryItem, 'id'>) => void;
   removeItineraryItem: (tripId: string, itemId: string) => void;
   updateItineraryItem: (tripId: string, itemId: string, patch: Partial<ItineraryItem>) => void;
@@ -196,6 +197,7 @@ const DataContext = createContext<DataApi>({
   removeTrip: noop,
   addTripCollaborator: noop,
   removeTripCollaborator: noop,
+  setDayNote: noop,
   addItineraryItem: noop,
   removeItineraryItem: noop,
   updateItineraryItem: noop,
@@ -302,6 +304,7 @@ function tripFromDoc(id: string, d: DocumentData): Trip {
     note: d.note || undefined,
     memberIds: Array.isArray(d.memberIds) ? d.memberIds : [d.userId],
     memberNames: (d.memberNames as Record<string, string>) ?? {},
+    dayNotes: (d.dayNotes as Record<string, string>) ?? {},
     createdAt: millis(d.createdAt),
     updatedAt: millis(d.updatedAt),
   };
@@ -756,6 +759,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             note: input.note?.trim() || null,
             memberIds: [uid],
             memberNames: {},
+            dayNotes: {},
           });
         } else {
           const now = Date.now();
@@ -771,6 +775,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             note: input.note?.trim() || undefined,
             memberIds: [me],
             memberNames: {},
+            dayNotes: {},
             createdAt: now,
             updatedAt: now,
           };
@@ -800,6 +805,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
                   }
                 : t,
             ),
+          });
+        }
+      },
+      setDayNote: (tripId, day, note) => {
+        const text = note.trim();
+        if (cloud && fdb && uid) {
+          updateDoc(doc(fdb, 'trips', tripId), { [`dayNotes.${day}`]: text || null, updatedAt: serverTimestamp() }).catch(() => {});
+        } else {
+          const cur = localRef.current;
+          persistLocal({
+            ...cur,
+            trips: cur.trips.map((t) => {
+              if (t.id !== tripId) return t;
+              const dayNotes = { ...(t.dayNotes ?? {}) };
+              if (text) dayNotes[String(day)] = text;
+              else delete dayNotes[String(day)];
+              return { ...t, dayNotes, updatedAt: Date.now() };
+            }),
           });
         }
       },

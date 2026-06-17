@@ -420,12 +420,15 @@ export interface ItineraryItem {
   slot?: ItinerarySlot;
 }
 
-export type ItinerarySlot = 'allday' | 'morning' | 'afternoon' | 'evening';
+export type ItinerarySlot = 'allday' | 'breakfast' | 'morning' | 'lunch' | 'afternoon' | 'dinner' | 'evening';
 
 export const ITINERARY_SLOTS: { id: ItinerarySlot; label: string }[] = [
   { id: 'allday', label: 'All day' },
+  { id: 'breakfast', label: 'Breakfast' },
   { id: 'morning', label: 'Morning' },
+  { id: 'lunch', label: 'Lunch' },
   { id: 'afternoon', label: 'Afternoon' },
+  { id: 'dinner', label: 'Dinner' },
   { id: 'evening', label: 'Evening' },
 ];
 
@@ -444,6 +447,8 @@ export interface Trip {
   memberIds: string[];
   /** uid → display name, for showing collaborators. */
   memberNames?: Record<string, string>;
+  /** Free-text note per day, keyed by day number as a string. */
+  dayNotes?: Record<string, string>;
   createdAt: number;
   updatedAt: number;
 }
