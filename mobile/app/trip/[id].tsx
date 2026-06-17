@@ -15,6 +15,7 @@ import { landmarkCity } from '../../src/data/landmarkCities';
 import { ITINERARY_SLOTS, type RecommendationVerdict } from '../../src/types';
 import { buildItineraryHtml, saveItineraryDoc } from '../../src/lib/itineraryDoc';
 import { detectLocation } from '../../src/lib/checkIn';
+import { backgroundTrackingAvailable, startTripTracking, stopTripTracking } from '../../src/lib/tracking';
 import { useData } from '../../src/store/data';
 import { useToast } from '../../src/store/toast';
 import { useAuth } from '../../src/store/auth';
@@ -189,6 +190,36 @@ export default function TripScreen() {
     }
   }
 
+  // Toggle location tracking for this trip. In a real build this starts/stops
+  // background tracking (auto-adds places as you move, even when the app is
+  // closed); in Expo Go it falls back to a one-off foreground check-in.
+  async function onToggleTracking(on: boolean) {
+    if (!trip) return;
+    setTripTracking(trip.id, on);
+    if (!on) {
+      await stopTripTracking();
+      return;
+    }
+    if (backgroundTrackingAvailable()) {
+      const res = await startTripTracking({ id: trip.id, title: trip.title, endDate: trip.endDate });
+      if (res === 'started') {
+        toast.success('Tracking on — places will be added as you travel ✓');
+        runCheckIn(true);
+      } else if (res === 'denied-background') {
+        toast.error('Choose “Always Allow” for location so Worldly can log places in the background.');
+      } else if (res === 'denied-foreground') {
+        toast.error('Turn on location access for Worldly to track this trip.');
+      } else if (res === 'unsupported') {
+        runCheckIn(false);
+      } else {
+        toast.error("Couldn't start tracking — try again.");
+      }
+    } else {
+      toast.info('Background tracking needs the installed app — using single check-ins for now.');
+      runCheckIn(false);
+    }
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 112 }}>
@@ -299,18 +330,20 @@ export default function TripScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>Auto-add places I visit</Text>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{trip.autoTrack ? (tripActive ? 'On — checking in while you travel' : 'On — resumes during your trip dates') : 'Off'}</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{trip.autoTrack ? (tripActive ? 'On — logging places while you travel' : 'On — resumes during your trip dates') : 'Off'}</Text>
               </View>
               <Switch
                 value={!!trip.autoTrack}
-                onValueChange={(v) => { setTripTracking(trip.id, v); if (v) runCheckIn(false); }}
+                onValueChange={onToggleTracking}
                 trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.aqua }}
                 thumbColor="#fff"
               />
             </View>
 
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, lineHeight: 18 }}>
-              Open Worldly while you're travelling and we'll add the city &amp; country you're in to your map. Tracking pauses on its own once the trip ends — and only runs while the app is open, so it's easy on your battery.
+              {backgroundTrackingAvailable()
+                ? 'Worldly adds the cities & countries you pass through to your map automatically — even with the app closed. It stops on its own once the trip ends, and samples sparingly to stay easy on your battery. Choose “Always Allow” when prompted.'
+                : "Open Worldly while you're travelling and we'll add the city & country you're in to your map. (Hands-free background tracking needs the installed app.)"}
             </Text>
 
             <Pressable
