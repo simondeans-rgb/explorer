@@ -107,6 +107,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function LandmarkRow({
   code,
   landmark,
+  hint,
   recorded,
   friendCount,
   onOpen,
@@ -114,12 +115,13 @@ function LandmarkRow({
 }: {
   code: string;
   landmark: string;
+  hint?: string;
   recorded: boolean;
   friendCount: number;
   onOpen: () => void;
   onAdd: () => void;
 }) {
-  const info = useLandmarkInfo(landmark, true);
+  const info = useLandmarkInfo(landmark, true, hint);
   return (
     <Pressable onPress={onOpen} className="bg-white rounded-2xl flex-row items-center" style={{ padding: 12, gap: 12 }}>
       <View style={{ height: 60, width: 60, borderRadius: 14, overflow: 'hidden' }}>
@@ -282,6 +284,7 @@ export default function CountryScreen() {
                     key={l}
                     code={code}
                     landmark={l}
+                    hint={name}
                     recorded={recorded}
                     friendCount={fl.length}
                     onOpen={() => openLandmarkDetail(l)}
@@ -402,6 +405,7 @@ export default function CountryScreen() {
         name={landmarkDetail?.name}
         countryCode={code}
         placeLabel={name}
+        hint={name}
         photo={landmarkDetail?.photo}
         own={landmarkDetail?.own}
         friends={landmarkDetail?.friends ?? []}
