@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, ScrollView, Pressable, Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Users, Download, ScrollText, RotateCcw } from 'lucide-react-native';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Users, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AchievementBadge } from '../../components/AchievementBadge';
 import { HERO_CODES } from '../../src/lib/heroImages';
@@ -17,6 +18,10 @@ import { useOnboarding } from '../../src/store/onboarding';
 import { AuthSheet } from '../../components/AuthSheet';
 import { pickPhotoDataUrl } from '../../src/lib/photo';
 import { ensureProfile, loadProfilePhoto, saveProfilePhoto } from '../../src/lib/profile';
+
+const PRIVACY_URL = 'https://stickynotes-sand.vercel.app/privacy';
+const TERMS_URL = 'https://stickynotes-sand.vercel.app/terms';
+const SUPPORT_EMAIL = 'worldly@simondeans.com';
 
 export default function YouScreen() {
   const { stats, discoveryStats, journeyStats, level, badges, aggregates } = useWorldly();
@@ -247,6 +252,32 @@ export default function YouScreen() {
               </Pressable>
             ))}
         </ScrollView>
+      </View>
+
+      {/* Legal & support */}
+      <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>LEGAL & SUPPORT</Text>
+        <View className="bg-white rounded-3xl" style={{ overflow: 'hidden' }}>
+          {[
+            { icon: ShieldCheck, label: 'Privacy Policy', onPress: () => Linking.openURL(PRIVACY_URL) },
+            { icon: FileText, label: 'Terms of Service', onPress: () => Linking.openURL(TERMS_URL) },
+            { icon: Mail, label: 'Contact support', sub: SUPPORT_EMAIL, onPress: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=Worldly%20support`) },
+          ].map((row, i) => (
+            <Pressable key={row.label} onPress={row.onPress} className="flex-row items-center" style={{ paddingHorizontal: 16, paddingVertical: 14, gap: 12, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
+              <View className="rounded-2xl items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
+                <row.icon size={18} color={COLORS.ink2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{row.label}</Text>
+                {row.sub ? <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{row.sub}</Text> : null}
+              </View>
+              <ChevronRight size={18} color={COLORS.ink3} />
+            </Pressable>
+          ))}
+        </View>
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, textAlign: 'center', marginTop: 14 }}>
+          Worldly v{Constants.expoConfig?.version ?? '1.0.0'}
+        </Text>
       </View>
 
       {/* Replay intro */}
