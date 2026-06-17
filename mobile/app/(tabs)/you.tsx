@@ -119,35 +119,35 @@ export default function YouScreen() {
         ))}
       </View>
 
-      {/* Wrapped */}
-      <View style={{ paddingHorizontal: 20, marginTop: 14 }}>
-        <Pressable onPress={() => router.push('/wrapped')}>
-          <LinearGradient colors={GRADIENTS.sunrise} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
-            <View className="rounded-2xl items-center justify-center bg-white/20" style={{ height: 42, width: 42 }}>
+      {/* Wrapped + Almanac */}
+      <View className="flex-row" style={{ paddingHorizontal: 20, marginTop: 14, gap: 12 }}>
+        <Pressable onPress={() => router.push('/wrapped')} style={{ flex: 1 }}>
+          <View style={{ backgroundColor: COLORS.coral, borderRadius: 24, padding: 16, minHeight: 138, justifyContent: 'space-between', overflow: 'hidden', shadowColor: COLORS.coral, shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } }}>
+            <View style={{ position: 'absolute', right: -18, bottom: -22 }}>
+              <Sparkles size={104} color="rgba(255,255,255,0.16)" />
+            </View>
+            <View className="rounded-2xl items-center justify-center bg-white/25" style={{ height: 40, width: 40 }}>
               <Sparkles size={20} color="#fff" />
             </View>
-            <View style={{ flex: 1 }}>
-              <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 18 }}>Your world, wrapped</Text>
-              <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.9, marginTop: 1 }}>Your travels in numbers — tap to play.</Text>
+            <View style={{ marginTop: 14 }}>
+              <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 19 }}>Wrapped</Text>
+              <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.92, marginTop: 1 }}>Your travels, played</Text>
             </View>
-            <ChevronRight size={20} color="#fff" />
-          </LinearGradient>
+          </View>
         </Pressable>
-      </View>
-
-      {/* Almanac */}
-      <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
-        <Pressable onPress={() => router.push('/almanac')}>
-          <LinearGradient colors={['#FFB84D', '#FF6B9A', '#9B7CFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
-            <View className="rounded-2xl items-center justify-center bg-white/20" style={{ height: 42, width: 42 }}>
+        <Pressable onPress={() => router.push('/almanac')} style={{ flex: 1 }}>
+          <View style={{ backgroundColor: COLORS.lavender, borderRadius: 24, padding: 16, minHeight: 138, justifyContent: 'space-between', overflow: 'hidden', shadowColor: COLORS.lavender, shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } }}>
+            <View style={{ position: 'absolute', right: -18, bottom: -22 }}>
+              <ScrollText size={104} color="rgba(255,255,255,0.16)" />
+            </View>
+            <View className="rounded-2xl items-center justify-center bg-white/25" style={{ height: 40, width: 40 }}>
               <ScrollText size={20} color="#fff" />
             </View>
-            <View style={{ flex: 1 }}>
-              <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 18 }}>The Almanac</Text>
-              <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.9, marginTop: 1 }}>A record of everywhere you've been.</Text>
+            <View style={{ marginTop: 14 }}>
+              <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 19 }}>The Almanac</Text>
+              <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.92, marginTop: 1 }}>Everywhere you've been</Text>
             </View>
-            <ChevronRight size={20} color="#fff" />
-          </LinearGradient>
+          </View>
         </Pressable>
       </View>
 
