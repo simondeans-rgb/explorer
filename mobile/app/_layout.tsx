@@ -20,6 +20,7 @@ import { CelebrationProvider } from '../src/store/celebration';
 import { OnboardingProvider, useOnboarding } from '../src/store/onboarding';
 import { Onboarding } from '../components/Onboarding';
 import { AchievementWatcher } from '../components/AchievementWatcher';
+import { LocationSync } from '../components/LocationSync';
 import { GlobalTabBar } from '../components/GlobalTabBar';
 import { ActionMenu, type ActionKind } from '../components/ActionMenu';
 import { AddPlaceSheet } from '../components/AddPlaceSheet';
@@ -83,6 +84,7 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
       </Stack>
 
       <AchievementWatcher />
+      <LocationSync />
 
       {/* Global, always-visible navigation bar + its action menu / sheets. */}
       <GlobalTabBar onFab={() => setMenuOpen(true)} />

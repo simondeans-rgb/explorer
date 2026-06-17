@@ -9,7 +9,10 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.simmyd23.worldly"
+      "bundleIdentifier": "com.simmyd23.worldly",
+      "infoPlist": {
+        "UIBackgroundModes": ["location"]
+      }
     },
     "android": {
       "package": "com.simmyd23.worldly",
@@ -39,7 +42,11 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Worldly uses your location to add the city and country you're visiting to your travel map."
+          "locationWhenInUsePermission": "Worldly uses your location to add the city and country you're visiting to your travel map.",
+          "locationAlwaysAndWhenInUsePermission": "Worldly uses your location in the background during a trip to automatically add the cities and countries you visit to your map.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ]
     ],
