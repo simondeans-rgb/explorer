@@ -11,6 +11,7 @@ import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { countryFacts } from '../../src/data/countryFacts';
+import { landmarkCity } from '../../src/data/landmarkCities';
 import { ITINERARY_SLOTS, type RecommendationVerdict } from '../../src/types';
 import { buildItineraryHtml, saveItineraryDoc } from '../../src/lib/itineraryDoc';
 import { useData } from '../../src/store/data';
@@ -71,7 +72,7 @@ export default function TripScreen() {
     const friendNames = new Set(friendPicks.map((s) => s.name.toLowerCase()));
     const landmarks: Suggestion[] = (countryFacts(trip.countryCode)?.landmarks ?? [])
       .filter((l) => !itineraryNames.has(l.toLowerCase()) && !friendNames.has(l.toLowerCase()))
-      .map((l) => ({ id: `lm:${l}`, name: l, category: 'culture', subcategory: 'landmark', landmark: true }));
+      .map((l) => ({ id: `lm:${l}`, name: l, city: landmarkCity(l), category: 'culture', subcategory: 'landmark', landmark: true }));
     return [...friendPicks, ...landmarks];
   })();
 

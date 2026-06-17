@@ -24,6 +24,7 @@ import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, continentOf } from '../../src/data/countries';
 import { countryFacts } from '../../src/data/countryFacts';
+import { landmarkCity } from '../../src/data/landmarkCities';
 import { useLandmarkInfo } from '../../src/lib/landmarkInfo';
 import {
   RELATIONSHIP_META,
@@ -394,7 +395,7 @@ export default function CountryScreen() {
         initialCategory={discName ? 'culture' : undefined}
         initialSubcategory={discName ? 'landmark' : undefined}
         initialLandmark={discName}
-        initialCity={discName ? facts?.capital : undefined}
+        initialCity={discName ? landmarkCity(discName) ?? facts?.capital : undefined}
       />
       <AddPhotoSheet visible={photoOpen} onClose={() => setPhotoOpen(false)} initialCountryCode={code} />
 
