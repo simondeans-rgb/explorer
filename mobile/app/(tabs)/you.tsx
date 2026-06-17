@@ -16,6 +16,7 @@ import { useWorldly } from '../../src/hooks/useWorldly';
 import { useAuth } from '../../src/store/auth';
 import { useOnboarding } from '../../src/store/onboarding';
 import { AuthSheet } from '../../components/AuthSheet';
+import { DeleteAccountSheet } from '../../components/DeleteAccountSheet';
 import { pickPhotoDataUrl } from '../../src/lib/photo';
 import { ensureProfile, loadProfilePhoto, saveProfilePhoto } from '../../src/lib/profile';
 
@@ -43,6 +44,7 @@ export default function YouScreen() {
   const { configured, user, signOutUser } = useAuth();
   const { replay } = useOnboarding();
   const [authOpen, setAuthOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
   const earned = badges.filter((b) => b.earned).length;
 
@@ -275,6 +277,12 @@ export default function YouScreen() {
             </Pressable>
           ))}
         </View>
+        {user ? (
+          <Pressable onPress={() => setDeleteOpen(true)} hitSlop={8} style={{ alignItems: 'center', marginTop: 18, paddingVertical: 4 }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: '#E0245E' }}>Delete account</Text>
+          </Pressable>
+        ) : null}
+
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, textAlign: 'center', marginTop: 14 }}>
           Worldly v{Constants.expoConfig?.version ?? '1.0.0'}
         </Text>
@@ -289,6 +297,7 @@ export default function YouScreen() {
       </Pressable>
 
       <AuthSheet visible={authOpen} onClose={() => setAuthOpen(false)} />
+      <DeleteAccountSheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} />
     </ScrollView>
   );
 }

@@ -1,12 +1,14 @@
 rules_version = '2';
 
-// Photos live under users/{uid}/… — each Member writes only their own folder.
-// Reads are allowed for any signed-in Member (download URLs are token-gated and
-// shared via the owner's Firestore docs, so connected friends can view them).
+// Photos live under users/{uid}/… — each Member reads/writes only their own
+// folder. Connected friends still view shared photos via the token-gated
+// download URLs stored in the owner's Firestore docs (those bypass these rules),
+// so scoping reads to the owner closes broad cross-user access without breaking
+// sharing.
 service firebase.storage {
   match /b/{bucket}/o {
     match /users/{uid}/{allPaths=**} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if request.auth != null
         && request.auth.uid == uid
         && request.resource.size < 2 * 1024 * 1024
