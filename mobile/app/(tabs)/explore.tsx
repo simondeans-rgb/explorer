@@ -115,6 +115,7 @@ export default function ExploreScreen() {
   const [tab, setTab] = useState<Tab>('browse');
   const [query, setQuery] = useState('');
   const [discCat, setDiscCat] = useState<DiscoveryCategory | 'all'>('all');
+  const [discCountry, setDiscCountry] = useState<string>('all');
 
   const discoveredCodes = useMemo(
     () => new Set(aggregates.filter((a) => a.discovered).map((a) => a.code)),
@@ -170,11 +171,21 @@ export default function ExploreScreen() {
 
   const gridW = (width - 40 - 12) / 2;
 
-  // Discoveries: filter by category, newest first.
+  // Countries present in discoveries, most discoveries first.
+  const discCountries = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const d of discoveries) if (d.countryCode) m[d.countryCode] = (m[d.countryCode] ?? 0) + 1;
+    return Object.entries(m)
+      .map(([code, count]) => ({ code, count }))
+      .sort((a, b) => b.count - a.count || countryName(a.code).localeCompare(countryName(b.code)));
+  }, [discoveries]);
+
+  // Discoveries: filter by category + country, newest first.
   const shownDiscoveries = useMemo(() => {
-    const list = discCat === 'all' ? discoveries : discoveries.filter((d) => d.category === discCat);
+    let list = discCat === 'all' ? discoveries : discoveries.filter((d) => d.category === discCat);
+    if (discCountry !== 'all') list = list.filter((d) => d.countryCode === discCountry);
     return [...list].sort((a, b) => b.createdAt - a.createdAt);
-  }, [discoveries, discCat]);
+  }, [discoveries, discCat, discCountry]);
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
@@ -282,7 +293,7 @@ export default function ExploreScreen() {
             ) : (
               <>
                 {/* category filters */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12, gap: 8 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: discCountries.length > 1 ? 6 : 12, gap: 8 }}>
                   {(['all', ...DISCOVERY_CATEGORIES.filter((c) => discoveryStats.byCategory[c] > 0)] as const).map((c) => {
                     const active = discCat === c;
                     const Icon = c === 'all' ? Sparkles : DISC_ICON[c];
@@ -298,9 +309,25 @@ export default function ExploreScreen() {
                   })}
                 </ScrollView>
 
+                {/* country filters */}
+                {discCountries.length > 1 ? (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 12, gap: 8 }}>
+                    {[{ code: 'all', count: discoveryStats.total }, ...discCountries].map(({ code, count }) => {
+                      const active = discCountry === code;
+                      return (
+                        <Pressable key={code} onPress={() => setDiscCountry(code)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 8, gap: 6, backgroundColor: active ? COLORS.coral : '#fff' }}>
+                          <Text style={{ fontSize: 13 }}>{code === 'all' ? '🌍' : flagEmoji(code)}</Text>
+                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink2 }}>{code === 'all' ? 'All countries' : countryName(code)}</Text>
+                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? 'rgba(255,255,255,0.8)' : COLORS.ink3 }}>{count}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                ) : null}
+
                 {/* gallery grid */}
                 {shownDiscoveries.length === 0 ? (
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink3, paddingHorizontal: 20 }}>No {discCat === 'all' ? '' : `${DISC_LABEL[discCat]} `}discoveries yet.</Text>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink3, paddingHorizontal: 20 }}>No discoveries match those filters yet.</Text>
                 ) : (
                   <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, gap: 12 }}>
                     {shownDiscoveries.map((d) => (
