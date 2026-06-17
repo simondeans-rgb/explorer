@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Modal } from 'react-native';
+import { View, Text, ScrollView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
@@ -12,22 +12,23 @@ import {
   Coins,
   Users,
   Maximize2,
-  Landmark,
-  X,
+  ChevronRight,
 } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { AddDiscoverySheet } from '../../components/AddDiscoverySheet';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
 import { DestinationImage } from '../../components/DestinationImage';
 import { DiscoveryCard } from '../../components/DiscoveryCard';
+import { LandmarkDetailSheet, type LandmarkPerson } from '../../components/LandmarkDetailSheet';
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, continentOf } from '../../src/data/countries';
 import { countryFacts } from '../../src/data/countryFacts';
+import { useLandmarkInfo } from '../../src/lib/landmarkInfo';
 import {
   RELATIONSHIP_META,
   JOURNEY_MODE_META,
-  VERDICT_META,
+  type RecommendationVerdict,
 } from '../../src/types';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useData } from '../../src/store/data';
@@ -100,6 +101,57 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+/** A landmark row with a real photo (a Wikipedia image, falling back to the
+ *  country's stock photo). Tapping it opens the detail sheet; the + records a
+ *  discovery prefilled for this landmark. */
+function LandmarkRow({
+  code,
+  landmark,
+  recorded,
+  friendCount,
+  onOpen,
+  onAdd,
+}: {
+  code: string;
+  landmark: string;
+  recorded: boolean;
+  friendCount: number;
+  onOpen: () => void;
+  onAdd: () => void;
+}) {
+  const info = useLandmarkInfo(landmark, true);
+  return (
+    <Pressable onPress={onOpen} className="bg-white rounded-2xl flex-row items-center" style={{ padding: 12, gap: 12 }}>
+      <View style={{ height: 60, width: 60, borderRadius: 14, overflow: 'hidden' }}>
+        {info?.image ? (
+          <Image source={{ uri: info.image }} style={{ height: 60, width: 60 }} contentFit="cover" transition={200} cachePolicy="memory-disk" />
+        ) : (
+          <DestinationImage code={code} style={{ height: 60, width: 60 }} />
+        )}
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text numberOfLines={2} style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{landmark}</Text>
+        {recorded ? (
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.aqua, marginTop: 1 }}>You've been ✓</Text>
+        ) : friendCount > 0 ? (
+          <View className="flex-row items-center" style={{ gap: 4, marginTop: 2 }}>
+            <Users size={12} color={COLORS.lavender} />
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11.5, fontWeight: '700', color: COLORS.lavender }}>{friendCount} {friendCount === 1 ? 'friend' : 'friends'}</Text>
+          </View>
+        ) : (
+          <View className="flex-row items-center" style={{ gap: 3, marginTop: 2 }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11.5, color: COLORS.ink3 }}>View details</Text>
+            <ChevronRight size={12} color={COLORS.ink3} />
+          </View>
+        )}
+      </View>
+      <Pressable onPress={onAdd} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 34, width: 34, backgroundColor: COLORS.coral }}>
+        <Plus size={18} color="#fff" strokeWidth={2.6} />
+      </Pressable>
+    </Pressable>
+  );
+}
+
 export default function CountryScreen() {
   const { code: rawCode } = useLocalSearchParams<{ code: string }>();
   const code = (rawCode ?? '').toUpperCase();
@@ -111,22 +163,24 @@ export default function CountryScreen() {
   const [discOpen, setDiscOpen] = useState(false);
   const [discName, setDiscName] = useState<string | undefined>(undefined);
   const [photoOpen, setPhotoOpen] = useState(false);
-  const [whoModal, setWhoModal] = useState<{ landmark: string; people: { name: string; verdict?: string }[] } | null>(null);
+  const [landmarkDetail, setLandmarkDetail] = useState<
+    { name: string; photo?: string; own?: { verdict?: RecommendationVerdict; note?: string } | null; friends: LandmarkPerson[] } | null
+  >(null);
 
   // Friends' discoveries in this country, with the friend's name attached.
   const friendDiscoveries = useMemo(() => {
     const nameByUid = new Map(friends.map((f) => [f.uid, f.name]));
     return friendsData.discoveries
       .filter((d) => d.countryCode === code)
-      .map((d) => ({ name: d.name, verdict: d.verdict, uid: d.userId, friend: nameByUid.get(d.userId) ?? 'Friend' }));
+      .map((d) => ({ name: d.name, verdict: d.verdict, note: d.note, photo: d.photo, uid: d.userId, friend: nameByUid.get(d.userId) ?? 'Friend' }));
   }, [friendsData.discoveries, friends, code]);
 
   function friendsForLandmark(landmark: string) {
     const ll = landmark.toLowerCase();
-    const seen = new Map<string, { name: string; verdict?: string }>();
+    const seen = new Map<string, { person: LandmarkPerson; photo?: string }>();
     for (const d of friendDiscoveries) {
       const dn = d.name.toLowerCase();
-      if (dn.includes(ll) || ll.includes(dn)) seen.set(d.uid, { name: d.friend, verdict: d.verdict });
+      if (dn.includes(ll) || ll.includes(dn)) seen.set(d.uid, { person: { name: d.friend, verdict: d.verdict, note: d.note }, photo: d.photo });
     }
     return [...seen.values()];
   }
@@ -152,6 +206,19 @@ export default function CountryScreen() {
   const continent = agg?.continent ?? continentOf(code);
   const rels = (agg?.relationships ?? []).filter((r) => r !== 'aspiring');
   const cities = agg?.cities ?? [];
+
+  // Open the rich detail sheet for a landmark — your saved note + any friends'.
+  function openLandmarkDetail(landmark: string) {
+    const recorded = myDiscoveries.find((d) => d.landmark === landmark || d.name.toLowerCase() === landmark.toLowerCase());
+    const fl = friendsForLandmark(landmark);
+    const photo = recorded?.photo ?? fl.find((f) => f.photo)?.photo;
+    setLandmarkDetail({
+      name: landmark,
+      photo,
+      own: recorded ? { verdict: recorded.verdict, note: recorded.note } : null,
+      friends: fl.map((f) => f.person),
+    });
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
@@ -208,33 +275,18 @@ export default function CountryScreen() {
           <Section title="Landmarks & sights">
             <View style={{ gap: 8 }}>
               {facts.landmarks.map((l) => {
-                const recorded = myDiscoveries.find((d) => d.landmark === l || d.name.toLowerCase() === l.toLowerCase());
+                const recorded = !!myDiscoveries.find((d) => d.landmark === l || d.name.toLowerCase() === l.toLowerCase());
                 const fl = friendsForLandmark(l);
                 return (
-                  <View key={l} className="bg-white rounded-2xl flex-row items-center" style={{ padding: 14, gap: 10 }}>
-                    <View className="rounded-xl items-center justify-center" style={{ height: 38, width: 38, backgroundColor: 'rgba(255,107,154,0.12)' }}>
-                      <Landmark size={18} color={COLORS.coral} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{l}</Text>
-                      {recorded ? (
-                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.aqua, marginTop: 1 }}>You've been ✓</Text>
-                      ) : null}
-                    </View>
-
-                    {/* friends who visited */}
-                    {fl.length > 0 ? (
-                      <Pressable onPress={() => setWhoModal({ landmark: l, people: fl })} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(155,124,255,0.14)', paddingHorizontal: 8, paddingVertical: 5, gap: 4 }}>
-                        <Users size={13} color={COLORS.lavender} />
-                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.lavender }}>{fl.length}</Text>
-                      </Pressable>
-                    ) : null}
-
-                    {/* add to discoveries */}
-                    <Pressable onPress={() => openAddDiscovery(l)} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 34, width: 34, backgroundColor: COLORS.coral }}>
-                      <Plus size={18} color="#fff" strokeWidth={2.6} />
-                    </Pressable>
-                  </View>
+                  <LandmarkRow
+                    key={l}
+                    code={code}
+                    landmark={l}
+                    recorded={recorded}
+                    friendCount={fl.length}
+                    onOpen={() => openLandmarkDetail(l)}
+                    onAdd={() => openAddDiscovery(l)}
+                  />
                 );
               })}
             </View>
@@ -331,36 +383,29 @@ export default function CountryScreen() {
         ) : null}
       </ScrollView>
 
-      <AddDiscoverySheet visible={discOpen} onClose={() => { setDiscOpen(false); setDiscName(undefined); }} initialCountryCode={code} initialName={discName} />
+      <AddDiscoverySheet
+        visible={discOpen}
+        onClose={() => { setDiscOpen(false); setDiscName(undefined); }}
+        initialCountryCode={code}
+        initialName={discName}
+        initialCategory={discName ? 'culture' : undefined}
+        initialSubcategory={discName ? 'landmark' : undefined}
+        initialLandmark={discName}
+        initialCity={discName ? facts?.capital : undefined}
+      />
       <AddPhotoSheet visible={photoOpen} onClose={() => setPhotoOpen(false)} initialCountryCode={code} />
 
-      {/* Who visited this landmark */}
-      <Modal visible={!!whoModal} transparent animationType="fade" onRequestClose={() => setWhoModal(null)}>
-        <Pressable onPress={() => setWhoModal(null)} style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 32, backgroundColor: 'rgba(14,16,24,0.5)' }}>
-          <Pressable onPress={(e) => e.stopPropagation()} className="bg-white rounded-3xl" style={{ padding: 20 }}>
-            <View className="flex-row items-start justify-between" style={{ gap: 12 }}>
-              <Text style={{ flex: 1, fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy }}>{whoModal?.landmark}</Text>
-              <Pressable onPress={() => setWhoModal(null)} hitSlop={8} className="rounded-full items-center justify-center" style={{ height: 30, width: 30, backgroundColor: COLORS.warmwhite }}>
-                <X size={16} color={COLORS.ink2} />
-              </Pressable>
-            </View>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2, marginBottom: 12 }}>Visited by your circle</Text>
-            <View style={{ gap: 8 }}>
-              {(whoModal?.people ?? []).map((p, i) => (
-                <View key={i} className="flex-row items-center" style={{ gap: 10 }}>
-                  <View className="rounded-full items-center justify-center" style={{ height: 36, width: 36, backgroundColor: 'rgba(155,124,255,0.16)' }}>
-                    <Text style={{ fontFamily: 'Fraunces', fontSize: 15, color: COLORS.lavender }}>{p.name.charAt(0).toUpperCase()}</Text>
-                  </View>
-                  <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{p.name}</Text>
-                  {p.verdict ? (
-                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{VERDICT_META[p.verdict as keyof typeof VERDICT_META]?.label}</Text>
-                  ) : null}
-                </View>
-              ))}
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      {/* Landmark / place detail */}
+      <LandmarkDetailSheet
+        visible={!!landmarkDetail}
+        onClose={() => setLandmarkDetail(null)}
+        name={landmarkDetail?.name}
+        countryCode={code}
+        placeLabel={name}
+        photo={landmarkDetail?.photo}
+        own={landmarkDetail?.own}
+        friends={landmarkDetail?.friends ?? []}
+      />
     </View>
   );
 }

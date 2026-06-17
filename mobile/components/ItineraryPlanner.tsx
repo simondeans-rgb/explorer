@@ -24,6 +24,8 @@ export interface Suggestion {
   /** Set when this came from a friend's discovery. */
   friend?: string;
   note?: string;
+  /** A friend's own photo of this place, when they saved one. */
+  photo?: string;
   /** Set for a popular landmark suggestion. */
   landmark?: boolean;
 }
