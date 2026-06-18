@@ -78,14 +78,9 @@ in-app web browser. Expected rating: **4+**.
 
 ## 4. Export compliance (encryption)
 
-The app only uses standard HTTPS/TLS encryption. To avoid the per-upload prompt,
-add to `app.json` → `ios.infoPlist`:
-
-```json
-"ITSAppUsesNonExemptEncryption": false
-```
-
-(Then in App Store Connect the "Export Compliance" question is auto-answered.)
+The app only uses standard HTTPS/TLS encryption. ✅ **Done** — `app.json` →
+`ios.infoPlist` now sets `"ITSAppUsesNonExemptEncryption": false`, so App Store
+Connect auto-answers the Export Compliance question on every upload.
 
 ---
 
@@ -128,8 +123,7 @@ Your data is yours: everything syncs privately to your account, and you can
 delete it — or your whole account — anytime.
 ```
 
-- **Support URL (required):** a web page — reuse `https://stickynotes-sand.vercel.app`
-  or I can add a simple `/support` page. (A mailto is not accepted as the URL.)
+- **Support URL (required):** `https://stickynotes-sand.vercel.app/support`
 - **Privacy Policy URL:** `https://stickynotes-sand.vercel.app/privacy`
 - **Marketing URL (optional):** `https://stickynotes-sand.vercel.app`
 - **Copyright:** `2026 Worldly`
@@ -151,9 +145,8 @@ Suggested shots (all on-brand, photo-forward):
    location feature in context — good for reviewers).
 6. **Wrapped or You tab** — the personal stats.
 
-> **iPad:** `app.json` currently has `"supportsTablet": true`, which means App
-> Store Connect will also require **13" iPad** screenshots. If you want to launch
-> iPhone-only, set `supportsTablet: false` and the iPad requirement disappears.
+> **iPad:** ✅ Set to **iPhone-only** (`supportsTablet: false`), so **no iPad
+> screenshots are required**.
 
 ---
 
