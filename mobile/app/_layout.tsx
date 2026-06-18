@@ -28,10 +28,12 @@ import { AddDiscoverySheet } from '../components/AddDiscoverySheet';
 import { AddTripSheet } from '../components/AddTripSheet';
 import { AddPhotoSheet } from '../components/AddPhotoSheet';
 import { AddTripPlanSheet } from '../components/AddTripPlanSheet';
+import { initSentry, wrapWithSentry } from '../src/lib/sentry';
 
 SplashScreen.preventAutoHideAsync();
+initSentry();
 
-export default function RootLayout() {
+function RootLayout() {
   const [loaded] = useFonts({
     Fraunces: Fraunces_600SemiBold,
     PlusJakarta: PlusJakartaSans_500Medium,
@@ -55,6 +57,8 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+export default wrapWithSentry(RootLayout);
 
 function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
   const { ready, visible, finish } = useOnboarding();
