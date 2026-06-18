@@ -6,7 +6,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Users, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail } from 'lucide-react-native';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Users, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AchievementBadge } from '../../components/AchievementBadge';
 import { HERO_CODES } from '../../src/lib/heroImages';
@@ -14,7 +14,10 @@ import { hasDestinationPhoto } from '../../src/lib/destinationImage';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useAuth } from '../../src/store/auth';
+import { useData } from '../../src/store/data';
+import { useToast } from '../../src/store/toast';
 import { useOnboarding } from '../../src/store/onboarding';
+import { exportMyData } from '../../src/lib/exportData';
 import { AuthSheet } from '../../components/AuthSheet';
 import { DeleteAccountSheet } from '../../components/DeleteAccountSheet';
 import { pickPhotoDataUrl } from '../../src/lib/photo';
@@ -42,10 +45,33 @@ export default function YouScreen() {
   }, [aggregates]);
   const almanacCodes = ['PE', 'EG', 'GR', 'IT'];
   const { configured, user, signOutUser } = useAuth();
+  const { places, discoveries, expeditions, captures, trips } = useData();
+  const { toast } = useToast();
   const { replay } = useOnboarding();
   const [authOpen, setAuthOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
+
+  async function onExport() {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const ok = await exportMyData({
+        account: { email: user?.email, name: user?.displayName },
+        places,
+        discoveries,
+        expeditions,
+        captures,
+        trips,
+      });
+      if (!ok) toast.error('Sharing is unavailable on this device.');
+    } catch {
+      toast.error("Couldn't export your data — please try again.");
+    } finally {
+      setExporting(false);
+    }
+  }
   const earned = badges.filter((b) => b.earned).length;
 
   const displayName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'Alex');
@@ -264,6 +290,7 @@ export default function YouScreen() {
             { icon: ShieldCheck, label: 'Privacy Policy', onPress: () => Linking.openURL(PRIVACY_URL) },
             { icon: FileText, label: 'Terms of Service', onPress: () => Linking.openURL(TERMS_URL) },
             { icon: Mail, label: 'Contact support', sub: SUPPORT_EMAIL, onPress: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=Worldly%20support`) },
+            { icon: FileDown, label: exporting ? 'Preparing your data…' : 'Export my data', onPress: onExport },
           ].map((row, i) => (
             <Pressable key={row.label} onPress={row.onPress} className="flex-row items-center" style={{ paddingHorizontal: 16, paddingVertical: 14, gap: 12, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
               <View className="rounded-2xl items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
