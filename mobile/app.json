@@ -11,7 +11,9 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.simmyd23.worldly",
       "infoPlist": {
-        "UIBackgroundModes": ["location"],
+        "UIBackgroundModes": [
+          "location"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -64,7 +66,8 @@
           "savePhotosPermission": "Worldly saves a photo to your library when you choose to.",
           "isAccessMediaLocationEnabled": true
         }
-      ]
+      ],
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true
