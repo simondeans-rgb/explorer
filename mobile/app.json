@@ -8,10 +8,11 @@
     "scheme": "mobile",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.simmyd23.worldly",
       "infoPlist": {
-        "UIBackgroundModes": ["location"]
+        "UIBackgroundModes": ["location"],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
