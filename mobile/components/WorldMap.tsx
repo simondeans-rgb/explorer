@@ -95,7 +95,7 @@ export function WorldMap({
   const progress = useSharedValue(0);
   useEffect(() => {
     progress.value = 0;
-    progress.value = withDelay(220, withTiming(1, { duration: 1600, easing: Easing.out(Easing.cubic) }));
+    progress.value = withDelay(260, withTiming(1, { duration: 3400, easing: Easing.inOut(Easing.ease) }));
   }, [progress, glow.length]);
 
   // Measure our width so the map fills it edge-to-edge at the right aspect.
