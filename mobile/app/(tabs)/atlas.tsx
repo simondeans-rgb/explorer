@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import { Globe2, MapPinned, Search } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
 import { WorldMap } from '../../components/WorldMap';
-import { MAP_FILL_VISITED } from '../../src/lib/worldGeo';
 import { RouteMap } from '../../components/RouteMap';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AtlasCountryCard } from '../../components/AtlasCountryCard';
@@ -171,7 +170,7 @@ export default function AtlasScreen() {
           </View>
           <View className="flex-row items-center" style={{ marginTop: 10, gap: 16, paddingHorizontal: 4 }}>
             <View className="flex-row items-center" style={{ gap: 6 }}>
-              <View style={{ height: 10, width: 10, borderRadius: 5, backgroundColor: MAP_FILL_VISITED }} />
+              <View style={{ height: 10, width: 10, borderRadius: 5, backgroundColor: COLORS.coral }} />
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{visited.size} discovered{scope === 'all' ? '' : ` in ${scope}`}</Text>
             </View>
             {wishlist.size > 0 ? (
