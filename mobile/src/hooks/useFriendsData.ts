@@ -21,6 +21,16 @@ interface FriendsData {
   discoveries: Discovery[];
 }
 
+/** Firestore Timestamp / number → millis. */
+function millis(v: unknown): number {
+  if (v && typeof v === 'object') {
+    const t = v as { toMillis?: () => number; seconds?: number };
+    if (typeof t.toMillis === 'function') return t.toMillis();
+    if (typeof t.seconds === 'number') return t.seconds * 1000;
+  }
+  return typeof v === 'number' ? v : 0;
+}
+
 function mapPlace(d: { id: string; data: () => Record<string, unknown> }): Place {
   const data = d.data();
   return {
@@ -31,8 +41,9 @@ function mapPlace(d: { id: string; data: () => Record<string, unknown> }): Place
     name: (data.name ?? '') as string,
     relationships: (data.relationships ?? []) as Relationship[],
     firstYear: typeof data.firstYear === 'number' ? data.firstYear : undefined,
+    firstDate: (data.firstDate as string) || undefined,
     note: (data.note as string) || undefined,
-    createdAt: 0,
+    createdAt: millis(data.createdAt),
     updatedAt: 0,
   };
 }
@@ -47,12 +58,13 @@ function mapDiscovery(d: {
     userId: data.userId as string,
     name: (data.name ?? '') as string,
     category: (data.category ?? 'food') as DiscoveryCategory,
+    subcategory: (data.subcategory as string) || undefined,
     countryCode: (data.countryCode as string) || undefined,
     city: (data.city as string) || undefined,
     landmark: (data.landmark as string) || undefined,
     verdict: (data.verdict as RecommendationVerdict) || undefined,
     note: (data.note as string) || undefined,
-    createdAt: 0,
+    createdAt: millis(data.createdAt),
     updatedAt: 0,
   };
 }
