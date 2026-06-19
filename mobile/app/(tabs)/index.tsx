@@ -72,8 +72,8 @@ export default function StoryScreen() {
           <View style={{ alignItems: 'center' }}>
             <WorldlyLogo white height={58} />
             <View className="flex-row items-center" style={{ marginTop: 10 }}>
-              <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13.5, letterSpacing: 0.2 }}>Explore more. </Text>
-              <Text style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13.5, letterSpacing: 0.2, color: COLORS.coral }}>Remember everything.</Text>
+              <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13.5, letterSpacing: 0.2 }}>Every place. Every journey. </Text>
+              <Text style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13.5, letterSpacing: 0.2, color: COLORS.coral }}>Every discovery.</Text>
             </View>
             <View style={{ marginTop: 5 }}>
               <Squiggle width={130} height={16} color={COLORS.coral} />

@@ -129,33 +129,33 @@ export default function YouScreen() {
           </View>
         </Pressable>
         <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 30, marginTop: 12 }}>{displayName}</Text>
-        <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.9, marginTop: 2 }}>
-          {user ? 'Synced member' : 'Worldly member'}
+        <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.92, marginTop: 2 }}>
+          {level.title}
         </Text>
         <Svg width="100%" height={42} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
           <Path d="M0,72 C240,44 480,40 720,58 C960,76 1200,92 1440,72 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
         </Svg>
       </DestinationImage>
 
-      {/* Explorer level */}
+      {/* Explorer level — on-brand white card */}
       <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
-        <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 24, padding: 18 }}>
+        <Pressable onPress={() => router.push('/achievements')} className="bg-white rounded-3xl" style={{ padding: 18 }}>
           <View className="flex-row items-center" style={{ gap: 14 }}>
-            <View className="rounded-2xl items-center justify-center bg-white/20" style={{ height: 60, width: 60 }}>
-              <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 26 }}>{level.level}</Text>
+            <View className="rounded-2xl items-center justify-center" style={{ height: 60, width: 60, backgroundColor: 'rgba(255,107,154,0.12)' }}>
+              <Text style={{ fontFamily: 'Fraunces', fontSize: 27, color: COLORS.coral }}>{level.level}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.8 }}>Explorer level</Text>
-              <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 22 }}>{level.title}</Text>
-              <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.85, marginTop: 2 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 0.6, color: COLORS.ink3 }}>EXPLORER LEVEL</Text>
+              <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>{level.title}</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2 }}>
                 {level.xp.toLocaleString()} XP{!level.maxed ? ` · ${Math.max(0, level.nextLevelXp - level.xp).toLocaleString()} to next` : ''}
               </Text>
             </View>
           </View>
-          <View style={{ height: 8, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.25)', marginTop: 14, overflow: 'hidden' }}>
-            <View style={{ height: 8, borderRadius: 8, backgroundColor: '#fff', width: `${Math.round((level.maxed ? 1 : level.progress) * 100)}%` }} />
+          <View style={{ height: 8, borderRadius: 8, backgroundColor: 'rgba(20,33,61,0.07)', marginTop: 14, overflow: 'hidden' }}>
+            <View style={{ height: 8, borderRadius: 8, backgroundColor: COLORS.coral, width: `${Math.round((level.maxed ? 1 : level.progress) * 100)}%` }} />
           </View>
-        </LinearGradient>
+        </Pressable>
       </View>
 
       {/* Stats strip */}
@@ -178,7 +178,7 @@ export default function YouScreen() {
               </View>
               <View>
                 <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 19 }}>Wrapped</Text>
-                <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.95, marginTop: 1 }}>Your travels, played</Text>
+                <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.95, marginTop: 1 }}>Your travels, told</Text>
               </View>
             </DestinationImage>
           </View>

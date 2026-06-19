@@ -280,8 +280,8 @@ export default function ExploreScreen() {
               {discoveries.length > 0 ? (
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 2 }}>
                   {[
-                    `${discoveryStats.total} saved`,
-                    discoveryStats.recommended ? `${discoveryStats.recommended} recommended` : null,
+                    `${discoveryStats.total} ${discoveryStats.total === 1 ? 'discovery' : 'discoveries'}`,
+                    discCountries.length ? `across ${discCountries.length} ${discCountries.length === 1 ? 'country' : 'countries'}` : null,
                     discoveryStats.hiddenGems ? `${discoveryStats.hiddenGems} hidden ${discoveryStats.hiddenGems === 1 ? 'gem' : 'gems'}` : null,
                   ].filter(Boolean).join(' · ')}
                 </Text>
