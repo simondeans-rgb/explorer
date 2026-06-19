@@ -8,6 +8,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "channel": "main",
+      "environment": "development",
       "ios": {
         "simulator": false
       }
@@ -15,13 +16,15 @@
     "preview": {
       "distribution": "internal",
       "channel": "main",
+      "environment": "preview",
       "ios": {
         "simulator": false
       }
     },
     "production": {
       "autoIncrement": true,
-      "channel": "main"
+      "channel": "main",
+      "environment": "production"
     }
   },
   "submit": {
