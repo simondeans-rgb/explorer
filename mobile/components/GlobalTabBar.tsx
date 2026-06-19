@@ -1,7 +1,7 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { router, usePathname } from 'expo-router';
-import { BookMarked, Globe2, Compass, UserRound, Plus } from 'lucide-react-native';
+import { BookMarked, Globe2, Compass, UserRound, Users, Plus } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { COLORS } from '../src/lib/theme';
 
@@ -10,6 +10,7 @@ type TabDef = { path: string; label: string; icon: ComponentType<{ size?: number
 const LEFT: TabDef[] = [
   { path: '/', label: 'Story', icon: BookMarked },
   { path: '/atlas', label: 'Atlas', icon: Globe2 },
+  { path: '/circle', label: 'Circle', icon: Users },
 ];
 const RIGHT: TabDef[] = [
   { path: '/explore', label: 'Explore', icon: Compass },
@@ -40,8 +41,8 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
         className="items-center justify-center"
         style={{ flex: 1, paddingVertical: 6, gap: 3 }}
       >
-        <Icon size={23} color={color} />
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color }}>{def.label}</Text>
+        <Icon size={22} color={color} />
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '700', color }}>{def.label}</Text>
       </Pressable>
     );
   }
@@ -64,14 +65,18 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
       >
         <BlurView intensity={60} tint="light" style={StyleSheet.absoluteFill} />
         <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.42)' }]} />
-        <View className="flex-row items-center" style={{ height: 66, paddingHorizontal: 8 }}>
-          {LEFT.map((d) => (
-            <Tab key={d.path} def={d} />
-          ))}
+        <View className="flex-row items-center" style={{ height: 66, paddingHorizontal: 6 }}>
+          <View className="flex-row" style={{ flex: 1 }}>
+            {LEFT.map((d) => (
+              <Tab key={d.path} def={d} />
+            ))}
+          </View>
           <View style={{ width: 72 }} />
-          {RIGHT.map((d) => (
-            <Tab key={d.path} def={d} />
-          ))}
+          <View className="flex-row" style={{ flex: 1 }}>
+            {RIGHT.map((d) => (
+              <Tab key={d.path} def={d} />
+            ))}
+          </View>
         </View>
       </View>
 

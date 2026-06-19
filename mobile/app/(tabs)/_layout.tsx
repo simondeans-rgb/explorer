@@ -8,6 +8,7 @@ export default function TabsLayout() {
     <Tabs screenOptions={{ headerShown: false }} tabBar={() => null}>
       <Tabs.Screen name="index" />
       <Tabs.Screen name="atlas" />
+      <Tabs.Screen name="circle" />
       <Tabs.Screen name="explore" />
       <Tabs.Screen name="you" />
     </Tabs>
