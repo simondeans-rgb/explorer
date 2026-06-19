@@ -11,14 +11,14 @@ import Animated, {
   Extrapolation,
   type SharedValue,
 } from 'react-native-reanimated';
-import { geoEqualEarth, geoPath } from 'd3-geo';
+import { geoPath } from 'd3-geo';
 import { WORLD_FEATURES } from '../src/lib/worldGeo';
+import { framedEqualEarth } from '../src/lib/mapFraming';
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 
 const VIEW_W = 360;
 const VIEW_H = 276;
-const ZOOM = 1.16;
 
 // Dark, luminous theme — discovered countries glow coral against a deep navy
 // ocean so the map reads as the hero of the screen, not background texture.
@@ -72,8 +72,11 @@ export function WorldMap({
   onPressCountry?: (code: string) => void;
 }) {
   const { land, glow } = useMemo(() => {
-    const projection = geoEqualEarth().fitSize([VIEW_W, VIEW_H], { type: 'Sphere' });
-    projection.scale(projection.scale() * ZOOM).translate([VIEW_W / 2, VIEW_H * 0.49]);
+    // Frame the map to the countries the user has — so it zooms to their region
+    // (and reframes per year as the scope changes).
+    const inFrame = WORLD_FEATURES.filter((wf) => wf.alpha2 && (visited.has(wf.alpha2) || wishlist?.has(wf.alpha2)));
+    const target = inFrame.length ? { type: 'FeatureCollection' as const, features: inFrame.map((wf) => wf.feature) } : null;
+    const projection = framedEqualEarth(VIEW_W, VIEW_H, target);
     const path = geoPath(projection);
     const land: { key: string; d: string; fill: string; code?: string }[] = [];
     const glow: { key: string; d: string; code?: string; cx: number }[] = [];
@@ -96,7 +99,7 @@ export function WorldMap({
   useEffect(() => {
     progress.value = 0;
     progress.value = withDelay(260, withTiming(1, { duration: 3400, easing: Easing.inOut(Easing.ease) }));
-  }, [progress, glow.length]);
+  }, [progress, glow]);
 
   // Measure our width so the map fills it edge-to-edge at the right aspect.
   const [w, setW] = useState(0);

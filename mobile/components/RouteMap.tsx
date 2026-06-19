@@ -11,8 +11,9 @@ import Animated, {
   Extrapolation,
   type SharedValue,
 } from 'react-native-reanimated';
-import { geoEqualEarth, geoPath, geoInterpolate } from 'd3-geo';
+import { geoPath, geoInterpolate } from 'd3-geo';
 import { WORLD_FEATURES } from '../src/lib/worldGeo';
+import { framedEqualEarth } from '../src/lib/mapFraming';
 import type { Segment } from '../src/lib/journeyGeo';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -20,7 +21,6 @@ const AnimatedG = Animated.createAnimatedComponent(G);
 
 const VIEW_W = 360;
 const VIEW_H = 276;
-const ZOOM = 1.16;
 
 // Same dark, luminous theme as the places map.
 const OCEAN_GLOW = '#243869';
@@ -67,8 +67,14 @@ function RouteLine({
  *  by one in date order, over the dark luminous hero theme. */
 export function RouteMap({ segments }: { segments: Segment[] }) {
   const { countryPaths, routes, dots } = useMemo(() => {
-    const projection = geoEqualEarth().fitSize([VIEW_W, VIEW_H], { type: 'Sphere' });
-    projection.scale(projection.scale() * ZOOM).translate([VIEW_W / 2, VIEW_H * 0.49]);
+    // Frame the map to the flight network (reframes per year as scope changes).
+    const pts: [number, number][] = [];
+    segments.forEach((s) => {
+      pts.push(s.from);
+      pts.push(s.to);
+    });
+    const target = pts.length ? { type: 'MultiPoint' as const, coordinates: pts } : null;
+    const projection = framedEqualEarth(VIEW_W, VIEW_H, target);
     const path = geoPath(projection);
     const countryPaths = WORLD_FEATURES.map((wf, i) => ({ key: `c-${i}`, d: path(wf.feature) ?? '' }));
 
@@ -107,7 +113,7 @@ export function RouteMap({ segments }: { segments: Segment[] }) {
   useEffect(() => {
     progress.value = 0;
     progress.value = withDelay(260, withTiming(1, { duration, easing: Easing.inOut(Easing.ease) }));
-  }, [progress, routes.length, duration]);
+  }, [progress, routes, duration]);
 
   // Airports fade in early so routes draw onto visible dots.
   const dotsProps = useAnimatedProps(() => ({ opacity: interpolate(progress.value, [0, 0.12], [0, 1], Extrapolation.CLAMP) }));
