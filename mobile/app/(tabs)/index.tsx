@@ -4,12 +4,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { Search, Camera, ChevronRight, Users, UserPlus } from 'lucide-react-native';
+import { Search, Camera, ChevronRight, Users, UserPlus, MapPin } from 'lucide-react-native';
 import { WorldlyLogo } from '../../components/WorldlyLogo';
 import { Squiggle } from '../../components/Squiggle';
 import { DestinationImage } from '../../components/DestinationImage';
+import { LandmarkDetailSheet } from '../../components/LandmarkDetailSheet';
 import { AddPlaceSheet } from '../../components/AddPlaceSheet';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
+import { circleStoryItems, type CircleStoryItem } from '../../src/lib/circle';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
@@ -39,22 +41,18 @@ export default function StoryScreen() {
   }, [discovered]);
   const [addOpen, setAddOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [circleItem, setCircleItem] = useState<CircleStoryItem | null>(null);
 
-  // "Fresh from your circle": each friend's discovered countries (deduped).
-  const circle = (() => {
-    const nameByUid = new Map(friends.map((f) => [f.uid, f.name]));
-    const seen = new Set<string>();
-    const items: { uid: string; name: string; code: string }[] = [];
-    for (const p of friendsData.places) {
-      if (!p.countryCode || !p.relationships.some((r) => r !== 'aspiring')) continue;
-      const key = `${p.userId}:${p.countryCode}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      items.push({ uid: p.userId, name: nameByUid.get(p.userId) ?? 'Friend', code: p.countryCode });
-      if (items.length >= 12) break;
-    }
-    return items;
-  })();
+  // A few evocative "from your circle" items — recommendations, wishlists, visits.
+  const storyItems = useMemo(
+    () => circleStoryItems(friendsData.discoveries, friendsData.places, friends),
+    [friendsData.discoveries, friendsData.places, friends],
+  );
+
+  function openCircleItem(item: CircleStoryItem) {
+    if (item.people.length) setCircleItem(item);
+    else if (item.countryCode) router.push(`/country/${item.countryCode}`);
+  }
 
   function confirmRemoveCapture(id: string) {
     Alert.alert('Remove memory?', 'This photo will be deleted.', [
@@ -239,36 +237,41 @@ export default function StoryScreen() {
         )}
       </View>
 
-      {/* Fresh from your circle */}
-      {circle.length > 0 ? (
-        <View style={{ marginTop: 24 }}>
-          <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 20 }}>
-            <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Fresh from your circle</Text>
-            <Pressable onPress={() => router.push('/friends')} hitSlop={8}>
+      {/* From your circle */}
+      {storyItems.length > 0 ? (
+        <View style={{ marginTop: 24, paddingHorizontal: 20 }}>
+          <View className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>From your circle</Text>
+            <Pressable onPress={() => router.push('/circle')} hitSlop={8}>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.coral }}>See all</Text>
             </Pressable>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 12 }}>
-            {circle.map((item) => (
-              <Pressable key={`${item.uid}:${item.code}`} onPress={() => router.push(`/country/${item.code}`)} style={{ width: 144 }}>
-                <DestinationImage code={item.code} scrim style={{ height: 176, borderRadius: 24, padding: 12, justifyContent: 'flex-end' }}>
-                  <View className="flex-row items-center" style={{ gap: 6, position: 'absolute', top: 10, left: 10 }}>
-                    <View className="rounded-full items-center justify-center" style={{ height: 26, width: 26, backgroundColor: 'rgba(255,255,255,0.3)' }}>
-                      <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 13 }}>{item.name.charAt(0).toUpperCase()}</Text>
-                    </View>
-                    <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', maxWidth: 92 }}>{item.name}</Text>
+          <View style={{ gap: 10 }}>
+            {storyItems.map((item) => {
+              const place = [item.city, item.countryCode ? countryName(item.countryCode) : null].filter(Boolean).join(', ');
+              return (
+                <Pressable key={item.key} onPress={() => openCircleItem(item)} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 12, gap: 12 }}>
+                  <View style={{ height: 60, width: 60, borderRadius: 14, overflow: 'hidden' }}>
+                    <DestinationImage code={item.countryCode ?? 'WW'} style={{ height: 60, width: 60 }} />
                   </View>
-                  <Text style={{ fontSize: 22 }}>{flagEmoji(item.code)}</Text>
-                  <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 17, marginTop: 2 }}>{countryName(item.code)}</Text>
-                </DestinationImage>
-              </Pressable>
-            ))}
-          </ScrollView>
+                  <View style={{ flex: 1 }}>
+                    <View className="flex-row items-center" style={{ gap: 4 }}>
+                      <MapPin size={13} color={COLORS.coral} />
+                      <Text numberOfLines={1} style={{ flex: 1, fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>{item.name}</Text>
+                    </View>
+                    <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{item.byline}{place ? ` · ${place}` : ''}</Text>
+                    {item.note ? <Text numberOfLines={2} style={{ fontFamily: 'Fraunces', fontSize: 13, fontStyle: 'italic', color: COLORS.ink2, marginTop: 4, lineHeight: 18 }}>“{item.note}”</Text> : null}
+                  </View>
+                  <ChevronRight size={18} color={COLORS.ink3} />
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
       ) : (
         <View style={{ marginTop: 24, paddingHorizontal: 20 }}>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, marginBottom: 12 }}>Your circle</Text>
-          <Pressable onPress={() => router.push('/friends')} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 16, gap: 14 }}>
+          <Pressable onPress={() => router.push('/circle')} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 16, gap: 14 }}>
             <View className="rounded-2xl items-center justify-center" style={{ height: 46, width: 46, backgroundColor: 'rgba(155,124,255,0.14)' }}>
               <Users size={22} color={COLORS.lavender} />
             </View>
@@ -288,6 +291,15 @@ export default function StoryScreen() {
 
       <AddPlaceSheet visible={addOpen} onClose={() => setAddOpen(false)} />
       <AddPhotoSheet visible={photoOpen} onClose={() => setPhotoOpen(false)} />
+      <LandmarkDetailSheet
+        visible={!!circleItem}
+        onClose={() => setCircleItem(null)}
+        name={circleItem?.name}
+        countryCode={circleItem?.countryCode}
+        placeLabel={[circleItem?.city, circleItem?.countryCode ? countryName(circleItem.countryCode) : null].filter(Boolean).join(' · ')}
+        hint={circleItem?.countryCode ? countryName(circleItem.countryCode) : undefined}
+        friends={circleItem?.people ?? []}
+      />
     </View>
   );
 }
