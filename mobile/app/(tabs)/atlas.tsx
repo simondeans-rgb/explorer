@@ -198,7 +198,9 @@ export default function AtlasScreen() {
       ) : (
         <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
           <ScopeChips scope={scope} years={journeyYears} onChange={setScope} />
-          <RouteMap segments={segments} />
+          <View style={{ marginHorizontal: -20, marginTop: 10 }}>
+            <RouteMap segments={segments} />
+          </View>
           <View className="flex-row items-center" style={{ marginTop: 10, gap: 6, paddingHorizontal: 4 }}>
             <View style={{ height: 3, width: 16, borderRadius: 2, backgroundColor: COLORS.coral }} />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>

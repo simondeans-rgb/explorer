@@ -45,12 +45,14 @@ export function resolveEndpoint(label?: string): [number, number] | undefined {
 export interface Segment {
   from: [number, number];
   to: [number, number];
+  /** Earliest date this route was flown (ISO), for the draw-on animation order. */
+  date?: string;
 }
 
-/** Every flight leg whose endpoints we can place, deduplicated. */
+/** Every flight leg whose endpoints we can place, deduplicated and ordered by
+ *  the date first flown (so the map can draw routes on in chronological order). */
 export function routeSegments(expeditions: Expedition[]): Segment[] {
-  const seen = new Set<string>();
-  const segs: Segment[] = [];
+  const byKey = new Map<string, Segment>();
   for (const e of expeditions) {
     for (const j of e.journeys) {
       if (j.mode !== 'flight') continue;
@@ -59,10 +61,14 @@ export function routeSegments(expeditions: Expedition[]): Segment[] {
       if (!from || !to) continue;
       if (from[0] === to[0] && from[1] === to[1]) continue;
       const key = [from.join(','), to.join(',')].sort().join('|');
-      if (seen.has(key)) continue;
-      seen.add(key);
-      segs.push({ from, to });
+      const date = j.date || e.startDate || undefined;
+      const existing = byKey.get(key);
+      if (existing) {
+        if (date && (!existing.date || date < existing.date)) existing.date = date;
+        continue;
+      }
+      byKey.set(key, { from, to, date });
     }
   }
-  return segs;
+  return [...byKey.values()].sort((a, b) => (a.date ?? '9999').localeCompare(b.date ?? '9999'));
 }

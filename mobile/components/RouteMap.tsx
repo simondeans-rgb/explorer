@@ -1,65 +1,161 @@
-import { useMemo } from 'react';
-import { View, Text } from 'react-native';
-import Svg, { Path, Circle, Rect } from 'react-native-svg';
+import { useEffect, useMemo, useState } from 'react';
+import { View, Text, ScrollView } from 'react-native';
+import Svg, { Path, Circle, Rect, Defs, RadialGradient, Stop, G } from 'react-native-svg';
+import Animated, {
+  useSharedValue,
+  useAnimatedProps,
+  withTiming,
+  withDelay,
+  Easing,
+  interpolate,
+  Extrapolation,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { geoEqualEarth, geoPath, geoInterpolate } from 'd3-geo';
-import { WORLD_FEATURES, MAP_FILL_UNVISITED, MAP_STROKE } from '../src/lib/worldGeo';
-import { COLORS } from '../src/lib/theme';
+import { WORLD_FEATURES } from '../src/lib/worldGeo';
 import type { Segment } from '../src/lib/journeyGeo';
 
-const VIEW_W = 360;
-const VIEW_H = 200;
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedG = Animated.createAnimatedComponent(G);
 
-/** An Equal-Earth world map with great-circle flight routes drawn over it,
- *  airline-route-map style. */
+const VIEW_W = 360;
+const VIEW_H = 276;
+const ZOOM = 1.16;
+
+// Same dark, luminous theme as the places map.
+const OCEAN_GLOW = '#243869';
+const OCEAN_DEEP = '#0B1226';
+const LAND_UNVISITED = '#2C3B63';
+const LAND_STROKE = '#18233F';
+const ROUTE = '#FF6A8E';
+const ROUTE_EDGE = '#FFC2D2';
+
+/** One flight route that draws itself on, in turn. */
+function RouteLine({
+  d,
+  length,
+  order,
+  count,
+  progress,
+}: {
+  d: string;
+  length: number;
+  order: number;
+  count: number;
+  progress: SharedValue<number>;
+}) {
+  const animatedProps = useAnimatedProps(() => {
+    const start = count > 1 ? (order / count) * 0.82 : 0;
+    const local = interpolate(progress.value, [start, start + 0.2], [0, 1], Extrapolation.CLAMP);
+    return { strokeDashoffset: length * (1 - local) };
+  });
+  return (
+    <AnimatedPath
+      d={d}
+      fill="none"
+      stroke={ROUTE}
+      strokeWidth={1.4}
+      strokeOpacity={0.95}
+      strokeLinecap="round"
+      strokeDasharray={length}
+      animatedProps={animatedProps}
+    />
+  );
+}
+
+/** An Equal-Earth world map with great-circle flight routes that draw on one
+ *  by one in date order, over the dark luminous hero theme. */
 export function RouteMap({ segments }: { segments: Segment[] }) {
-  const { countryPaths, routePaths, dots } = useMemo(() => {
+  const { countryPaths, routes, dots } = useMemo(() => {
     const projection = geoEqualEarth().fitSize([VIEW_W, VIEW_H], { type: 'Sphere' });
+    projection.scale(projection.scale() * ZOOM).translate([VIEW_W / 2, VIEW_H * 0.49]);
     const path = geoPath(projection);
     const countryPaths = WORLD_FEATURES.map((wf, i) => ({ key: `c-${i}`, d: path(wf.feature) ?? '' }));
 
-    const routePaths: string[] = [];
+    const routes: { key: string; d: string; length: number }[] = [];
     const dotSet = new Map<string, [number, number]>();
-    for (const s of segments) {
+    segments.forEach((s, idx) => {
       const interp = geoInterpolate(s.from, s.to);
       let d = '';
       let prevX: number | null = null;
+      let prevPt: [number, number] | null = null;
+      let len = 0;
       for (let i = 0; i <= 48; i++) {
         const p = projection(interp(i / 48) as [number, number]);
         if (!p) continue;
-        // Break the line where it wraps across the map edge (antimeridian).
         if (prevX !== null && Math.abs(p[0] - prevX) > VIEW_W * 0.5) {
           d += `M${p[0].toFixed(1)} ${p[1].toFixed(1)} `;
+          prevPt = null;
         } else {
           d += `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)} ${p[1].toFixed(1)} `;
+          if (prevPt) len += Math.hypot(p[0] - prevPt[0], p[1] - prevPt[1]);
         }
         prevX = p[0];
+        prevPt = p as [number, number];
       }
-      if (d) routePaths.push(d);
+      if (d) routes.push({ key: `r-${idx}`, d, length: Math.max(len, 1) });
       const pf = projection(s.from);
       const pt = projection(s.to);
       if (pf) dotSet.set(pf.join(','), pf);
       if (pt) dotSet.set(pt.join(','), pt);
-    }
-    return { countryPaths, routePaths, dots: [...dotSet.values()] };
+    });
+    return { countryPaths, routes, dots: [...dotSet.values()] };
   }, [segments]);
 
+  const duration = Math.min(1400 + routes.length * 420, 6000);
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    progress.value = 0;
+    progress.value = withDelay(260, withTiming(1, { duration, easing: Easing.inOut(Easing.ease) }));
+  }, [progress, routes.length, duration]);
+
+  // Airports fade in early so routes draw onto visible dots.
+  const dotsProps = useAnimatedProps(() => ({ opacity: interpolate(progress.value, [0, 0.12], [0, 1], Extrapolation.CLAMP) }));
+
+  const [w, setW] = useState(0);
+  const renderH = w > 0 ? Math.round((w * VIEW_H) / VIEW_W) : VIEW_H;
+
   return (
-    <View style={{ borderRadius: 24, overflow: 'hidden', backgroundColor: '#F4F5FA' }}>
-      <Svg width="100%" height={VIEW_H} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}>
-        <Rect x={0} y={0} width={VIEW_W} height={VIEW_H} fill="#F4F5FA" />
-        {countryPaths.map((p) =>
-          p.d ? <Path key={p.key} d={p.d} fill={MAP_FILL_UNVISITED} stroke={MAP_STROKE} strokeWidth={0.3} /> : null,
-        )}
-        {routePaths.map((d, i) => (
-          <Path key={`r-${i}`} d={d} fill="none" stroke={COLORS.coral} strokeWidth={1.3} strokeOpacity={0.85} strokeLinecap="round" />
-        ))}
-        {dots.map((p, i) => (
-          <Circle key={`d-${i}`} cx={p[0]} cy={p[1]} r={1.9} fill={COLORS.coral} stroke="#fff" strokeWidth={0.6} />
-        ))}
-      </Svg>
+    <View
+      onLayout={(e) => setW(e.nativeEvent.layout.width)}
+      style={{ overflow: 'hidden', backgroundColor: OCEAN_DEEP, height: renderH }}
+    >
+      {w > 0 ? (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ width: w, height: renderH }}
+          maximumZoomScale={6}
+          minimumZoomScale={1}
+          bouncesZoom
+          pinchGestureEnabled
+          showsHorizontalScrollIndicator={false}
+          showsVerticalScrollIndicator={false}
+        >
+          <Svg width={w} height={renderH} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}>
+            <Defs>
+              <RadialGradient id="ocean-r" cx="50%" cy="44%" r="80%">
+                <Stop offset="0" stopColor={OCEAN_GLOW} />
+                <Stop offset="1" stopColor={OCEAN_DEEP} />
+              </RadialGradient>
+            </Defs>
+            <Rect x={0} y={0} width={VIEW_W} height={VIEW_H} fill="url(#ocean-r)" />
+            {countryPaths.map((p) =>
+              p.d ? <Path key={p.key} d={p.d} fill={LAND_UNVISITED} stroke={LAND_STROKE} strokeWidth={0.3} /> : null,
+            )}
+            {routes.map((r, i) => (
+              <RouteLine key={r.key} d={r.d} length={r.length} order={i} count={routes.length} progress={progress} />
+            ))}
+            <AnimatedG animatedProps={dotsProps}>
+              {dots.map((p, i) => (
+                <Circle key={`d-${i}`} cx={p[0]} cy={p[1]} r={1.8} fill={ROUTE} stroke={ROUTE_EDGE} strokeWidth={0.6} />
+              ))}
+            </AnimatedG>
+          </Svg>
+        </ScrollView>
+      ) : null}
       {segments.length === 0 ? (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3 }}>No flights to map yet</Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>No flights to map yet</Text>
         </View>
       ) : null}
     </View>
