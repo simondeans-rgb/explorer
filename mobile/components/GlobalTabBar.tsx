@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, usePathname } from 'expo-router';
@@ -7,6 +7,21 @@ import type { ComponentType } from 'react';
 import { COLORS } from '../src/lib/theme';
 
 type TabDef = { path: string; label: string; icon: ComponentType<{ size?: number; color?: string }> };
+
+// Use Apple's native Liquid Glass material on iOS 26+ real builds; otherwise
+// (Expo Go, older iOS, Android) fall back to the frosted blur below. Loaded
+// defensively so the absence of the native module never breaks the app.
+type GlassProps = { style?: StyleProp<ViewStyle>; glassEffectStyle?: 'regular' | 'clear' };
+let GlassView: ComponentType<GlassProps> | null = null;
+let liquidGlass = false;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- guarded: native module may be absent in Expo Go
+  const g = require('expo-glass-effect');
+  liquidGlass = typeof g.isLiquidGlassAvailable === 'function' && g.isLiquidGlassAvailable();
+  if (liquidGlass) GlassView = g.GlassView as ComponentType<GlassProps>;
+} catch {
+  liquidGlass = false;
+}
 
 const TABS: TabDef[] = [
   { path: '/', label: 'Story', icon: BookMarked },
@@ -64,8 +79,14 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
           elevation: 12,
         }}
       >
-        <BlurView intensity={72} tint="light" style={StyleSheet.absoluteFill} />
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.34)' }]} />
+        {liquidGlass && GlassView ? (
+          <GlassView style={[StyleSheet.absoluteFill, { borderRadius: 33 }]} glassEffectStyle="regular" />
+        ) : (
+          <>
+            <BlurView intensity={72} tint="light" style={StyleSheet.absoluteFill} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.34)' }]} />
+          </>
+        )}
         {/* glassy top sheen */}
         <LinearGradient
           colors={['rgba(255,255,255,0.55)', 'rgba(255,255,255,0)']}
