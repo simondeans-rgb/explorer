@@ -69,7 +69,7 @@ function ContinentBar({ pct, color, on, index }: { pct: number; color: string; o
   }, [pct, on, index, w]);
   const style = useAnimatedStyle(() => ({ width: `${w.value * 100}%` }));
   return (
-    <View style={{ flex: 1, height: 9, borderRadius: 5, backgroundColor: 'rgba(20,33,61,0.06)', overflow: 'hidden' }}>
+    <View style={{ flex: 1, height: 9, borderRadius: 5, backgroundColor: on ? 'rgba(20,33,61,0.06)' : 'rgba(255,107,154,0.12)', overflow: 'hidden' }}>
       <Animated.View style={[{ height: 9, borderRadius: 5, backgroundColor: on ? color : 'transparent' }, style]} />
     </View>
   );
@@ -123,20 +123,20 @@ export const AtlasSummary = memo(function AtlasSummary({
           const color = CONTINENT_COLOR[c] ?? COLORS.coral;
           return (
             <View key={c} className="flex-row items-center" style={{ gap: 10 }}>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: on ? '600' : '500', color: on ? COLORS.navy : COLORS.ink3, width: 96 }}>{c}</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '600', color: on ? COLORS.navy : COLORS.ink2, width: 96 }}>{c}</Text>
               <ContinentBar pct={total ? got / total : 0} color={color} on={on} index={i} />
-              <View className="rounded-full items-center justify-center" style={{ minWidth: 44, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: on ? `${color}22` : 'rgba(20,33,61,0.05)' }}>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: on ? color : COLORS.ink3 }}>{got}/{total}</Text>
+              <View className="rounded-full items-center justify-center" style={{ minWidth: 44, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: on ? `${color}22` : 'rgba(255,107,154,0.10)' }}>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: on ? color : COLORS.coral }}>{got}/{total}</Text>
               </View>
             </View>
           );
         })}
       </View>
 
-      {/* share */}
-      <Pressable onPress={onShare} disabled={sharing} className="flex-row items-center rounded-full" style={{ alignSelf: 'center', marginTop: 18, paddingHorizontal: 18, paddingVertical: 9, gap: 7, backgroundColor: 'rgba(255,107,154,0.12)', opacity: sharing ? 0.6 : 1 }}>
-        <Share2 size={15} color={COLORS.coral} />
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '700', color: COLORS.coral }}>{sharing ? 'Preparing…' : 'Share my map'}</Text>
+      {/* share — primary acquisition moment, so make it unmistakably tappable */}
+      <Pressable onPress={onShare} disabled={sharing} className="flex-row items-center justify-center rounded-full" style={{ alignSelf: 'stretch', marginTop: 20, paddingVertical: 14, gap: 8, backgroundColor: COLORS.coral, opacity: sharing ? 0.7 : 1, shadowColor: COLORS.coral, shadowOpacity: 0.33, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } }}>
+        <Share2 size={16} color="#fff" />
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14.5, fontWeight: '700', color: '#fff' }}>{sharing ? 'Preparing…' : 'Share my world'}</Text>
       </Pressable>
     </View>
   );

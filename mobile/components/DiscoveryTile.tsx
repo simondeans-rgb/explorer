@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { UtensilsCrossed, BedDouble, Landmark, Ticket, Mountain } from 'lucide-react-native';
+import { UtensilsCrossed, BedDouble, Landmark, Ticket, Mountain, Camera } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { DestinationImage } from './DestinationImage';
 import { COLORS } from '../src/lib/theme';
@@ -46,8 +46,9 @@ export const DiscoveryTile = memo(function DiscoveryTile({ discovery: d, width, 
           </>
         ) : (
           <DestinationImage code={d.countryCode ?? 'WW'} scrim style={StyleSheet.absoluteFill}>
-            <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
-              <Icon size={46} color="rgba(255,255,255,0.5)" />
+            <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', gap: 5 }]}>
+              <Camera size={22} color="rgba(255,255,255,0.85)" />
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.85)' }}>Add a photo</Text>
             </View>
           </DestinationImage>
         )}
