@@ -3,6 +3,7 @@ import { regionsFor } from '../data/regions';
 import { regionForCity } from '../data/regionCities';
 import {
   DISCOVERY_RELATIONSHIPS,
+  RELATIONSHIP_META,
   STAMP_FOR_RELATIONSHIP,
   type Continent,
   type Place,
@@ -60,6 +61,51 @@ function computeScore(
   score += Math.min(citiesDiscovered * 8, 40);
   if (hasNote) score += 5;
   return Math.min(100, score);
+}
+
+export interface ScoreLine {
+  label: string;
+  points: number;
+}
+export interface ScoreBreakdown {
+  total: number;
+  lines: ScoreLine[];
+  tips: string[];
+}
+
+/** Explain a country's Discovery Score: what earned it, and how to raise it.
+ *  Mirrors computeScore so the breakdown always matches the ring. */
+export function discoveryScoreBreakdown(a: CountryAggregate): ScoreBreakdown {
+  const lines: ScoreLine[] = [];
+  let total = 0;
+
+  const order: Relationship[] = ['lived', 'born', 'based', 'studied', 'worked', 'visited'];
+  for (const r of order) {
+    if (!a.relationships.includes(r)) continue;
+    const pts = SCORE_WEIGHTS[r] ?? 0;
+    if (!pts) continue;
+    lines.push({ label: RELATIONSHIP_META[r].label, points: pts });
+    total += pts;
+  }
+
+  const discoveredCities = a.cities.filter((c) => hasDiscovery(c.relationships));
+  const cityPts = Math.min(discoveredCities.length * 8, 40);
+  if (discoveredCities.length > 0) {
+    lines.push({ label: `${discoveredCities.length} ${discoveredCities.length === 1 ? 'city' : 'cities'} explored`, points: cityPts });
+    total += cityPts;
+  }
+
+  if (a.note) {
+    lines.push({ label: 'Travel note added', points: 5 });
+    total += 5;
+  }
+
+  const tips: string[] = [];
+  if (discoveredCities.length === 0) tips.push('Add a city you explored — up to +40');
+  else if (cityPts < 40) tips.push('Add more cities — +8 each, up to +40');
+  if (!a.note) tips.push('Write a note about this country — +5');
+
+  return { total: Math.min(100, total), lines, tips };
 }
 
 export function aggregateByCountry(places: Place[]): CountryAggregate[] {

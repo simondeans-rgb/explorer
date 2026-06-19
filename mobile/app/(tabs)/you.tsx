@@ -20,6 +20,7 @@ import { useOnboarding } from '../../src/store/onboarding';
 import { exportMyData } from '../../src/lib/exportData';
 import { AuthSheet } from '../../components/AuthSheet';
 import { DeleteAccountSheet } from '../../components/DeleteAccountSheet';
+import { XpDetailSheet } from '../../components/XpDetailSheet';
 import { pickPhotoDataUrl } from '../../src/lib/photo';
 import { ensureProfile, loadProfilePhoto, saveProfilePhoto } from '../../src/lib/profile';
 
@@ -50,6 +51,7 @@ export default function YouScreen() {
   const { replay } = useOnboarding();
   const [authOpen, setAuthOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [xpOpen, setXpOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
 
@@ -139,7 +141,7 @@ export default function YouScreen() {
 
       {/* Explorer level — on-brand white card */}
       <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
-        <Pressable onPress={() => router.push('/achievements')} className="bg-white rounded-3xl" style={{ padding: 18 }}>
+        <Pressable onPress={() => setXpOpen(true)} className="bg-white rounded-3xl" style={{ padding: 18 }}>
           <View className="flex-row items-center" style={{ gap: 14 }}>
             <View className="rounded-2xl items-center justify-center" style={{ height: 60, width: 60, backgroundColor: 'rgba(255,107,154,0.12)' }}>
               <Text style={{ fontFamily: 'Fraunces', fontSize: 27, color: COLORS.coral }}>{level.level}</Text>
@@ -325,6 +327,7 @@ export default function YouScreen() {
 
       <AuthSheet visible={authOpen} onClose={() => setAuthOpen(false)} />
       <DeleteAccountSheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} />
+      <XpDetailSheet visible={xpOpen} onClose={() => setXpOpen(false)} level={level} stats={stats} discovery={discoveryStats} journeys={journeyStats} />
     </ScrollView>
   );
 }

@@ -8,12 +8,14 @@ import { RouteMap } from '../../components/RouteMap';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AtlasCountryCard } from '../../components/AtlasCountryCard';
 import { AtlasSummary } from '../../components/AtlasSummary';
+import { DiscoveryScoreSheet } from '../../components/DiscoveryScoreSheet';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
 import { routeSegments } from '../../src/lib/journeyGeo';
 import { shareMapPoster } from '../../src/lib/mapPoster';
 import { useWorldly } from '../../src/hooks/useWorldly';
+import type { CountryAggregate } from '../../src/lib/stats';
 import { HERO_CODES } from '../../src/lib/heroImages';
 import { useAuth } from '../../src/store/auth';
 
@@ -54,6 +56,7 @@ export default function AtlasScreen() {
   const [scope, setScope] = useState<Scope>('all');
   const [query, setQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('az');
+  const [scoreAgg, setScoreAgg] = useState<CountryAggregate | null>(null);
   const discovered = useMemo(() => aggregates.filter((a) => a.discovered), [aggregates]);
 
   // Discovered-country count per continent (numerator for progress).
@@ -255,7 +258,7 @@ export default function AtlasScreen() {
 
         {tab === 'places'
           ? listPlaces.map((a) => (
-              <AtlasCountryCard key={a.code} aggregate={a} discoveries={discCount[a.code] ?? 0} />
+              <AtlasCountryCard key={a.code} aggregate={a} discoveries={discCount[a.code] ?? 0} onScorePress={() => setScoreAgg(a)} />
             ))
           : shownJourneys.map((e) => (
               <Pressable
@@ -278,6 +281,7 @@ export default function AtlasScreen() {
             ))}
       </View>
     </ScrollView>
+    <DiscoveryScoreSheet visible={!!scoreAgg} onClose={() => setScoreAgg(null)} aggregate={scoreAgg} />
     </View>
   );
 }
