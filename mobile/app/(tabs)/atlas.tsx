@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Globe2, MapPinned, Search } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
 import { WorldMap } from '../../components/WorldMap';
+import { MAP_FILL_VISITED } from '../../src/lib/worldGeo';
 import { RouteMap } from '../../components/RouteMap';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AtlasCountryCard } from '../../components/AtlasCountryCard';
@@ -165,10 +166,12 @@ export default function AtlasScreen() {
       {tab === 'places' ? (
         <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
           <ScopeChips scope={scope} years={placeYears} onChange={setScope} />
-          <WorldMap visited={visited} wishlist={wishlist} onPressCountry={(code) => router.push(`/country/${code}`)} />
+          <View style={{ marginHorizontal: -20, marginTop: 10 }}>
+            <WorldMap visited={visited} wishlist={wishlist} onPressCountry={(code) => router.push(`/country/${code}`)} />
+          </View>
           <View className="flex-row items-center" style={{ marginTop: 10, gap: 16, paddingHorizontal: 4 }}>
             <View className="flex-row items-center" style={{ gap: 6 }}>
-              <View style={{ height: 10, width: 10, borderRadius: 5, backgroundColor: COLORS.coral }} />
+              <View style={{ height: 10, width: 10, borderRadius: 5, backgroundColor: MAP_FILL_VISITED }} />
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{visited.size} discovered{scope === 'all' ? '' : ` in ${scope}`}</Text>
             </View>
             {wishlist.size > 0 ? (
