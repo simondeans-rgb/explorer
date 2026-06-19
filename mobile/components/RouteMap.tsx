@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, Pressable } from 'react-native';
+import { router } from 'expo-router';
+import { Compass, ArrowRight } from 'lucide-react-native';
 import Svg, { Path, Circle, Rect, Defs, RadialGradient, Stop, G } from 'react-native-svg';
 import Animated, {
   useSharedValue,
@@ -160,8 +162,22 @@ export function RouteMap({ segments }: { segments: Segment[] }) {
         </ScrollView>
       ) : null}
       {segments.length === 0 ? (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>No flights to map yet</Text>
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}>
+          <View className="rounded-2xl items-center justify-center" style={{ height: 48, width: 48, backgroundColor: 'rgba(255,255,255,0.12)' }}>
+            <Compass size={24} color="#fff" />
+          </View>
+          <Text style={{ fontFamily: 'Fraunces', fontSize: 19, color: '#fff', marginTop: 12 }}>Where to next?</Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: 'rgba(255,255,255,0.72)', textAlign: 'center', marginTop: 4, lineHeight: 18 }}>
+            No journeys mapped here yet. Find your next destination and start planning the adventure.
+          </Text>
+          <Pressable
+            onPress={() => router.push('/explore')}
+            className="flex-row items-center rounded-full"
+            style={{ marginTop: 16, backgroundColor: ROUTE, paddingHorizontal: 16, paddingVertical: 10, gap: 6 }}
+          >
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '700', color: '#fff' }}>Find inspiration</Text>
+            <ArrowRight size={15} color="#fff" />
+          </Pressable>
         </View>
       ) : null}
     </View>
