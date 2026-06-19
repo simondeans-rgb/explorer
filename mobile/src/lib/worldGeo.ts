@@ -59,8 +59,10 @@ export const WORLD_FEATURES: WorldFeature[] = (() => {
   }));
 })();
 
-// Map palette (mirrors the light theme in the web worldGeo).
-export const MAP_FILL_UNVISITED = '#E7E9F2';
-export const MAP_FILL_VISITED = '#FF6B9A';
+// Map palette. High contrast so discovered countries pop against the rest:
+// a deep, saturated coral on a near-white world.
+export const MAP_FILL_UNVISITED = '#E9EBF2';
+export const MAP_FILL_VISITED = '#FB3E6E';
 export const MAP_FILL_WISHLIST = '#9B7CFF';
 export const MAP_STROKE = '#FFFFFF';
+export const MAP_OCEAN = '#F6F7FB';

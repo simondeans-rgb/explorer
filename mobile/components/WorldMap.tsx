@@ -8,10 +8,11 @@ import {
   MAP_FILL_VISITED,
   MAP_FILL_WISHLIST,
   MAP_STROKE,
+  MAP_OCEAN,
 } from '../src/lib/worldGeo';
 
 const VIEW_W = 360;
-const VIEW_H = 200;
+const VIEW_H = 216;
 
 /** An Equal-Earth world map drawn with react-native-svg. Discovered countries
  *  glow coral, wish-list countries lavender, the rest a soft grey. Tap a
@@ -45,20 +46,21 @@ export function WorldMap({
     });
   }, [visited, wishlist]);
 
-  // Measure our width so the inner zoom surface has a concrete size.
+  // Measure our width so the map fills it edge-to-edge at the right aspect.
   const [w, setW] = useState(0);
+  const renderH = w > 0 ? Math.round((w * VIEW_H) / VIEW_W) : VIEW_H;
 
   return (
     <View
       onLayout={(e) => setW(e.nativeEvent.layout.width)}
-      style={{ borderRadius: 24, overflow: 'hidden', backgroundColor: '#F4F5FA', height: VIEW_H }}
+      style={{ overflow: 'hidden', backgroundColor: MAP_OCEAN, height: renderH }}
     >
       {w > 0 ? (
         // iOS ScrollView gives native pinch-zoom + pan for free; taps still
         // reach the country paths. (Android degrades to a static, tappable map.)
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ width: w, height: VIEW_H }}
+          contentContainerStyle={{ width: w, height: renderH }}
           maximumZoomScale={6}
           minimumZoomScale={1}
           bouncesZoom
@@ -66,8 +68,8 @@ export function WorldMap({
           showsHorizontalScrollIndicator={false}
           showsVerticalScrollIndicator={false}
         >
-          <Svg width={w} height={VIEW_H} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}>
-            <Rect x={0} y={0} width={VIEW_W} height={VIEW_H} fill="#F4F5FA" />
+          <Svg width={w} height={renderH} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}>
+            <Rect x={0} y={0} width={VIEW_W} height={VIEW_H} fill={MAP_OCEAN} />
             {paths.map((p) =>
               p.d ? (
                 <Path
