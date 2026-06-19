@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import type { ComponentType } from 'react';
-import { UserPlus, ArrowRight, MapPin, Star, Plus, Sparkles, Settings2, Gem, BookmarkCheck } from 'lucide-react-native';
+import { UserPlus, ArrowRight, MapPin, Star, Plus, Sparkles, Settings2, Gem, BookmarkCheck, Check, HeartHandshake } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
 import { LandmarkDetailSheet } from '../../components/LandmarkDetailSheet';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
@@ -14,7 +14,7 @@ import { useAuth } from '../../src/store/auth';
 import { useData } from '../../src/store/data';
 import { useToast } from '../../src/store/toast';
 import { useFriends } from '../../src/hooks/useFriends';
-import { recentVisits, wishlists, circleRecommendations, mostVisitedCountry, type CircleRec } from '../../src/lib/circle';
+import { recentVisits, wishlists, circleRecommendations, mostVisitedCountry, travelCompatibility, type CircleRec } from '../../src/lib/circle';
 import type { RecommendationVerdict } from '../../src/types';
 
 const VERDICT_STYLE: Partial<Record<RecommendationVerdict, { label: string; color: string; tint: string; Icon: ComponentType<{ size?: number; color?: string }> }>> = {
@@ -22,6 +22,8 @@ const VERDICT_STYLE: Partial<Record<RecommendationVerdict, { label: string; colo
   recommend: { label: 'Recommend', color: COLORS.coral, tint: 'rgba(255,107,154,0.12)', Icon: Star },
   'worth-visiting': { label: 'Worth Visiting', color: COLORS.lavender, tint: 'rgba(155,124,255,0.14)', Icon: Star },
 };
+
+const matchColor = (m: number) => (m >= 70 ? '#12A594' : m >= 45 ? '#C2871A' : COLORS.ink3);
 
 function Avatar({ name, size = 44 }: { name: string; size?: number }) {
   return (
@@ -100,7 +102,7 @@ export default function CircleScreen() {
   const { user } = useAuth();
   const myName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
   const { friends, friendsData } = useFriends(user?.uid, myName);
-  const { places: myPlaces, addPlace } = useData();
+  const { places: myPlaces, discoveries: myDiscoveries, addPlace } = useData();
   const { toast } = useToast();
   const [rec, setRec] = useState<CircleRec | null>(null);
 
@@ -108,9 +110,13 @@ export default function CircleScreen() {
   const mostVisited = useMemo(() => mostVisitedCountry(friendsData.places, friends), [friendsData.places, friends]);
   const recents = useMemo(() => recentVisits(friendsData.places, friends), [friendsData.places, friends]);
   const wishes = useMemo(() => wishlists(friendsData.places, friends), [friendsData.places, friends]);
+  const compat = useMemo(
+    () => travelCompatibility(myDiscoveries, friendsData.discoveries, friends).filter((c) => c.confident),
+    [myDiscoveries, friendsData.discoveries, friends],
+  );
 
   const hasCircle = friends.length > 0;
-  const hasContent = recs.length > 0 || !!mostVisited || recents.length > 0 || wishes.length > 0;
+  const hasContent = recs.length > 0 || !!mostVisited || recents.length > 0 || wishes.length > 0 || compat.length > 0;
   const savedMostVisited = mostVisited ? myPlaces.some((p) => p.kind === 'country' && p.countryCode === mostVisited.countryCode) : false;
 
   function addToWishlist(code: string, name: string) {
@@ -282,6 +288,54 @@ export default function CircleScreen() {
                     </View>
                   </View>
                 ))}
+              </View>
+            </>
+          ) : null}
+
+          {/* ── Travel compatibility ── */}
+          {compat.length > 0 ? (
+            <>
+              <SectionTitle hint="Whose taste in travel matches yours">Travel compatibility</SectionTitle>
+              <View style={{ gap: 10 }}>
+                {compat.map((c) => {
+                  const col = matchColor(c.match);
+                  const sharedMode = c.shared.length > 0;
+                  const tastes = sharedMode ? c.shared : c.diverge;
+                  return (
+                    <View key={c.uid} className="bg-white rounded-3xl" style={{ padding: 14 }}>
+                      <View className="flex-row items-center" style={{ gap: 12 }}>
+                        <Avatar name={c.name} size={40} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>{c.name}</Text>
+                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Travel match</Text>
+                        </View>
+                        <Text style={{ fontFamily: 'Fraunces', fontSize: 25, color: col }}>{c.match}%</Text>
+                      </View>
+                      <View style={{ height: 7, borderRadius: 7, backgroundColor: 'rgba(20,33,61,0.07)', marginTop: 12, overflow: 'hidden' }}>
+                        <View style={{ height: 7, borderRadius: 7, backgroundColor: col, width: `${Math.max(3, c.match)}%` }} />
+                      </View>
+                      {tastes.length ? (
+                        <>
+                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 12, marginBottom: 7 }}>{sharedMode ? 'You both lean into' : 'They lean into'}</Text>
+                          <View className="flex-row flex-wrap" style={{ gap: 6 }}>
+                            {tastes.map((t) => (
+                              <View key={t} className="flex-row items-center rounded-full" style={{ backgroundColor: sharedMode ? 'rgba(36,209,195,0.12)' : 'rgba(20,33,61,0.05)', paddingHorizontal: 10, paddingVertical: 5, gap: 5 }}>
+                                {sharedMode ? <Check size={12} color="#12A594" /> : null}
+                                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '600', color: sharedMode ? '#0E8C82' : COLORS.ink2 }}>{t}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </>
+                      ) : null}
+                    </View>
+                  );
+                })}
+                <View className="flex-row items-start" style={{ gap: 7, marginTop: 2 }}>
+                  <HeartHandshake size={14} color={COLORS.ink3} style={{ marginTop: 1 }} />
+                  <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, lineHeight: 17 }}>
+                    The more you and your circle log, the sharper this gets — so a “{compat[0]?.name} recommended this” means more than stars from strangers.
+                  </Text>
+                </View>
               </View>
             </>
           ) : null}
