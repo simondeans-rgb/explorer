@@ -18,7 +18,35 @@ export interface ExplorerLevel {
   progress: number;
   /** Total XP required to reach the next level (absolute). */
   nextLevelXp: number;
+  /** Title of the next level (undefined when maxed). */
+  nextTitle?: string;
   maxed: boolean;
+}
+
+export interface XpLine {
+  label: string;
+  count: number;
+  per: number;
+  points: number;
+}
+
+/** Where a Member's XP comes from — so the level system isn't a black box. */
+export function xpBreakdown(
+  stats: PassportStats,
+  discovery: DiscoveryStats,
+  journeys: JourneyStats,
+): XpLine[] {
+  const rows: { label: string; count: number; per: number; always?: boolean }[] = [
+    { label: 'Countries discovered', count: stats.countriesDiscovered, per: 100, always: true },
+    { label: 'Cities explored', count: stats.citiesDiscovered, per: 25, always: true },
+    { label: 'Continents reached', count: stats.continentsDiscovered, per: 150, always: true },
+    { label: 'Regions explored', count: stats.regionsDiscovered ?? 0, per: 30 },
+    { label: 'Discoveries saved', count: discovery.total, per: 10, always: true },
+    { label: 'Journeys logged', count: journeys.total, per: 40, always: true },
+  ];
+  return rows
+    .filter((r) => r.always || r.count > 0)
+    .map((r) => ({ label: r.label, count: r.count, per: r.per, points: r.count * r.per }));
 }
 
 // Playful titles per level band.
@@ -81,6 +109,7 @@ export function computeExplorerLevel(
     xpForLevel,
     progress,
     nextLevelXp: ceil,
+    nextTitle: maxed ? undefined : TITLES[Math.min(level, TITLES.length - 1)],
     maxed,
   };
 }

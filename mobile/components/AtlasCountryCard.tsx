@@ -57,7 +57,7 @@ const listOf = (names: string[], max = 3) =>
 
 /** A rich Atlas country card: vibrant hero photo + a tidy detail block —
  *  relationship pills (with years lived), cities and regions visited. */
-export const AtlasCountryCard = memo(function AtlasCountryCard({ aggregate: a, discoveries }: { aggregate: CountryAggregate; discoveries: number }) {
+export const AtlasCountryCard = memo(function AtlasCountryCard({ aggregate: a, discoveries, onScorePress }: { aggregate: CountryAggregate; discoveries: number; onScorePress?: () => void }) {
   const lived = livedYears(a);
   const rels = REL_ORDER.filter((r) => a.relationships.includes(r));
   const cityNames = a.cities.filter((c) => c.relationships.some((r) => r !== 'aspiring')).map((c) => c.name);
@@ -73,9 +73,9 @@ export const AtlasCountryCard = memo(function AtlasCountryCard({ aggregate: a, d
       <DestinationImage code={a.code} scrim style={{ height: 148, padding: 14, justifyContent: 'flex-end' }}>
         <Text style={{ fontSize: 30, position: 'absolute', top: 12, left: 14 }}>{flagEmoji(a.code)}</Text>
         {a.discoveryScore > 0 ? (
-          <View style={{ position: 'absolute', top: 10, right: 12 }}>
+          <Pressable onPress={onScorePress} hitSlop={10} style={{ position: 'absolute', top: 10, right: 12 }}>
             <ScoreRing score={a.discoveryScore} size={40} />
-          </View>
+          </Pressable>
         ) : null}
         <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 23 }}>{countryName(a.code)}</Text>
         <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.95 }}>
