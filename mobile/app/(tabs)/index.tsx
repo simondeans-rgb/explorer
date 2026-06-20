@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { Search, Camera, ChevronRight, Users, UserPlus, MapPin } from 'lucide-react-native';
+import { Search, Camera, ChevronRight, Users, UserPlus, MapPin, Plus } from 'lucide-react-native';
 import { WorldlyLogo } from '../../components/WorldlyLogo';
 import { Squiggle } from '../../components/Squiggle';
 import { DestinationImage } from '../../components/DestinationImage';
@@ -81,10 +81,17 @@ export default function StoryScreen() {
           <View style={{ marginTop: 30 }}>
             <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95 }}>Hi {firstName},</Text>
             <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, lineHeight: 40, marginTop: 6 }}>Where will your next story take you?</Text>
-            <Pressable onPress={() => router.push('/search')} className="flex-row items-center bg-white rounded-full" style={{ marginTop: 20, paddingHorizontal: 18, paddingVertical: 14, gap: 10 }}>
-              <Search size={18} color={COLORS.coral} />
-              <Text style={{ color: COLORS.ink2, fontFamily: 'PlusJakarta', fontSize: 15 }}>Search places, food & journeys…</Text>
-            </Pressable>
+            {/* Primary action: add to your own map. Search is demoted to the
+                icon beside it — discovery lives in the Explore tab. */}
+            <View className="flex-row items-center" style={{ marginTop: 20, gap: 10 }}>
+              <Pressable onPress={() => setAddOpen(true)} className="flex-row items-center justify-center rounded-full" style={{ flex: 1, backgroundColor: COLORS.coral, paddingVertical: 15, gap: 8 }}>
+                <Plus size={18} color="#fff" />
+                <Text style={{ color: '#fff', fontFamily: 'PlusJakarta-Bold', fontSize: 15 }}>Add to your map</Text>
+              </Pressable>
+              <Pressable onPress={() => router.push('/search')} accessibilityLabel="Search places, food & journeys" className="items-center justify-center bg-white rounded-full" style={{ height: 52, width: 52 }}>
+                <Search size={20} color={COLORS.coral} />
+              </Pressable>
+            </View>
             <View style={{ marginTop: 16, alignSelf: 'flex-start' }}>
               <Text className="text-white" style={{ fontFamily: 'Caveat', fontSize: 26, lineHeight: 28 }}>Life is better when you explore.</Text>
             </View>

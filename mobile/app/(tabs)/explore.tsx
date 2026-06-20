@@ -23,7 +23,7 @@ import {
 import { PageHero } from '../../components/PageHero';
 import { DestinationImage } from '../../components/DestinationImage';
 import { DiscoveryTile } from '../../components/DiscoveryTile';
-import { COLORS, GRADIENTS } from '../../src/lib/theme';
+import { COLORS, GRADIENTS, DISCOVERY_CATEGORY_COLOR } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
 import { CONTINENTS, DISCOVERY_CATEGORIES, type Continent, type DiscoveryCategory } from '../../src/types';
@@ -92,17 +92,17 @@ const CountryCard = memo(function CountryCard({
   );
 });
 
-function Superlative({ entry, icon: Icon, label, value }: { entry: Entry; icon: ComponentType<{ size?: number; color?: string }>; label: string; value: string }) {
+function Superlative({ entry, icon: Icon, label, value, width }: { entry: Entry; icon: ComponentType<{ size?: number; color?: string }>; label: string; value: string; width: number }) {
   const [code] = entry;
   return (
-    <Pressable onPress={() => router.push(`/country/${code}`)} style={{ marginHorizontal: 20 }}>
-      <DestinationImage code={code} scrim style={{ height: 124, borderRadius: 22, padding: 16, justifyContent: 'flex-end' }}>
-        <View className="flex-row items-center" style={{ gap: 6, position: 'absolute', top: 14, left: 16 }}>
-          <Icon size={14} color="#fff" />
-          <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, opacity: 0.95 }}>{label.toUpperCase()}</Text>
+    <Pressable onPress={() => router.push(`/country/${code}`)} style={{ width }}>
+      <DestinationImage code={code} scrim style={{ height: 112, borderRadius: 18, padding: 12, justifyContent: 'flex-end' }}>
+        <View className="flex-row items-center" style={{ gap: 5, position: 'absolute', top: 11, left: 12, right: 12 }}>
+          <Icon size={12} color="#fff" />
+          <Text numberOfLines={1} className="text-white" style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.6, opacity: 0.95 }}>{label.toUpperCase()}</Text>
         </View>
-        <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 24 }}>{flagEmoji(code)} {countryName(code)}</Text>
-        <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.95, marginTop: 1 }}>{value}</Text>
+        <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 16 }}>{flagEmoji(code)} {countryName(code)}</Text>
+        <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, opacity: 0.95, marginTop: 1 }}>{value}</Text>
       </DestinationImage>
     </Pressable>
   );
@@ -225,13 +225,13 @@ export default function ExploreScreen() {
               </View>
             ) : (
               <>
-                {/* superlatives */}
+                {/* superlatives — a denser 2-up grid of compact tiles */}
                 <Text style={H}>AROUND THE WORLD</Text>
-                <View style={{ gap: 12 }}>
-                  <Superlative entry={superlatives.mostPopulous} icon={Users} label="Most populous" value={`${fmtNum(superlatives.mostPopulous[1].population)} people`} />
-                  <Superlative entry={superlatives.largest} icon={Maximize2} label="Largest country" value={`${fmtNum(superlatives.largest[1].areaKm2)} km²`} />
-                  {superlatives.warmest ? <Superlative entry={superlatives.warmest} icon={Sun} label={`Warmest in ${MONTHS[month]}`} value={`${superlatives.warmest[1].temps![month]}°C average`} /> : null}
-                  {superlatives.coolest ? <Superlative entry={superlatives.coolest} icon={Snowflake} label={`Coolest in ${MONTHS[month]}`} value={`${superlatives.coolest[1].temps![month]}°C average`} /> : null}
+                <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, gap: 12 }}>
+                  <Superlative entry={superlatives.mostPopulous} icon={Users} label="Most populous" value={`${fmtNum(superlatives.mostPopulous[1].population)} people`} width={gridW} />
+                  <Superlative entry={superlatives.largest} icon={Maximize2} label="Largest country" value={`${fmtNum(superlatives.largest[1].areaKm2)} km²`} width={gridW} />
+                  {superlatives.warmest ? <Superlative entry={superlatives.warmest} icon={Sun} label={`Warmest in ${MONTHS[month]}`} value={`${superlatives.warmest[1].temps![month]}°C avg`} width={gridW} /> : null}
+                  {superlatives.coolest ? <Superlative entry={superlatives.coolest} icon={Snowflake} label={`Coolest in ${MONTHS[month]}`} value={`${superlatives.coolest[1].temps![month]}°C avg`} width={gridW} /> : null}
                 </View>
 
                 {/* wishlist */}
@@ -299,9 +299,10 @@ export default function ExploreScreen() {
                     const Icon = c === 'all' ? Sparkles : DISC_ICON[c];
                     const label = c === 'all' ? 'All' : DISC_LABEL[c];
                     const count = c === 'all' ? discoveryStats.total : discoveryStats.byCategory[c];
+                    const tint = c === 'all' ? COLORS.lavender : DISCOVERY_CATEGORY_COLOR[c];
                     return (
                       <Pressable key={c} onPress={() => setDiscCat(c)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 8, gap: 6, backgroundColor: active ? COLORS.navy : '#fff' }}>
-                        <Icon size={14} color={active ? '#fff' : COLORS.coral} />
+                        <Icon size={14} color={active ? '#fff' : tint} />
                         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink2 }}>{label}</Text>
                         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? 'rgba(255,255,255,0.7)' : COLORS.ink3 }}>{count}</Text>
                       </Pressable>
@@ -315,7 +316,7 @@ export default function ExploreScreen() {
                     {[{ code: 'all', count: discoveryStats.total }, ...discCountries].map(({ code, count }) => {
                       const active = discCountry === code;
                       return (
-                        <Pressable key={code} onPress={() => setDiscCountry(code)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 8, gap: 6, backgroundColor: active ? COLORS.coral : '#fff' }}>
+                        <Pressable key={code} onPress={() => setDiscCountry(code)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 8, gap: 6, backgroundColor: active ? COLORS.navy : '#fff' }}>
                           <Text style={{ fontSize: 13 }}>{code === 'all' ? '🌍' : flagEmoji(code)}</Text>
                           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink2 }}>{code === 'all' ? 'All countries' : countryName(code)}</Text>
                           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? 'rgba(255,255,255,0.8)' : COLORS.ink3 }}>{count}</Text>
