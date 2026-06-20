@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Linking } from 'react-native';
+import { View, Text, ScrollView, Pressable, Linking, Switch } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown } from 'lucide-react-native';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AchievementBadge } from '../../components/AchievementBadge';
 import { HERO_CODES } from '../../src/lib/heroImages';
@@ -18,6 +18,7 @@ import { useData } from '../../src/store/data';
 import { useToast } from '../../src/store/toast';
 import { useOnboarding } from '../../src/store/onboarding';
 import { exportMyData } from '../../src/lib/exportData';
+import { anniversariesEnabled, setAnniversariesEnabled, requestNotificationPermission, rescheduleAnniversaries, cancelAnniversaries } from '../../src/lib/notifications';
 import { AuthSheet } from '../../components/AuthSheet';
 import { DeleteAccountSheet } from '../../components/DeleteAccountSheet';
 import { XpDetailSheet } from '../../components/XpDetailSheet';
@@ -53,7 +54,29 @@ export default function YouScreen() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [xpOpen, setXpOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [notifOn, setNotifOn] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    anniversariesEnabled().then(setNotifOn);
+  }, []);
+
+  async function onToggleNotif(v: boolean) {
+    if (v) {
+      if (!(await requestNotificationPermission())) {
+        toast.error('Allow notifications in Settings to get anniversary reminders.');
+        return;
+      }
+      await setAnniversariesEnabled(true);
+      setNotifOn(true);
+      await rescheduleAnniversaries(expeditions, places);
+      toast.success('Anniversary reminders on ✈️');
+    } else {
+      await setAnniversariesEnabled(false);
+      setNotifOn(false);
+      await cancelAnniversaries();
+    }
+  }
 
   async function onExport() {
     if (exporting) return;
@@ -272,6 +295,23 @@ export default function YouScreen() {
               </Pressable>
             ))}
         </ScrollView>
+      </View>
+
+      {/* Notifications */}
+      <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>NOTIFICATIONS</Text>
+        <View className="bg-white rounded-3xl" style={{ padding: 16 }}>
+          <View className="flex-row items-center" style={{ gap: 12 }}>
+            <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(255,107,154,0.12)' }}>
+              <BellRing size={19} color={COLORS.coral} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>Travel anniversaries</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>“On this day” memories of where you've been</Text>
+            </View>
+            <Switch value={notifOn} onValueChange={onToggleNotif} trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.coral }} thumbColor="#fff" />
+          </View>
+        </View>
       </View>
 
       {/* Legal & support */}
