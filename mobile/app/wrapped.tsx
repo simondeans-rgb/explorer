@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { View, Text, ScrollView, Pressable, Share, useWindowDimensions } from 'react-native';
+import { useState } from 'react';
+import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { goBack } from '../src/lib/nav';
 import { X, Share2 } from 'lucide-react-native';
 import { DestinationImage } from '../components/DestinationImage';
@@ -10,11 +11,13 @@ import { hasDestinationPhoto } from '../src/lib/destinationImage';
 import { DISCOVERY_CATEGORY_META, type DiscoveryCategory } from '../src/types';
 import { useWorldly } from '../src/hooks/useWorldly';
 import { useAuth } from '../src/store/auth';
+import { shareWrappedPoster } from '../src/lib/wrappedPoster';
 
 export default function WrappedScreen() {
   const { height } = useWindowDimensions();
   const { stats, discoveryStats, journeyStats, level, aggregates } = useWorldly();
   const { user } = useAuth();
+  const [sharing, setSharing] = useState(false);
   const firstName = user?.displayName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Explorer');
 
   // Backdrop codes: discovered countries that have a photo, to vary each slide.
@@ -25,10 +28,34 @@ export default function WrappedScreen() {
     .sort((a, b) => b[1] - a[1])
     .filter(([, n]) => n > 0)[0]?.[0];
 
+  // The most deeply explored country, featured on the shareable poster.
+  const topCountry = [...aggregates]
+    .filter((a) => a.discovered)
+    .sort((a, b) => b.discoveryScore - a.discoveryScore)[0];
+
   async function share() {
-    await Share.share({
-      message: `My Worldly so far: ${stats.countriesDiscovered} countries across ${stats.continentsDiscovered} continents, ${discoveryStats.total} discoveries — Explorer Level ${level.level}, ${level.title}. 🌍`,
-    });
+    if (sharing) return;
+    setSharing(true);
+    try {
+      await shareWrappedPoster({
+        firstName,
+        countries: stats.countriesDiscovered,
+        continents: stats.continentsDiscovered,
+        cities: stats.citiesDiscovered,
+        journeys: journeyStats.total,
+        discoveries: discoveryStats.total,
+        levelNumber: level.level,
+        levelTitle: level.title,
+        xp: level.xp,
+        topCountryName: topCountry?.name,
+        topCountryCode: topCountry?.code,
+        flagCodes: stats.flagCodes,
+      });
+    } catch {
+      /* user dismissed or print unavailable */
+    } finally {
+      setSharing(false);
+    }
   }
 
   return (
@@ -105,9 +132,9 @@ export default function WrappedScreen() {
           <WorldlyIcon height={58} />
           <Text style={[S.bigTitle, { marginTop: 16 }]}>The world is waiting</Text>
           <Text style={S.sub}>Where will your next story take you?</Text>
-          <Pressable onPress={share} className="flex-row items-center rounded-full bg-white" style={{ marginTop: 26, paddingHorizontal: 24, paddingVertical: 14, gap: 8 }}>
+          <Pressable onPress={share} disabled={sharing} className="flex-row items-center rounded-full bg-white" style={{ marginTop: 26, paddingHorizontal: 24, paddingVertical: 14, gap: 8, opacity: sharing ? 0.6 : 1 }}>
             <Share2 size={18} color={COLORS.coral} />
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.coral }}>Share my Worldly</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.coral }}>{sharing ? 'Preparing…' : 'Share my Worldly'}</Text>
           </Pressable>
         </Slide>
       </ScrollView>

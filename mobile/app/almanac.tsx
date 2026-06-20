@@ -1,16 +1,17 @@
 import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
-import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { ComponentType } from 'react';
 import {
   Plane, Home, Briefcase, GraduationCap, Anchor, Sparkles, Compass,
   TrainFront, Ship, Car,
   UtensilsCrossed, BedDouble, Landmark, Ticket, Mountain,
-  Globe2, Building2, Map as MapIcon, Award,
+  Globe2, Building2, Map as MapIcon, Award, BookOpen,
 } from 'lucide-react-native';
 import { PageHero } from '../components/PageHero';
 import { goBack } from '../src/lib/nav';
-import { COLORS } from '../src/lib/theme';
+import { COLORS, GRADIENTS } from '../src/lib/theme';
+import { shareAlmanacBook } from '../src/lib/almanacBook';
 import { flagEmoji } from '../src/lib/flags';
 import { hasDestinationPhoto } from '../src/lib/destinationImage';
 import { evaluateRecognitions } from '../src/lib/recognitions';
@@ -20,13 +21,13 @@ import {
   JOURNEY_MODE_META,
   RELATIONSHIPS,
   RELATIONSHIP_META,
-  DISCOVERY_CATEGORY_META,
   type Continent,
   type Relationship,
   type JourneyMode,
   type Expedition,
 } from '../src/types';
 import { useWorldly } from '../src/hooks/useWorldly';
+import { useAuth } from '../src/store/auth';
 
 type IconCmp = ComponentType<{ size?: number; color?: string }>;
 
@@ -43,8 +44,11 @@ function expeditionYear(e: Expedition): number {
 
 export default function AlmanacScreen() {
   const { places, aggregates, stats, discoveries, discoveryStats, expeditions, journeyStats } = useWorldly();
+  const { user } = useAuth();
+  const firstName = user?.displayName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Explorer');
   const currentYear = new Date().getFullYear();
   const [edition, setEdition] = useState<'lifetime' | number>('lifetime');
+  const [exporting, setExporting] = useState(false);
 
   const years = useMemo(() => {
     const set = new Set<number>();
@@ -102,6 +106,34 @@ export default function AlmanacScreen() {
     ['nature', 'Nature', Mountain],
   ];
 
+  async function exportBook() {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      await shareAlmanacBook({
+        firstName,
+        generatedOn: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }),
+        figures: figures.map(([label, value]) => ({ label, value })),
+        continents: CONTINENTS.filter((c) => byContinent.has(c)).map((c) => ({
+          name: c,
+          countries: (byContinent.get(c) ?? []).map((a) => ({ code: a.code, name: a.name })),
+        })),
+        relationships: RELATIONSHIPS.filter((r) => relationshipCounts[r] > 0).map((r) => ({
+          label: RELATIONSHIP_META[r].label,
+          count: relationshipCounts[r],
+        })),
+        categories: catRows
+          .map(([key, label]) => ({ label, count: discoveryStats.byCategory[key] }))
+          .filter((c) => c.count > 0),
+        recognitions: earned.map((r) => ({ symbol: r.symbol, title: r.title, description: r.description })),
+      });
+    } catch {
+      /* user dismissed or print unavailable */
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 112 }}>
@@ -135,6 +167,17 @@ export default function AlmanacScreen() {
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: COLORS.ink3, marginTop: 2 }}>{label.toUpperCase()}</Text>
                 </View>
               ))}
+            </View>
+
+            {/* export as a printable photo book */}
+            <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
+              <Pressable onPress={exportBook} disabled={exporting} style={{ borderRadius: 24, overflow: 'hidden', opacity: exporting ? 0.6 : 1 }}>
+                <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 10 }}>
+                  <BookOpen size={18} color="#fff" />
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>{exporting ? 'Preparing your book…' : 'Export as photo book'}</Text>
+                </LinearGradient>
+              </Pressable>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 8, textAlign: 'center' }}>A printable PDF keepsake of your Almanac.</Text>
             </View>
 
             {/* relationships */}

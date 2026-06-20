@@ -29,3 +29,13 @@ export const GRADIENTS = {
 } as const;
 
 export type Gradient = readonly [string, string, ...string[]];
+
+/** A distinct hue per discovery category so categories read as categories — coral
+ *  is reserved for primary actions, not blanket-applied to every category icon. */
+export const DISCOVERY_CATEGORY_COLOR = {
+  food: '#FFB84D', // amber
+  accommodation: '#9B7CFF', // purple
+  culture: '#24D1C3', // teal
+  experience: '#FF8A5B', // warm orange
+  nature: '#34C77B', // green
+} as const;

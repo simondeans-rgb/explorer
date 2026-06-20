@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { UtensilsCrossed, BedDouble, Landmark, Ticket, Mountain, Camera } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { DestinationImage } from './DestinationImage';
-import { COLORS } from '../src/lib/theme';
+import { COLORS, DISCOVERY_CATEGORY_COLOR } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { countryName } from '../src/data/countries';
 import { DISCOVERY_CATEGORY_META, VERDICT_META, type Discovery, type DiscoveryCategory, type RecommendationVerdict } from '../src/types';
@@ -55,7 +55,7 @@ export const DiscoveryTile = memo(function DiscoveryTile({ discovery: d, width, 
 
         {/* overlays */}
         <View style={[StyleSheet.absoluteFill, { padding: 12, justifyContent: 'flex-end' }]}>
-          <View className="rounded-full items-center justify-center" style={{ position: 'absolute', top: 12, left: 12, height: 30, width: 30, backgroundColor: 'rgba(255,255,255,0.22)' }}>
+          <View className="rounded-full items-center justify-center" style={{ position: 'absolute', top: 12, left: 12, height: 30, width: 30, backgroundColor: DISCOVERY_CATEGORY_COLOR[d.category] }}>
             <Icon size={15} color="#fff" />
           </View>
           {d.verdict ? (
