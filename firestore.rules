@@ -120,5 +120,17 @@ service cloud.firestore {
         && request.resource.data.requestedBy == resource.data.requestedBy;
       allow delete: if signedIn() && request.auth.uid in resource.data.members;
     }
+
+    // Per-device push token + friend-activity preference. Written by its owner;
+    // read only by Cloud Functions (admin SDK bypasses rules), never by clients.
+    match /pushTokens/{uid} {
+      allow read: if false;
+      allow write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Internal per-author notification cooldown — Cloud Functions only.
+    match /activityThrottle/{uid} {
+      allow read, write: if false;
+    }
   }
 }

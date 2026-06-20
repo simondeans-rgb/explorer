@@ -6,7 +6,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing } from 'lucide-react-native';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AchievementBadge } from '../../components/AchievementBadge';
 import { HERO_CODES } from '../../src/lib/heroImages';
@@ -19,6 +19,7 @@ import { useToast } from '../../src/store/toast';
 import { useOnboarding } from '../../src/store/onboarding';
 import { exportMyData } from '../../src/lib/exportData';
 import { anniversariesEnabled, setAnniversariesEnabled, requestNotificationPermission, rescheduleAnniversaries, cancelAnniversaries } from '../../src/lib/notifications';
+import { friendActivityEnabled, enableFriendActivity, disableFriendActivity, refreshPushToken } from '../../src/lib/push';
 import { AuthSheet } from '../../components/AuthSheet';
 import { DeleteAccountSheet } from '../../components/DeleteAccountSheet';
 import { XpDetailSheet } from '../../components/XpDetailSheet';
@@ -55,11 +56,32 @@ export default function YouScreen() {
   const [xpOpen, setXpOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [notifOn, setNotifOn] = useState(false);
+  const [circleNotifOn, setCircleNotifOn] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     anniversariesEnabled().then(setNotifOn);
+    friendActivityEnabled().then(setCircleNotifOn);
+    refreshPushToken();
   }, []);
+
+  async function onToggleCircleNotif(v: boolean) {
+    if (v) {
+      if (!user) {
+        toast.error('Sign in to hear when your circle travels.');
+        return;
+      }
+      if (!(await enableFriendActivity())) {
+        toast.error('Allow notifications to hear from your circle.');
+        return;
+      }
+      setCircleNotifOn(true);
+      toast.success('Circle updates on 👋');
+    } else {
+      await disableFriendActivity();
+      setCircleNotifOn(false);
+    }
+  }
 
   async function onToggleNotif(v: boolean) {
     if (v) {
@@ -300,8 +322,8 @@ export default function YouScreen() {
       {/* Notifications */}
       <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>NOTIFICATIONS</Text>
-        <View className="bg-white rounded-3xl" style={{ padding: 16 }}>
-          <View className="flex-row items-center" style={{ gap: 12 }}>
+        <View className="bg-white rounded-3xl" style={{ paddingHorizontal: 16 }}>
+          <View className="flex-row items-center" style={{ gap: 12, paddingVertical: 14 }}>
             <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(255,107,154,0.12)' }}>
               <BellRing size={19} color={COLORS.coral} />
             </View>
@@ -310,6 +332,16 @@ export default function YouScreen() {
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>“On this day” memories of where you've been</Text>
             </View>
             <Switch value={notifOn} onValueChange={onToggleNotif} trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.coral }} thumbColor="#fff" />
+          </View>
+          <View className="flex-row items-center" style={{ gap: 12, paddingVertical: 14, borderTopWidth: 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
+            <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(155,124,255,0.14)' }}>
+              <Users size={19} color={COLORS.lavender} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>From your circle</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>When friends log trips & recommendations</Text>
+            </View>
+            <Switch value={circleNotifOn} onValueChange={onToggleCircleNotif} trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.lavender }} thumbColor="#fff" />
           </View>
         </View>
       </View>
