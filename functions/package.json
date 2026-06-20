@@ -1,0 +1,19 @@
+{
+  "name": "functions",
+  "description": "Worldly Cloud Functions — friend-activity push notifications",
+  "main": "lib/index.js",
+  "private": true,
+  "engines": { "node": "20" },
+  "scripts": {
+    "build": "tsc",
+    "deploy": "firebase deploy --only functions"
+  },
+  "dependencies": {
+    "expo-server-sdk": "^3.10.0",
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^6.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
