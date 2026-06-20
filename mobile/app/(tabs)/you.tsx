@@ -6,7 +6,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users } from 'lucide-react-native';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AchievementBadge } from '../../components/AchievementBadge';
 import { HERO_CODES } from '../../src/lib/heroImages';
@@ -19,7 +19,7 @@ import { useToast } from '../../src/store/toast';
 import { useOnboarding } from '../../src/store/onboarding';
 import { exportMyData } from '../../src/lib/exportData';
 import { anniversariesEnabled, setAnniversariesEnabled, requestNotificationPermission, rescheduleAnniversaries, cancelAnniversaries } from '../../src/lib/notifications';
-import { friendActivityEnabled, enableFriendActivity, disableFriendActivity, refreshPushToken } from '../../src/lib/push';
+import { friendActivityEnabled, enableFriendActivity, disableFriendActivity, tripActivityEnabled, enableTripActivity, disableTripActivity, refreshPushToken } from '../../src/lib/push';
 import { AuthSheet } from '../../components/AuthSheet';
 import { DeleteAccountSheet } from '../../components/DeleteAccountSheet';
 import { XpDetailSheet } from '../../components/XpDetailSheet';
@@ -57,13 +57,33 @@ export default function YouScreen() {
   const [exporting, setExporting] = useState(false);
   const [notifOn, setNotifOn] = useState(false);
   const [circleNotifOn, setCircleNotifOn] = useState(false);
+  const [crewNotifOn, setCrewNotifOn] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     anniversariesEnabled().then(setNotifOn);
     friendActivityEnabled().then(setCircleNotifOn);
+    tripActivityEnabled().then(setCrewNotifOn);
     refreshPushToken();
   }, []);
+
+  async function onToggleCrewNotif(v: boolean) {
+    if (v) {
+      if (!user) {
+        toast.error('Sign in to get trip crew updates.');
+        return;
+      }
+      if (!(await enableTripActivity())) {
+        toast.error('Allow notifications to get trip crew updates.');
+        return;
+      }
+      setCrewNotifOn(true);
+      toast.success('Trip crew updates on 🗺️');
+    } else {
+      await disableTripActivity();
+      setCrewNotifOn(false);
+    }
+  }
 
   async function onToggleCircleNotif(v: boolean) {
     if (v) {
@@ -342,6 +362,16 @@ export default function YouScreen() {
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>When friends log trips & recommendations</Text>
             </View>
             <Switch value={circleNotifOn} onValueChange={onToggleCircleNotif} trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.lavender }} thumbColor="#fff" />
+          </View>
+          <View className="flex-row items-center" style={{ gap: 12, paddingVertical: 14, borderTopWidth: 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
+            <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(36,209,195,0.14)' }}>
+              <MapPinned size={19} color={COLORS.aqua} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>Trip crew updates</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>When crew edit a shared itinerary</Text>
+            </View>
+            <Switch value={crewNotifOn} onValueChange={onToggleCrewNotif} trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.aqua }} thumbColor="#fff" />
           </View>
         </View>
       </View>
