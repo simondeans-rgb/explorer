@@ -21,19 +21,32 @@ export function SocialAuthButtons({
 }) {
   const { signInWithApple, signInWithGoogle } = useAuth();
   const [appleAvailable, setAppleAvailable] = useState(false);
+  const [googleAvailable, setGoogleAvailable] = useState(false);
   const [busy, setBusy] = useState<Busy>(null);
-  const googleConfigured = Boolean(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
 
   useEffect(() => {
     let active = true;
     (async () => {
-      if (Platform.OS !== 'ios') return;
+      // Apple: iOS only, and only where the native module is present.
+      if (Platform.OS === 'ios') {
+        try {
+          const Apple = await import('expo-apple-authentication');
+          const ok = await Apple.isAvailableAsync();
+          if (active) setAppleAvailable(ok);
+        } catch {
+          if (active) setAppleAvailable(false);
+        }
+      }
+      // Google: only when the native module is linked (a real build, not Expo Go).
       try {
-        const Apple = await import('expo-apple-authentication');
-        const ok = await Apple.isAvailableAsync();
-        if (active) setAppleAvailable(ok);
+        const RN = await import('react-native');
+        const present = Boolean(
+          (RN as { TurboModuleRegistry?: { get?: (n: string) => unknown } }).TurboModuleRegistry?.get?.('RNGoogleSignin') ||
+            RN.NativeModules?.RNGoogleSignin,
+        );
+        if (active) setGoogleAvailable(present);
       } catch {
-        if (active) setAppleAvailable(false);
+        if (active) setGoogleAvailable(false);
       }
     })();
     return () => {
@@ -41,7 +54,7 @@ export function SocialAuthButtons({
     };
   }, []);
 
-  if (!appleAvailable && !googleConfigured) return null;
+  if (!appleAvailable && !googleAvailable) return null;
 
   async function run(which: Exclude<Busy, null>, fn: () => Promise<void>) {
     onError(null);
@@ -90,7 +103,7 @@ export function SocialAuthButtons({
         </Pressable>
       ) : null}
 
-      {googleConfigured ? (
+      {googleAvailable ? (
         <Pressable
           onPress={() => run('google', signInWithGoogle)}
           disabled={busy !== null}
