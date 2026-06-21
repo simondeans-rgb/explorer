@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, Pressable, ActivityIndicator } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
+import { SocialAuthButtons } from './SocialAuthButtons';
 import { COLORS } from '../src/lib/theme';
 import { useAuth } from '../src/store/auth';
 
@@ -140,6 +141,8 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
             </>
           )}
         </Pressable>
+
+        <SocialAuthButtons onError={setError} onBusyChange={setBusy} />
 
         <Pressable
           onPress={() => {

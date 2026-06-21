@@ -10,6 +10,9 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInWithCredential,
+  OAuthProvider,
+  GoogleAuthProvider,
   updateProfile,
   sendPasswordResetEmail,
   signOut,
@@ -25,6 +28,10 @@ interface AuthApi {
   user: User | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
+  /** Native Sign in with Apple → Firebase. iOS-only; requires a native build. */
+  signInWithApple: () => Promise<void>;
+  /** Native Sign in with Google → Firebase. Requires a native build + config. */
+  signInWithGoogle: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   signOutUser: () => Promise<void>;
 }
@@ -35,6 +42,8 @@ const AuthContext = createContext<AuthApi>({
   user: null,
   signIn: async () => {},
   signUp: async () => {},
+  signInWithApple: async () => {},
+  signInWithGoogle: async () => {},
   resetPassword: async () => {},
   signOutUser: async () => {},
 });
@@ -73,6 +82,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           password,
         );
         if (name.trim()) await updateProfile(cred.user, { displayName: name.trim() });
+      },
+      signInWithApple: async () => {
+        if (!auth) throw new Error('Cloud sync is not configured.');
+        // Lazy-load the native modules so merely starting the app (e.g. in Expo
+        // Go, where they're absent) never pulls them in.
+        const Apple = await import('expo-apple-authentication');
+        const Crypto = await import('expo-crypto');
+        // Nonce: send the SHA-256 hash to Apple, the raw value to Firebase.
+        const rawNonce = Crypto.randomUUID();
+        const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawNonce);
+        const result = await Apple.signInAsync({
+          requestedScopes: [
+            Apple.AppleAuthenticationScope.FULL_NAME,
+            Apple.AppleAuthenticationScope.EMAIL,
+          ],
+          nonce: hashedNonce,
+        });
+        if (!result.identityToken) throw new Error('Apple sign-in did not return an identity token.');
+        const provider = new OAuthProvider('apple.com');
+        const credential = provider.credential({ idToken: result.identityToken, rawNonce });
+        const signed = await signInWithCredential(auth, credential);
+        // Apple only sends the full name on the very first authorization — capture it.
+        const apple = result.fullName;
+        const name = [apple?.givenName, apple?.familyName].filter(Boolean).join(' ').trim();
+        if (name && !signed.user.displayName) await updateProfile(signed.user, { displayName: name });
+      },
+      signInWithGoogle: async () => {
+        if (!auth) throw new Error('Cloud sync is not configured.');
+        const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+        const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+        if (!webClientId) throw new Error('Google sign-in is not configured yet.');
+        const { GoogleSignin } = await import('@react-native-google-signin/google-signin');
+        GoogleSignin.configure({ webClientId, iosClientId });
+        await GoogleSignin.hasPlayServices();
+        const info = await GoogleSignin.signIn();
+        // idToken location shifted across library versions — accept both shapes.
+        const data = info as { idToken?: string; data?: { idToken?: string } };
+        const idToken = data.data?.idToken ?? data.idToken;
+        if (!idToken) throw new Error('Google sign-in did not return an ID token.');
+        const credential = GoogleAuthProvider.credential(idToken);
+        await signInWithCredential(auth, credential);
       },
       resetPassword: async (email) => {
         if (!auth) throw new Error('Cloud sync is not configured.');

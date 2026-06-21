@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react-native';
 import { DestinationImage } from './DestinationImage';
 import { WorldlyLogo } from './WorldlyLogo';
+import { SocialAuthButtons } from './SocialAuthButtons';
 import { HERO_CODES } from '../src/lib/heroImages';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
 import { useAuth } from '../src/store/auth';
@@ -176,6 +177,8 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
                   )}
                 </LinearGradient>
               </Pressable>
+
+              <SocialAuthButtons onError={setError} onBusyChange={setBusy} />
 
               <Pressable onPress={switchMode} style={{ marginTop: 16, alignItems: 'center' }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, color: COLORS.ink2 }}>
