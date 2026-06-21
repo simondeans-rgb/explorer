@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Linking, Switch } from 'react-native';
+import { View, Text, ScrollView, Pressable, Linking, Switch, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Image } from 'expo-image';
@@ -300,8 +300,19 @@ export default function YouScreen() {
               <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>Synced to the cloud</Text>
               <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{user.email}</Text>
             </View>
-            <Pressable onPress={() => signOutUser()} hitSlop={8} className="rounded-full items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
-              <LogOut size={18} color={COLORS.ink2} />
+            <Pressable
+              onPress={() =>
+                Alert.alert('Sign out?', 'Your world stays safely synced — sign back in anytime to pick up where you left off.', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Sign out', style: 'destructive', onPress: () => signOutUser() },
+                ])
+              }
+              hitSlop={8}
+              className="rounded-full flex-row items-center"
+              style={{ paddingHorizontal: 14, paddingVertical: 9, gap: 6, backgroundColor: COLORS.warmwhite }}
+            >
+              <LogOut size={15} color={COLORS.ink2} />
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.ink2 }}>Sign out</Text>
             </Pressable>
           </View>
         ) : (
