@@ -14,6 +14,12 @@ const DSN =
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 let wrapImpl = <T,>(component: T): T => component;
+let captureImpl: (error: unknown, context?: Record<string, unknown>) => void = () => {};
+
+/** Report a handled error to Sentry (no-op when Sentry isn't initialised). */
+export function reportError(error: unknown, context?: Record<string, unknown>): void {
+  captureImpl(error, context);
+}
 
 /** Initialise Sentry when configured. No-op in Expo Go or without a DSN. */
 export function initSentry(): void {
@@ -29,6 +35,13 @@ export function initSentry(): void {
       sendDefaultPii: false,
     });
     wrapImpl = Sentry.wrap as typeof wrapImpl;
+    captureImpl = (error, context) => {
+      try {
+        Sentry.captureException(error, context ? { extra: context } : undefined);
+      } catch {
+        /* ignore */
+      }
+    };
   } catch {
     /* never let telemetry setup break the app */
   }

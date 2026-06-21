@@ -1,17 +1,46 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator, Platform } from 'react-native';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { COLORS } from '../src/lib/theme';
 import { useAuth } from '../src/store/auth';
+import { reportError } from '../src/lib/sentry';
+
+/** Turn a Firebase/Google/Apple auth error into a readable message. */
+function friendlyAuthError(err: { message?: string; code?: string }): string {
+  switch (err.code) {
+    case 'auth/account-exists-with-different-credential':
+      return 'You already have an account with this email. Sign in with the method you used before (e.g. email & password), then link Google from settings.';
+    case 'auth/network-request-failed':
+      return 'Network error — check your connection and try again.';
+    case 'auth/invalid-credential':
+    case 'auth/invalid-verification-code':
+      return 'Sign-in failed (invalid credential). Please try again.';
+    case 'auth/operation-not-allowed':
+      return 'This sign-in method isn’t enabled for the app yet.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled.';
+    default: {
+      // Surface the underlying reason (incl. the auth/* code) so issues are diagnosable.
+      const msg = (err.message || '').replace('Firebase:', '').trim();
+      return msg || 'Could not sign in. Please try again.';
+    }
+  }
+}
 
 type Busy = null | 'apple' | 'google';
+
+// Social sign-in needs the native modules, which only exist in a real iOS build
+// (not Expo Go). Decide this with zero native calls — Platform + the Expo Go
+// check from expo-constants — so nothing native runs while the screen mounts;
+// the actual sign-in only touches native code on a button tap (inside try/catch).
+const SOCIAL_AVAILABLE =
+  Platform.OS === 'ios' && Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
 
 // Apple logo glyph (private-use codepoint in the system font) for the button.
 const APPLE_GLYPH = '\uF8FF';
 
-/** Apple / Google sign-in buttons. Each only renders when it's actually usable:
- *  Apple when the native module reports availability (a real iOS build), Google
- *  when its client id is configured at build time. So nothing broken shows in
- *  Expo Go or in builds where social sign-in isn't set up yet. */
+/** Apple + Google sign-in buttons, shown only in a real iOS build (never in
+ *  Expo Go). On error, the real reason is surfaced to the screen and Sentry. */
 export function SocialAuthButtons({
   onError,
   onBusyChange,
@@ -20,33 +49,9 @@ export function SocialAuthButtons({
   onBusyChange?: (busy: boolean) => void;
 }) {
   const { signInWithApple, signInWithGoogle } = useAuth();
-  // Social sign-in is usable only in a real iOS build (where the native modules
-  // are present). We probe that with expo-apple-authentication's own
-  // availability check — a safe, supported API — and gate BOTH buttons on it,
-  // since the Apple and Google native modules ship together in the same build.
-  // (Avoid probing the Google native module directly: a native fault there isn't
-  // catchable by JS try/catch and can hard-crash the screen.)
-  const [available, setAvailable] = useState(false);
   const [busy, setBusy] = useState<Busy>(null);
 
-  useEffect(() => {
-    if (Platform.OS !== 'ios') return;
-    let active = true;
-    (async () => {
-      try {
-        const Apple = await import('expo-apple-authentication');
-        const ok = await Apple.isAvailableAsync();
-        if (active) setAvailable(ok);
-      } catch {
-        if (active) setAvailable(false);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  if (!available) return null;
+  if (!SOCIAL_AVAILABLE) return null;
 
   async function run(which: Exclude<Busy, null>, fn: () => Promise<void>) {
     onError(null);
@@ -61,7 +66,10 @@ export function SocialAuthButtons({
         err.code === 'SIGN_IN_CANCELLED' ||
         err.code === '-5' ||
         /cancel/i.test(err.message ?? '');
-      if (!cancelled) onError(err.message?.includes('not configured') ? err.message : 'Could not sign in. Please try again.');
+      if (!cancelled) {
+        reportError(e, { provider: which, code: err.code });
+        onError(friendlyAuthError(err));
+      }
     } finally {
       setBusy(null);
       onBusyChange?.(false);
