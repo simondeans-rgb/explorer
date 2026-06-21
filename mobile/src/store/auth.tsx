@@ -110,9 +110,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       signInWithGoogle: async () => {
         if (!auth) throw new Error('Cloud sync is not configured.');
-        const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-        const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
-        if (!webClientId) throw new Error('Google sign-in is not configured yet.');
+        // Public OAuth client ids for the Firebase project (safe to ship — they
+        // live in every distributed app); overridable via env.
+        const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '495314900593-8h1873abt0nmcnubrbr6bji825gh4g70.apps.googleusercontent.com';
+        const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '495314900593-7m5rjdob53fnihjii0ubk73fsloitqef.apps.googleusercontent.com';
         const { GoogleSignin } = await import('@react-native-google-signin/google-signin');
         GoogleSignin.configure({ webClientId, iosClientId });
         await GoogleSignin.hasPlayServices();
