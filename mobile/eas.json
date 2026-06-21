@@ -24,22 +24,10 @@
     "production": {
       "autoIncrement": true,
       "channel": "main",
-      "environment": "production",
-      "credentialsSource": "local",
-      "env": {
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
-      }
+      "environment": "production"
     }
   },
   "submit": {
-    "production": {
-      "ios": {
-        "ascApiKeyPath": "/home/user/AuthKey_SXU2FM998Y.p8",
-        "ascApiKeyId": "SXU2FM998Y",
-        "ascApiKeyIssuerId": "93331274-c262-4e2a-ab36-7c8beacb0418",
-        "appleTeamId": "PR99YSXB7G",
-        "ascAppId": "6782019443"
-      }
-    }
+    "production": {}
   }
 }
