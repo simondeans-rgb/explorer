@@ -1,4 +1,5 @@
 import '../global.css';
+import '../src/lib/rnCompat';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useFonts } from 'expo-font';
