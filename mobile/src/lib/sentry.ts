@@ -5,7 +5,12 @@
 // only executes when we opt in).
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 
-const DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
+// Fall back to the project DSN so crash reporting works in OTA updates too (the
+// DSN isn't a secret — it only permits sending events and already ships in the
+// binary). Overridable via EXPO_PUBLIC_SENTRY_DSN.
+const DSN =
+  process.env.EXPO_PUBLIC_SENTRY_DSN ||
+  'https://dd70f34fbee9916f298df71a1e4e2479@o4511589182734336.ingest.de.sentry.io/4511589188894800';
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 let wrapImpl = <T,>(component: T): T => component;

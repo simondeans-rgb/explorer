@@ -20,33 +20,25 @@ export function SocialAuthButtons({
   onBusyChange?: (busy: boolean) => void;
 }) {
   const { signInWithApple, signInWithGoogle } = useAuth();
-  const [appleAvailable, setAppleAvailable] = useState(false);
-  const [googleAvailable, setGoogleAvailable] = useState(false);
+  // Social sign-in is usable only in a real iOS build (where the native modules
+  // are present). We probe that with expo-apple-authentication's own
+  // availability check — a safe, supported API — and gate BOTH buttons on it,
+  // since the Apple and Google native modules ship together in the same build.
+  // (Avoid probing the Google native module directly: a native fault there isn't
+  // catchable by JS try/catch and can hard-crash the screen.)
+  const [available, setAvailable] = useState(false);
   const [busy, setBusy] = useState<Busy>(null);
 
   useEffect(() => {
+    if (Platform.OS !== 'ios') return;
     let active = true;
     (async () => {
-      // Apple: iOS only, and only where the native module is present.
-      if (Platform.OS === 'ios') {
-        try {
-          const Apple = await import('expo-apple-authentication');
-          const ok = await Apple.isAvailableAsync();
-          if (active) setAppleAvailable(ok);
-        } catch {
-          if (active) setAppleAvailable(false);
-        }
-      }
-      // Google: only when the native module is linked (a real build, not Expo Go).
       try {
-        const RN = await import('react-native');
-        const present = Boolean(
-          (RN as { TurboModuleRegistry?: { get?: (n: string) => unknown } }).TurboModuleRegistry?.get?.('RNGoogleSignin') ||
-            RN.NativeModules?.RNGoogleSignin,
-        );
-        if (active) setGoogleAvailable(present);
+        const Apple = await import('expo-apple-authentication');
+        const ok = await Apple.isAvailableAsync();
+        if (active) setAvailable(ok);
       } catch {
-        if (active) setGoogleAvailable(false);
+        if (active) setAvailable(false);
       }
     })();
     return () => {
@@ -54,7 +46,7 @@ export function SocialAuthButtons({
     };
   }, []);
 
-  if (!appleAvailable && !googleAvailable) return null;
+  if (!available) return null;
 
   async function run(which: Exclude<Busy, null>, fn: () => Promise<void>) {
     onError(null);
@@ -85,41 +77,37 @@ export function SocialAuthButtons({
         <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(20,33,61,0.10)' }} />
       </View>
 
-      {appleAvailable ? (
-        <Pressable
-          onPress={() => run('apple', signInWithApple)}
-          disabled={busy !== null}
-          className="flex-row items-center justify-center rounded-2xl"
-          style={{ backgroundColor: '#000', paddingVertical: 14, gap: 8, marginBottom: 10, opacity: busy ? 0.7 : 1 }}
-        >
-          {busy === 'apple' ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Text style={{ fontSize: 18, color: '#fff', marginTop: -2 }}>{APPLE_GLYPH}</Text>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Continue with Apple</Text>
-            </>
-          )}
-        </Pressable>
-      ) : null}
+      <Pressable
+        onPress={() => run('apple', signInWithApple)}
+        disabled={busy !== null}
+        className="flex-row items-center justify-center rounded-2xl"
+        style={{ backgroundColor: '#000', paddingVertical: 14, gap: 8, marginBottom: 10, opacity: busy ? 0.7 : 1 }}
+      >
+        {busy === 'apple' ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <>
+            <Text style={{ fontSize: 18, color: '#fff', marginTop: -2 }}>{APPLE_GLYPH}</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Continue with Apple</Text>
+          </>
+        )}
+      </Pressable>
 
-      {googleAvailable ? (
-        <Pressable
-          onPress={() => run('google', signInWithGoogle)}
-          disabled={busy !== null}
-          className="flex-row items-center justify-center rounded-2xl"
-          style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: 'rgba(20,33,61,0.14)', paddingVertical: 14, gap: 10, opacity: busy ? 0.7 : 1 }}
-        >
-          {busy === 'google' ? (
-            <ActivityIndicator color={COLORS.ink2} />
-          ) : (
-            <>
-              <Text style={{ fontFamily: 'Fraunces', fontSize: 17, fontWeight: '700', color: '#4285F4', marginTop: -1 }}>G</Text>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.ink }}>Continue with Google</Text>
-            </>
-          )}
-        </Pressable>
-      ) : null}
+      <Pressable
+        onPress={() => run('google', signInWithGoogle)}
+        disabled={busy !== null}
+        className="flex-row items-center justify-center rounded-2xl"
+        style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: 'rgba(20,33,61,0.14)', paddingVertical: 14, gap: 10, opacity: busy ? 0.7 : 1 }}
+      >
+        {busy === 'google' ? (
+          <ActivityIndicator color={COLORS.ink2} />
+        ) : (
+          <>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 17, fontWeight: '700', color: '#4285F4', marginTop: -1 }}>G</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.ink }}>Continue with Google</Text>
+          </>
+        )}
+      </Pressable>
     </View>
   );
 }
