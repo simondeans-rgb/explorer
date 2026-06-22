@@ -6,13 +6,15 @@ import Svg, { Path, Circle, Defs, RadialGradient, Stop } from 'react-native-svg'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { geoOrthographic, geoPath, geoInterpolate, geoDistance, geoGraticule, geoCentroid } from 'd3-geo';
-import { LAND_GEOMETRY } from '../src/lib/worldGeo';
+import { LAND_GEOMETRY, BORDERS_GEOMETRY } from '../src/lib/worldGeo';
 import type { Segment } from '../src/lib/journeyGeo';
 
 // Square viewBox; the globe is a disc inscribed in it.
 const VIEW = 320;
 const CENTER = VIEW / 2;
-const R = VIEW / 2 - 10;
+const R = VIEW / 2 - 10; // base radius: the whole globe fits the frame
+const MAX_R = 360; // cap zoom so a short route never blows up too large
+const BORDER = 'rgba(190,230,215,0.28)';
 
 // Dark, luminous theme. Land is a distinct teal-green hue (not just lighter) so
 // it reads clearly against the deep-navy ocean — and makes the coral arcs pop.
@@ -36,12 +38,24 @@ function onNearSide(p: [number, number], center: [number, number]): boolean {
  *  arcs that hug the surface and hide as they pass behind the limb. Drag to spin.
  *  Pure JS + SVG — no native module, so it ships over the air. */
 export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSize?: number }) {
-  // Open framed on the centre of the journey network.
-  const initial = useMemo<[number, number]>(() => {
+  // Open framed on the centre of the journey network, zoomed to fit its span:
+  // close routes zoom in (capped), a worldwide network stays a full globe.
+  const { initial, globeR } = useMemo(() => {
     const pts = segments.flatMap((s) => [s.from, s.to]);
-    if (!pts.length) return [-10, -12];
-    const c = geoCentroid({ type: 'MultiPoint', coordinates: pts });
-    return [-c[0], -Math.max(-55, Math.min(55, c[1]))];
+    if (!pts.length) return { initial: [-10, -12] as [number, number], globeR: R };
+    const c = geoCentroid({ type: 'MultiPoint', coordinates: pts }) as [number, number];
+    // Furthest endpoint from centre, as a fraction of the sphere radius (sin θ).
+    let maxR = 0;
+    for (const p of pts) {
+      const th = geoDistance(p, c);
+      if (th >= Math.PI / 2) {
+        maxR = 1;
+        break;
+      }
+      maxR = Math.max(maxR, Math.sin(th));
+    }
+    const scale = maxR < 1e-3 ? MAX_R : Math.max(R, Math.min(MAX_R, (0.72 * R) / maxR));
+    return { initial: [-c[0], -Math.max(-72, Math.min(72, c[1]))] as [number, number], globeR: scale };
   }, [segments]);
 
   const [rot, setRot] = useState<[number, number]>(initial);
@@ -95,8 +109,8 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
     [],
   );
 
-  const { landPath, gratPath, arcs, dots } = useMemo(() => {
-    const projection = geoOrthographic().translate([CENTER, CENTER]).scale(R).rotate([rot[0], rot[1], 0]).clipAngle(90);
+  const { landPath, borderPath, gratPath, arcs, dots } = useMemo(() => {
+    const projection = geoOrthographic().translate([CENTER, CENTER]).scale(globeR).rotate([rot[0], rot[1], 0]).clipAngle(90);
     const path = geoPath(projection);
     const center: [number, number] = [-rot[0], -rot[1]];
 
@@ -137,8 +151,8 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
       if (localP >= 0.999) addDot(s.to); // …destination when the route lands
     });
 
-    return { landPath: path(LAND_GEOMETRY) ?? '', gratPath: path(GRATICULE) ?? '', arcs, dots };
-  }, [rot, segments, anim]);
+    return { landPath: path(LAND_GEOMETRY) ?? '', borderPath: path(BORDERS_GEOMETRY) ?? '', gratPath: path(GRATICULE) ?? '', arcs, dots };
+  }, [rot, segments, anim, globeR]);
 
   const [w, setW] = useState(0);
   const size = w > 0 ? Math.min(w, maxSize ?? w) : maxSize ?? VIEW;
@@ -162,12 +176,13 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
             </RadialGradient>
           </Defs>
           {/* atmospheric halo */}
-          <Circle cx={CENTER} cy={CENTER} r={R + 7} fill="url(#globe-atmo)" />
+          <Circle cx={CENTER} cy={CENTER} r={globeR + 7} fill="url(#globe-atmo)" />
           {/* ocean sphere */}
-          <Circle cx={CENTER} cy={CENTER} r={R} fill="url(#globe-ocean)" />
-          {/* graticule + land (clipped to the near hemisphere by the projection) */}
+          <Circle cx={CENTER} cy={CENTER} r={globeR} fill="url(#globe-ocean)" />
+          {/* graticule + land + country outlines (clipped to the near hemisphere) */}
           {gratPath ? <Path d={gratPath} fill="none" stroke={GRAT} strokeWidth={0.5} /> : null}
-          {landPath ? <Path d={landPath} fill={LAND} stroke={LAND_STROKE} strokeWidth={0.4} /> : null}
+          {landPath ? <Path d={landPath} fill={LAND} stroke={LAND_STROKE} strokeWidth={0.5} /> : null}
+          {borderPath ? <Path d={borderPath} fill="none" stroke={BORDER} strokeWidth={0.4} /> : null}
           {/* journey arcs */}
           {arcs.map((d, i) => (
             <Path key={`a-${i}`} d={d} fill="none" stroke={ROUTE} strokeWidth={1.5} strokeOpacity={0.95} strokeLinecap="round" />
@@ -176,7 +191,7 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
             <Circle key={`d-${i}`} cx={p[0]} cy={p[1]} r={2} fill={ROUTE} stroke={ROUTE_EDGE} strokeWidth={0.7} />
           ))}
           {/* spherical shading for depth */}
-          <Circle cx={CENTER} cy={CENTER} r={R} fill="url(#globe-shade)" />
+          <Circle cx={CENTER} cy={CENTER} r={globeR} fill="url(#globe-shade)" />
         </Svg>
       </GestureDetector>
 

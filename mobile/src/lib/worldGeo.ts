@@ -1,6 +1,6 @@
 // Native world geometry: the same `world-atlas` topology the web app uses,
 // turned into SVG path strings via d3-geo so react-native-svg can draw it.
-import { feature, merge } from 'topojson-client';
+import { feature, merge, mesh } from 'topojson-client';
 import type { Feature, Geometry } from 'geojson';
 import worldRaw from 'world-atlas/countries-110m.json';
 import { COUNTRIES } from '../data/countries';
@@ -66,6 +66,15 @@ export const LAND_GEOMETRY: Geometry = (() => {
   const obj = (worldTopology as any).objects.countries;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return merge(worldTopology as any, obj.geometries) as Geometry;
+})();
+
+/** The interior country borders as a single mesh — one path that outlines every
+ *  country (the merged land already gives the coastline). */
+export const BORDERS_GEOMETRY: Geometry = (() => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const obj = (worldTopology as any).objects.countries;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return mesh(worldTopology as any, obj, (a: any, b: any) => a !== b) as Geometry;
 })();
 
 // Map palette. High contrast so discovered countries pop against the rest:
