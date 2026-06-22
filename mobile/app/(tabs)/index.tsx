@@ -105,6 +105,10 @@ export default function StoryScreen() {
             <Pressable onPress={() => router.push(`/trip/${t.id}`)} style={{ width: cardW }}>
               <DestinationImage code={t.countryCode} scrim style={{ height, borderRadius: 24, padding: 18, justifyContent: 'flex-end' }}>
                 <Text style={{ fontSize: 22, position: 'absolute', top: 14, right: 16 }}>{flagEmoji(t.countryCode)}</Text>
+                <View className="flex-row items-center rounded-full" style={{ position: 'absolute', top: 14, left: 16, backgroundColor: 'rgba(255,255,255,0.22)', paddingLeft: 11, paddingRight: 8, paddingVertical: 5, gap: 3 }}>
+                  <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 10.5, letterSpacing: 1 }}>PLAN ITINERARY</Text>
+                  <ChevronRight size={13} color="#fff" />
+                </View>
                 <View className="flex-row items-end" style={{ gap: 8 }}>
                   <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: numSize, lineHeight: numSize, ...shadow }}>{days === 0 ? '0' : days}</Text>
                   <View style={{ flex: 1, marginBottom: numSize * 0.16 }}>

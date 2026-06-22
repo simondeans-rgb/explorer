@@ -5,6 +5,7 @@ import type { ComponentType } from 'react';
 import {
   MapPin,
   Search,
+  X,
   Bookmark,
   BookmarkCheck,
   Check,
@@ -224,7 +225,7 @@ export default function ExploreScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets>
         <PageHero title="Explore" subtitle="Find your next adventure" gradient={GRADIENTS.explore} imageCodes={HERO_CODES.explore} motion />
 
         {/* segmented control */}
@@ -246,6 +247,11 @@ export default function ExploreScreen() {
             <View className="flex-row items-center bg-white rounded-2xl" style={{ marginHorizontal: 20, marginTop: 12, paddingHorizontal: 14, paddingVertical: 11, gap: 8 }}>
               <Search size={18} color={COLORS.ink3} />
               <TextInput value={query} onChangeText={setQuery} placeholder="Search every country" placeholderTextColor={COLORS.ink3} style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />
+              {query ? (
+                <Pressable onPress={() => setQuery('')} hitSlop={10}>
+                  <X size={17} color={COLORS.ink3} />
+                </Pressable>
+              ) : null}
             </View>
 
             {q ? (

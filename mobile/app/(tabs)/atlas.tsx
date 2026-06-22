@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput } from 'react-native';
 import { router } from 'expo-router';
-import { Globe2, MapPinned, Search } from 'lucide-react-native';
+import { Globe2, MapPinned, Search, X } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
 import { WorldMap } from '../../components/WorldMap';
 import { JourneyGlobe } from '../../components/JourneyGlobe';
@@ -149,7 +149,7 @@ export default function AtlasScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
-    <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 110 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 110 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets>
       <PageHero title="Your Atlas" subtitle="The world you've explored" gradient={GRADIENTS.atlas} imageCodes={HERO_CODES.atlas} motion />
 
       {/* segmented control */}
@@ -240,6 +240,11 @@ export default function AtlasScreen() {
             <View className="flex-row items-center bg-white rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 10, gap: 8 }}>
               <Search size={18} color={COLORS.ink3} />
               <TextInput value={query} onChangeText={setQuery} placeholder="Search your countries & cities" placeholderTextColor={COLORS.ink3} style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink }} />
+              {query ? (
+                <Pressable onPress={() => setQuery('')} hitSlop={10}>
+                  <X size={17} color={COLORS.ink3} />
+                </Pressable>
+              ) : null}
             </View>
             <View className="flex-row" style={{ gap: 8 }}>
               {([['az', 'A–Z'], ['found', 'Most found'], ['recent', 'Recent']] as [SortBy, string][]).map(([id, label]) => {
