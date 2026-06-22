@@ -171,9 +171,11 @@ export default function ExploreScreen() {
       ...(cool ? [{ key: 'cool', code: cool[0], icon: Snowflake, label: `Coolest in ${MONTHS[month]}`, value: `${cool[1].temps![month]}°C avg` } as Fact] : []),
     ];
     // Bucket-list sights — rotating inspiration from curated, iconic countries.
+    // Vary the label so a window never shows three identical "Bucket-list sight" cards.
+    const SIGHT_LABELS = ['Iconic landmark', 'World wonder', 'Bucket-list sight', 'Must-see sight'];
     const inspo: Fact[] = ['FR', 'IT', 'JP', 'EG', 'PE', 'GR', 'TH', 'ZA', 'IN', 'AU', 'MX', 'US']
       .filter((c) => COUNTRY_FACTS[c]?.landmarks?.length)
-      .map((c) => ({ key: `lm-${c}`, code: c, icon: Landmark, label: 'Bucket-list sight', value: COUNTRY_FACTS[c].landmarks![0] }));
+      .map((c, i) => ({ key: `lm-${c}`, code: c, icon: Landmark, label: SIGHT_LABELS[i % SIGHT_LABELS.length], value: COUNTRY_FACTS[c].landmarks![0] }));
 
     // Interleave so any window of 4 mixes superlatives with sights.
     const pool: Fact[] = [];
@@ -185,10 +187,12 @@ export default function ExploreScreen() {
     const start = Math.floor(Date.now() / 86_400_000) % pool.length;
     const out: Fact[] = [];
     const seen = new Set<string>();
+    const seenLabels = new Set<string>();
     for (let i = 0; i < pool.length && out.length < 4; i++) {
       const f = pool[(start + i) % pool.length];
-      if (seen.has(f.code)) continue;
+      if (seen.has(f.code) || seenLabels.has(f.label)) continue; // unique country AND unique label
       seen.add(f.code);
+      seenLabels.add(f.label);
       out.push(f);
     }
     return out;

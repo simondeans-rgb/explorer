@@ -18,8 +18,8 @@ const BORDER = 'rgba(190,230,215,0.28)';
 
 // Dark, luminous theme. Land is a distinct teal-green hue (not just lighter) so
 // it reads clearly against the deep-navy ocean — and makes the coral arcs pop.
-const OCEAN_GLOW = '#163563';
-const OCEAN_DEEP = '#05081A';
+const OCEAN_GLOW = '#1B3A6B';
+const OCEAN_DEEP = '#0D1B2E'; // dark navy (not pure black) — within brand palette
 const LAND = '#37836B';
 const LAND_STROKE = '#5FC0A2';
 const GRAT = 'rgba(150,180,255,0.10)';
@@ -59,8 +59,13 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
     const scale = maxR < 1e-3 ? MAX_R : Math.max(R, Math.min(MAX_R, (0.72 * R) / maxR));
     const lat = Math.max(-72, Math.min(72, c[1]));
     // With zero pitch, screen-y depends only on latitude; this lands the centroid
-    // at frame centre while keeping the axis vertical.
-    return { lon0: -c[0], globeR: scale, translateY: CENTER + scale * Math.sin((lat * Math.PI) / 180), zoomed: scale > R + 1 };
+    // at frame centre while keeping the axis vertical. Then clamp so the disc
+    // fills the frame (no dead space above/below) when it's big enough to.
+    const desiredTY = CENTER + scale * Math.sin((lat * Math.PI) / 180);
+    const minTY = VIEW - scale;
+    const maxTY = scale;
+    const translateY = minTY <= maxTY ? Math.max(minTY, Math.min(maxTY, desiredTY)) : CENTER;
+    return { lon0: -c[0], globeR: scale, translateY, zoomed: scale > R + 1 };
   }, [segments]);
 
   const [lon, setLon] = useState(lon0);

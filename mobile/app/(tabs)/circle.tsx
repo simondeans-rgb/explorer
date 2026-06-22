@@ -59,9 +59,9 @@ function GhostCircle() {
 
 function CirclePreview() {
   return (
-    <View style={{ marginTop: 26 }}>
-      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, textAlign: 'center', marginBottom: 12 }}>PREVIEW · HOW YOUR CIRCLE WILL LOOK</Text>
-      <View style={{ gap: 12, opacity: 0.92 }}>
+    <View style={{ marginTop: 14 }}>
+      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, textAlign: 'center', marginBottom: 10 }}>PREVIEW · HOW YOUR CIRCLE WILL LOOK</Text>
+      <View style={{ gap: 10, opacity: 0.92 }}>
         <View className="bg-white rounded-3xl" style={{ padding: 14 }}>
           <View className="flex-row items-center" style={{ gap: 10 }}>
             <Avatar name="Maya" size={38} />
@@ -136,20 +136,20 @@ export default function CircleScreen() {
 
       {!hasCircle ? (
         /* ── Exceptional empty state — an invitation, not an absence ── */
-        <View style={{ paddingHorizontal: 20, marginTop: 18 }}>
+        <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
           <View className="items-center">
             <Pressable onPress={() => router.push('/friends')} accessibilityLabel="Add a friend to your circle">
               <GhostCircle />
             </Pressable>
             <Text style={{ fontFamily: 'Fraunces', fontSize: 25, color: COLORS.navy, textAlign: 'center', lineHeight: 31 }}>See the world through people you trust</Text>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14.5, color: COLORS.ink2, textAlign: 'center', marginTop: 10, lineHeight: 21, maxWidth: 330 }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14.5, color: COLORS.ink2, textAlign: 'center', marginTop: 8, lineHeight: 21, maxWidth: 330 }}>
               Your Circle turns your friends' real trips into your next discovery — the places they loved, their hidden gems, and where they're dreaming of going next.
             </Text>
-            <Pressable onPress={() => router.push('/friends')} className="flex-row items-center justify-center rounded-full" style={{ marginTop: 22, paddingHorizontal: 22, paddingVertical: 13, gap: 8, backgroundColor: COLORS.coral }}>
+            <Pressable onPress={() => router.push('/friends')} className="flex-row items-center justify-center rounded-full" style={{ marginTop: 16, paddingHorizontal: 22, paddingVertical: 13, gap: 8, backgroundColor: COLORS.coral }}>
               <UserPlus size={17} color="#fff" />
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14.5, fontWeight: '700', color: '#fff' }}>Invite someone</Text>
             </Pressable>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, textAlign: 'center', marginTop: 12 }}>Travel memories are better when they're shared.</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, textAlign: 'center', marginTop: 10 }}>Travel memories are better when they're shared.</Text>
           </View>
           <CirclePreview />
         </View>
