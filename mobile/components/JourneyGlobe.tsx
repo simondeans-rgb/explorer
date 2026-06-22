@@ -156,7 +156,7 @@ export function JourneyGlobe({
   }
   function applyPan(dx: number, dy: number) {
     setLon(dragStartLon.current + dx * 0.35); // left/right spins
-    setLat(Math.max(-LAT_LIMIT, Math.min(LAT_LIMIT, dragStartLat.current + dy * 0.3))); // up/down tilts
+    setLat(Math.max(-LAT_LIMIT, Math.min(LAT_LIMIT, dragStartLat.current - dy * 0.3))); // up/down tilts
   }
   function applyPinch(s: number) {
     setZoom(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, pinchStartZoom.current * s)));
