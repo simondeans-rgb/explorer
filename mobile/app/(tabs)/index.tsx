@@ -12,7 +12,7 @@ import { LandmarkDetailSheet } from '../../components/LandmarkDetailSheet';
 import { AddPlaceSheet } from '../../components/AddPlaceSheet';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
 import { circleStoryItems, type CircleStoryItem } from '../../src/lib/circle';
-import { COLORS, GRADIENTS } from '../../src/lib/theme';
+import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
@@ -79,8 +79,8 @@ export default function StoryScreen() {
           </View>
 
           <View style={{ marginTop: 30 }}>
-            <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95 }}>Hi {firstName},</Text>
-            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, lineHeight: 40, marginTop: 6 }}>Where will your next story take you?</Text>
+            <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 20, opacity: 0.95 }}>Hi {firstName},</Text>
+            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, lineHeight: 40, marginTop: 4 }}>Where will your next story take you?</Text>
           </View>
         </View>
 
@@ -142,17 +142,18 @@ export default function StoryScreen() {
 
       {/* Milestone → achievements */}
       <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
-        <Pressable onPress={() => router.push('/achievements')}>
-          <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 26, padding: 20 }}>
-            <View className="flex-row items-start justify-between">
-              <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1.5, opacity: 0.85 }}>EXPLORER LEVEL {level.level}</Text>
-              <ChevronRight size={18} color="rgba(255,255,255,0.85)" />
-            </View>
-            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 40, marginTop: 2 }}>{level.title}</Text>
-            <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.9, marginTop: 4 }}>
+        <Pressable onPress={() => router.push('/achievements')} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 16, gap: 14 }}>
+          <View className="rounded-2xl items-center justify-center" style={{ height: 50, width: 50, backgroundColor: 'rgba(255,107,154,0.12)' }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 23, color: COLORS.coral }}>{level.level}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3 }}>EXPLORER LEVEL</Text>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, marginTop: 1 }}>{level.title}</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2 }}>
               {stats.countriesDiscovered} countries · {stats.continentsDiscovered} continents · {level.xp.toLocaleString()} XP
             </Text>
-          </LinearGradient>
+          </View>
+          <ChevronRight size={20} color={COLORS.ink3} />
         </Pressable>
       </View>
 
