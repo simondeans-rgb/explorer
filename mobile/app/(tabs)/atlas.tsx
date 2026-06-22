@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { Globe2, MapPinned, Search, X } from 'lucide-react-native';
@@ -54,6 +54,7 @@ export default function AtlasScreen() {
   const { aggregates, discoveries, expeditions, stats } = useWorldly();
   const [tab, setTab] = useState<Tab>('places');
   const [scope, setScope] = useState<Scope>('all');
+  const scrollRef = useRef(null);
   const [query, setQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('az');
   const [scoreAgg, setScoreAgg] = useState<CountryAggregate | null>(null);
@@ -149,7 +150,7 @@ export default function AtlasScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
-    <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 110 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets>
+    <ScrollView ref={scrollRef} style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 110 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets>
       <PageHero title="Your Atlas" subtitle="The world you've explored" gradient={GRADIENTS.atlas} imageCodes={HERO_CODES.atlas} motion />
 
       {/* segmented control */}
@@ -202,14 +203,14 @@ export default function AtlasScreen() {
         <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
           <ScopeChips scope={scope} years={journeyYears} onChange={setScope} />
           <View style={{ marginHorizontal: -20, marginTop: 10 }}>
-            <JourneyGlobe segments={segments} maxSize={360} />
+            <JourneyGlobe segments={segments} maxSize={360} resetKey={String(scope)} scrollRef={scrollRef} />
           </View>
           <View className="flex-row items-center" style={{ marginTop: 10, gap: 6, paddingHorizontal: 4 }}>
             <View style={{ height: 3, width: 16, borderRadius: 2, backgroundColor: COLORS.coral }} />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>
               {segments.length} flight route{segments.length === 1 ? '' : 's'}{scope === 'all' ? '' : ` in ${scope}`}
             </Text>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginLeft: 'auto' }}>Drag to spin ↺</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginLeft: 'auto' }}>Drag to spin · pinch to zoom</Text>
           </View>
         </View>
       )}
