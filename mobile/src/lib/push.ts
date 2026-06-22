@@ -80,6 +80,31 @@ export async function disableTripActivity(): Promise<void> {
   await clearPref('tripActivity', TRIP_KEY);
 }
 
+/** Fire a push to THIS device via the Expo push service — verifies the full
+ * permission → token → Expo → APNs → device pipeline end-to-end. Returns false
+ * if permission is denied or no token is available (e.g. Expo Go). */
+export async function sendTestPush(): Promise<boolean> {
+  try {
+    if (!(await Notifications.requestPermissionsAsync()).granted) return false;
+    const token = await tokenForDevice();
+    if (!token) return false;
+    const res = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: token,
+        sound: 'default',
+        title: '✈️ Worldly',
+        body: "Notifications are working — you're all set.",
+      }),
+    });
+    const json = (await res.json().catch(() => null)) as { data?: { status?: string } } | null;
+    return json?.data?.status === 'ok';
+  } catch {
+    return false;
+  }
+}
+
 /** Re-register the device token (it can rotate) when any push feature is on. */
 export async function refreshPushToken(): Promise<void> {
   try {
