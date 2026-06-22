@@ -140,6 +140,11 @@ export default function YouScreen() {
     }
   }
   const earned = badges.filter((b) => b.earned).length;
+  // The locked achievement closest to completion — shown as a "next up" hook.
+  const nextBadge = [...badges].filter((b) => !b.earned).sort((a, b) => b.progress - a.progress)[0];
+  // The closest discovery-driven achievement, for a nudge by the Discoveries stat.
+  const DISCOVERY_BADGES = new Set(['foodie', 'culture-vulture', 'naturalist', 'local-expert', 'gem-hunter', 'coffee-trail', 'festival-fan', 'night-owl', 'wildlife-watcher', 'attraction-seeker', 'ancient-explorer', 'skyline-chaser', 'beach-bum', 'pilgrim']);
+  const nextDiscovery = [...badges].filter((b) => !b.earned && DISCOVERY_BADGES.has(b.id)).sort((a, b) => b.progress - a.progress)[0];
 
   const displayName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'Alex');
   const initial = displayName.charAt(0).toUpperCase();
@@ -234,6 +239,13 @@ export default function YouScreen() {
           </View>
         ))}
       </View>
+      {nextDiscovery ? (
+        <Pressable onPress={() => router.push('/achievements')} style={{ paddingHorizontal: 20, marginTop: 8 }}>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>
+            {discoveryStats.total} discoveries · {Math.max(0, nextDiscovery.target - Math.min(nextDiscovery.value, nextDiscovery.target))} more to unlock <Text style={{ fontWeight: '700', color: COLORS.coral }}>{nextDiscovery.title}</Text>
+          </Text>
+        </Pressable>
+      ) : null}
 
       {/* Wrapped + Almanac */}
       <View className="flex-row" style={{ paddingHorizontal: 20, marginTop: 14, gap: 12 }}>
@@ -348,6 +360,17 @@ export default function YouScreen() {
               </Pressable>
             ))}
         </ScrollView>
+        {nextBadge ? (
+          <Pressable onPress={() => router.push('/achievements')} className="bg-white rounded-2xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 2, padding: 12, gap: 12 }}>
+            <AchievementBadge badge={nextBadge} tile={44} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3 }}>NEXT UP</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.navy, marginTop: 1 }}>{nextBadge.title}</Text>
+              <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{nextBadge.description} · {Math.min(nextBadge.value, nextBadge.target)}/{nextBadge.target}</Text>
+            </View>
+            <ChevronRight size={16} color={COLORS.ink3} />
+          </Pressable>
+        ) : null}
       </View>
 
       {/* Notifications */}
