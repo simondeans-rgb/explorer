@@ -18,8 +18,8 @@ const R = VIEW / 2 - 10;
 // it reads clearly against the deep-navy ocean — and makes the coral arcs pop.
 const OCEAN_GLOW = '#163563';
 const OCEAN_DEEP = '#05081A';
-const LAND = '#46A589';
-const LAND_STROKE = '#74D9B8';
+const LAND = '#37836B';
+const LAND_STROKE = '#5FC0A2';
 const GRAT = 'rgba(150,180,255,0.10)';
 const ROUTE = '#FF6A8E';
 const ROUTE_EDGE = '#FFC2D2';
