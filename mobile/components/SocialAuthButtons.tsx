@@ -27,7 +27,7 @@ function friendlyAuthError(err: { message?: string; code?: string }): string {
   }
 }
 
-type Busy = null | 'apple' | 'google';
+type Busy = null | 'google';
 
 // Social sign-in needs the native modules, which only exist in a real iOS build
 // (not Expo Go). Decide this with zero native calls — Platform + the Expo Go
@@ -36,11 +36,8 @@ type Busy = null | 'apple' | 'google';
 const SOCIAL_AVAILABLE =
   Platform.OS === 'ios' && Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
 
-// Apple logo glyph (private-use codepoint in the system font) for the button.
-const APPLE_GLYPH = '\uF8FF';
-
-/** Apple + Google sign-in buttons, shown only in a real iOS build (never in
- *  Expo Go). On error, the real reason is surfaced to the screen and Sentry. */
+/** Google sign-in button, shown only in a real iOS build (never in Expo Go).
+ *  On error, the real reason is surfaced to the screen and Sentry. */
 export function SocialAuthButtons({
   onError,
   onBusyChange,
@@ -48,7 +45,7 @@ export function SocialAuthButtons({
   onError: (msg: string | null) => void;
   onBusyChange?: (busy: boolean) => void;
 }) {
-  const { signInWithApple, signInWithGoogle } = useAuth();
+  const { signInWithGoogle } = useAuth();
   const [busy, setBusy] = useState<Busy>(null);
 
   if (!SOCIAL_AVAILABLE) return null;
@@ -84,22 +81,6 @@ export function SocialAuthButtons({
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.ink3 }}>or</Text>
         <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(20,33,61,0.10)' }} />
       </View>
-
-      <Pressable
-        onPress={() => run('apple', signInWithApple)}
-        disabled={busy !== null}
-        className="flex-row items-center justify-center rounded-2xl"
-        style={{ backgroundColor: '#000', paddingVertical: 14, gap: 8, marginBottom: 10, opacity: busy ? 0.7 : 1 }}
-      >
-        {busy === 'apple' ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <>
-            <Text style={{ fontSize: 18, color: '#fff', marginTop: -2 }}>{APPLE_GLYPH}</Text>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Continue with Apple</Text>
-          </>
-        )}
-      </Pressable>
 
       <Pressable
         onPress={() => run('google', signInWithGoogle)}
