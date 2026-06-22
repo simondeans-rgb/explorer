@@ -59,7 +59,7 @@ export function DiscoveryFan({ discoveries, onPress }: { discoveries: Discovery[
       decelerationRate="fast"
       onScroll={onScroll}
       scrollEventThrottle={16}
-      contentContainerStyle={{ paddingHorizontal: sidePad, height: cardH + 56, alignItems: 'flex-end', paddingBottom: 8 }}
+      contentContainerStyle={{ paddingHorizontal: sidePad, height: cardH + 44, alignItems: 'flex-start', paddingTop: 4 }}
     >
       {discoveries.map((d, i) => (
         <FanCard key={d.id} d={d} i={i} scrollX={scrollX} step={step} cardW={cardW} cardH={cardH} onPress={onPress} />
