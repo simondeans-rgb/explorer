@@ -38,11 +38,13 @@ function onNearSide(p: [number, number], center: [number, number]): boolean {
  *  arcs that hug the surface and hide as they pass behind the limb. Drag to spin.
  *  Pure JS + SVG — no native module, so it ships over the air. */
 export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSize?: number }) {
-  // Open framed on the centre of the journey network, zoomed to fit its span:
-  // close routes zoom in (capped), a worldwide network stays a full globe.
-  const { initial, globeR } = useMemo(() => {
+  // Frame on the journey network: centre longitude, zoom to fit its span (close
+  // routes zoom in, capped; a worldwide network stays a full globe), and shift
+  // vertically so the route sits mid-frame WITHOUT tilting — the Earth's axis
+  // stays vertical so the poles stay pinned top and bottom.
+  const { lon0, globeR, translateY, zoomed } = useMemo(() => {
     const pts = segments.flatMap((s) => [s.from, s.to]);
-    if (!pts.length) return { initial: [-10, -12] as [number, number], globeR: R };
+    if (!pts.length) return { lon0: -10, globeR: R, translateY: CENTER, zoomed: false };
     const c = geoCentroid({ type: 'MultiPoint', coordinates: pts }) as [number, number];
     // Furthest endpoint from centre, as a fraction of the sphere radius (sin θ).
     let maxR = 0;
@@ -55,47 +57,49 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
       maxR = Math.max(maxR, Math.sin(th));
     }
     const scale = maxR < 1e-3 ? MAX_R : Math.max(R, Math.min(MAX_R, (0.72 * R) / maxR));
-    return { initial: [-c[0], -Math.max(-72, Math.min(72, c[1]))] as [number, number], globeR: scale };
+    const lat = Math.max(-72, Math.min(72, c[1]));
+    // With zero pitch, screen-y depends only on latitude; this lands the centroid
+    // at frame centre while keeping the axis vertical.
+    return { lon0: -c[0], globeR: scale, translateY: CENTER + scale * Math.sin((lat * Math.PI) / 180), zoomed: scale > R + 1 };
   }, [segments]);
 
-  const [rot, setRot] = useState<[number, number]>(initial);
+  const [lon, setLon] = useState(lon0);
   const [anim, setAnim] = useState(0);
-  const rotRef = useRef(rot);
-  rotRef.current = rot;
+  const lonRef = useRef(lon);
+  lonRef.current = lon;
   const animStart = useRef(Date.now());
   const dragging = useRef(false);
-  const dragStart = useRef<[number, number]>(initial);
+  const dragStart = useRef(lon0);
+  // A zoomed single route stays framed (no auto-spin); the worldwide view spins.
+  const spinRef = useRef(!zoomed);
+  spinRef.current = !zoomed;
 
   // Longer networks take a little longer to draw on, capped so it never drags.
   const duration = useMemo(() => Math.min(1200 + segments.length * 340, 5200), [segments.length]);
 
   // Reframe + replay the chronological draw-on whenever the network changes.
   useEffect(() => {
-    setRot(initial);
+    setLon(lon0);
     setAnim(0);
     animStart.current = Date.now();
-  }, [initial]);
+  }, [lon0, globeR]);
 
-  // One loop drives both the gentle auto-spin and the intro animation.
+  // One loop drives both the gentle auto-spin (longitude only) and the intro.
   useEffect(() => {
     const t = setInterval(() => {
       const p = Math.min(1, (Date.now() - animStart.current) / duration);
       setAnim(p < 1 ? p * p * (3 - 2 * p) : 1); // smoothstep ease
-      if (!dragging.current) {
-        const [l, ph] = rotRef.current;
-        setRot([(l + 0.3) % 360, ph]);
-      }
+      if (!dragging.current && spinRef.current) setLon((l) => (l + 0.3) % 360);
     }, 1000 / 30);
     return () => clearInterval(t);
   }, [duration]);
 
   function beginDrag() {
     dragging.current = true;
-    dragStart.current = rotRef.current;
+    dragStart.current = lonRef.current;
   }
-  function applyDrag(dx: number, dy: number) {
-    const [l0, p0] = dragStart.current;
-    setRot([l0 + dx * 0.35, Math.max(-82, Math.min(82, p0 - dy * 0.35))]);
+  function applyDrag(dx: number) {
+    setLon(dragStart.current + dx * 0.35); // horizontal only — keeps the axis vertical
   }
   function endDrag() {
     dragging.current = false;
@@ -104,15 +108,15 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
     () =>
       Gesture.Pan()
         .onBegin(() => runOnJS(beginDrag)())
-        .onUpdate((e) => runOnJS(applyDrag)(e.translationX, e.translationY))
+        .onUpdate((e) => runOnJS(applyDrag)(e.translationX))
         .onFinalize(() => runOnJS(endDrag)()),
     [],
   );
 
   const { landPath, borderPath, gratPath, arcs, dots } = useMemo(() => {
-    const projection = geoOrthographic().translate([CENTER, CENTER]).scale(globeR).rotate([rot[0], rot[1], 0]).clipAngle(90);
+    const projection = geoOrthographic().translate([CENTER, translateY]).scale(globeR).rotate([lon, 0, 0]).clipAngle(90);
     const path = geoPath(projection);
-    const center: [number, number] = [-rot[0], -rot[1]];
+    const center: [number, number] = [-lon, 0];
 
     const n = segments.length;
     const arcs: string[] = [];
@@ -152,7 +156,7 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
     });
 
     return { landPath: path(LAND_GEOMETRY) ?? '', borderPath: path(BORDERS_GEOMETRY) ?? '', gratPath: path(GRATICULE) ?? '', arcs, dots };
-  }, [rot, segments, anim, globeR]);
+  }, [lon, segments, anim, globeR, translateY]);
 
   const [w, setW] = useState(0);
   const size = w > 0 ? Math.min(w, maxSize ?? w) : maxSize ?? VIEW;
@@ -176,9 +180,9 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
             </RadialGradient>
           </Defs>
           {/* atmospheric halo */}
-          <Circle cx={CENTER} cy={CENTER} r={globeR + 7} fill="url(#globe-atmo)" />
+          <Circle cx={CENTER} cy={translateY} r={globeR + 7} fill="url(#globe-atmo)" />
           {/* ocean sphere */}
-          <Circle cx={CENTER} cy={CENTER} r={globeR} fill="url(#globe-ocean)" />
+          <Circle cx={CENTER} cy={translateY} r={globeR} fill="url(#globe-ocean)" />
           {/* graticule + land + country outlines (clipped to the near hemisphere) */}
           {gratPath ? <Path d={gratPath} fill="none" stroke={GRAT} strokeWidth={0.5} /> : null}
           {landPath ? <Path d={landPath} fill={LAND} stroke={LAND_STROKE} strokeWidth={0.5} /> : null}
@@ -191,7 +195,7 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
             <Circle key={`d-${i}`} cx={p[0]} cy={p[1]} r={2} fill={ROUTE} stroke={ROUTE_EDGE} strokeWidth={0.7} />
           ))}
           {/* spherical shading for depth */}
-          <Circle cx={CENTER} cy={CENTER} r={globeR} fill="url(#globe-shade)" />
+          <Circle cx={CENTER} cy={translateY} r={globeR} fill="url(#globe-shade)" />
         </Svg>
       </GestureDetector>
 
