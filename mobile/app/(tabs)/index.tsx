@@ -79,8 +79,8 @@ export default function StoryScreen() {
           </View>
 
           <View style={{ marginTop: 30 }}>
-            <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95 }}>Hi {firstName},</Text>
-            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, lineHeight: 40, marginTop: 6 }}>Where will your next story take you?</Text>
+            <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 20, opacity: 0.95 }}>Hi {firstName},</Text>
+            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, lineHeight: 40, marginTop: 4 }}>Where will your next story take you?</Text>
           </View>
         </View>
 
@@ -142,17 +142,23 @@ export default function StoryScreen() {
 
       {/* Milestone → achievements */}
       <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
-        <Pressable onPress={() => router.push('/achievements')}>
-          <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 26, padding: 20 }}>
-            <View className="flex-row items-start justify-between">
-              <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1.5, opacity: 0.85 }}>EXPLORER LEVEL {level.level}</Text>
-              <ChevronRight size={18} color="rgba(255,255,255,0.85)" />
+        <Pressable onPress={() => router.push('/achievements')} className="bg-white rounded-3xl" style={{ padding: 16 }}>
+          <View className="flex-row items-center" style={{ gap: 14 }}>
+            <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 52, width: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontFamily: 'Fraunces', fontSize: 24, color: '#fff' }}>{level.level}</Text>
+            </LinearGradient>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.coral }}>EXPLORER LEVEL {level.level}</Text>
+              <Text style={{ fontFamily: 'Fraunces', fontSize: 21, color: COLORS.navy, marginTop: 1 }}>{level.title}</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2 }}>
+                {stats.countriesDiscovered} countries · {stats.continentsDiscovered} continents · {level.xp.toLocaleString()} XP
+              </Text>
             </View>
-            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 40, marginTop: 2 }}>{level.title}</Text>
-            <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.9, marginTop: 4 }}>
-              {stats.countriesDiscovered} countries · {stats.continentsDiscovered} continents · {level.xp.toLocaleString()} XP
-            </Text>
-          </LinearGradient>
+            <ChevronRight size={20} color={COLORS.ink3} />
+          </View>
+          <View style={{ height: 7, borderRadius: 7, backgroundColor: 'rgba(20,33,61,0.07)', marginTop: 14, overflow: 'hidden' }}>
+            <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 7, borderRadius: 7, width: `${Math.round((level.maxed ? 1 : level.progress) * 100)}%` }} />
+          </View>
         </Pressable>
       </View>
 

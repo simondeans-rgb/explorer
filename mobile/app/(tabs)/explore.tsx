@@ -11,6 +11,8 @@ import {
   Compass,
   Users,
   Maximize2,
+  Minimize2,
+  Building2,
   Sun,
   Snowflake,
   Sparkles,
@@ -22,7 +24,7 @@ import {
 } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
 import { DestinationImage } from '../../components/DestinationImage';
-import { DiscoveryTile } from '../../components/DiscoveryTile';
+import { DiscoveryFan } from '../../components/DiscoveryFan';
 import { COLORS, GRADIENTS, DISCOVERY_CATEGORY_COLOR } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
@@ -92,8 +94,7 @@ const CountryCard = memo(function CountryCard({
   );
 });
 
-function Superlative({ entry, icon: Icon, label, value, width }: { entry: Entry; icon: ComponentType<{ size?: number; color?: string }>; label: string; value: string; width: number }) {
-  const [code] = entry;
+function Superlative({ code, icon: Icon, label, value, width }: { code: string; icon: ComponentType<{ size?: number; color?: string }>; label: string; value: string; width: number }) {
   return (
     <Pressable onPress={() => router.push(`/country/${code}`)} style={{ width }}>
       <DestinationImage code={code} scrim style={{ height: 112, borderRadius: 18, padding: 12, justifyContent: 'flex-end' }}>
@@ -144,18 +145,52 @@ export default function ExploreScreen() {
     [addPlace, removePlace],
   );
 
-  // Superlatives (from the bundled country facts).
+  // "Around the world" facts: a pool of superlatives + bucket-list sights that
+  // rotates daily so there's fresh travel inspiration each day.
   const month = new Date().getMonth();
-  const superlatives = useMemo(() => {
+  const factCards = useMemo(() => {
     const entries = Object.entries(COUNTRY_FACTS) as Entry[];
     const withTemp = entries.filter(([, f]) => f.temps && f.temps.length === 12);
     const byTemp = [...withTemp].sort((a, b) => b[1].temps![month] - a[1].temps![month]);
-    return {
-      mostPopulous: [...entries].sort((a, b) => b[1].population - a[1].population)[0],
-      largest: [...entries].sort((a, b) => b[1].areaKm2 - a[1].areaKm2)[0],
-      warmest: byTemp[0],
-      coolest: byTemp[byTemp.length - 1],
-    };
+    const byPop = [...entries].sort((a, b) => b[1].population - a[1].population);
+    const byArea = [...entries].sort((a, b) => b[1].areaKm2 - a[1].areaKm2);
+    const byDensity = entries
+      .filter(([, f]) => f.areaKm2 > 0)
+      .sort((a, b) => b[1].population / b[1].areaKm2 - a[1].population / a[1].areaKm2);
+
+    type Fact = { key: string; code: string; icon: ComponentType<{ size?: number; color?: string }>; label: string; value: string };
+    const warm = byTemp[0];
+    const cool = byTemp[byTemp.length - 1];
+    const superl: Fact[] = [
+      { key: 'pop', code: byPop[0][0], icon: Users, label: 'Most populous', value: `${fmtNum(byPop[0][1].population)} people` },
+      { key: 'big', code: byArea[0][0], icon: Maximize2, label: 'Largest country', value: `${fmtNum(byArea[0][1].areaKm2)} km²` },
+      { key: 'small', code: byArea[byArea.length - 1][0], icon: Minimize2, label: 'Smallest country', value: `${fmtNum(byArea[byArea.length - 1][1].areaKm2)} km²` },
+      { key: 'dense', code: byDensity[0][0], icon: Building2, label: 'Most crowded', value: `${Math.round(byDensity[0][1].population / byDensity[0][1].areaKm2)} /km²` },
+      ...(warm ? [{ key: 'warm', code: warm[0], icon: Sun, label: `Warmest in ${MONTHS[month]}`, value: `${warm[1].temps![month]}°C avg` } as Fact] : []),
+      ...(cool ? [{ key: 'cool', code: cool[0], icon: Snowflake, label: `Coolest in ${MONTHS[month]}`, value: `${cool[1].temps![month]}°C avg` } as Fact] : []),
+    ];
+    // Bucket-list sights — rotating inspiration from curated, iconic countries.
+    const inspo: Fact[] = ['FR', 'IT', 'JP', 'EG', 'PE', 'GR', 'TH', 'ZA', 'IN', 'AU', 'MX', 'US']
+      .filter((c) => COUNTRY_FACTS[c]?.landmarks?.length)
+      .map((c) => ({ key: `lm-${c}`, code: c, icon: Landmark, label: 'Bucket-list sight', value: COUNTRY_FACTS[c].landmarks![0] }));
+
+    // Interleave so any window of 4 mixes superlatives with sights.
+    const pool: Fact[] = [];
+    for (let i = 0; i < Math.max(superl.length, inspo.length); i++) {
+      if (superl[i]) pool.push(superl[i]);
+      if (inspo[i]) pool.push(inspo[i]);
+    }
+    // Rotate the window by the day so the set changes daily; dedupe by country.
+    const start = Math.floor(Date.now() / 86_400_000) % pool.length;
+    const out: Fact[] = [];
+    const seen = new Set<string>();
+    for (let i = 0; i < pool.length && out.length < 4; i++) {
+      const f = pool[(start + i) % pool.length];
+      if (seen.has(f.code)) continue;
+      seen.add(f.code);
+      out.push(f);
+    }
+    return out;
   }, [month]);
 
   const q = query.trim().toLowerCase();
@@ -225,13 +260,12 @@ export default function ExploreScreen() {
               </View>
             ) : (
               <>
-                {/* superlatives — a denser 2-up grid of compact tiles */}
+                {/* "around the world" facts — a denser 2-up grid that rotates daily */}
                 <Text style={H}>AROUND THE WORLD</Text>
                 <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, gap: 12 }}>
-                  <Superlative entry={superlatives.mostPopulous} icon={Users} label="Most populous" value={`${fmtNum(superlatives.mostPopulous[1].population)} people`} width={gridW} />
-                  <Superlative entry={superlatives.largest} icon={Maximize2} label="Largest country" value={`${fmtNum(superlatives.largest[1].areaKm2)} km²`} width={gridW} />
-                  {superlatives.warmest ? <Superlative entry={superlatives.warmest} icon={Sun} label={`Warmest in ${MONTHS[month]}`} value={`${superlatives.warmest[1].temps![month]}°C avg`} width={gridW} /> : null}
-                  {superlatives.coolest ? <Superlative entry={superlatives.coolest} icon={Snowflake} label={`Coolest in ${MONTHS[month]}`} value={`${superlatives.coolest[1].temps![month]}°C avg`} width={gridW} /> : null}
+                  {factCards.map((f) => (
+                    <Superlative key={f.key} code={f.code} icon={f.icon} label={f.label} value={f.value} width={gridW} />
+                  ))}
                 </View>
 
                 {/* wishlist */}
@@ -326,14 +360,12 @@ export default function ExploreScreen() {
                   </ScrollView>
                 ) : null}
 
-                {/* gallery grid */}
+                {/* fan carousel */}
                 {shownDiscoveries.length === 0 ? (
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink3, paddingHorizontal: 20 }}>No discoveries match those filters yet.</Text>
                 ) : (
-                  <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, gap: 12 }}>
-                    {shownDiscoveries.map((d) => (
-                      <DiscoveryTile key={d.id} discovery={d} width={gridW} onPress={() => router.push(`/discovery/${d.id}`)} />
-                    ))}
+                  <View style={{ marginTop: 4 }}>
+                    <DiscoveryFan discoveries={shownDiscoveries} onPress={(d) => router.push(`/discovery/${d.id}`)} />
                   </View>
                 )}
               </>
