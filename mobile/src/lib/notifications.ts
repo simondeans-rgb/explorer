@@ -9,6 +9,19 @@ import type { Place, Expedition } from '../types';
 
 const PREF_KEY = 'worldly.notif.anniversaries';
 
+// Present notifications (banner + sound) even while the app is in the
+// foreground. Without a handler, iOS silently drops foreground notifications —
+// so a push that arrives while you're in the app would never be seen. Set at
+// module load (this file is imported at startup via NotificationScheduler).
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
 export async function anniversariesEnabled(): Promise<boolean> {
   try {
     return (await AsyncStorage.getItem(PREF_KEY)) === '1';
