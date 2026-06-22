@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { Globe2, MapPinned, Search } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
 import { WorldMap } from '../../components/WorldMap';
-import { RouteMap } from '../../components/RouteMap';
+import { JourneyGlobe } from '../../components/JourneyGlobe';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AtlasCountryCard } from '../../components/AtlasCountryCard';
 import { AtlasSummary } from '../../components/AtlasSummary';
@@ -202,13 +202,14 @@ export default function AtlasScreen() {
         <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
           <ScopeChips scope={scope} years={journeyYears} onChange={setScope} />
           <View style={{ marginHorizontal: -20, marginTop: 10 }}>
-            <RouteMap segments={segments} />
+            <JourneyGlobe segments={segments} maxSize={360} />
           </View>
           <View className="flex-row items-center" style={{ marginTop: 10, gap: 6, paddingHorizontal: 4 }}>
             <View style={{ height: 3, width: 16, borderRadius: 2, backgroundColor: COLORS.coral }} />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>
               {segments.length} flight route{segments.length === 1 ? '' : 's'}{scope === 'all' ? '' : ` in ${scope}`}
             </Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginLeft: 'auto' }}>Drag to spin ↺</Text>
           </View>
         </View>
       )}

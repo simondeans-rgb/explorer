@@ -5,7 +5,9 @@ import { useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, Trash2, Plus, Check, Search, Plane, TrainFront, Ship, Car, Anchor } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { DestinationImage } from '../../components/DestinationImage';
+import { JourneyGlobe } from '../../components/JourneyGlobe';
 import { RouteBuilder } from '../../components/RouteBuilder';
+import { journeyLegSegments } from '../../src/lib/journeyGeo';
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
@@ -98,6 +100,9 @@ export default function JourneyScreen() {
     return COUNTRIES.filter((c) => c.name.toLowerCase().includes(q) && !codes.includes(c.code)).slice(0, 12);
   }, [query, codes]);
 
+  // Flight legs (placeable on the globe) for the route you're building, live.
+  const detailSegments = useMemo(() => journeyLegSegments(legs, startDate || undefined), [legs, startDate]);
+
   function patchLeg(legId: string, patch: Partial<Leg>) {
     setLegs((prev) => prev.map((l) => (l.id === legId ? { ...l, ...patch } : l)));
   }
@@ -178,6 +183,13 @@ export default function JourneyScreen() {
             <Path d="M0,72 C240,44 480,40 720,58 C960,76 1200,92 1440,72 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
           </Svg>
         </DestinationImage>
+
+        {/* route globe — your flight legs on a spinning world */}
+        {detailSegments.length > 0 ? (
+          <View style={{ marginHorizontal: 20, marginTop: 16, borderRadius: 24, overflow: 'hidden' }}>
+            <JourneyGlobe segments={detailSegments} maxSize={300} />
+          </View>
+        ) : null}
 
         {/* title */}
         <Text style={LBL}>TITLE</Text>
