@@ -127,9 +127,8 @@ export default function CircleScreen() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 120 }}>
       <PageHero
-        eyebrow="The world, through people you trust"
         title="Your Circle"
-        subtitle="Real recommendations from the people you travel with."
+        subtitle="Discover what friends loved"
         gradient={GRADIENTS.story}
         imageCodes={HERO_CODES.you}
         motion
