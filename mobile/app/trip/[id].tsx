@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, Switch, ActivityIndicator, Alert } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Plus, X, UserPlus, LogOut, FileDown, Navigation } from 'lucide-react-native';
+import { ChevronLeft, Plus, X, UserPlus, LogOut, FileDown, Navigation, Trash2 } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AddItinerarySheet } from '../../components/AddItinerarySheet';
 import { ItineraryPlanner, itineraryMeta, type Suggestion } from '../../components/ItineraryPlanner';
@@ -25,7 +25,7 @@ import { goBack } from '../../src/lib/nav';
 
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { trips, places, addPlace, addItineraryItem, removeItineraryItem, reorderItinerary, setDayNote, setTripTracking, addTripCollaborator, removeTripCollaborator } = useData();
+  const { trips, places, addPlace, addItineraryItem, removeItineraryItem, reorderItinerary, setDayNote, setTripTracking, addTripCollaborator, removeTripCollaborator, removeTrip } = useData();
   const { toast } = useToast();
   const { user } = useAuth();
   const myName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
@@ -222,6 +222,16 @@ export default function TripScreen() {
     }
   }
 
+  // Owner (or a local/guest trip) can delete the whole trip.
+  const canDelete = !user || trip.userId === user.uid;
+  function confirmDelete() {
+    if (!trip) return;
+    Alert.alert('Delete trip?', `"${trip.title}" and its itinerary will be permanently removed.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => { removeTrip(trip.id); goBack(); } },
+    ]);
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 112 }}>
@@ -230,6 +240,11 @@ export default function TripScreen() {
           <Pressable onPress={goBack} hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: "absolute", top: 60, left: 20, zIndex: 20 }}>
             <ChevronLeft size={20} color="#fff" />
           </Pressable>
+          {canDelete ? (
+            <Pressable onPress={confirmDelete} hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, right: 20, zIndex: 20 }}>
+              <Trash2 size={18} color="#fff" />
+            </Pressable>
+          ) : null}
           <View style={{ paddingHorizontal: 20 }}>
             {days > 0 ? (
               <View className="flex-row items-baseline" style={{ gap: 9 }}>

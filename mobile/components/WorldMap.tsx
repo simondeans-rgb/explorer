@@ -24,8 +24,8 @@ const VIEW_H = 276;
 // ocean so the map reads as the hero of the screen, not background texture.
 const OCEAN_GLOW = '#243869';
 const OCEAN_DEEP = '#0B1226';
-const LAND_UNVISITED = '#2C3B63';
-const LAND_STROKE = '#18233F';
+const LAND_UNVISITED = '#37836B'; // matches the journey globe's land
+const LAND_STROKE = '#1C4636';
 const VISITED = '#FF6A8E';
 const VISITED_EDGE = '#FFC2D2';
 const WISHLIST = '#A48BFF';

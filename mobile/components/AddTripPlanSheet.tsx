@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
-import { Check, Search, CalendarDays } from 'lucide-react-native';
+import { Check, Search, CalendarDays, X } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
@@ -75,6 +75,11 @@ export function AddTripPlanSheet({ visible, onClose }: { visible: boolean; onClo
             placeholderTextColor={COLORS.ink3}
             style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }}
           />
+          {query ? (
+            <Pressable onPress={() => setQuery('')} hitSlop={10}>
+              <X size={17} color={COLORS.ink3} />
+            </Pressable>
+          ) : null}
         </View>
         <ScrollView style={{ maxHeight: 170, marginTop: 6 }} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
           {results.map((c) => {
