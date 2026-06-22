@@ -41,9 +41,9 @@ const SCRIM = ['transparent', 'rgba(15,16,24,0.05)', 'rgba(15,16,24,0.82)'] as c
  *  pivot and fall back. Snaps card-to-card. */
 export function DiscoveryFan({ discoveries, onPress }: { discoveries: Discovery[]; onPress: (d: Discovery) => void }) {
   const { width } = useWindowDimensions();
-  const cardW = Math.min(252, Math.round(width * 0.64));
-  const cardH = Math.round(cardW * 1.4);
-  const step = Math.round(cardW * 0.62); // < cardW so cards overlap into a fan
+  const cardW = Math.min(198, Math.round(width * 0.52));
+  const cardH = Math.round(cardW * 1.42);
+  const step = Math.round(cardW * 0.66); // < cardW so cards overlap into a fan
   const sidePad = (width - step) / 2;
 
   const scrollX = useSharedValue(0);
