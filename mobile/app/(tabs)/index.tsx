@@ -26,6 +26,9 @@ import { useFriends } from '../../src/hooks/useFriends';
 const MEMORIES_IMG = 'https://images.pexels.com/photos/2874998/pexels-photo-2874998.jpeg?auto=compress&cs=tinysrgb&w=800';
 const CIRCLE_IMG = 'https://images.pexels.com/photos/7625042/pexels-photo-7625042.jpeg?auto=compress&cs=tinysrgb&w=800';
 
+// Shared tile height so every Story section card lines up to the same rhythm.
+const TILE_H = 150;
+
 export default function StoryScreen() {
   const { aggregates, stats, level } = useWorldly();
   const { captures, removeCapture, trips } = useData();
@@ -147,13 +150,13 @@ export default function StoryScreen() {
             {upcoming.length === 1 ? (
               // Single planned trip → full-width card.
               <View style={{ paddingHorizontal: 20, paddingVertical: 14 }}>
-                <TripCard t={upcoming[0]} cardW={width - 40} height={168} />
+                <TripCard t={upcoming[0]} cardW={width - 40} height={TILE_H} />
               </View>
             ) : (
               // More than one → horizontal carousel (scrolls when they overflow).
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 12 }}>
                 {upcoming.map((t) => (
-                  <TripCard key={t.id} t={t} cardW={200} height={150} />
+                  <TripCard key={t.id} t={t} cardW={200} height={TILE_H} />
                 ))}
               </ScrollView>
             )}
@@ -175,7 +178,7 @@ export default function StoryScreen() {
             {captures.map((c) => (
               <Pressable key={c.id} onLongPress={() => confirmRemoveCapture(c.id)} style={{ width: 168 }}>
                 <View style={{ borderRadius: 22, overflow: 'hidden' }}>
-                  <Image source={{ uri: c.dataUrl }} style={{ width: 168, height: 210 }} contentFit="cover" transition={200} />
+                  <Image source={{ uri: c.dataUrl }} style={{ width: 168, height: TILE_H }} contentFit="cover" transition={200} />
                   <LinearGradient colors={['transparent', 'rgba(0,0,0,0.55)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 90, justifyContent: 'flex-end', padding: 12 }}>
                     {c.caption ? (
                       <Text numberOfLines={2} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '600' }}>{c.caption}</Text>
@@ -189,8 +192,8 @@ export default function StoryScreen() {
             ))}
           </ScrollView>
         ) : (
-          <Pressable onPress={() => setPhotoOpen(true)} className="bg-white rounded-3xl flex-row" style={{ marginHorizontal: 20, marginTop: 12, overflow: 'hidden', height: 150 }}>
-            <Image source={{ uri: MEMORIES_IMG }} style={{ width: '42%', height: 150 }} contentFit="cover" transition={300} cachePolicy="memory-disk" />
+          <Pressable onPress={() => setPhotoOpen(true)} className="bg-white rounded-3xl flex-row" style={{ marginHorizontal: 20, marginTop: 12, overflow: 'hidden', height: TILE_H }}>
+            <Image source={{ uri: MEMORIES_IMG }} style={{ width: '42%', height: TILE_H }} contentFit="cover" transition={300} cachePolicy="memory-disk" />
             <View style={{ flex: 1, padding: 16, justifyContent: 'center' }}>
               <Text style={{ fontFamily: 'Fraunces', fontSize: 19, color: COLORS.navy }}>Keep your memories</Text>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 3, lineHeight: 17 }}>Save the moments from your travels and relive them anytime.</Text>
@@ -237,8 +240,8 @@ export default function StoryScreen() {
       ) : (
         <View style={{ marginTop: 24, paddingHorizontal: 20 }}>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, marginBottom: 12 }}>Your circle</Text>
-          <Pressable onPress={() => router.push('/circle')} className="bg-white rounded-3xl flex-row" style={{ overflow: 'hidden', height: 150 }}>
-            <Image source={{ uri: CIRCLE_IMG }} style={{ width: '42%', height: 150 }} contentFit="cover" transition={300} cachePolicy="memory-disk" />
+          <Pressable onPress={() => router.push('/circle')} className="bg-white rounded-3xl flex-row" style={{ overflow: 'hidden', height: TILE_H }}>
+            <Image source={{ uri: CIRCLE_IMG }} style={{ width: '42%', height: TILE_H }} contentFit="cover" transition={300} cachePolicy="memory-disk" />
             <View style={{ flex: 1, padding: 16, justifyContent: 'center' }}>
               <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy }}>Travel better together</Text>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 3, lineHeight: 17 }}>Connect with friends to see where they've been and swap recommendations.</Text>
@@ -253,7 +256,7 @@ export default function StoryScreen() {
 
       {/* Milestone → achievements */}
       <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
-        <Pressable onPress={() => router.push('/achievements')} className="bg-white rounded-3xl" style={{ padding: 16 }}>
+        <Pressable onPress={() => router.push('/achievements')} className="bg-white rounded-3xl" style={{ padding: 16, height: TILE_H, justifyContent: 'space-between' }}>
           <View className="flex-row items-center" style={{ gap: 14 }}>
             <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 52, width: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontFamily: 'Fraunces', fontSize: 24, color: '#fff' }}>{level.level}</Text>
@@ -299,7 +302,7 @@ export default function StoryScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
             {discovered.map((a) => (
               <Pressable key={a.code} onPress={() => router.push(`/country/${a.code}`)} style={{ width: 132 }}>
-                <DestinationImage code={a.code} scrim style={{ height: 168, borderRadius: 26, padding: 14, justifyContent: 'flex-end' }}>
+                <DestinationImage code={a.code} scrim style={{ height: TILE_H, borderRadius: 26, padding: 14, justifyContent: 'flex-end' }}>
                   <Text style={{ fontSize: 34, position: 'absolute', top: 12, left: 12 }}>{flagEmoji(a.code)}</Text>
                   <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 18 }}>{countryName(a.code)}</Text>
                   {a.cities.length > 0 ? (
