@@ -14,11 +14,12 @@ const VIEW = 320;
 const CENTER = VIEW / 2;
 const R = VIEW / 2 - 10;
 
-// Dark, luminous theme — matches the places/route maps.
-const OCEAN_GLOW = '#22417C';
-const OCEAN_DEEP = '#070C1C';
-const LAND = '#33457E';
-const LAND_STROKE = '#485C9E';
+// Dark, luminous theme. Land is a distinct teal-green hue (not just lighter) so
+// it reads clearly against the deep-navy ocean — and makes the coral arcs pop.
+const OCEAN_GLOW = '#163563';
+const OCEAN_DEEP = '#05081A';
+const LAND = '#46A589';
+const LAND_STROKE = '#74D9B8';
 const GRAT = 'rgba(150,180,255,0.10)';
 const ROUTE = '#FF6A8E';
 const ROUTE_EDGE = '#FFC2D2';
@@ -44,24 +45,35 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
   }, [segments]);
 
   const [rot, setRot] = useState<[number, number]>(initial);
+  const [anim, setAnim] = useState(0);
   const rotRef = useRef(rot);
   rotRef.current = rot;
+  const animStart = useRef(Date.now());
   const dragging = useRef(false);
   const dragStart = useRef<[number, number]>(initial);
 
+  // Longer networks take a little longer to draw on, capped so it never drags.
+  const duration = useMemo(() => Math.min(1200 + segments.length * 340, 5200), [segments.length]);
+
+  // Reframe + replay the chronological draw-on whenever the network changes.
   useEffect(() => {
     setRot(initial);
+    setAnim(0);
+    animStart.current = Date.now();
   }, [initial]);
 
-  // Gentle auto-spin (~9°/s), paused while the user is dragging.
+  // One loop drives both the gentle auto-spin and the intro animation.
   useEffect(() => {
     const t = setInterval(() => {
-      if (dragging.current) return;
-      const [l, p] = rotRef.current;
-      setRot([(l + 0.3) % 360, p]);
+      const p = Math.min(1, (Date.now() - animStart.current) / duration);
+      setAnim(p < 1 ? p * p * (3 - 2 * p) : 1); // smoothstep ease
+      if (!dragging.current) {
+        const [l, ph] = rotRef.current;
+        setRot([(l + 0.3) % 360, ph]);
+      }
     }, 1000 / 30);
     return () => clearInterval(t);
-  }, []);
+  }, [duration]);
 
   function beginDrag() {
     dragging.current = true;
@@ -88,13 +100,30 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
     const path = geoPath(projection);
     const center: [number, number] = [-rot[0], -rot[1]];
 
+    const n = segments.length;
     const arcs: string[] = [];
-    for (const s of segments) {
+    const dots: [number, number][] = [];
+    const seen = new Set<string>();
+    const addDot = (e: [number, number]) => {
+      if (!onNearSide(e, center)) return;
+      const xy = projection(e);
+      if (!xy) return;
+      const k = `${Math.round(xy[0])},${Math.round(xy[1])}`;
+      if (seen.has(k)) return;
+      seen.add(k);
+      dots.push([xy[0], xy[1]]);
+    };
+
+    // Each route draws on within its own slice of the timeline, in date order.
+    segments.forEach((s, idx) => {
+      const startAt = n > 1 ? (idx / n) * 0.82 : 0;
+      const localP = Math.max(0, Math.min(1, (anim - startAt) / 0.2));
+      if (localP <= 0) return;
       const interp = geoInterpolate(s.from, s.to);
       let d = '';
       let started = false;
       for (let i = 0; i <= 40; i++) {
-        const lp = interp(i / 40) as [number, number];
+        const lp = interp((i / 40) * localP) as [number, number]; // grow the head to localP
         const xy = onNearSide(lp, center) ? projection(lp) : null;
         if (!xy) {
           started = false;
@@ -104,23 +133,12 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
         started = true;
       }
       if (d) arcs.push(d);
-    }
+      addDot(s.from); // origin lights up as its route starts…
+      if (localP >= 0.999) addDot(s.to); // …destination when the route lands
+    });
 
-    const dots: [number, number][] = [];
-    const seen = new Set<string>();
-    for (const s of segments) {
-      for (const e of [s.from, s.to]) {
-        if (!onNearSide(e, center)) continue;
-        const xy = projection(e);
-        if (!xy) continue;
-        const k = `${Math.round(xy[0])},${Math.round(xy[1])}`;
-        if (seen.has(k)) continue;
-        seen.add(k);
-        dots.push([xy[0], xy[1]]);
-      }
-    }
     return { landPath: path(LAND_GEOMETRY) ?? '', gratPath: path(GRATICULE) ?? '', arcs, dots };
-  }, [rot, segments]);
+  }, [rot, segments, anim]);
 
   const [w, setW] = useState(0);
   const size = w > 0 ? Math.min(w, maxSize ?? w) : maxSize ?? VIEW;
