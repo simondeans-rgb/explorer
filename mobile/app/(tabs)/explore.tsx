@@ -24,7 +24,7 @@ import {
 } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
 import { DestinationImage } from '../../components/DestinationImage';
-import { DiscoveryTile } from '../../components/DiscoveryTile';
+import { DiscoveryFan } from '../../components/DiscoveryFan';
 import { COLORS, GRADIENTS, DISCOVERY_CATEGORY_COLOR } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
@@ -360,14 +360,12 @@ export default function ExploreScreen() {
                   </ScrollView>
                 ) : null}
 
-                {/* gallery grid */}
+                {/* fan carousel */}
                 {shownDiscoveries.length === 0 ? (
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink3, paddingHorizontal: 20 }}>No discoveries match those filters yet.</Text>
                 ) : (
-                  <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, gap: 12 }}>
-                    {shownDiscoveries.map((d) => (
-                      <DiscoveryTile key={d.id} discovery={d} width={gridW} onPress={() => router.push(`/discovery/${d.id}`)} />
-                    ))}
+                  <View style={{ marginTop: 4 }}>
+                    <DiscoveryFan discoveries={shownDiscoveries} onPress={(d) => router.push(`/discovery/${d.id}`)} />
                   </View>
                 )}
               </>
