@@ -1,13 +1,17 @@
 import { Pressable, View, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import Svg, { Path, Circle, Defs, Stop, LinearGradient as SvgGrad, G } from 'react-native-svg';
-import { ChevronRight, Globe2, Mountain, Star } from 'lucide-react-native';
+import { ChevronRight, Globe2, Mountain } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
 import type { ExplorerLevel } from '../src/lib/explorer';
 import type { PassportStats } from '../src/lib/stats';
 
 const ABS_FILL = { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0 };
+
+// License-free Pexels misty-mountain photo (no attribution required) — tinted by the pastel wash.
+const MOUNTAIN_IMG = 'https://images.pexels.com/photos/691668/pexels-photo-691668.jpeg?auto=compress&cs=tinysrgb&w=800';
 
 /** A 4-point sparkle path centred at (x, y) with arm length s. */
 function sparkle(x: number, y: number, s: number): string {
@@ -106,10 +110,10 @@ function Medal({ level }: { level: number }) {
 function Chip({ Icon, color, value }: { Icon: LucideIcon; color: string; value: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-      <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
-        <Icon size={12} color="#fff" strokeWidth={2.4} />
+      <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
+        <Icon size={11} color="#fff" strokeWidth={2.4} />
       </View>
-      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.ink2, marginLeft: 5 }}>{value}</Text>
+      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11.5, fontWeight: '700', color: COLORS.ink2, marginLeft: 4 }}>{value}</Text>
     </View>
   );
 }
@@ -141,17 +145,18 @@ export function ExplorerLevelCard({
         shadowOffset: { width: 0, height: 4 },
       }}
     >
-      {/* pastel wash */}
-      <LinearGradient colors={['#F9D7E0', '#F4E1E6', '#FCEEE1']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={ABS_FILL} />
-      {/* illustrated scene: mountains, balloons, sparkle dots */}
+      {/* realistic misty-mountain photo */}
+      <Image source={{ uri: MOUNTAIN_IMG }} style={ABS_FILL} contentFit="cover" transition={300} cachePolicy="memory-disk" />
+      {/* pastel tint washed over the photo */}
+      <LinearGradient colors={['rgba(250,216,225,0.55)', 'rgba(246,226,231,0.42)', 'rgba(252,238,226,0.60)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={ABS_FILL} />
+      {/* lighten the left behind the medal + text, fading to reveal the mountains on the right */}
+      <LinearGradient colors={['rgba(255,249,251,0.72)', 'rgba(255,249,251,0.26)', 'rgba(255,249,251,0)']} locations={[0, 0.5, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={ABS_FILL} />
+      {/* balloons + sparkle accents (kept clear of the text) */}
       <Svg width="100%" height="100%" viewBox="0 0 350 150" preserveAspectRatio="xMidYMid slice" style={ABS_FILL}>
-        <Path d="M0 118 L55 92 L110 114 L175 84 L245 116 L300 94 L350 116 L350 150 L0 150 Z" fill="#E6B6C4" opacity={0.45} />
-        <Path d="M0 134 L80 112 L150 132 L225 108 L295 130 L350 116 L350 150 L0 150 Z" fill="#ECC3AC" opacity={0.5} />
-        <Balloon cx={302} cy={40} r={17} color="#FF8FA3" opacity={0.9} />
-        <Balloon cx={332} cy={95} r={10} color="#F4A98A" opacity={0.45} />
-        <Circle cx={150} cy={26} r={1.6} fill="#fff" opacity={0.8} />
-        <Circle cx={212} cy={20} r={1.2} fill="#fff" opacity={0.7} />
-        <Circle cx={122} cy={42} r={1.1} fill="#fff" opacity={0.6} />
+        <Balloon cx={320} cy={30} r={12} color="#FF8FA3" opacity={0.9} />
+        <Balloon cx={333} cy={112} r={8} color="#F4A98A" opacity={0.5} />
+        <Circle cx={300} cy={62} r={1.4} fill="#fff" opacity={0.7} />
+        <Circle cx={342} cy={70} r={1.1} fill="#fff" opacity={0.6} />
       </Svg>
       {/* content */}
       <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 }}>
@@ -159,16 +164,15 @@ export function ExplorerLevelCard({
         <View style={{ flex: 1, marginLeft: 10 }}>
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10.5, fontWeight: '800', letterSpacing: 1, color: COLORS.coral }}>EXPLORER LEVEL</Text>
           <Text numberOfLines={1} style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, marginTop: 1 }}>{level.title}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 7 }}>
-            <Chip Icon={Globe2} color={COLORS.aqua} value={`${stats.countriesDiscovered}`} />
-            <Chip Icon={Mountain} color={COLORS.coral} value={`${stats.continentsDiscovered}`} />
-            <Chip Icon={Star} color={COLORS.lavender} value={`${level.xp.toLocaleString()} XP`} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 7 }}>
+            <Chip Icon={Globe2} color={COLORS.aqua} value={`${stats.countriesDiscovered} countries`} />
+            <Chip Icon={Mountain} color={COLORS.coral} value={`${stats.continentsDiscovered} continents`} />
           </View>
           <View style={{ height: 7, borderRadius: 7, backgroundColor: 'rgba(20,33,61,0.08)', overflow: 'hidden', marginTop: 8 }}>
             <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 7, borderRadius: 7, width: `${pct}%` }} />
           </View>
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginTop: 5 }}>
-            {level.maxed ? 'Max level reached' : `Next level · ${(level.nextLevelXp - level.xp).toLocaleString()} XP to go`}
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink2, marginTop: 5 }}>
+            {`${level.xp.toLocaleString()} XP · ${level.maxed ? 'Max level reached' : `${(level.nextLevelXp - level.xp).toLocaleString()} XP to go`}`}
           </Text>
         </View>
         <ChevronRight size={18} color={COLORS.ink3} style={{ marginLeft: 4 }} />
