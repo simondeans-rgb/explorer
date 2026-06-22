@@ -364,7 +364,7 @@ export default function ExploreScreen() {
                 {shownDiscoveries.length === 0 ? (
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink3, paddingHorizontal: 20 }}>No discoveries match those filters yet.</Text>
                 ) : (
-                  <View style={{ marginTop: 4 }}>
+                  <View>
                     <DiscoveryFan discoveries={shownDiscoveries} onPress={(d) => router.push(`/discovery/${d.id}`)} />
                   </View>
                 )}
