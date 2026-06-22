@@ -97,10 +97,19 @@ export default function StoryScreen() {
           .sort((a, b) => a.startDate.localeCompare(b.startDate));
         if (upcoming.length === 0) return null;
 
+        const seasonLabel = (iso?: string) => {
+          if (!iso) return '';
+          const m = Number(iso.slice(5, 7));
+          const season = m <= 2 || m === 12 ? 'Winter' : m <= 5 ? 'Spring' : m <= 8 ? 'Summer' : 'Autumn';
+          return `${season} ${iso.slice(0, 4)}`;
+        };
         const TripCard = ({ t, cardW, height }: { t: (typeof upcoming)[number]; cardW: number; height: number }) => {
           const days = Math.max(0, Math.ceil((Date.parse(t.startDate) - Date.now()) / 86_400_000));
           const numSize = height > 160 ? 58 : 46; // big, readable countdown number
           const shadow = { textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 7 };
+          // Avoid "Iceland · Iceland": if the title is just the country, show the season instead.
+          const country = countryName(t.countryCode);
+          const secondary = t.title.trim().toLowerCase() === country.toLowerCase() ? seasonLabel(t.startDate) || country : country;
           return (
             <Pressable onPress={() => router.push(`/trip/${t.id}`)} style={{ width: cardW }}>
               <DestinationImage code={t.countryCode} scrim style={{ height, borderRadius: 24, padding: 18, justifyContent: 'flex-end' }}>
@@ -118,7 +127,7 @@ export default function StoryScreen() {
                   </View>
                 </View>
                 <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 24, marginTop: 10, ...shadow }}>{t.title}</Text>
-                <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.9, marginTop: 1, ...shadow }}>{countryName(t.countryCode)}</Text>
+                <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.9, marginTop: 1, ...shadow }}>{secondary}</Text>
               </DestinationImage>
             </Pressable>
           );

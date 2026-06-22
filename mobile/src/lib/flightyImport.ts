@@ -103,11 +103,39 @@ function parseFlights(text: string): Flight[] {
 
 const DAY = 86_400_000;
 
+/** The country most often touched by these flights — the hub you keep returning
+ *  to. Used to exclude "home" from trip names when residence isn't configured. */
+function inferHome(flights: Flight[]): string | undefined {
+  const freq = new Map<string, number>();
+  for (const f of flights) {
+    for (const c of [airportInfo(f.from)?.country, airportInfo(f.to)?.country]) {
+      if (c) freq.set(c, (freq.get(c) ?? 0) + 1);
+    }
+  }
+  let best: string | undefined;
+  let bestN = 0;
+  for (const [c, n] of freq) if (n > bestN) { best = c; bestN = n; }
+  return best;
+}
+
+/** Country codes for a set of legs, destinations (non-home) first in encounter
+ *  order, home countries last — so the trip leads with where you actually went. */
+function orderCodes(pairs: [string | undefined, string | undefined][], homeSet: Set<string>): string[] {
+  const ordered: string[] = [];
+  const seen = new Set<string>();
+  for (const [a, b] of pairs) for (const c of [a, b]) if (c && !seen.has(c) && !homeSet.has(c)) { seen.add(c); ordered.push(c); }
+  for (const [a, b] of pairs) for (const c of [a, b]) if (c && !seen.has(c)) { seen.add(c); ordered.push(c); }
+  return ordered;
+}
+
 export function planFromFlights(
   flights: Flight[],
   homeCodes: Set<string> = new Set(),
   home: HomeRange[] = [],
 ): ImportPlan {
+  // Title trips after the destination, excluding home. When residence isn't
+  // configured (homeCodes empty), infer home from the flights themselves.
+  const homeSet = homeCodes.size ? homeCodes : new Set(inferHome(flights) ? [inferHome(flights)!] : []);
   const places = new Map<string, PlaceRow>();
   const addAirport = (iata: string, year?: number) => {
     const info = airportInfo(iata);
@@ -127,13 +155,10 @@ export function planFromFlights(
   let seg: Flight[] = [];
   const flush = () => {
     if (seg.length === 0) return;
-    const codes = new Set<string>();
     const journeys: Journey[] = [];
     for (const f of seg) {
       const fi = airportInfo(f.from);
       const ti = airportInfo(f.to);
-      if (fi) codes.add(fi.country);
-      if (ti) codes.add(ti.country);
       journeys.push({
         id: newId(),
         mode: 'flight',
@@ -145,19 +170,13 @@ export function planFromFlights(
     }
     const start = seg[0].date;
     const end = seg[seg.length - 1].date;
-    // Title the trip after the destination — not the home country you flew from
-    // or back to (so living in London doesn't read as "a trip to the UK").
-    let destCode: string | undefined;
-    for (let k = seg.length - 1; k >= 0; k--) {
-      const ti = airportInfo(seg[k].to);
-      if (ti && !homeCodes.has(ti.country)) {
-        destCode = ti.country;
-        break;
-      }
-    }
-    if (!destCode) destCode = airportInfo(seg[seg.length - 1].to)?.country;
+    // Order countries destination-first (home excluded → home last) so the trip
+    // name and its card image/flags lead with where you actually went — not the
+    // home country you flew from or back to.
+    const codes = orderCodes(seg.map((f) => [airportInfo(f.from)?.country, airportInfo(f.to)?.country]), homeSet);
+    const destCode = codes.find((c) => !homeSet.has(c)) ?? codes[0];
     const title = destCode ? `${countryName(destCode)} · ${start.slice(0, 4)}` : `Trip · ${start.slice(0, 4)}`;
-    expeditions.push({ title, startDate: start, endDate: end, countryCodes: [...codes], journeys, note: 'Imported from Flighty.' });
+    expeditions.push({ title, startDate: start, endDate: end, countryCodes: codes, journeys, note: 'Imported from Flighty.' });
     seg = [];
   };
 
@@ -230,4 +249,29 @@ export function flightsFromExpeditions(expeditions: Expedition[]): {
   }
   flights.sort((a, b) => a.date.localeCompare(b.date));
   return { flights, expeditionIds };
+}
+
+/** Recompute destination-first titles + country order for already-imported
+ *  expeditions (whose names may have been built before home inference). Returns
+ *  only the expeditions whose title or countryCodes actually change. */
+export function repairImportedExpeditions(expeditions: Expedition[]): { id: string; title: string; countryCodes: string[] }[] {
+  const home = inferHome(flightsFromExpeditions(expeditions).flights);
+  const homeSet = new Set(home ? [home] : []);
+  const patches: { id: string; title: string; countryCodes: string[] }[] = [];
+  for (const e of expeditions) {
+    const imported = e.journeys.filter((j) => j.mode === 'flight' && j.id?.startsWith('imp_'));
+    if (imported.length === 0) continue;
+    const codes = orderCodes(
+      imported.map((j) => [airportInfo(iataFromLabel(j.from))?.country, airportInfo(iataFromLabel(j.to))?.country]),
+      homeSet,
+    );
+    if (codes.length === 0) continue;
+    const destCode = codes.find((c) => !homeSet.has(c)) ?? codes[0];
+    const year = (e.startDate || imported[0]?.date || '').slice(0, 4);
+    const title = destCode ? `${countryName(destCode)} · ${year}` : e.title;
+    if (title !== e.title || codes.join(',') !== e.countryCodes.join(',')) {
+      patches.push({ id: e.id, title, countryCodes: codes });
+    }
+  }
+  return patches;
 }
