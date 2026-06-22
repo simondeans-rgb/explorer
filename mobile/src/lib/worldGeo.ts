@@ -1,6 +1,6 @@
 // Native world geometry: the same `world-atlas` topology the web app uses,
 // turned into SVG path strings via d3-geo so react-native-svg can draw it.
-import { feature } from 'topojson-client';
+import { feature, merge } from 'topojson-client';
 import type { Feature, Geometry } from 'geojson';
 import worldRaw from 'world-atlas/countries-110m.json';
 import { COUNTRIES } from '../data/countries';
@@ -57,6 +57,15 @@ export const WORLD_FEATURES: WorldFeature[] = (() => {
     feature: f,
     alpha2: geoAlpha2((f.properties as { name?: string } | null)?.name),
   }));
+})();
+
+/** All land merged into a single geometry — one path per frame, cheap enough
+ *  to re-project every frame while the journey globe spins. */
+export const LAND_GEOMETRY: Geometry = (() => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const obj = (worldTopology as any).objects.countries;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return merge(worldTopology as any, obj.geometries) as Geometry;
 })();
 
 // Map palette. High contrast so discovered countries pop against the rest:

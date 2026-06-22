@@ -4,7 +4,7 @@
 // codes required, and no flight is missed.
 import { AIRPORT_COORDS, CITY_COORDS } from '../data/airportCoords';
 import { ALL_AIRPORTS } from '../data/airports';
-import type { Expedition } from '../types';
+import type { Expedition, Journey } from '../types';
 
 /** Pull an IATA code from a label like "London (LHR)" or a bare "LHR". */
 export function iataOf(label?: string): string | undefined {
@@ -49,26 +49,38 @@ export interface Segment {
   date?: string;
 }
 
+/** Add a placeable flight leg into the dedup map (keeping the earliest date). */
+function addLeg(byKey: Map<string, Segment>, j: Pick<Journey, 'mode' | 'from' | 'to' | 'date'>, fallbackDate?: string): void {
+  if (j.mode !== 'flight') return;
+  const from = resolveEndpoint(j.from);
+  const to = resolveEndpoint(j.to);
+  if (!from || !to) return;
+  if (from[0] === to[0] && from[1] === to[1]) return;
+  const key = [from.join(','), to.join(',')].sort().join('|');
+  const date = j.date || fallbackDate || undefined;
+  const existing = byKey.get(key);
+  if (existing) {
+    if (date && (!existing.date || date < existing.date)) existing.date = date;
+    return;
+  }
+  byKey.set(key, { from, to, date });
+}
+
+const byDateFirstFlown = (a: Segment, b: Segment) => (a.date ?? '9999').localeCompare(b.date ?? '9999');
+
+/** Placeable flight legs for a single journey's legs, deduped + date-ordered. */
+export function journeyLegSegments(journeys: Pick<Journey, 'mode' | 'from' | 'to' | 'date'>[], fallbackDate?: string): Segment[] {
+  const byKey = new Map<string, Segment>();
+  for (const j of journeys) addLeg(byKey, j, fallbackDate);
+  return [...byKey.values()].sort(byDateFirstFlown);
+}
+
 /** Every flight leg whose endpoints we can place, deduplicated and ordered by
  *  the date first flown (so the map can draw routes on in chronological order). */
 export function routeSegments(expeditions: Expedition[]): Segment[] {
   const byKey = new Map<string, Segment>();
   for (const e of expeditions) {
-    for (const j of e.journeys) {
-      if (j.mode !== 'flight') continue;
-      const from = resolveEndpoint(j.from);
-      const to = resolveEndpoint(j.to);
-      if (!from || !to) continue;
-      if (from[0] === to[0] && from[1] === to[1]) continue;
-      const key = [from.join(','), to.join(',')].sort().join('|');
-      const date = j.date || e.startDate || undefined;
-      const existing = byKey.get(key);
-      if (existing) {
-        if (date && (!existing.date || date < existing.date)) existing.date = date;
-        continue;
-      }
-      byKey.set(key, { from, to, date });
-    }
+    for (const j of e.journeys) addLeg(byKey, j, e.startDate);
   }
-  return [...byKey.values()].sort((a, b) => (a.date ?? '9999').localeCompare(b.date ?? '9999'));
+  return [...byKey.values()].sort(byDateFirstFlown);
 }
