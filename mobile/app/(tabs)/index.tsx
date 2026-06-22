@@ -112,12 +112,9 @@ export default function StoryScreen() {
           const secondary = t.title.trim().toLowerCase() === country.toLowerCase() ? seasonLabel(t.startDate) || country : country;
           return (
             <Pressable onPress={() => router.push(`/trip/${t.id}`)} style={{ width: cardW }}>
-              <DestinationImage code={t.countryCode} scrim style={{ height, borderRadius: 24, padding: 18, justifyContent: 'flex-end' }}>
+              <DestinationImage code={t.countryCode} scrim style={{ height, borderRadius: 24, padding: 18, justifyContent: 'space-between' }}>
                 <Text style={{ fontSize: 22, position: 'absolute', top: 14, right: 16 }}>{flagEmoji(t.countryCode)}</Text>
-                <View className="flex-row items-center rounded-full" style={{ position: 'absolute', top: 14, left: 16, backgroundColor: 'rgba(255,255,255,0.22)', paddingLeft: 11, paddingRight: 8, paddingVertical: 5, gap: 3 }}>
-                  <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 10.5, letterSpacing: 1 }}>PLAN ITINERARY</Text>
-                  <ChevronRight size={13} color="#fff" />
-                </View>
+                {/* Top: days-to-go countdown */}
                 <View className="flex-row items-end" style={{ gap: 8 }}>
                   <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: numSize, lineHeight: numSize, ...shadow }}>{days === 0 ? '0' : days}</Text>
                   <View style={{ flex: 1, marginBottom: numSize * 0.16 }}>
@@ -126,8 +123,15 @@ export default function StoryScreen() {
                     </Text>
                   </View>
                 </View>
-                <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 24, marginTop: 10, ...shadow }}>{t.title}</Text>
-                <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.9, marginTop: 1, ...shadow }}>{secondary}</Text>
+                {/* Bottom: destination, season/year, then plan-itinerary affordance */}
+                <View>
+                  <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 24, ...shadow }}>{t.title}</Text>
+                  <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.9, marginTop: 1, ...shadow }}>{secondary}</Text>
+                  <View className="flex-row items-center rounded-full" style={{ alignSelf: 'flex-start', marginTop: 10, backgroundColor: 'rgba(255,255,255,0.22)', paddingLeft: 11, paddingRight: 8, paddingVertical: 5, gap: 3 }}>
+                    <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 10.5, letterSpacing: 1 }}>PLAN ITINERARY</Text>
+                    <ChevronRight size={13} color="#fff" />
+                  </View>
+                </View>
               </DestinationImage>
             </Pressable>
           );
