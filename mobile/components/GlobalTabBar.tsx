@@ -27,8 +27,8 @@ const TABS: TabDef[] = [
   { path: '/', label: 'Story', icon: BookMarked },
   { path: '/atlas', label: 'Atlas', icon: Globe2 },
   { path: '/circle', label: 'Circle', icon: Users },
-  { path: '/explore', label: 'Explore', icon: Compass },
-  { path: '/you', label: 'You', icon: UserRound },
+  { path: '/explore', label: 'Discover', icon: Compass },
+  { path: '/you', label: 'Passport', icon: UserRound },
 ];
 
 // Screens where the bar should step aside (immersive / modal).

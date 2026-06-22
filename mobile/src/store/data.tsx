@@ -45,6 +45,7 @@ import type {
   JourneyMode,
 } from '../types';
 import { countryName } from '../data/countries';
+import { repairImportedExpeditions } from '../lib/flightyImport';
 import {
   SEED_PLACES,
   SEED_DISCOVERIES,
@@ -994,6 +995,35 @@ export function DataProvider({ children }: { children: ReactNode }) {
       },
     };
   }, [data, loaded, cloud, uid]);
+
+  // One-time repair: older Flighty imports were named after the home country.
+  // Recompute destination-first titles + country order once data has loaded.
+  const repairedRef = useRef(false);
+  useEffect(() => {
+    if (!loaded || repairedRef.current || data.expeditions.length === 0) return;
+    repairedRef.current = true;
+    (async () => {
+      try {
+        if ((await AsyncStorage.getItem('worldly.repair.expnames.v1')) === '1') return;
+        const patches = repairImportedExpeditions(data.expeditions);
+        for (const p of patches) {
+          const e = data.expeditions.find((x) => x.id === p.id);
+          if (!e) continue;
+          await api.updateExpedition(e.id, {
+            title: p.title,
+            startDate: e.startDate,
+            endDate: e.endDate,
+            countryCodes: p.countryCodes,
+            journeys: e.journeys,
+            note: e.note,
+          });
+        }
+        await AsyncStorage.setItem('worldly.repair.expnames.v1', '1');
+      } catch {
+        /* best-effort; will retry next launch if it never set the flag */
+      }
+    })();
+  }, [loaded, data.expeditions, api]);
 
   return <DataContext.Provider value={api}>{children}</DataContext.Provider>;
 }
