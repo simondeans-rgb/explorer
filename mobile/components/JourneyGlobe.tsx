@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Compass, ArrowRight } from 'lucide-react-native';
@@ -34,15 +34,38 @@ function onNearSide(p: [number, number], center: [number, number]): boolean {
   return geoDistance(p, center) <= Math.PI / 2 + 1e-3;
 }
 
-/** An auto-rotating 3D globe (orthographic projection) with great-circle journey
- *  arcs that hug the surface and hide as they pass behind the limb. Drag to spin.
- *  Pure JS + SVG — no native module, so it ships over the air. */
-export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSize?: number }) {
+const LAT_LIMIT = 80; // never let the user tilt past the pole
+const ZOOM_MIN = 0.85;
+const ZOOM_MAX = 3;
+const IDLE_MS = 3500; // resume the gentle auto-spin after this much inactivity
+const RESET_MS = 800; // duration of the snap-back-to-north framing on filter change
+
+/** Shortest signed longitude delta in (-180, 180]. */
+function shortLonDelta(from: number, to: number): number {
+  return (((to - from) % 360) + 540) % 360 - 180;
+}
+
+/** An interactive 3D globe (orthographic projection) with great-circle journey
+ *  arcs that hug the surface and hide as they pass behind the limb. Drag to spin
+ *  in any direction, pinch to zoom; it gently auto-spins when idle and snaps back
+ *  to a north-up framing of the region whenever the filter changes. Pure JS + SVG
+ *  — no native module, so it ships over the air. */
+export function JourneyGlobe({
+  segments,
+  maxSize,
+  resetKey,
+  scrollRef,
+}: {
+  segments: Segment[];
+  maxSize?: number;
+  resetKey?: string | number;
+  scrollRef?: RefObject<unknown>;
+}) {
   // Frame on the journey network: centre longitude, zoom to fit its span (close
   // routes zoom in, capped; a worldwide network stays a full globe), and shift
   // vertically so the route sits mid-frame WITHOUT tilting — the Earth's axis
   // stays vertical so the poles stay pinned top and bottom.
-  const { lon0, globeR, translateY, zoomed } = useMemo(() => {
+  const { lon0, globeR, translateY } = useMemo(() => {
     const pts = segments.flatMap((s) => [s.from, s.to]);
     if (!pts.length) return { lon0: -10, globeR: R, translateY: CENTER, zoomed: false };
     const c = geoCentroid({ type: 'MultiPoint', coordinates: pts }) as [number, number];
@@ -69,59 +92,100 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
   }, [segments]);
 
   const [lon, setLon] = useState(lon0);
+  const [lat, setLat] = useState(0); // pitch — 0 keeps north up; user drag tilts it
+  const [zoom, setZoom] = useState(1); // pinch multiplier on the framed radius
   const [anim, setAnim] = useState(0);
   const lonRef = useRef(lon);
   lonRef.current = lon;
+  const latRef = useRef(lat);
+  latRef.current = lat;
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+  const lon0Ref = useRef(lon0);
+  lon0Ref.current = lon0;
   const animStart = useRef(Date.now());
   const dragging = useRef(false);
-  const dragStart = useRef(lon0);
-  // A zoomed single route stays framed (no auto-spin); the worldwide view spins.
-  const spinRef = useRef(!zoomed);
-  spinRef.current = !zoomed;
+  const lastInteract = useRef(0); // when the user last let go (for idle auto-spin)
+  const dragStartLon = useRef(lon0);
+  const dragStartLat = useRef(0);
+  const pinchStartZoom = useRef(1);
+  // Snap-back animation toward (lon0, lat 0, zoom 1) when the network changes.
+  const reset = useRef({ active: false, start: 0, fromLon: lon0, fromLat: 0, fromZoom: 1 });
+
+  const rEff = Math.min(MAX_R, globeR * zoom);
 
   // Longer networks take a little longer to draw on, capped so it never drags.
   const duration = useMemo(() => Math.min(1200 + segments.length * 340, 5200), [segments.length]);
 
-  // Reframe + replay the chronological draw-on whenever the network changes.
+  // Reframe (animated snap to north-up over the region) + replay the draw-on
+  // whenever the network changes — e.g. when a year filter is toggled.
   useEffect(() => {
-    setLon(lon0);
+    reset.current = { active: true, start: Date.now(), fromLon: lonRef.current, fromLat: latRef.current, fromZoom: zoomRef.current };
     setAnim(0);
     animStart.current = Date.now();
-  }, [lon0, globeR]);
+    lastInteract.current = Date.now();
+  }, [lon0, globeR, resetKey]);
 
-  // One loop drives both the gentle auto-spin (longitude only) and the intro.
+  // One loop drives the intro draw-on, the snap-back, and the idle auto-spin.
   useEffect(() => {
     const t = setInterval(() => {
-      const p = Math.min(1, (Date.now() - animStart.current) / duration);
+      const now = Date.now();
+      const p = Math.min(1, (now - animStart.current) / duration);
       setAnim(p < 1 ? p * p * (3 - 2 * p) : 1); // smoothstep ease
-      if (!dragging.current && spinRef.current) setLon((l) => (l + 0.3) % 360);
+      if (reset.current.active) {
+        const k = Math.min(1, (now - reset.current.start) / RESET_MS);
+        const e = 1 - Math.pow(1 - k, 3); // ease-out cubic
+        const r = reset.current;
+        setLon(r.fromLon + shortLonDelta(r.fromLon, lon0Ref.current) * e);
+        setLat(r.fromLat * (1 - e));
+        setZoom(r.fromZoom + (1 - r.fromZoom) * e);
+        if (k >= 1) reset.current.active = false;
+      } else if (!dragging.current && now - lastInteract.current > IDLE_MS) {
+        setLon((l) => (l + 0.3) % 360); // gentle idle spin around the current tilt
+      }
     }, 1000 / 30);
     return () => clearInterval(t);
   }, [duration]);
 
-  function beginDrag() {
+  function beginGesture() {
     dragging.current = true;
-    dragStart.current = lonRef.current;
+    reset.current.active = false;
+    dragStartLon.current = lonRef.current;
+    dragStartLat.current = latRef.current;
+    pinchStartZoom.current = zoomRef.current;
   }
-  function applyDrag(dx: number) {
-    setLon(dragStart.current + dx * 0.35); // horizontal only — keeps the axis vertical
+  function applyPan(dx: number, dy: number) {
+    setLon(dragStartLon.current + dx * 0.35); // left/right spins
+    setLat(Math.max(-LAT_LIMIT, Math.min(LAT_LIMIT, dragStartLat.current + dy * 0.3))); // up/down tilts
   }
-  function endDrag() {
+  function applyPinch(s: number) {
+    setZoom(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, pinchStartZoom.current * s)));
+  }
+  function endGesture() {
     dragging.current = false;
+    lastInteract.current = Date.now();
   }
-  const pan = useMemo(
-    () =>
-      Gesture.Pan()
-        .onBegin(() => runOnJS(beginDrag)())
-        .onUpdate((e) => runOnJS(applyDrag)(e.translationX))
-        .onFinalize(() => runOnJS(endDrag)()),
-    [],
-  );
+  const gesture = useMemo(() => {
+    let pan = Gesture.Pan()
+      .onBegin(() => runOnJS(beginGesture)())
+      .onUpdate((e) => runOnJS(applyPan)(e.translationX, e.translationY))
+      .onFinalize(() => runOnJS(endGesture)());
+    let pinch = Gesture.Pinch()
+      .onBegin(() => runOnJS(beginGesture)())
+      .onUpdate((e) => runOnJS(applyPinch)(e.scale))
+      .onFinalize(() => runOnJS(endGesture)());
+    // Let vertical drags rotate the globe instead of scrolling the page behind it.
+    if (scrollRef) {
+      pan = pan.blocksExternalGesture(scrollRef as never);
+      pinch = pinch.blocksExternalGesture(scrollRef as never);
+    }
+    return Gesture.Simultaneous(pan, pinch);
+  }, [scrollRef]);
 
   const { landPath, borderPath, gratPath, arcs, dots } = useMemo(() => {
-    const projection = geoOrthographic().translate([CENTER, translateY]).scale(globeR).rotate([lon, 0, 0]).clipAngle(90);
+    const projection = geoOrthographic().translate([CENTER, translateY]).scale(rEff).rotate([lon, lat, 0]).clipAngle(90);
     const path = geoPath(projection);
-    const center: [number, number] = [-lon, 0];
+    const center: [number, number] = [-lon, -lat];
 
     const n = segments.length;
     const arcs: string[] = [];
@@ -161,14 +225,14 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
     });
 
     return { landPath: path(LAND_GEOMETRY) ?? '', borderPath: path(BORDERS_GEOMETRY) ?? '', gratPath: path(GRATICULE) ?? '', arcs, dots };
-  }, [lon, segments, anim, globeR, translateY]);
+  }, [lon, lat, rEff, segments, anim, translateY]);
 
   const [w, setW] = useState(0);
   const size = w > 0 ? Math.min(w, maxSize ?? w) : maxSize ?? VIEW;
 
   return (
     <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ backgroundColor: OCEAN_DEEP, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <GestureDetector gesture={pan}>
+      <GestureDetector gesture={gesture}>
         <Svg width={size} height={size} viewBox={`0 0 ${VIEW} ${VIEW}`}>
           <Defs>
             <RadialGradient id="globe-ocean" cx="42%" cy="36%" r="72%">
@@ -185,9 +249,9 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
             </RadialGradient>
           </Defs>
           {/* atmospheric halo */}
-          <Circle cx={CENTER} cy={translateY} r={globeR + 7} fill="url(#globe-atmo)" />
+          <Circle cx={CENTER} cy={translateY} r={rEff + 7} fill="url(#globe-atmo)" />
           {/* ocean sphere */}
-          <Circle cx={CENTER} cy={translateY} r={globeR} fill="url(#globe-ocean)" />
+          <Circle cx={CENTER} cy={translateY} r={rEff} fill="url(#globe-ocean)" />
           {/* graticule + land + country outlines (clipped to the near hemisphere) */}
           {gratPath ? <Path d={gratPath} fill="none" stroke={GRAT} strokeWidth={0.5} /> : null}
           {landPath ? <Path d={landPath} fill={LAND} stroke={LAND_STROKE} strokeWidth={0.5} /> : null}
@@ -200,7 +264,7 @@ export function JourneyGlobe({ segments, maxSize }: { segments: Segment[]; maxSi
             <Circle key={`d-${i}`} cx={p[0]} cy={p[1]} r={2} fill={ROUTE} stroke={ROUTE_EDGE} strokeWidth={0.7} />
           ))}
           {/* spherical shading for depth */}
-          <Circle cx={CENTER} cy={translateY} r={globeR} fill="url(#globe-shade)" />
+          <Circle cx={CENTER} cy={translateY} r={rEff} fill="url(#globe-shade)" />
         </Svg>
       </GestureDetector>
 

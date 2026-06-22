@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { Camera, ChevronRight, Users, UserPlus, MapPin } from 'lucide-react-native';
+import { Camera, ChevronRight, UserPlus, MapPin } from 'lucide-react-native';
 import { WorldlyLogo } from '../../components/WorldlyLogo';
 import { Squiggle } from '../../components/Squiggle';
 import { DestinationImage } from '../../components/DestinationImage';
@@ -21,6 +21,10 @@ import { HERO_CODES } from '../../src/lib/heroImages';
 import { useData } from '../../src/store/data';
 import { useAuth } from '../../src/store/auth';
 import { useFriends } from '../../src/hooks/useFriends';
+
+// License-free Pexels stock imagery (no attribution required) for the split CTA tiles.
+const MEMORIES_IMG = 'https://images.pexels.com/photos/2874998/pexels-photo-2874998.jpeg?auto=compress&cs=tinysrgb&w=800';
+const CIRCLE_IMG = 'https://images.pexels.com/photos/7625042/pexels-photo-7625042.jpeg?auto=compress&cs=tinysrgb&w=800';
 
 export default function StoryScreen() {
   const { aggregates, stats, level } = useWorldly();
@@ -114,8 +118,8 @@ export default function StoryScreen() {
             <Pressable onPress={() => router.push(`/trip/${t.id}`)} style={{ width: cardW }}>
               <DestinationImage code={t.countryCode} scrim style={{ height, borderRadius: 24, padding: 18, justifyContent: 'space-between' }}>
                 <Text style={{ fontSize: 22, position: 'absolute', top: 14, right: 16 }}>{flagEmoji(t.countryCode)}</Text>
-                {/* Top: days-to-go countdown */}
-                <View className="flex-row items-end" style={{ gap: 8 }}>
+                {/* Top: days-to-go countdown (paddingRight clears the flag) */}
+                <View className="flex-row items-end" style={{ gap: 8, paddingRight: 36 }}>
                   <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: numSize, lineHeight: numSize, ...shadow }}>{days === 0 ? '0' : days}</Text>
                   <View style={{ flex: 1, marginBottom: numSize * 0.16 }}>
                     <Text numberOfLines={2} className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 12, letterSpacing: 1.5, lineHeight: 14, opacity: 0.92, ...shadow }}>
@@ -156,6 +160,100 @@ export default function StoryScreen() {
           </View>
         );
       })()}
+
+      {/* Memories */}
+      <View style={{ marginTop: 24 }}>
+        <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 20 }}>
+          <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Memories</Text>
+          <Pressable onPress={() => setPhotoOpen(true)} hitSlop={8} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 12, paddingVertical: 7, gap: 5 }}>
+            <Camera size={14} color={COLORS.coral} />
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>Add</Text>
+          </Pressable>
+        </View>
+        {captures.length > 0 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
+            {captures.map((c) => (
+              <Pressable key={c.id} onLongPress={() => confirmRemoveCapture(c.id)} style={{ width: 168 }}>
+                <View style={{ borderRadius: 22, overflow: 'hidden' }}>
+                  <Image source={{ uri: c.dataUrl }} style={{ width: 168, height: 210 }} contentFit="cover" transition={200} />
+                  <LinearGradient colors={['transparent', 'rgba(0,0,0,0.55)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 90, justifyContent: 'flex-end', padding: 12 }}>
+                    {c.caption ? (
+                      <Text numberOfLines={2} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '600' }}>{c.caption}</Text>
+                    ) : null}
+                    {c.countryCode ? (
+                      <Text style={{ fontSize: 14, marginTop: 2 }}>{flagEmoji(c.countryCode)} <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, opacity: 0.9 }}>{c.city ?? countryName(c.countryCode)}</Text></Text>
+                    ) : null}
+                  </LinearGradient>
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : (
+          <Pressable onPress={() => setPhotoOpen(true)} className="bg-white rounded-3xl flex-row" style={{ marginHorizontal: 20, marginTop: 12, overflow: 'hidden', minHeight: 140 }}>
+            <View style={{ width: '42%' }}>
+              <Image source={{ uri: MEMORIES_IMG }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={300} cachePolicy="memory-disk" />
+            </View>
+            <View style={{ flex: 1, padding: 16, justifyContent: 'center' }}>
+              <Text style={{ fontFamily: 'Fraunces', fontSize: 19, color: COLORS.navy }}>Keep your memories</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 3, lineHeight: 17 }}>Save the moments from your travels and relive them anytime.</Text>
+              <View className="rounded-full flex-row items-center" style={{ alignSelf: 'flex-start', marginTop: 12, backgroundColor: COLORS.coral, paddingHorizontal: 14, paddingVertical: 8, gap: 5 }}>
+                <Camera size={14} color="#fff" />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: '#fff' }}>Add photo</Text>
+              </View>
+            </View>
+          </Pressable>
+        )}
+      </View>
+
+      {/* From your circle */}
+      {storyItems.length > 0 ? (
+        <View style={{ marginTop: 24, paddingHorizontal: 20 }}>
+          <View className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>From your circle</Text>
+            <Pressable onPress={() => router.push('/circle')} hitSlop={8}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.coral }}>See all</Text>
+            </Pressable>
+          </View>
+          <View style={{ gap: 10 }}>
+            {storyItems.map((item) => {
+              const place = [item.city, item.countryCode ? countryName(item.countryCode) : null].filter(Boolean).join(', ');
+              return (
+                <Pressable key={item.key} onPress={() => openCircleItem(item)} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 12, gap: 12 }}>
+                  <View style={{ height: 60, width: 60, borderRadius: 14, overflow: 'hidden' }}>
+                    <DestinationImage code={item.countryCode ?? 'WW'} style={{ height: 60, width: 60 }} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View className="flex-row items-center" style={{ gap: 4 }}>
+                      <MapPin size={13} color={COLORS.coral} />
+                      <Text numberOfLines={1} style={{ flex: 1, fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>{item.name}</Text>
+                    </View>
+                    <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{item.byline}{place ? ` · ${place}` : ''}</Text>
+                    {item.note ? <Text numberOfLines={2} style={{ fontFamily: 'Fraunces', fontSize: 13, fontStyle: 'italic', color: COLORS.ink2, marginTop: 4, lineHeight: 18 }}>“{item.note}”</Text> : null}
+                  </View>
+                  <ChevronRight size={18} color={COLORS.ink3} />
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : (
+        <View style={{ marginTop: 24, paddingHorizontal: 20 }}>
+          <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, marginBottom: 12 }}>Your circle</Text>
+          <Pressable onPress={() => router.push('/circle')} className="bg-white rounded-3xl flex-row" style={{ overflow: 'hidden', minHeight: 150 }}>
+            <View style={{ width: '42%' }}>
+              <Image source={{ uri: CIRCLE_IMG }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={300} cachePolicy="memory-disk" />
+            </View>
+            <View style={{ flex: 1, padding: 16, justifyContent: 'center' }}>
+              <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy }}>Travel better together</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 3, lineHeight: 17 }}>Connect with friends to see where they've been and swap recommendations.</Text>
+              <View className="rounded-full flex-row items-center" style={{ alignSelf: 'flex-start', marginTop: 12, backgroundColor: COLORS.coral, paddingHorizontal: 14, paddingVertical: 8, gap: 5 }}>
+                <UserPlus size={14} color="#fff" />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: '#fff' }}>Connect</Text>
+              </View>
+            </View>
+          </Pressable>
+        </View>
+      )}
 
       {/* Milestone → achievements */}
       <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
@@ -217,91 +315,6 @@ export default function StoryScreen() {
           </ScrollView>
         )}
       </View>
-
-      {/* Memories */}
-      <View style={{ marginTop: 24 }}>
-        <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 20 }}>
-          <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Memories</Text>
-          <Pressable onPress={() => setPhotoOpen(true)} hitSlop={8} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 12, paddingVertical: 7, gap: 5 }}>
-            <Camera size={14} color={COLORS.coral} />
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>Add</Text>
-          </Pressable>
-        </View>
-        {captures.length > 0 ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
-            {captures.map((c) => (
-              <Pressable key={c.id} onLongPress={() => confirmRemoveCapture(c.id)} style={{ width: 168 }}>
-                <View style={{ borderRadius: 22, overflow: 'hidden' }}>
-                  <Image source={{ uri: c.dataUrl }} style={{ width: 168, height: 210 }} contentFit="cover" transition={200} />
-                  <LinearGradient colors={['transparent', 'rgba(0,0,0,0.55)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 90, justifyContent: 'flex-end', padding: 12 }}>
-                    {c.caption ? (
-                      <Text numberOfLines={2} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '600' }}>{c.caption}</Text>
-                    ) : null}
-                    {c.countryCode ? (
-                      <Text style={{ fontSize: 14, marginTop: 2 }}>{flagEmoji(c.countryCode)} <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, opacity: 0.9 }}>{c.city ?? countryName(c.countryCode)}</Text></Text>
-                    ) : null}
-                  </LinearGradient>
-                </View>
-              </Pressable>
-            ))}
-          </ScrollView>
-        ) : (
-          <Pressable onPress={() => setPhotoOpen(true)} className="items-center justify-center bg-white rounded-3xl" style={{ marginHorizontal: 20, marginTop: 12, paddingVertical: 30, gap: 8 }}>
-            <Camera size={26} color={COLORS.coral} />
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3 }}>Add your first photo</Text>
-          </Pressable>
-        )}
-      </View>
-
-      {/* From your circle */}
-      {storyItems.length > 0 ? (
-        <View style={{ marginTop: 24, paddingHorizontal: 20 }}>
-          <View className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
-            <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>From your circle</Text>
-            <Pressable onPress={() => router.push('/circle')} hitSlop={8}>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.coral }}>See all</Text>
-            </Pressable>
-          </View>
-          <View style={{ gap: 10 }}>
-            {storyItems.map((item) => {
-              const place = [item.city, item.countryCode ? countryName(item.countryCode) : null].filter(Boolean).join(', ');
-              return (
-                <Pressable key={item.key} onPress={() => openCircleItem(item)} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 12, gap: 12 }}>
-                  <View style={{ height: 60, width: 60, borderRadius: 14, overflow: 'hidden' }}>
-                    <DestinationImage code={item.countryCode ?? 'WW'} style={{ height: 60, width: 60 }} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <View className="flex-row items-center" style={{ gap: 4 }}>
-                      <MapPin size={13} color={COLORS.coral} />
-                      <Text numberOfLines={1} style={{ flex: 1, fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>{item.name}</Text>
-                    </View>
-                    <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{item.byline}{place ? ` · ${place}` : ''}</Text>
-                    {item.note ? <Text numberOfLines={2} style={{ fontFamily: 'Fraunces', fontSize: 13, fontStyle: 'italic', color: COLORS.ink2, marginTop: 4, lineHeight: 18 }}>“{item.note}”</Text> : null}
-                  </View>
-                  <ChevronRight size={18} color={COLORS.ink3} />
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      ) : (
-        <View style={{ marginTop: 24, paddingHorizontal: 20 }}>
-          <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, marginBottom: 12 }}>Your circle</Text>
-          <Pressable onPress={() => router.push('/circle')} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 16, gap: 14 }}>
-            <View className="rounded-2xl items-center justify-center" style={{ height: 46, width: 46, backgroundColor: 'rgba(155,124,255,0.14)' }}>
-              <Users size={22} color={COLORS.lavender} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy }}>Travel better together</Text>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 1, lineHeight: 17 }}>Connect with friends to see where they've been and swap recommendations.</Text>
-            </View>
-            <View className="rounded-full flex-row items-center" style={{ backgroundColor: COLORS.coral, paddingHorizontal: 14, paddingVertical: 8, gap: 5 }}>
-              <UserPlus size={14} color="#fff" />
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: '#fff' }}>Connect</Text>
-            </View>
-          </Pressable>
-        </View>
-      )}
 
     </ScrollView>
 
