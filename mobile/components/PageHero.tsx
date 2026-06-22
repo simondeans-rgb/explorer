@@ -20,7 +20,7 @@ export function PageHero({
   onBack,
   dark = false,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   subtitle?: string;
   gradient: import('../src/lib/theme').Gradient;
@@ -45,9 +45,11 @@ export function PageHero({
           <ChevronLeft size={20} color="#fff" />
         </Pressable>
       )}
-      <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 2.5, opacity: 0.9 }}>
-        {eyebrow.toUpperCase()}
-      </Text>
+      {eyebrow ? (
+        <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 2.5, opacity: 0.9 }}>
+          {eyebrow.toUpperCase()}
+        </Text>
+      ) : null}
       <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 36, marginTop: 4 }}>
         {title}
       </Text>
