@@ -29,6 +29,18 @@ const VERDICT_STYLE: Partial<Record<RecommendationVerdict, { label: string; colo
 
 const matchColor = (m: number) => (m >= 70 ? '#12A594' : m >= 45 ? '#C2871A' : COLORS.ink3);
 
+/** Friendly relative label for an upcoming trip start date (ISO). */
+function whenLabel(iso?: string): string {
+  if (!iso) return 'soon';
+  const days = Math.round((new Date(`${iso}T00:00:00`).getTime() - Date.now()) / 86_400_000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  if (days <= 7) return 'this week';
+  if (days <= 14) return 'next week';
+  if (days <= 31) return `in ${days} days`;
+  return `in ${new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { month: 'long' })}`;
+}
+
 function Avatar({ name, size = 44 }: { name: string; size?: number }) {
   return (
     <View className="rounded-full items-center justify-center" style={{ height: size, width: size, backgroundColor: 'rgba(155,124,255,0.16)' }}>
@@ -155,7 +167,27 @@ export default function CircleScreen() {
     return out.slice(0, 5);
   }, [wishes, myWishCodes]);
 
-  const hasContent = recs.length > 0 || !!mostVisited || recents.length > 0 || wishes.length > 0 || compat.length > 0;
+  // Friends currently travelling, or with a trip in the next ~2 months.
+  const activity = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const horizon = new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10);
+    const items: { uid: string; name: string; kind: 'now' | 'soon'; countryCode: string; place: string; start?: string }[] = [];
+    for (const f of friends) {
+      const trips = friendsData.expeditions.filter((e) => e.userId === f.uid && e.countryCodes.length > 0);
+      const now = trips.find((e) => e.startDate && e.startDate <= today && (e.endDate ?? e.startDate) >= today);
+      if (now) {
+        items.push({ uid: f.uid, name: f.name, kind: 'now', countryCode: now.countryCodes[0], place: countryName(now.countryCodes[0]) });
+        continue;
+      }
+      const up = trips
+        .filter((e) => e.startDate && e.startDate > today && e.startDate <= horizon)
+        .sort((a, b) => a.startDate!.localeCompare(b.startDate!))[0];
+      if (up) items.push({ uid: f.uid, name: f.name, kind: 'soon', countryCode: up.countryCodes[0], place: countryName(up.countryCodes[0]), start: up.startDate });
+    }
+    return items.sort((a, b) => (a.kind === b.kind ? (a.start ?? '').localeCompare(b.start ?? '') : a.kind === 'now' ? -1 : 1));
+  }, [friends, friendsData.expeditions]);
+
+  const hasContent = activity.length > 0 || recs.length > 0 || !!mostVisited || recents.length > 0 || wishes.length > 0 || compat.length > 0;
   const savedMostVisited = mostVisited ? myPlaces.some((p) => p.kind === 'country' && p.countryCode === mostVisited.countryCode) : false;
 
   function addToWishlist(code: string, name: string) {
@@ -223,6 +255,34 @@ export default function CircleScreen() {
               </Text>
             </LinearGradient>
           </View>
+
+          {/* On the move — friends travelling now or soon */}
+          {activity.length > 0 ? (
+            <>
+              <SectionTitle hint="Catch them while they're travelling">On the move</SectionTitle>
+              <View style={{ gap: 10 }}>
+                {activity.map((a) => (
+                  <Pressable key={a.uid} onPress={() => router.push(`/country/${a.countryCode}`)} className="rounded-3xl" style={{ overflow: 'hidden', ...SHADOW.card }}>
+                    <LinearGradient colors={a.kind === 'now' ? GRADIENTS.story : GRADIENTS.saved} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View>
+                        <Avatar name={a.name} size={44} />
+                        {a.kind === 'now' ? <View style={{ position: 'absolute', bottom: -1, right: -1, height: 14, width: 14, borderRadius: 7, backgroundColor: '#34C77B', borderWidth: 2, borderColor: '#fff' }} /> : null}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text numberOfLines={2} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 16, lineHeight: 21 }}>
+                          {a.kind === 'now' ? `${a.name} is in ${a.place} right now` : `${a.name} is off to ${a.place} ${whenLabel(a.start)}`}
+                        </Text>
+                        <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, opacity: 0.95, marginTop: 1 }}>
+                          {a.kind === 'now' ? 'Watch for their recommendations' : 'Send them a tip before they go'}
+                        </Text>
+                      </View>
+                      <Text style={{ fontSize: 22 }}>{flagEmoji(a.countryCode)}</Text>
+                    </LinearGradient>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          ) : null}
 
           {/* Circle leaderboard */}
           <SectionTitle hint="Your circle, ranked by Explorer XP">Circle leaderboard</SectionTitle>
