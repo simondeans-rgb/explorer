@@ -1,9 +1,10 @@
 import { memo, useEffect } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, { useSharedValue, useAnimatedStyle, withDelay, withTiming, Easing } from 'react-native-reanimated';
 import { Globe2, Building2, Plane, Share2 } from 'lucide-react-native';
 import type { ComponentType } from 'react';
+import { Button } from './Button';
 import { COLORS, SHADOW } from '../src/lib/theme';
 import { CONTINENTS, type Continent } from '../src/types';
 import type { PassportStats } from '../src/lib/stats';
@@ -142,10 +143,7 @@ export const AtlasSummary = memo(function AtlasSummary({
       </View>
 
       {/* share — primary acquisition moment, so make it unmistakably tappable */}
-      <Pressable onPress={onShare} disabled={sharing} className="flex-row items-center justify-center rounded-full" style={{ alignSelf: 'stretch', marginTop: 20, paddingVertical: 14, gap: 8, backgroundColor: COLORS.coral, opacity: sharing ? 0.7 : 1, shadowColor: COLORS.coral, shadowOpacity: 0.33, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } }}>
-        <Share2 size={16} color="#fff" />
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14.5, fontWeight: '700', color: '#fff' }}>{sharing ? 'Preparing…' : 'Share my world'}</Text>
-      </Pressable>
+      <Button label={sharing ? 'Preparing…' : 'Share my world'} icon={Share2} variant="gradient" loading={sharing} onPress={onShare} style={{ marginTop: 20 }} />
     </View>
   );
 });
