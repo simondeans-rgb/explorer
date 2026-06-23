@@ -135,6 +135,26 @@ export default function CircleScreen() {
   );
 
   const hasCircle = friends.length > 0;
+  // Wishlist overlaps: places you BOTH want to visit → "plan a trip together".
+  const myWishCodes = useMemo(
+    () => new Set(myPlaces.filter((p) => p.relationships.includes('aspiring') && p.relationships.every((r) => r === 'aspiring')).map((p) => p.countryCode)),
+    [myPlaces],
+  );
+  const wishMatches = useMemo(() => {
+    const out: { uid: string; friend: string; place: string; countryCode: string }[] = [];
+    const seen = new Set<string>();
+    for (const w of wishes) {
+      for (const p of w.places) {
+        if (!myWishCodes.has(p.countryCode)) continue;
+        const key = `${w.uid}:${p.name}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({ uid: w.uid, friend: w.name, place: p.name, countryCode: p.countryCode });
+      }
+    }
+    return out.slice(0, 5);
+  }, [wishes, myWishCodes]);
+
   const hasContent = recs.length > 0 || !!mostVisited || recents.length > 0 || wishes.length > 0 || compat.length > 0;
   const savedMostVisited = mostVisited ? myPlaces.some((p) => p.kind === 'country' && p.countryCode === mostVisited.countryCode) : false;
 
@@ -222,6 +242,27 @@ export default function CircleScreen() {
               </View>
             ))}
           </View>
+
+          {/* Shared wishlists → plan a trip together */}
+          {wishMatches.length > 0 ? (
+            <>
+              <SectionTitle hint="A wishlist you share — why not go together?">Plan a trip together</SectionTitle>
+              <View style={{ gap: 10 }}>
+                {wishMatches.map((m) => (
+                  <Pressable key={`${m.uid}-${m.countryCode}-${m.place}`} onPress={() => router.push(`/country/${m.countryCode}`)} className="rounded-3xl" style={{ overflow: 'hidden', ...SHADOW.card }}>
+                    <LinearGradient colors={GRADIENTS.sunrise} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <Text style={{ fontSize: 26 }}>{flagEmoji(m.countryCode)}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 17 }}>You both want {m.place}</Text>
+                        <Text numberOfLines={2} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, opacity: 0.95, marginTop: 1 }}>{m.friend} has it on their wishlist too — why not plan a trip together?</Text>
+                      </View>
+                      <ArrowRight size={18} color="#fff" />
+                    </LinearGradient>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          ) : null}
 
           {!hasContent ? (
             <View className="bg-white rounded-3xl" style={{ padding: 18, marginTop: 18 }}>
