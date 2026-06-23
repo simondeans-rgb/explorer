@@ -205,7 +205,17 @@ export default function CountryScreen() {
         .sort((a, b) => (VERDICT_ORDER[a.verdict ?? '_none'] ?? 3) - (VERDICT_ORDER[b.verdict ?? '_none'] ?? 3)),
     [discoveries, code],
   );
-  const myJourneys = useMemo(() => expeditions.filter((e) => e.countryCodes.includes(code)), [expeditions, code]);
+  const myJourneys = useMemo(() => {
+    const list = expeditions.filter((e) => e.countryCodes.includes(code));
+    // Home-country cards shouldn't list trips that merely start/return home —
+    // those belong to where you actually went. Keep only trips that are wholly
+    // within your home country/countries (genuinely about this place).
+    const homeCodes = new Set(
+      aggregates.filter((a) => a.relationships.includes('lived') || a.relationships.includes('based')).map((a) => a.code),
+    );
+    if (!homeCodes.has(code)) return list;
+    return list.filter((e) => e.countryCodes.every((c) => homeCodes.has(c)));
+  }, [expeditions, code, aggregates]);
   const myPhotos = useMemo(() => captures.filter((c) => c.countryCode === code), [captures, code]);
 
   const name = countryName(code) || code;

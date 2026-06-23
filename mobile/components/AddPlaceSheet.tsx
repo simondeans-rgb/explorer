@@ -9,6 +9,7 @@ import { COUNTRIES, countryName } from '../src/data/countries';
 import { RELATIONSHIPS, RELATIONSHIP_META, type Relationship } from '../src/types';
 import { useData } from '../src/store/data';
 import { useToast } from '../src/store/toast';
+import { useConfirm } from '../src/store/confirm';
 
 const REL_OPTIONS = RELATIONSHIPS.filter((r) => r !== 'aspiring');
 const thisYear = new Date().getFullYear();
@@ -30,8 +31,9 @@ function isoFrom(year: number | null, month: number | null, day: number | null):
 }
 
 export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { addPlace } = useData();
+  const { addPlace, places, expeditions, recalculateJourneys } = useData();
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [kind, setKind] = useState<Kind>('country');
   const [query, setQuery] = useState('');
   const [code, setCode] = useState('');
@@ -95,7 +97,29 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
       residencePeriods,
     });
     toast.success(kind === 'city' ? 'City added' : 'Country added');
+    const wasResidence = isResidence;
+    const newCode = code;
     close();
+    // Adding somewhere you've lived can change which trips are "from home", so
+    // offer to re-resolve imported journeys against the new home set.
+    if (wasResidence && expeditions.some((e) => e.journeys.some((j) => j.id?.startsWith('imp_')))) {
+      confirm({
+        title: 'Recalculate journeys?',
+        message: 'You added a place you’ve lived. Re-resolve your imported trips so they lead with the destination rather than home?',
+        confirmLabel: 'Recalculate',
+      }).then((yes) => {
+        if (!yes) return;
+        const homeCodes = [
+          ...new Set([
+            newCode,
+            ...places.filter((p) => p.relationships.includes('lived') || p.relationships.includes('based')).map((p) => p.countryCode),
+          ]),
+        ];
+        recalculateJourneys(expeditions, homeCodes).then((n) => {
+          if (n > 0) toast.success(`Updated ${n} ${n === 1 ? 'journey' : 'journeys'}`);
+        });
+      });
+    }
   }
   function toggleRel(r: Relationship) {
     setRels((prev) => {

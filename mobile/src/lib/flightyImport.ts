@@ -254,9 +254,12 @@ export function flightsFromExpeditions(expeditions: Expedition[]): {
 /** Recompute destination-first titles + country order for already-imported
  *  expeditions (whose names may have been built before home inference). Returns
  *  only the expeditions whose title or countryCodes actually change. */
-export function repairImportedExpeditions(expeditions: Expedition[]): { id: string; title: string; countryCodes: string[] }[] {
-  const home = inferHome(flightsFromExpeditions(expeditions).flights);
-  const homeSet = new Set(home ? [home] : []);
+export function repairImportedExpeditions(expeditions: Expedition[], homeCodesOverride?: Iterable<string>): { id: string; title: string; countryCodes: string[] }[] {
+  const homeSet = new Set<string>(homeCodesOverride ?? []);
+  if (homeSet.size === 0) {
+    const home = inferHome(flightsFromExpeditions(expeditions).flights);
+    if (home) homeSet.add(home);
+  }
   const patches: { id: string; title: string; countryCodes: string[] }[] = [];
   for (const e of expeditions) {
     const imported = e.journeys.filter((j) => j.mode === 'flight' && j.id?.startsWith('imp_'));
