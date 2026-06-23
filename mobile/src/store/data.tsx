@@ -80,6 +80,10 @@ interface DataApi extends DataShape {
     residencePeriods?: ResidencePeriod[];
   }) => void;
   removePlace: (id: string) => void;
+  updatePlace: (
+    id: string,
+    patch: { name?: string; firstYear?: number | null; firstDate?: string | null; note?: string },
+  ) => Promise<void>;
   addDiscovery: (input: {
     name: string;
     category: DiscoveryCategory;
@@ -190,6 +194,7 @@ const DataContext = createContext<DataApi>({
   cloud: false,
   addPlace: noop,
   removePlace: noop,
+  updatePlace: async () => {},
   addDiscovery: async () => {},
   updateDiscovery: async () => {},
   removeDiscovery: noop,
@@ -522,6 +527,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       },
       removePlace: (id) => remove('places', id),
+      updatePlace: async (id, patch) => {
+        if (cloud && fdb && uid) {
+          await updateDoc(doc(fdb, 'places', id), {
+            ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
+            ...(patch.firstYear !== undefined ? { firstYear: patch.firstYear ?? null } : {}),
+            ...(patch.firstDate !== undefined ? { firstDate: patch.firstDate ?? null } : {}),
+            ...(patch.note !== undefined ? { note: patch.note.trim() || null } : {}),
+            updatedAt: serverTimestamp(),
+          });
+        } else {
+          const cur = localRef.current;
+          persistLocal({
+            ...cur,
+            places: cur.places.map((p) =>
+              p.id === id
+                ? {
+                    ...p,
+                    ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
+                    ...(patch.firstYear !== undefined ? { firstYear: patch.firstYear ?? undefined } : {}),
+                    ...(patch.firstDate !== undefined ? { firstDate: patch.firstDate ?? undefined } : {}),
+                    ...(patch.note !== undefined ? { note: patch.note.trim() || undefined } : {}),
+                    updatedAt: Date.now(),
+                  }
+                : p,
+            ),
+          });
+        }
+      },
       addDiscovery: async (input) => {
         if (cloud && fdb && uid) {
           let photoUrl: string | null = null;
