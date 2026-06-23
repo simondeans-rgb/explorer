@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Linking, Switch, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, Linking, Switch } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Image } from 'expo-image';
@@ -14,6 +14,7 @@ import { HERO_CODES } from '../../src/lib/heroImages';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { useWorldly } from '../../src/hooks/useWorldly';
+import { useConfirm } from '../../src/store/confirm';
 import { useAuth } from '../../src/store/auth';
 import { useData } from '../../src/store/data';
 import { useToast } from '../../src/store/toast';
@@ -49,6 +50,7 @@ export default function YouScreen() {
   }, [aggregates]);
   const almanacCodes = ['PE', 'EG', 'GR', 'IT'];
   const { configured, user, signOutUser } = useAuth();
+  const confirm = useConfirm();
   const { places, discoveries, expeditions, captures, trips } = useData();
   const { toast } = useToast();
   const { replay } = useOnboarding();
@@ -298,12 +300,9 @@ export default function YouScreen() {
               <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{user.email}</Text>
             </View>
             <Pressable
-              onPress={() =>
-                Alert.alert('Sign out?', 'Your world stays safely synced — sign back in anytime to pick up where you left off.', [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Sign out', style: 'destructive', onPress: () => signOutUser() },
-                ])
-              }
+              onPress={async () => {
+                if (await confirm({ title: 'Sign out?', message: 'Your world stays safely synced — sign back in anytime to pick up where you left off.', confirmLabel: 'Sign out', destructive: true })) signOutUser();
+              }}
               hitSlop={8}
               className="rounded-full flex-row items-center"
               style={{ paddingHorizontal: 14, paddingVertical: 9, gap: 6, backgroundColor: COLORS.warmwhite }}

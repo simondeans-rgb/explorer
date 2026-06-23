@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
+import { useConfirm } from '../../src/store/confirm';
 import Svg, { Path } from 'react-native-svg';
 import { useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, Trash2, Check, Search, Camera, ImagePlus, X } from 'lucide-react-native';
@@ -27,6 +28,7 @@ export default function DiscoveryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { discoveries, updateDiscovery, removeDiscovery, expeditions } = useData();
   const { toast } = useToast();
+  const confirm = useConfirm();
   const discovery = discoveries.find((d) => d.id === id);
 
   const [name, setName] = useState('');
@@ -104,12 +106,12 @@ export default function DiscoveryScreen() {
     }
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!discovery) return;
-    Alert.alert('Delete discovery?', `"${discovery.name}" will be removed.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => { removeDiscovery(discovery.id); goBack(); } },
-    ]);
+    if (await confirm({ title: 'Delete discovery?', message: `"${discovery.name}" will be removed.`, confirmLabel: 'Delete', destructive: true })) {
+      removeDiscovery(discovery.id);
+      goBack();
+    }
   }
 
   if (!discovery) {
