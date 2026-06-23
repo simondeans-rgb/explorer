@@ -482,6 +482,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistLocal({ ...cur, [coll]: list.filter((x) => x.id !== id) } as DataShape);
       }
     }
+    // Bound a network promise so an offline upload fails fast instead of hanging
+    // the UI forever (Storage has no offline queue, unlike Firestore writes).
+    function withTimeout<T>(p: Promise<T>, ms = 12000): Promise<T> {
+      return Promise.race([
+        p,
+        new Promise<T>((_, reject) => setTimeout(() => reject(new Error('offline-timeout')), ms)),
+      ]);
+    }
 
     return {
       ...data,
@@ -529,13 +537,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
       removePlace: (id) => remove('places', id),
       updatePlace: async (id, patch) => {
         if (cloud && fdb && uid) {
-          await updateDoc(doc(fdb, 'places', id), {
+          updateDoc(doc(fdb, 'places', id), {
             ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
             ...(patch.firstYear !== undefined ? { firstYear: patch.firstYear ?? null } : {}),
             ...(patch.firstDate !== undefined ? { firstDate: patch.firstDate ?? null } : {}),
             ...(patch.note !== undefined ? { note: patch.note.trim() || null } : {}),
             updatedAt: serverTimestamp(),
-          });
+          }).catch(() => {});
         } else {
           const cur = localRef.current;
           persistLocal({
@@ -562,14 +570,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
           if (storage && input.photo?.startsWith('data:')) {
             const path = `users/${uid}/discoveries/${newId()}.jpg`;
             const r = ref(storage, path);
-            await uploadString(r, input.photo, 'data_url', {
-              contentType: 'image/jpeg',
-              cacheControl: 'public, max-age=31536000, immutable',
-            });
-            photoUrl = await getDownloadURL(r);
-            photoPath = path;
+            // Best-effort photo: if the upload can't complete (offline), still save
+            // the discovery without it rather than hanging the save.
+            try {
+              await withTimeout(uploadString(r, input.photo, 'data_url', {
+                contentType: 'image/jpeg',
+                cacheControl: 'public, max-age=31536000, immutable',
+              }));
+              photoUrl = await withTimeout(getDownloadURL(r));
+              photoPath = path;
+            } catch {
+              photoUrl = null;
+              photoPath = null;
+            }
           }
-          await addDoc(collection(fdb, 'discoveries'), {
+          addDoc(collection(fdb, 'discoveries'), {
             userId: uid,
             name: input.name.trim(),
             category: input.category,
@@ -584,7 +599,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             photoPath,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
-          });
+          }).catch(() => {});
         } else {
           const now = Date.now();
           const discovery: Discovery = {
@@ -703,7 +718,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       removeExpedition: (id) => remove('expeditions', id),
       updateExpedition: async (id, input) => {
         if (cloud && fdb && uid) {
-          await updateDoc(doc(fdb, 'expeditions', id), {
+          updateDoc(doc(fdb, 'expeditions', id), {
             title: input.title.trim(),
             startDate: input.startDate || null,
             endDate: input.endDate || null,
@@ -711,7 +726,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             journeys: input.journeys,
             note: input.note?.trim() || null,
             updatedAt: serverTimestamp(),
-          });
+          }).catch(() => {});
         } else {
           const cur = localRef.current;
           persistLocal({
@@ -756,14 +771,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
           if (storage && input.dataUrl.startsWith('data:')) {
             const path = `users/${uid}/captures/${newId()}.jpg`;
             const r = ref(storage, path);
-            await uploadString(r, input.dataUrl, 'data_url', {
+            await withTimeout(uploadString(r, input.dataUrl, 'data_url', {
               contentType: 'image/jpeg',
               cacheControl: 'public, max-age=31536000, immutable',
-            });
-            url = await getDownloadURL(r);
+            }));
+            url = await withTimeout(getDownloadURL(r));
             storagePath = path;
           }
-          await addDoc(collection(fdb, 'captures'), {
+          addDoc(collection(fdb, 'captures'), {
             userId: uid,
             dataUrl: url,
             countryCode: input.countryCode || null,
@@ -773,7 +788,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             caption: input.caption?.trim() || null,
             storagePath,
             createdAt: serverTimestamp(),
-          });
+          }).catch(() => {});
         } else {
           const capture: Capture = {
             id: newId(),
@@ -1014,8 +1029,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       importExpeditions: async (rows) => {
         if (rows.length === 0) return 0;
         if (cloud && fdb && uid) {
+          // Fire the writes without blocking the UI: Firestore reflects them from
+          // its local cache immediately and syncs when the connection returns, so
+          // recording a journey works offline instead of hanging on the network.
           for (const r of rows) {
-            await addDoc(collection(fdb, 'expeditions'), {
+            addDoc(collection(fdb, 'expeditions'), {
               userId: uid,
               title: r.title.trim(),
               startDate: r.startDate || null,
@@ -1025,7 +1043,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
               note: r.note?.trim() || null,
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
-            });
+            }).catch(() => {});
           }
         } else {
           const now = Date.now();
