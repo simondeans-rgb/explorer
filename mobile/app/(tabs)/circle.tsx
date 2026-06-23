@@ -6,9 +6,13 @@ import type { ComponentType } from 'react';
 import { UserPlus, ArrowRight, MapPin, Star, Plus, Sparkles, Settings2, Gem, BookmarkCheck, Check, HeartHandshake } from 'lucide-react-native';
 import { PageHero } from '../../components/PageHero';
 import { LandmarkDetailSheet } from '../../components/LandmarkDetailSheet';
-import { COLORS, GRADIENTS } from '../../src/lib/theme';
+import { COLORS, GRADIENTS, SHADOW } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
+import { aggregateByCountry, computeStats } from '../../src/lib/stats';
+import { computeDiscoveryStats } from '../../src/lib/discoveryStats';
+import { computeJourneyStats } from '../../src/lib/journeyStats';
+import { computeExplorerLevel } from '../../src/lib/explorer';
 import { HERO_CODES } from '../../src/lib/heroImages';
 import { useAuth } from '../../src/store/auth';
 import { useData } from '../../src/store/data';
@@ -115,6 +119,21 @@ export default function CircleScreen() {
     [myDiscoveries, friendsData.discoveries, friends],
   );
 
+  // Rank the circle by Explorer XP, computed from each friend's places + discoveries.
+  const leaderboard = useMemo(
+    () =>
+      friends
+        .map((f) => {
+          const fp = friendsData.places.filter((p) => p.userId === f.uid);
+          const fd = friendsData.discoveries.filter((d) => d.userId === f.uid);
+          const stats = computeStats(aggregateByCountry(fp));
+          const lvl = computeExplorerLevel(stats, computeDiscoveryStats(fd), computeJourneyStats([]));
+          return { uid: f.uid, name: f.name, level: lvl.level, title: lvl.title, xp: lvl.xp, countries: stats.countriesDiscovered };
+        })
+        .sort((a, b) => b.xp - a.xp),
+    [friends, friendsData],
+  );
+
   const hasCircle = friends.length > 0;
   const hasContent = recs.length > 0 || !!mostVisited || recents.length > 0 || wishes.length > 0 || compat.length > 0;
   const savedMostVisited = mostVisited ? myPlaces.some((p) => p.kind === 'country' && p.countryCode === mostVisited.countryCode) : false;
@@ -171,6 +190,37 @@ export default function CircleScreen() {
               <Settings2 size={14} color={COLORS.lavender} />
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.lavender }}>Manage</Text>
             </Pressable>
+          </View>
+
+          {/* Why your circle matters */}
+          <View className="rounded-3xl" style={{ marginTop: 16, overflow: 'hidden' }}>
+            <LinearGradient colors={['rgba(155,124,255,0.16)', 'rgba(36,209,195,0.13)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 16, flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+              <View className="rounded-2xl items-center justify-center" style={{ height: 44, width: 44, backgroundColor: '#fff' }}>
+                <HeartHandshake size={22} color={COLORS.lavender} />
+              </View>
+              <Text style={{ flex: 1, fontFamily: 'Fraunces', fontSize: 15, color: COLORS.navy, lineHeight: 21 }}>
+                Planning the trip of a lifetime? One tip from someone you trust beats a thousand reviews from strangers.
+              </Text>
+            </LinearGradient>
+          </View>
+
+          {/* Circle leaderboard */}
+          <SectionTitle hint="Your circle, ranked by Explorer XP">Circle leaderboard</SectionTitle>
+          <View style={{ gap: 8 }}>
+            {leaderboard.map((m, i) => (
+              <View key={m.uid} className="bg-white rounded-2xl flex-row items-center" style={{ padding: 12, gap: 12, ...SHADOW.card }}>
+                <Text style={{ width: 18, textAlign: 'center', fontFamily: 'Fraunces', fontSize: 16, color: i === 0 ? COLORS.coral : COLORS.ink3 }}>{i + 1}</Text>
+                <Avatar name={m.name} size={40} />
+                <View style={{ flex: 1 }}>
+                  <Text numberOfLines={1} style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>{m.name}</Text>
+                  <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Lvl {m.level} · {m.title} · {m.countries} {m.countries === 1 ? 'country' : 'countries'}</Text>
+                </View>
+                <View className="items-end">
+                  <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.lavender }}>{m.xp.toLocaleString()}</Text>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.5, color: COLORS.ink3 }}>XP</Text>
+                </View>
+              </View>
+            ))}
           </View>
 
           {!hasContent ? (
