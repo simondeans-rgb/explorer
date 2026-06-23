@@ -4,7 +4,8 @@ import { Image } from 'expo-image';
 import { useConfirm } from '../../src/store/confirm';
 import Svg, { Path } from 'react-native-svg';
 import { useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Trash2, Check, Search, Camera, ImagePlus, X } from 'lucide-react-native';
+import { Trash2, Check, Search, Camera, ImagePlus, X } from 'lucide-react-native';
+import { BackButton } from '../../components/BackButton';
 import { DestinationImage } from '../../components/DestinationImage';
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
@@ -128,9 +129,7 @@ export default function DiscoveryScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
         {/* Hero */}
         <DestinationImage code={code || 'WW'} scrim style={{ position: 'relative', paddingTop: 60, paddingBottom: 46, minHeight: 180, justifyContent: 'flex-end' }}>
-          <Pressable onPress={goBack} hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, left: 20, zIndex: 20 }}>
-            <ChevronLeft size={20} color="#fff" />
-          </Pressable>
+          <BackButton onPress={goBack} style={{ position: 'absolute', top: 60, left: 20, zIndex: 20 }} />
           <Pressable onPress={confirmDelete} hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, right: 20, zIndex: 20 }}>
             <Trash2 size={18} color="#fff" />
           </Pressable>

@@ -1,9 +1,9 @@
-import { View, Text, Pressable } from 'react-native';
+import { View, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
-import { ChevronLeft } from 'lucide-react-native';
 import { COLORS } from '../src/lib/theme';
 import { DestinationImage } from './DestinationImage';
+import { BackButton } from './BackButton';
 
 /** A page header in the Worldly language: eyebrow, Fraunces title, optional
  *  subtitle, and the signature wave edge melting into the page. Pass `imageCode`
@@ -35,16 +35,7 @@ export function PageHero({
 
   const inner = (
     <View style={{ paddingHorizontal: 20 }}>
-      {onBack && (
-        <Pressable
-          onPress={onBack}
-          hitSlop={8}
-          style={{ marginBottom: 8 }}
-          className="h-9 w-9 rounded-full items-center justify-center bg-white/20"
-        >
-          <ChevronLeft size={20} color="#fff" />
-        </Pressable>
-      )}
+      {onBack && <BackButton onPress={onBack} style={{ marginBottom: 10 }} />}
       {eyebrow ? (
         <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 2.5, opacity: 0.9 }}>
           {eyebrow.toUpperCase()}

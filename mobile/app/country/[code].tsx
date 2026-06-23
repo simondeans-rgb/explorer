@@ -5,7 +5,6 @@ import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { useLocalSearchParams, router } from 'expo-router';
 import {
-  ChevronLeft,
   Camera,
   Plus,
   Building2,
@@ -18,6 +17,7 @@ import type { ComponentType } from 'react';
 import { AddDiscoverySheet } from '../../components/AddDiscoverySheet';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
 import { DestinationImage } from '../../components/DestinationImage';
+import { BackButton } from '../../components/BackButton';
 import { PassportStamp } from '../../components/PassportStamp';
 import { DiscoveryCard } from '../../components/DiscoveryCard';
 import { LandmarkDetailSheet, type LandmarkPerson } from '../../components/LandmarkDetailSheet';
@@ -231,9 +231,7 @@ export default function CountryScreen() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 112 }}>
         {/* Hero */}
         <DestinationImage code={code} scrim motion style={{ position: 'relative', paddingTop: 60, paddingBottom: 52, minHeight: 240, justifyContent: 'flex-end' }}>
-          <Pressable onPress={goBack} hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, left: 20, zIndex: 20 }}>
-            <ChevronLeft size={20} color="#fff" />
-          </Pressable>
+          <BackButton onPress={goBack} style={{ position: 'absolute', top: 60, left: 20, zIndex: 20 }} />
           <View style={{ paddingHorizontal: 20 }}>
             <Text style={{ fontSize: 52 }}>{flagEmoji(code)}</Text>
             <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, marginTop: 6 }}>{name}</Text>
