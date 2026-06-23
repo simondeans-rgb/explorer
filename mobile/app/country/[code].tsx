@@ -18,6 +18,7 @@ import type { ComponentType } from 'react';
 import { AddDiscoverySheet } from '../../components/AddDiscoverySheet';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
 import { DestinationImage } from '../../components/DestinationImage';
+import { PassportStamp } from '../../components/PassportStamp';
 import { DiscoveryCard } from '../../components/DiscoveryCard';
 import { LandmarkDetailSheet, type LandmarkPerson } from '../../components/LandmarkDetailSheet';
 import { COLORS } from '../../src/lib/theme';
@@ -239,6 +240,7 @@ export default function CountryScreen() {
               {agg?.firstYear ? ` · since ${agg.firstYear}` : ''}
             </Text>
           </View>
+          {agg ? <PassportStamp aggregate={agg} size={124} corner="center" /> : null}
           <Svg width="100%" height={42} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
             <Path d="M0,72 C240,44 480,40 720,58 C960,76 1200,92 1440,72 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
           </Svg>

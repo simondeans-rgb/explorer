@@ -12,6 +12,7 @@ import { LandmarkDetailSheet } from '../../components/LandmarkDetailSheet';
 import { AddPlaceSheet } from '../../components/AddPlaceSheet';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
 import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
+import { PassportStamp } from '../../components/PassportStamp';
 import { circleStoryItems, type CircleStoryItem } from '../../src/lib/circle';
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
@@ -292,6 +293,7 @@ export default function StoryScreen() {
                   {a.cities.length > 0 ? (
                     <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, opacity: 0.9, marginTop: 2 }}>{a.cities.length} cities</Text>
                   ) : null}
+                  <PassportStamp aggregate={a} size={76} corner="top-right" />
                 </DestinationImage>
               </Pressable>
             ))}
