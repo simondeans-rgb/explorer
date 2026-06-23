@@ -8,7 +8,7 @@ import {
   Mountain,
 } from 'lucide-react-native';
 import type { ComponentType } from 'react';
-import { COLORS } from '../src/lib/theme';
+import { COLORS, SHADOW, DISCOVERY_CATEGORY_COLOR } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { countryName } from '../src/data/countries';
 import {
@@ -40,16 +40,17 @@ const VERDICT_CHIP: Record<RecommendationVerdict, { bg: string; fg: string }> = 
  *  else the category icon — with name, verdict badge, location and note. */
 export function DiscoveryCard({ discovery: d, onPress }: { discovery: Discovery; onPress?: () => void }) {
   const Icon = CATEGORY_ICON[d.category];
+  const cat = DISCOVERY_CATEGORY_COLOR[d.category];
   const place = [d.city, d.countryCode ? countryName(d.countryCode) : null].filter(Boolean).join(', ');
   const chip = d.verdict ? VERDICT_CHIP[d.verdict] : null;
 
   return (
-    <Pressable onPress={onPress} className="bg-white rounded-3xl flex-row items-start" style={{ padding: 14, gap: 12 }}>
+    <Pressable onPress={onPress} className="bg-white rounded-3xl flex-row items-start" style={{ padding: 14, gap: 12, borderLeftWidth: 3, borderLeftColor: cat, ...SHADOW.card }}>
       {d.photo ? (
         <Image source={{ uri: d.photo }} style={{ height: 58, width: 58, borderRadius: 16 }} contentFit="cover" transition={200} cachePolicy="memory-disk" />
       ) : (
-        <View className="rounded-2xl items-center justify-center" style={{ height: 44, width: 44, backgroundColor: COLORS.warmwhite }}>
-          <Icon size={20} color={COLORS.coral} />
+        <View className="rounded-2xl items-center justify-center" style={{ height: 48, width: 48, backgroundColor: `${cat}1F` }}>
+          <Icon size={22} color={cat} />
         </View>
       )}
       <View style={{ flex: 1 }}>

@@ -56,14 +56,16 @@ function fmtNum(n: number): string {
   return `${n}`;
 }
 
-function Fact({ icon: Icon, label, value }: { icon: ComponentType<{ size?: number; color?: string }>; label: string; value: string }) {
+function Fact({ icon: Icon, label, value, tint = COLORS.coral }: { icon: ComponentType<{ size?: number; color?: string }>; label: string; value: string; tint?: string }) {
   return (
-    <View className="bg-white rounded-2xl" style={{ flexGrow: 1, flexBasis: '47%', padding: 14 }}>
-      <View className="flex-row items-center" style={{ gap: 6 }}>
-        <Icon size={14} color={COLORS.coral} />
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: COLORS.ink3 }}>{label.toUpperCase()}</Text>
+    <View className="rounded-2xl" style={{ flexGrow: 1, flexBasis: '47%', padding: 14, backgroundColor: `${tint}14` }}>
+      <View className="flex-row items-center" style={{ gap: 7 }}>
+        <View className="rounded-lg items-center justify-center" style={{ height: 24, width: 24, backgroundColor: `${tint}2B` }}>
+          <Icon size={13} color={tint} />
+        </View>
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: COLORS.ink2 }}>{label.toUpperCase()}</Text>
       </View>
-      <Text numberOfLines={1} style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy, marginTop: 4 }}>{value}</Text>
+      <Text numberOfLines={1} style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy, marginTop: 6 }}>{value}</Text>
     </View>
   );
 }
@@ -73,8 +75,8 @@ function TempChart({ temps }: { temps: number[] }) {
   const min = Math.min(...temps, 0);
   const span = Math.max(max - min, 1);
   return (
-    <View className="bg-white rounded-2xl" style={{ padding: 16 }}>
-      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: COLORS.ink3 }}>AVERAGE TEMPERATURE °C</Text>
+    <View className="rounded-2xl" style={{ padding: 16, backgroundColor: 'rgba(77,166,255,0.08)' }}>
+      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: COLORS.ink2 }}>AVERAGE TEMPERATURE °C</Text>
       <View className="flex-row items-end" style={{ height: 70, marginTop: 12, gap: 4 }}>
         {temps.map((t, i) => {
           const h = 10 + Math.round(((t - min) / span) * 52);
@@ -262,10 +264,10 @@ export default function CountryScreen() {
         {facts ? (
           <Section title={`About ${name}`}>
             <View className="flex-row flex-wrap" style={{ gap: 10 }}>
-              <Fact icon={Building2} label="Capital" value={facts.capital} />
-              <Fact icon={Coins} label="Currency" value={facts.currency} />
-              <Fact icon={Users} label="Population" value={fmtNum(facts.population)} />
-              <Fact icon={Maximize2} label="Area" value={`${fmtNum(facts.areaKm2)} km²`} />
+              <Fact icon={Building2} label="Capital" value={facts.capital} tint={COLORS.coral} />
+              <Fact icon={Coins} label="Currency" value={facts.currency} tint={COLORS.sunburst} />
+              <Fact icon={Users} label="Population" value={fmtNum(facts.population)} tint={COLORS.aqua} />
+              <Fact icon={Maximize2} label="Area" value={`${fmtNum(facts.areaKm2)} km²`} tint={COLORS.lavender} />
             </View>
             {facts.temps && facts.temps.length === 12 ? (
               <View style={{ marginTop: 10 }}>

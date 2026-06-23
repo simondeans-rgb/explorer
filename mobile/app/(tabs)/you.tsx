@@ -8,6 +8,7 @@ import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
 import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
+import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
 import { HERO_CODES } from '../../src/lib/heroImages';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
@@ -177,11 +178,11 @@ export default function YouScreen() {
     if (user) saveProfilePhoto(user.uid, data).catch(() => {});
     else AsyncStorage.setItem(LOCAL_AVATAR_KEY, data).catch(() => {});
   }
-  const statItems: [string, number][] = [
-    ['Countries', stats.countriesDiscovered],
-    ['Cities', stats.citiesDiscovered],
-    ['Journeys', journeyStats.total],
-    ['Discoveries', discoveryStats.total],
+  const statItems: [string, number, string][] = [
+    ['Countries', stats.countriesDiscovered, COLORS.coral],
+    ['Cities', stats.citiesDiscovered, COLORS.aqua],
+    ['Journeys', journeyStats.total, COLORS.lavender],
+    ['Discoveries', discoveryStats.total, COLORS.sunburst],
   ];
 
   return (
@@ -209,33 +210,17 @@ export default function YouScreen() {
         </Svg>
       </DestinationImage>
 
-      {/* Explorer level — on-brand white card */}
+      {/* Explorer level — collectible medal card */}
       <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
-        <Pressable onPress={() => setXpOpen(true)} className="bg-white rounded-3xl" style={{ padding: 18 }}>
-          <View className="flex-row items-center" style={{ gap: 14 }}>
-            <View className="rounded-2xl items-center justify-center" style={{ height: 60, width: 60, backgroundColor: 'rgba(255,107,154,0.12)' }}>
-              <Text style={{ fontFamily: 'Fraunces', fontSize: 27, color: COLORS.coral }}>{level.level}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 0.6, color: COLORS.ink3 }}>EXPLORER LEVEL</Text>
-              <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>{level.title}</Text>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2 }}>
-                {level.xp.toLocaleString()} XP{!level.maxed ? ` · ${Math.max(0, level.nextLevelXp - level.xp).toLocaleString()} to next` : ''}
-              </Text>
-            </View>
-          </View>
-          <View style={{ height: 8, borderRadius: 8, backgroundColor: 'rgba(20,33,61,0.07)', marginTop: 14, overflow: 'hidden' }}>
-            <View style={{ height: 8, borderRadius: 8, backgroundColor: COLORS.coral, width: `${Math.round((level.maxed ? 1 : level.progress) * 100)}%` }} />
-          </View>
-        </Pressable>
+        <ExplorerLevelCard level={level} stats={stats} onPress={() => setXpOpen(true)} />
       </View>
 
-      {/* Stats strip */}
+      {/* Stats strip — tinted per accent so it reads playful, not dashboard-like */}
       <View className="flex-row" style={{ paddingHorizontal: 20, marginTop: 14, gap: 10 }}>
-        {statItems.map(([label, value]) => (
-          <View key={label} className="bg-white rounded-2xl items-center" style={{ flex: 1, paddingVertical: 14 }}>
-            <Text style={{ fontFamily: 'Fraunces', fontSize: 24, color: COLORS.navy }}>{value}</Text>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, color: COLORS.ink3, marginTop: 2 }}>{label.toUpperCase()}</Text>
+        {statItems.map(([label, value, color]) => (
+          <View key={label} className="rounded-2xl items-center" style={{ flex: 1, paddingVertical: 14, backgroundColor: `${color}16` }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 24, color }}>{value}</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, color: COLORS.ink2, marginTop: 2, fontWeight: '700', letterSpacing: 0.4 }}>{label.toUpperCase()}</Text>
           </View>
         ))}
       </View>

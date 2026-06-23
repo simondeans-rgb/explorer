@@ -9,7 +9,7 @@ import { DestinationImage } from '../../components/DestinationImage';
 import { AtlasCountryCard } from '../../components/AtlasCountryCard';
 import { AtlasSummary } from '../../components/AtlasSummary';
 import { DiscoveryScoreSheet } from '../../components/DiscoveryScoreSheet';
-import { COLORS, GRADIENTS } from '../../src/lib/theme';
+import { COLORS, GRADIENTS, SHADOW } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
 import { routeSegments } from '../../src/lib/journeyGeo';
@@ -217,20 +217,24 @@ export default function AtlasScreen() {
 
       <View style={{ paddingHorizontal: 20, marginTop: 14, gap: 10 }}>
         {tab === 'places' && shownPlaces.length === 0 ? (
-          <View className="bg-white rounded-3xl items-center" style={{ paddingVertical: 28, paddingHorizontal: 20 }}>
-            <Text style={{ fontSize: 36 }}>🗺️</Text>
-            <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy, marginTop: 8 }}>{scope === 'all' ? 'No places yet' : `Nothing from ${scope}`}</Text>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 4, textAlign: 'center' }}>
-              {scope === 'all' ? "Tap + to add the first country you've been to." : 'Try another year.'}
+          <View className="rounded-3xl items-center" style={{ paddingVertical: 32, paddingHorizontal: 22, backgroundColor: 'rgba(124,107,255,0.08)' }}>
+            <View className="rounded-full items-center justify-center" style={{ height: 60, width: 60, backgroundColor: '#fff', ...SHADOW.card }}>
+              <Globe2 size={26} color={COLORS.lavender} />
+            </View>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 19, color: COLORS.navy, marginTop: 12 }}>{scope === 'all' ? 'Start your atlas' : `Nothing from ${scope}`}</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
+              {scope === 'all' ? 'Add the first country you’ve been to with the ＋ button and watch your world fill in.' : 'Try another year.'}
             </Text>
           </View>
         ) : null}
         {tab === 'journeys' && shownJourneys.length === 0 ? (
-          <View className="bg-white rounded-3xl items-center" style={{ paddingVertical: 28, paddingHorizontal: 20 }}>
-            <Text style={{ fontSize: 36 }}>✈️</Text>
-            <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy, marginTop: 8 }}>{scope === 'all' ? 'No journeys yet' : `Nothing from ${scope}`}</Text>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 4, textAlign: 'center' }}>
-              {scope === 'all' ? 'Tap + to record a trip and how you travelled.' : 'Try another year.'}
+          <View className="rounded-3xl items-center" style={{ paddingVertical: 32, paddingHorizontal: 22, backgroundColor: 'rgba(36,209,195,0.09)' }}>
+            <View className="rounded-full items-center justify-center" style={{ height: 60, width: 60, backgroundColor: '#fff', ...SHADOW.card }}>
+              <MapPinned size={26} color={COLORS.aqua} />
+            </View>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 19, color: COLORS.navy, marginTop: 12 }}>{scope === 'all' ? 'Map your first journey' : `Nothing from ${scope}`}</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
+              {scope === 'all' ? 'Record a trip and how you travelled — it’ll trace onto your spinning globe.' : 'Try another year.'}
             </Text>
           </View>
         ) : null}

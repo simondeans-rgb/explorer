@@ -34,9 +34,9 @@ export function SheetShell({
               onPress={onClose}
               hitSlop={8}
               className="h-9 w-9 rounded-full items-center justify-center"
-              style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}
+              style={{ backgroundColor: 'rgba(20,33,61,0.10)' }}
             >
-              <X size={18} color={COLORS.ink2} />
+              <X size={18} color={COLORS.navy} />
             </Pressable>
           </View>
           {children}

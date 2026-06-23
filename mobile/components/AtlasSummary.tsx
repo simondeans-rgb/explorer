@@ -1,10 +1,11 @@
 import { memo, useEffect } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, { useSharedValue, useAnimatedStyle, withDelay, withTiming, Easing } from 'react-native-reanimated';
 import { Globe2, Building2, Plane, Share2 } from 'lucide-react-native';
 import type { ComponentType } from 'react';
-import { COLORS } from '../src/lib/theme';
+import { Button } from './Button';
+import { COLORS, SHADOW } from '../src/lib/theme';
 import { CONTINENTS, type Continent } from '../src/types';
 import type { PassportStats } from '../src/lib/stats';
 
@@ -95,10 +96,18 @@ export const AtlasSummary = memo(function AtlasSummary({
   sharing: boolean;
 }) {
   const conts = CONTINENTS.filter((c) => totalByContinent[c]);
+  const pctLabel = worldPct < 10 ? worldPct.toFixed(1) : String(Math.round(worldPct));
+  const nCountries = stats.countriesDiscovered;
+  const nConts = stats.continentsDiscovered;
+  const narrative =
+    nCountries === 0
+      ? 'Your map is waiting — add the first country you’ve been to.'
+      : `You’ve explored ${nCountries} ${nCountries === 1 ? 'country' : 'countries'} across ${nConts} ${nConts === 1 ? 'continent' : 'continents'} — that’s ${pctLabel}% of the world.`;
 
   return (
-    <View className="bg-white rounded-3xl" style={{ marginTop: 14, padding: 18 }}>
-      <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, marginBottom: 14 }}>Your world</Text>
+    <View className="bg-white rounded-3xl" style={{ marginTop: 14, padding: 18, ...SHADOW.card }}>
+      <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy }}>Your world</Text>
+      <Text style={{ fontFamily: 'Fraunces', fontSize: 13.5, fontStyle: 'italic', color: COLORS.ink2, marginTop: 3, marginBottom: 14, lineHeight: 19 }}>{narrative}</Text>
 
       {/* hero: % ring + stats */}
       <View className="flex-row items-center" style={{ gap: 20 }}>
@@ -134,10 +143,7 @@ export const AtlasSummary = memo(function AtlasSummary({
       </View>
 
       {/* share — primary acquisition moment, so make it unmistakably tappable */}
-      <Pressable onPress={onShare} disabled={sharing} className="flex-row items-center justify-center rounded-full" style={{ alignSelf: 'stretch', marginTop: 20, paddingVertical: 14, gap: 8, backgroundColor: COLORS.coral, opacity: sharing ? 0.7 : 1, shadowColor: COLORS.coral, shadowOpacity: 0.33, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } }}>
-        <Share2 size={16} color="#fff" />
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14.5, fontWeight: '700', color: '#fff' }}>{sharing ? 'Preparing…' : 'Share my world'}</Text>
-      </Pressable>
+      <Button label={sharing ? 'Preparing…' : 'Share my world'} icon={Share2} variant="gradient" loading={sharing} onPress={onShare} style={{ marginTop: 20 }} />
     </View>
   );
 });
