@@ -1,12 +1,12 @@
 import { View } from 'react-native';
-import Svg, { Path, Circle, Ellipse, Rect, Line, Text as SvgText } from 'react-native-svg';
+import Svg, { Path, Circle, Ellipse, Rect, Line, Defs, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { countryName, alpha3Of } from '../src/data/countries';
 import type { Place } from '../src/types';
 import type { CountryAggregate } from '../src/lib/stats';
 
 // Classic passport-ink colors — one is picked deterministically per country.
 const INKS = ['#B23A48', '#23456B', '#2E6E4E', '#1A7F8C', '#6D3B9E', '#A1521E'];
-const BASE_OP = 0.74; // weathered, translucent ink
+const BASE_OP = 0.86; // weathered, but crisp enough to read
 
 type Corner = 'top-right' | 'top-left' | 'center';
 
@@ -175,9 +175,20 @@ export function PassportStamp({ aggregate, size, corner = 'top-right' }: { aggre
         ? { top: 8 + jy, left: 6 + jx }
         : { top: 8 + jy, right: 6 + jx };
 
+  const paperId = `stamp-paper-${aggregate.code}`;
+
   return (
     <View pointerEvents="none" style={{ position: 'absolute', width: size, height: size, transform: [{ rotate: `${rotation}deg` }], ...pos }}>
       <Svg width={size} height={size} viewBox="0 0 100 100">
+        {/* soft warm "paper" glow so the ink reads on busy / dark photos */}
+        <Defs>
+          <RadialGradient id={paperId} cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor="#FFF7EE" stopOpacity={0.5} />
+            <Stop offset="0.62" stopColor="#FFF7EE" stopOpacity={0.34} />
+            <Stop offset="1" stopColor="#FFF7EE" stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Circle cx={50} cy={50} r={50} fill={`url(#${paperId})`} />
         {design(idx, label, alpha3, year, ink)}
       </Svg>
     </View>
