@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
@@ -13,6 +13,7 @@ import { AddPlaceSheet } from '../../components/AddPlaceSheet';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
 import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { PassportStamp } from '../../components/PassportStamp';
+import { useConfirm } from '../../src/store/confirm';
 import { circleStoryItems, type CircleStoryItem } from '../../src/lib/circle';
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
@@ -34,6 +35,7 @@ const TILE_H = 150;
 export default function StoryScreen() {
   const { aggregates, stats, level } = useWorldly();
   const { captures, removeCapture, trips } = useData();
+  const confirm = useConfirm();
   const { width } = useWindowDimensions();
   const { user } = useAuth();
   const firstName = user?.displayName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Alex');
@@ -63,11 +65,10 @@ export default function StoryScreen() {
     else if (item.countryCode) router.push(`/country/${item.countryCode}`);
   }
 
-  function confirmRemoveCapture(id: string) {
-    Alert.alert('Remove memory?', 'This photo will be deleted.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => removeCapture(id) },
-    ]);
+  async function confirmRemoveCapture(id: string) {
+    if (await confirm({ title: 'Remove memory?', message: 'This photo will be deleted from your archive.', confirmLabel: 'Remove', destructive: true })) {
+      removeCapture(id);
+    }
   }
 
   return (

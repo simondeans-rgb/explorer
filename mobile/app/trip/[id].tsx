@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Switch, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { useConfirm } from '../../src/store/confirm';
 import { useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, Plus, X, UserPlus, LogOut, FileDown, Navigation, Trash2 } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
@@ -27,6 +28,7 @@ export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { trips, places, addPlace, addItineraryItem, removeItineraryItem, reorderItinerary, setDayNote, setTripTracking, addTripCollaborator, removeTripCollaborator, removeTrip } = useData();
   const { toast } = useToast();
+  const confirm = useConfirm();
   const { user } = useAuth();
   const myName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
   const { friends, friendsData } = useFriends(user?.uid, myName);
@@ -224,12 +226,12 @@ export default function TripScreen() {
 
   // Owner (or a local/guest trip) can delete the whole trip.
   const canDelete = !user || trip.userId === user.uid;
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!trip) return;
-    Alert.alert('Delete trip?', `"${trip.title}" and its itinerary will be permanently removed.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => { removeTrip(trip.id); goBack(); } },
-    ]);
+    if (await confirm({ title: 'Delete trip?', message: `"${trip.title}" and its itinerary will be permanently removed.`, confirmLabel: 'Delete', destructive: true })) {
+      removeTrip(trip.id);
+      goBack();
+    }
   }
 
   return (

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { useConfirm } from '../../src/store/confirm';
 import { useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, Trash2, Plus, Check, Search, Plane, TrainFront, Ship, Car, Anchor } from 'lucide-react-native';
 import type { ComponentType } from 'react';
@@ -69,6 +70,7 @@ export default function JourneyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { expeditions, updateExpedition, removeExpedition } = useData();
   const { toast } = useToast();
+  const confirm = useConfirm();
   const expedition = expeditions.find((e) => e.id === id);
 
   const [title, setTitle] = useState('');
@@ -147,12 +149,12 @@ export default function JourneyScreen() {
     }
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!expedition) return;
-    Alert.alert('Delete journey?', `"${expedition.title}" will be removed.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => { removeExpedition(expedition.id); goBack(); } },
-    ]);
+    if (await confirm({ title: 'Delete journey?', message: `"${expedition.title}" will be removed.`, confirmLabel: 'Delete', destructive: true })) {
+      removeExpedition(expedition.id);
+      goBack();
+    }
   }
 
   if (!expedition) {

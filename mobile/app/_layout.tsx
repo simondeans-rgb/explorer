@@ -18,6 +18,7 @@ import { AuthProvider, useAuth } from '../src/store/auth';
 import { DataProvider } from '../src/store/data';
 import { ToastProvider } from '../src/store/toast';
 import { CelebrationProvider } from '../src/store/celebration';
+import { ConfirmProvider } from '../src/store/confirm';
 import { OnboardingProvider, useOnboarding } from '../src/store/onboarding';
 import { Onboarding } from '../components/Onboarding';
 import { AchievementWatcher } from '../components/AchievementWatcher';
@@ -51,7 +52,9 @@ function RootLayout() {
           <DataProvider>
             <ToastProvider>
               <CelebrationProvider>
-                <RootContent fontsLoaded={loaded} />
+                <ConfirmProvider>
+                  <RootContent fontsLoaded={loaded} />
+                </ConfirmProvider>
               </CelebrationProvider>
             </ToastProvider>
           </DataProvider>
