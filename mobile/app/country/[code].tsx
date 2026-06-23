@@ -12,6 +12,7 @@ import {
   Users,
   Maximize2,
   ChevronRight,
+  Pencil,
 } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { AddDiscoverySheet } from '../../components/AddDiscoverySheet';
@@ -20,8 +21,9 @@ import { DestinationImage } from '../../components/DestinationImage';
 import { BackButton } from '../../components/BackButton';
 import { PassportStamp } from '../../components/PassportStamp';
 import { DiscoveryCard } from '../../components/DiscoveryCard';
+import { EditCitySheet } from '../../components/EditCitySheet';
 import { LandmarkDetailSheet, type LandmarkPerson } from '../../components/LandmarkDetailSheet';
-import { COLORS } from '../../src/lib/theme';
+import { COLORS, SHADOW } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, continentOf } from '../../src/data/countries';
 import { countryFacts } from '../../src/data/countryFacts';
@@ -31,6 +33,7 @@ import {
   RELATIONSHIP_META,
   JOURNEY_MODE_META,
   type RecommendationVerdict,
+  type Place,
 } from '../../src/types';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useData } from '../../src/store/data';
@@ -169,6 +172,7 @@ export default function CountryScreen() {
   const [discOpen, setDiscOpen] = useState(false);
   const [discName, setDiscName] = useState<string | undefined>(undefined);
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [editCity, setEditCity] = useState<Place | null>(null);
   const [landmarkDetail, setLandmarkDetail] = useState<
     { name: string; photo?: string; own?: { verdict?: RecommendationVerdict; note?: string } | null; friends: LandmarkPerson[] } | null
   >(null);
@@ -332,9 +336,10 @@ export default function CountryScreen() {
           <Section title="Cities">
             <View className="flex-row flex-wrap" style={{ gap: 8 }}>
               {cities.map((c) => (
-                <View key={c.id} className="rounded-full bg-white" style={{ paddingHorizontal: 14, paddingVertical: 8 }}>
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2 }}>{c.name}</Text>
-                </View>
+                <Pressable key={c.id} onPress={() => setEditCity(c)} className="rounded-full bg-white flex-row items-center" style={{ paddingHorizontal: 14, paddingVertical: 8, gap: 6, ...SHADOW.card }}>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2 }}>{c.name}{c.firstYear ? ` · ${c.firstYear}` : ''}</Text>
+                  <Pencil size={12} color={COLORS.ink3} />
+                </Pressable>
               ))}
             </View>
           </Section>
@@ -410,6 +415,7 @@ export default function CountryScreen() {
         initialCity={discName ? landmarkCity(discName) ?? facts?.capital : undefined}
       />
       <AddPhotoSheet visible={photoOpen} onClose={() => setPhotoOpen(false)} initialCountryCode={code} />
+      <EditCitySheet city={editCity} onClose={() => setEditCity(null)} />
 
       {/* Landmark / place detail */}
       <LandmarkDetailSheet
