@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, Share, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, Share, ActivityIndicator, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
-import { Copy, Share2, UserPlus, Check, X, Users } from 'lucide-react-native';
+import QRCode from 'react-native-qrcode-svg';
+import { Copy, Share2, UserPlus, Check, X, Users, MessageSquare, MessageCircle } from 'lucide-react-native';
 import { PageHero } from '../components/PageHero';
 import { goBack } from '../src/lib/nav';
 import { AuthSheet } from '../components/AuthSheet';
-import { COLORS, GRADIENTS } from '../src/lib/theme';
+import { COLORS, GRADIENTS, SHADOW } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { router } from 'expo-router';
 import { useAuth } from '../src/store/auth';
@@ -60,6 +61,15 @@ export default function FriendsScreen() {
     await Share.share({
       message: `Follow my travels on Worldly — add me with code ${profile.code}`,
     });
+  }
+  const inviteLink = profile ? `https://stickynotes-sand.vercel.app/add/${profile.code}` : '';
+  const inviteText = profile
+    ? `Join me on Worldly, my travel archive — add me with code ${profile.code}: ${inviteLink}`
+    : '';
+  function inviteVia(scheme: 'sms' | 'whatsapp') {
+    if (!profile) return;
+    const url = scheme === 'sms' ? `sms:&body=${encodeURIComponent(inviteText)}` : `https://wa.me/?text=${encodeURIComponent(inviteText)}`;
+    Linking.openURL(url).catch(() => {});
   }
   async function submit() {
     if (!user || !code.trim() || sending) return;
@@ -123,6 +133,28 @@ export default function FriendsScreen() {
           </View>
         </LinearGradient>
       </View>
+
+      {/* Invite — QR + message / WhatsApp */}
+      {profile ? (
+        <View style={{ paddingHorizontal: 20, marginTop: 14 }}>
+          <View className="bg-white rounded-3xl items-center" style={{ padding: 20, ...SHADOW.card }}>
+            <View style={{ padding: 14, backgroundColor: '#fff', borderRadius: 18, borderWidth: 1, borderColor: 'rgba(20,33,61,0.06)' }}>
+              <QRCode value={inviteLink} size={148} color={COLORS.navy} backgroundColor="#fff" />
+            </View>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 12, textAlign: 'center' }}>Scan to add me on Worldly</Text>
+            <View className="flex-row" style={{ gap: 10, marginTop: 14, alignSelf: 'stretch' }}>
+              <Pressable onPress={() => inviteVia('sms')} className="flex-1 flex-row items-center justify-center rounded-full" style={{ paddingVertical: 12, gap: 7, backgroundColor: COLORS.coral }}>
+                <MessageSquare size={16} color="#fff" />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '700', color: '#fff' }}>Message</Text>
+              </Pressable>
+              <Pressable onPress={() => inviteVia('whatsapp')} className="flex-1 flex-row items-center justify-center rounded-full" style={{ paddingVertical: 12, gap: 7, backgroundColor: '#25D366' }}>
+                <MessageCircle size={16} color="#fff" />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '700', color: '#fff' }}>WhatsApp</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      ) : null}
 
       {/* Add by code */}
       <View style={{ paddingHorizontal: 20, marginTop: 18 }}>
