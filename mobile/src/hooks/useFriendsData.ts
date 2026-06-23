@@ -10,6 +10,8 @@ import { db } from '../lib/firebase';
 import type {
   Discovery,
   DiscoveryCategory,
+  Expedition,
+  Journey,
   Place,
   PlaceKind,
   RecommendationVerdict,
@@ -19,6 +21,7 @@ import type {
 interface FriendsData {
   places: Place[];
   discoveries: Discovery[];
+  expeditions: Expedition[];
 }
 
 /** Firestore Timestamp / number → millis. */
@@ -69,19 +72,37 @@ function mapDiscovery(d: {
   };
 }
 
-/** Subscribes to accepted friends' places & discoveries (read-only, gated by
- *  the Firestore rules). Firestore `in` supports up to 30 ids. */
+function mapExpedition(d: { id: string; data: () => Record<string, unknown> }): Expedition {
+  const data = d.data();
+  return {
+    id: d.id,
+    userId: data.userId as string,
+    title: (data.title ?? '') as string,
+    startDate: (data.startDate as string) || undefined,
+    endDate: (data.endDate as string) || undefined,
+    countryCodes: (data.countryCodes ?? []) as string[],
+    journeys: (data.journeys ?? []) as Journey[],
+    note: (data.note as string) || undefined,
+    createdAt: millis(data.createdAt),
+    updatedAt: 0,
+  };
+}
+
+/** Subscribes to accepted friends' places, discoveries & trips (read-only, gated
+ *  by the Firestore rules — if trip reads aren't permitted the trips list simply
+ *  stays empty). Firestore `in` supports up to 30 ids. */
 export function useFriendsData(friendUids: string[]): FriendsData {
   const [data, setData] = useState<FriendsData>({
     places: [],
     discoveries: [],
+    expeditions: [],
   });
   const key = [...friendUids].sort().join(',');
 
   useEffect(() => {
     const uids = key ? key.split(',') : [];
     if (!db || uids.length === 0) {
-      setData({ places: [], discoveries: [] });
+      setData({ places: [], discoveries: [], expeditions: [] });
       return;
     }
     const batch = uids.slice(0, 30);
@@ -100,6 +121,14 @@ export function useFriendsData(friendUids: string[]): FriendsData {
         (snap: QuerySnapshot) =>
           setData((d) => ({ ...d, discoveries: snap.docs.map(mapDiscovery) })),
         () => setData((d) => ({ ...d, discoveries: [] })),
+      ),
+    );
+    unsubs.push(
+      onSnapshot(
+        query(collection(db, 'expeditions'), where('userId', 'in', batch)),
+        (snap: QuerySnapshot) =>
+          setData((d) => ({ ...d, expeditions: snap.docs.map(mapExpedition) })),
+        () => setData((d) => ({ ...d, expeditions: [] })),
       ),
     );
     return () => unsubs.forEach((u) => u());
