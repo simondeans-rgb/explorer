@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Plane, Home, Briefcase, GraduationCap, Anchor, Sparkles, Building2, Map as MapIcon } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { DestinationImage } from './DestinationImage';
+import { PassportStamp } from './PassportStamp';
 import { ScoreRing } from './ScoreRing';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
@@ -81,6 +82,7 @@ export const AtlasCountryCard = memo(function AtlasCountryCard({ aggregate: a, d
         <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.95 }}>
           {a.continent}{a.firstYear ? ` · since ${a.firstYear}` : ''}
         </Text>
+        <PassportStamp aggregate={a} size={96} corner="center" />
       </DestinationImage>
 
       <View style={{ padding: 14, gap: 9 }}>
