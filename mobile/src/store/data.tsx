@@ -131,6 +131,9 @@ interface DataApi extends DataShape {
       note?: string;
     },
   ) => Promise<void>;
+  /** Re-derive imported-trip titles + destination-first country order against the
+   *  given home countries (e.g. after residence changes). Returns # updated. */
+  recalculateJourneys: (expeditions: Expedition[], homeCodes: string[]) => Promise<number>;
   addCapture: (input: {
     dataUrl: string;
     countryCode?: string;
@@ -193,6 +196,7 @@ const DataContext = createContext<DataApi>({
   addExpedition: noop,
   removeExpedition: noop,
   updateExpedition: async () => {},
+  recalculateJourneys: async () => 0,
   addCapture: async () => {},
   removeCapture: noop,
   addTrip: noop,
@@ -695,6 +699,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
             ),
           });
         }
+      },
+      recalculateJourneys: async (expeditions, homeCodes) => {
+        const patches = repairImportedExpeditions(expeditions, homeCodes);
+        for (const p of patches) {
+          const e = expeditions.find((x) => x.id === p.id);
+          if (!e) continue;
+          await api.updateExpedition(e.id, {
+            title: p.title,
+            startDate: e.startDate,
+            endDate: e.endDate,
+            countryCodes: p.countryCodes,
+            journeys: e.journeys,
+            note: e.note,
+          });
+        }
+        return patches.length;
       },
       addCapture: async (input) => {
         if (cloud && fdb && uid) {
