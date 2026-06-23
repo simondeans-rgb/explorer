@@ -1,7 +1,17 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type ComponentType } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput } from 'react-native';
 import { router } from 'expo-router';
-import { Globe2, MapPinned, Search, X } from 'lucide-react-native';
+import { Globe2, MapPinned, Search, X, Plane, TrainFront, Ship, Car, Anchor, Home } from 'lucide-react-native';
+import type { JourneyMode } from '../../src/types';
+
+const MODE_FILTERS: { key: JourneyMode | 'all'; label: string; Icon: ComponentType<{ size?: number; color?: string }> | null }[] = [
+  { key: 'all', label: 'All types', Icon: null },
+  { key: 'flight', label: 'Flights', Icon: Plane },
+  { key: 'rail', label: 'Rail', Icon: TrainFront },
+  { key: 'cruise', label: 'Cruise', Icon: Ship },
+  { key: 'road', label: 'Road', Icon: Car },
+  { key: 'ferry', label: 'Ferry', Icon: Anchor },
+];
 import { PageHero } from '../../components/PageHero';
 import { WorldMap } from '../../components/WorldMap';
 import { JourneyGlobe } from '../../components/JourneyGlobe';
@@ -54,6 +64,8 @@ export default function AtlasScreen() {
   const { aggregates, discoveries, expeditions, stats } = useWorldly();
   const [tab, setTab] = useState<Tab>('places');
   const [scope, setScope] = useState<Scope>('all');
+  const [journeyMode, setJourneyMode] = useState<JourneyMode | 'all'>('all');
+  const [showDomestic, setShowDomestic] = useState(true);
   const scrollRef = useRef(null);
   const [query, setQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('az');
@@ -142,10 +154,16 @@ export default function AtlasScreen() {
     [aggregates, scope],
   );
 
-  const shownJourneys = useMemo(
+  const scopedJourneys = useMemo(
     () => (scope === 'all' ? expeditions : expeditions.filter((e) => yearOf(e.startDate, e.createdAt) === scope)),
     [expeditions, scope],
   );
+  const shownJourneys = useMemo(() => {
+    let list = scopedJourneys;
+    if (!showDomestic) list = list.filter((e) => new Set(e.countryCodes).size > 1);
+    if (journeyMode !== 'all') list = list.filter((e) => e.journeys.some((j) => j.mode === journeyMode));
+    return list;
+  }, [scopedJourneys, showDomestic, journeyMode]);
   const segments = useMemo(() => routeSegments(shownJourneys), [shownJourneys]);
 
   return (
@@ -227,7 +245,7 @@ export default function AtlasScreen() {
             </Text>
           </View>
         ) : null}
-        {tab === 'journeys' && shownJourneys.length === 0 ? (
+        {tab === 'journeys' && scopedJourneys.length === 0 ? (
           <View className="rounded-3xl items-center" style={{ paddingVertical: 32, paddingHorizontal: 22, backgroundColor: 'rgba(36,209,195,0.09)' }}>
             <View className="rounded-full items-center justify-center" style={{ height: 60, width: 60, backgroundColor: '#fff', ...SHADOW.card }}>
               <MapPinned size={26} color={COLORS.aqua} />
@@ -237,6 +255,30 @@ export default function AtlasScreen() {
               {scope === 'all' ? 'Record a trip and how you travelled — it’ll trace onto your spinning globe.' : 'Try another year.'}
             </Text>
           </View>
+        ) : null}
+
+        {/* journey filters — by transport type + domestic toggle */}
+        {tab === 'journeys' && scopedJourneys.length > 0 ? (
+          <View style={{ gap: 9 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 2 }}>
+              {MODE_FILTERS.map(({ key, label, Icon }) => {
+                const active = journeyMode === key;
+                return (
+                  <Pressable key={key} onPress={() => setJourneyMode(key)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 7, gap: 5, backgroundColor: active ? COLORS.navy : '#fff' }}>
+                    {Icon ? <Icon size={13} color={active ? '#fff' : COLORS.ink3} /> : null}
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{label}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <Pressable onPress={() => setShowDomestic((v) => !v)} className="flex-row items-center self-start rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 7, gap: 6, backgroundColor: showDomestic ? 'rgba(36,209,195,0.16)' : '#fff' }}>
+              <Home size={13} color={showDomestic ? '#12A594' : COLORS.ink3} />
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: showDomestic ? '#12A594' : COLORS.ink3 }}>{showDomestic ? 'Domestic trips shown' : 'Domestic trips hidden'}</Text>
+            </Pressable>
+          </View>
+        ) : null}
+        {tab === 'journeys' && scopedJourneys.length > 0 && shownJourneys.length === 0 ? (
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, textAlign: 'center', paddingVertical: 16 }}>No journeys match these filters.</Text>
         ) : null}
 
         {/* search + sort (Places) */}
