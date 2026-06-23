@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { Check, Search } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
+import { Dropdown, type DropdownOption } from './Dropdown';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES, countryName } from '../src/data/countries';
@@ -11,49 +12,21 @@ import { useToast } from '../src/store/toast';
 
 const REL_OPTIONS = RELATIONSHIPS.filter((r) => r !== 'aspiring');
 const thisYear = new Date().getFullYear();
-const YEARS = Array.from({ length: 40 }, (_, i) => thisYear - i);
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// Reach back ~96 years so birth / long-ago residence years are selectable.
+const YEAR_OPTS: DropdownOption[] = Array.from({ length: 96 }, (_, i) => ({ label: String(thisYear - i), value: thisYear - i }));
+const MONTH_OPTS: DropdownOption[] = MONTHS.map((m, i) => ({ label: m, value: i }));
+const DAY_OPTS: DropdownOption[] = Array.from({ length: 31 }, (_, i) => ({ label: String(i + 1), value: i + 1 }));
 
 type Kind = 'country' | 'city';
-type Precision = 'year' | 'month' | 'day';
 
-function isoOf(year: number | null, month: number | null, day: string, prec: Precision): string | undefined {
+/** Build an ISO date from optional year / month (0-based) / day parts. */
+function isoFrom(year: number | null, month: number | null, day: number | null): string | undefined {
   if (!year) return undefined;
-  if (prec === 'year') return `${year}`;
-  const mm = String((month ?? 0) + 1).padStart(2, '0');
-  if (prec === 'month') return `${year}-${mm}`;
-  const n = Number(day);
-  return n >= 1 && n <= 31 ? `${year}-${mm}-${String(n).padStart(2, '0')}` : `${year}-${mm}`;
-}
-
-function YearRow({ value, onChange }: { value: number | null; onChange: (y: number | null) => void }) {
-  return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 8, gap: 8 }}>
-      {YEARS.map((y) => {
-        const active = value === y;
-        return (
-          <Pressable key={y} onPress={() => onChange(active ? null : y)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.coral : '#fff' }}>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink2 }}>{y}</Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
-  );
-}
-
-function MonthRow({ value, onChange }: { value: number | null; onChange: (m: number) => void }) {
-  return (
-    <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 4, gap: 6 }}>
-      {MONTHS.map((m, i) => {
-        const active = value === i;
-        return (
-          <Pressable key={m} onPress={() => onChange(i)} className="rounded-full" style={{ paddingHorizontal: 12, paddingVertical: 7, backgroundColor: active ? COLORS.navy : '#fff' }}>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{m}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
+  if (month == null) return `${year}`;
+  const mm = String(month + 1).padStart(2, '0');
+  if (!day) return `${year}-${mm}`;
+  return day >= 1 && day <= 31 ? `${year}-${mm}-${String(day).padStart(2, '0')}` : `${year}-${mm}`;
 }
 
 export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -65,10 +38,9 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
   const [city, setCity] = useState('');
   const [rels, setRels] = useState<Set<Relationship>>(new Set(['visited']));
 
-  const [prec, setPrec] = useState<Precision>('year');
   const [year, setYear] = useState<number | null>(null);
   const [month, setMonth] = useState<number | null>(null);
-  const [day, setDay] = useState('');
+  const [day, setDay] = useState<number | null>(null);
 
   // Residence end (when Lived/Based).
   const [present, setPresent] = useState(true);
@@ -89,10 +61,9 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
     setCode('');
     setCity('');
     setRels(new Set(['visited']));
-    setPrec('year');
     setYear(null);
     setMonth(null);
-    setDay('');
+    setDay(null);
     setPresent(true);
     setEndYear(null);
     setEndMonth(null);
@@ -103,13 +74,13 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
   }
   function save() {
     if (!ready) return;
-    const firstDate = isoOf(year, month, day, prec);
+    const firstDate = isoFrom(year, month, day);
     let livedFrom: string | undefined;
     let livedTo: string | undefined;
     let residencePeriods: { from: string; to?: string }[] | undefined;
     if (isResidence && firstDate) {
       livedFrom = firstDate;
-      livedTo = present ? undefined : isoOf(endYear, endMonth, '', endMonth != null ? 'month' : 'year');
+      livedTo = present ? undefined : isoFrom(endYear, endMonth, null);
       residencePeriods = [{ from: firstDate, ...(livedTo ? { to: livedTo } : {}) }];
     }
     addPlace({
@@ -195,27 +166,15 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
           })}
         </View>
 
-        {/* when */}
-        <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 20, marginTop: 16 }}>
+        {/* when — optional year / month / day dropdowns */}
+        <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
           <Text style={{ ...LBL, paddingHorizontal: 0, marginTop: 0 }}>{isResidence ? 'LIVED FROM' : 'WHEN (OPTIONAL)'}</Text>
-          <View className="flex-row bg-white rounded-full" style={{ padding: 3, gap: 3 }}>
-            {(['year', 'month', 'day'] as Precision[]).map((p) => {
-              const active = prec === p;
-              return (
-                <Pressable key={p} onPress={() => setPrec(p)} className="rounded-full" style={{ paddingHorizontal: 11, paddingVertical: 5, backgroundColor: active ? COLORS.coral : 'transparent' }}>
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{p === 'year' ? 'Year' : p === 'month' ? 'Month' : 'Exact'}</Text>
-                </Pressable>
-              );
-            })}
+          <View className="flex-row" style={{ gap: 8, marginTop: 8 }}>
+            <Dropdown placeholder="Year" title="Year" value={year} options={YEAR_OPTS} onSelect={setYear} flex={1.2} />
+            <Dropdown placeholder="Month" title="Month" value={month} options={MONTH_OPTS} onSelect={setMonth} flex={1.2} />
+            <Dropdown placeholder="Day" title="Day" value={day} options={DAY_OPTS} onSelect={setDay} flex={1} />
           </View>
         </View>
-        <YearRow value={year} onChange={setYear} />
-        {prec !== 'year' ? <MonthRow value={month} onChange={setMonth} /> : null}
-        {prec === 'day' ? (
-          <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, marginTop: 8, paddingHorizontal: 14, paddingVertical: 10, width: 110 }}>
-            <TextInput value={day} onChangeText={setDay} placeholder="Day" keyboardType="number-pad" maxLength={2} placeholderTextColor={COLORS.ink3} style={{ fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink }} />
-          </View>
-        ) : null}
 
         {/* residence end */}
         {isResidence ? (
@@ -227,10 +186,10 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
               </Pressable>
             </View>
             {!present ? (
-              <>
-                <YearRow value={endYear} onChange={setEndYear} />
-                <MonthRow value={endMonth} onChange={setEndMonth} />
-              </>
+              <View className="flex-row" style={{ gap: 8, paddingHorizontal: 20, marginTop: 8 }}>
+                <Dropdown placeholder="Year" title="Year" value={endYear} options={YEAR_OPTS} onSelect={setEndYear} flex={1.2} />
+                <Dropdown placeholder="Month" title="Month" value={endMonth} options={MONTH_OPTS} onSelect={setEndMonth} flex={1.2} />
+              </View>
             ) : null}
           </>
         ) : null}

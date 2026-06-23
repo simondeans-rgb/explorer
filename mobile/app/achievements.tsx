@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, X, Sparkles } from 'lucide-react-native';
+import { X, Sparkles } from 'lucide-react-native';
+import { BackButton } from '../components/BackButton';
 import { AchievementBadge } from '../components/AchievementBadge';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
 import { goBack } from '../src/lib/nav';
@@ -39,9 +40,7 @@ export default function AchievementsScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Header */}
         <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingTop: 60, paddingBottom: 26, paddingHorizontal: 22 }}>
-          <Pressable onPress={goBack} hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 58, left: 18 }}>
-            <ChevronLeft size={20} color="#fff" />
-          </Pressable>
+          <BackButton onPress={goBack} style={{ position: 'absolute', top: 58, left: 18, zIndex: 20 }} />
           <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1.5, opacity: 0.9, textAlign: 'center' }}>EXPLORER · LEVEL {level.level}</Text>
           <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 30, textAlign: 'center', marginTop: 2 }}>Achievements</Text>
           <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.95, textAlign: 'center', marginTop: 4 }}>{earned} of {badges.length} earned</Text>
