@@ -41,16 +41,29 @@ service cloud.firestore {
       allow update, delete: if isOwner();
     }
 
-    // Expeditions stay private to their owner.
+    // Trips you've recorded are readable by accepted friends (powers Circle's
+    // "on the move" / recently-travelled). Only the owner can edit/delete.
     match /expeditions/{expeditionId} {
-      allow read, update, delete: if isOwner();
+      allow read: if sharedRead(resource.data.userId);
+      allow update, delete: if isOwner();
       allow create: if createIsOwner();
     }
 
-    // Photo captures stay private to their owner.
+    // Photo captures are readable by accepted friends (Circle "snaps").
     match /captures/{captureId} {
-      allow read, update, delete: if isOwner();
+      allow read: if sharedRead(resource.data.userId);
+      allow update, delete: if isOwner();
       allow create: if createIsOwner();
+    }
+
+    // Likes on a capture. The doc id is `${captureId}__${likerUid}` so each
+    // member can like a capture once; anyone signed in may read the count.
+    match /likes/{likeId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && likeId == request.resource.data.captureId + '__' + request.auth.uid;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
 
     // Saved bookmarks stay private to their owner.

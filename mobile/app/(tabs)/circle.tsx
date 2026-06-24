@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import type { ComponentType } from 'react';
-import { UserPlus, ArrowRight, MapPin, Star, Plus, Sparkles, Settings2, Gem, BookmarkCheck, Check, HeartHandshake } from 'lucide-react-native';
+import { UserPlus, ArrowRight, MapPin, Star, Plus, Sparkles, Settings2, Gem, BookmarkCheck, Check, HeartHandshake, Heart } from 'lucide-react-native';
+import { useLikes } from '../../src/hooks/useLikes';
 import { PageHero } from '../../components/PageHero';
 import { LandmarkDetailSheet } from '../../components/LandmarkDetailSheet';
 import { COLORS, GRADIENTS, SHADOW } from '../../src/lib/theme';
@@ -187,7 +189,21 @@ export default function CircleScreen() {
     return items.sort((a, b) => (a.kind === b.kind ? (a.start ?? '').localeCompare(b.start ?? '') : a.kind === 'now' ? -1 : 1));
   }, [friends, friendsData.expeditions]);
 
-  const hasContent = activity.length > 0 || recs.length > 0 || !!mostVisited || recents.length > 0 || wishes.length > 0 || compat.length > 0;
+  // Recent photos shared by your circle, newest first.
+  const snaps = useMemo(() => {
+    const nameByUid = new Map(friends.map((f) => [f.uid, f.name]));
+    return [...friendsData.captures]
+      .filter((c) => c.dataUrl)
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 12)
+      .map((c) => ({ ...c, friend: nameByUid.get(c.userId) ?? 'A friend' }));
+  }, [friendsData.captures, friends]);
+  const { likes, toggle } = useLikes(
+    useMemo(() => snaps.map((s) => s.id), [snaps]),
+    user?.uid,
+  );
+
+  const hasContent = activity.length > 0 || snaps.length > 0 || recs.length > 0 || !!mostVisited || recents.length > 0 || wishes.length > 0 || compat.length > 0;
   const savedMostVisited = mostVisited ? myPlaces.some((p) => p.kind === 'country' && p.countryCode === mostVisited.countryCode) : false;
 
   function addToWishlist(code: string, name: string) {
@@ -280,6 +296,37 @@ export default function CircleScreen() {
                     </LinearGradient>
                   </Pressable>
                 ))}
+              </View>
+            </>
+          ) : null}
+
+          {/* Snaps from your circle */}
+          {snaps.length > 0 ? (
+            <>
+              <SectionTitle hint="Tap the heart to cheer them on">From your circle's camera roll</SectionTitle>
+              <View style={{ marginHorizontal: -20 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
+                  {snaps.map((s) => {
+                    const st = likes[s.id] ?? { count: 0, likedByMe: false };
+                    return (
+                      <View key={s.id} style={{ width: 150, borderRadius: 20, overflow: 'hidden', ...SHADOW.card }}>
+                        <Pressable onPress={() => (s.countryCode ? router.push(`/country/${s.countryCode}`) : undefined)}>
+                          <Image source={{ uri: s.dataUrl }} style={{ width: 150, height: 190 }} contentFit="cover" transition={200} cachePolicy="memory-disk" />
+                        </Pressable>
+                        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.6)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 10, paddingTop: 28 }}>
+                          <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700' }}>{s.friend}</Text>
+                          {s.city || s.countryCode ? (
+                            <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 10.5, opacity: 0.9 }}>{s.city ?? (s.countryCode ? countryName(s.countryCode) : '')}</Text>
+                          ) : null}
+                        </LinearGradient>
+                        <Pressable onPress={() => toggle(s.id, s.userId)} hitSlop={8} className="absolute flex-row items-center rounded-full" style={{ top: 8, right: 8, gap: 4, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                          <Heart size={14} color={st.likedByMe ? COLORS.coral : '#fff'} fill={st.likedByMe ? COLORS.coral : 'transparent'} />
+                          {st.count > 0 ? <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700' }}>{st.count}</Text> : null}
+                        </Pressable>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
               </View>
             </>
           ) : null}
