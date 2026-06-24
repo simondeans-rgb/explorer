@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, TextInput, Share, ActivityIndicator,
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
-import { Copy, Share2, UserPlus, Check, X, Users, MessageSquare, MessageCircle } from 'lucide-react-native';
+import { Copy, Share2, UserPlus, Check, X, Users, MessageSquare, MessageCircle, QrCode } from 'lucide-react-native';
 import { PageHero } from '../components/PageHero';
 import { goBack } from '../src/lib/nav';
 import { AuthSheet } from '../components/AuthSheet';
@@ -153,6 +153,20 @@ export default function FriendsScreen() {
               </Pressable>
             </View>
           </View>
+        </View>
+      ) : null}
+
+      {/* Scan QR / invite from contacts */}
+      {profile ? (
+        <View className="flex-row" style={{ paddingHorizontal: 20, marginTop: 12, gap: 10 }}>
+          <Pressable onPress={() => router.push('/scan')} className="flex-1 flex-row items-center justify-center bg-white rounded-2xl" style={{ paddingVertical: 13, gap: 7, ...SHADOW.card }}>
+            <QrCode size={18} color={COLORS.navy} />
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.navy }}>Scan a code</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push('/invite-contacts')} className="flex-1 flex-row items-center justify-center bg-white rounded-2xl" style={{ paddingVertical: 13, gap: 7, ...SHADOW.card }}>
+            <Users size={18} color={COLORS.navy} />
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.navy }}>From contacts</Text>
+          </Pressable>
         </View>
       ) : null}
 
