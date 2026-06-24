@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Add me on Worldly</title>
+  <meta property="og:title" content="Add me on Worldly" />
+  <meta property="og:description" content="Follow each other's travels on Worldly." />
+  <style>
+    :root { --ink:#14213D; --ink3:#8A90A6; --coral:#FF6B9A; --lav:#9B7CFF; --aqua:#24D1C3; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; height:100%; }
+    body {
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      background:linear-gradient(140deg,#FF6B9A 0%,#9B7CFF 52%,#24D1C3 100%);
+      color:#fff; display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .card {
+      width:100%; max-width:380px; text-align:center;
+      background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.18);
+      border-radius:28px; padding:34px 26px 30px; backdrop-filter:blur(8px);
+    }
+    .mark { width:56px; height:56px; margin:0 auto 18px; display:block; }
+    h1 { font-size:26px; line-height:1.2; margin:0 0 8px; letter-spacing:-0.01em; }
+    p { font-size:15.5px; line-height:1.5; margin:0 auto; max-width:300px; color:rgba(255,255,255,0.92); }
+    .code {
+      font-size:30px; font-weight:800; letter-spacing:3px; margin:22px 0 4px;
+      font-variant-numeric:tabular-nums;
+    }
+    .code-label { font-size:12px; letter-spacing:1.5px; text-transform:uppercase; opacity:0.8; }
+    .btn {
+      display:block; width:100%; margin-top:22px; padding:15px 18px; border:0; cursor:pointer;
+      border-radius:999px; font-size:16px; font-weight:700; text-decoration:none;
+      background:#fff; color:var(--coral);
+    }
+    .btn.ghost { background:rgba(255,255,255,0.16); color:#fff; margin-top:12px; }
+    .foot { margin-top:26px; font-size:13px; opacity:0.85; }
+    .brand-row { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:30px; font-weight:700; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <svg class="mark" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id="wm" x1="8" y1="8" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#FF6A55"/><stop offset="0.45" stop-color="#FF8B79"/><stop offset="1" stop-color="#5B6CFF"/>
+        </linearGradient>
+      </defs>
+      <rect x="4" y="4" width="56" height="56" rx="16" fill="#fff"/>
+      <rect x="7" y="7" width="50" height="50" rx="13" fill="url(#wm)"/>
+      <g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round">
+        <circle cx="32" cy="32" r="15" opacity="0.95"/>
+        <ellipse cx="32" cy="32" rx="6.4" ry="15" opacity="0.85"/>
+        <line x1="17" y1="32" x2="47" y2="32" opacity="0.85"/>
+      </g>
+    </svg>
+
+    <h1>Add me on Worldly</h1>
+    <p>Connect to follow each other's travels — countries visited, trips, and discoveries.</p>
+
+    <div class="code-label">Share code</div>
+    <div class="code" id="code">· · · · · ·</div>
+
+    <a class="btn" id="open" href="#">Open in the Worldly app</a>
+    <a class="btn ghost" id="store" href="https://stickynotes-sand.vercel.app" >Don't have the app?</a>
+
+    <div class="foot">In the app, go to <b>Friends</b> and enter the code above.</div>
+
+    <div class="brand-row">
+      <span>Worldly</span>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      // Code is the last path segment of /add/<CODE> (cleanUrls may drop a trailing slash).
+      var parts = window.location.pathname.split('/').filter(Boolean);
+      var code = decodeURIComponent(parts[parts.length - 1] || '').toUpperCase();
+      if (!code || code === 'ADD') code = '';
+      if (code) document.getElementById('code').textContent = code;
+      var deepLink = code ? 'mobile://add/' + encodeURIComponent(code) : 'mobile://';
+      var openBtn = document.getElementById('open');
+      openBtn.setAttribute('href', deepLink);
+      openBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        window.location.href = deepLink;
+      });
+      // Auto-attempt to open the app on mobile so the link "just works".
+      if (code && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        setTimeout(function () { window.location.href = deepLink; }, 350);
+      }
+    })();
+  </script>
+</body>
+</html>
