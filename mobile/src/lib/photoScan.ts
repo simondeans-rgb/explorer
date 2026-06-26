@@ -22,6 +22,8 @@ export interface ScanProgress {
 export interface ScanResult {
   rows: PlaceRow[];
   scanned: number;
+  /** Items that carried a usable GPS location (diagnostic). */
+  located: number;
   denied?: boolean;
   limited?: boolean;
   partial?: boolean; // stopped early on an unexpected error
@@ -73,15 +75,16 @@ export async function scanPhotosForCountries(
   try {
     perm = await MediaLibrary.requestPermissionsAsync();
   } catch {
-    return { rows: [], scanned: 0, denied: true };
+    return { rows: [], scanned: 0, located: 0, denied: true };
   }
-  if (!perm.granted) return { rows: [], scanned: 0, denied: true };
+  if (!perm.granted) return { rows: [], scanned: 0, located: 0, denied: true };
   const limited = perm.accessPrivileges === 'limited';
 
   const coordCache = new Map<string, string | null>();
   const earliestYear = new Map<string, number | undefined>();
   let after: string | undefined;
   let scanned = 0;
+  let located = 0;
   let partial = false;
 
   // Best-effort: never let a keep-awake failure stop the scan.
@@ -92,7 +95,9 @@ export async function scanPhotosForCountries(
       const page = await MediaLibrary.getAssetsAsync({
         first: 100,
         after,
-        mediaType: MediaLibrary.MediaType.photo,
+        // Videos carry GPS too — vacation memories are often mostly video, so
+        // scanning both finds countries a photo-only scan would miss.
+        mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
       });
       if (page.assets.length === 0) break;
 
@@ -110,6 +115,7 @@ export async function scanPhotosForCountries(
           const lat = Number(loc.latitude);
           const lng = Number(loc.longitude);
           if (!Number.isFinite(lat) || !Number.isFinite(lng) || (lat === 0 && lng === 0)) continue;
+          located++;
           const key = `${lat.toFixed(1)},${lng.toFixed(1)}`;
           let code = coordCache.get(key);
           if (code === undefined) {
@@ -147,5 +153,5 @@ export async function scanPhotosForCountries(
     countryCode: code,
     firstYear: year,
   }));
-  return { rows, scanned, limited, partial };
+  return { rows, scanned, located, limited, partial };
 }

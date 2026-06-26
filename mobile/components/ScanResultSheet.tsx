@@ -12,6 +12,7 @@ import type { PlaceRow } from '../src/lib/flightyImport';
 export function ScanResultSheet({
   visible,
   scanned,
+  located,
   rows,
   existingCodes,
   busy,
@@ -20,6 +21,7 @@ export function ScanResultSheet({
 }: {
   visible: boolean;
   scanned: number;
+  located: number;
   rows: PlaceRow[];
   existingCodes: Set<string>;
   busy: boolean;
@@ -63,7 +65,7 @@ export function ScanResultSheet({
   return (
     <SheetShell visible={visible} title="Countries we found" onClose={onClose}>
       <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, paddingHorizontal: 20, marginBottom: 6 }}>
-        Scanned {scanned.toLocaleString()} photo{scanned === 1 ? '' : 's'} · {fresh.length} new, {already.length} already on your map.
+        Scanned {scanned.toLocaleString()} item{scanned === 1 ? '' : 's'} ({located.toLocaleString()} with a location) · {fresh.length} new, {already.length} already on your map.
       </Text>
 
       <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 6, paddingBottom: 8 }}>
