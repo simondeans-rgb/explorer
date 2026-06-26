@@ -34,15 +34,23 @@ function chunk<T>(arr: T[], size: number): T[][] {
 }
 
 /** Resolve `p`, or null if it rejects or doesn't settle within `ms` — so a
- *  single asset that hangs (e.g. an iCloud lookup) can't freeze the scan. */
-function safeAssetInfo(a: MediaLibrary.Asset, ms: number): Promise<MediaLibrary.AssetInfo | null> {
+ *  single asset that hangs (e.g. an iCloud lookup) can't freeze the scan.
+ *  `download` allows fetching the location from iCloud for offloaded photos. */
+function safeAssetInfo(a: MediaLibrary.Asset, ms: number, download: boolean): Promise<MediaLibrary.AssetInfo | null> {
   let work: Promise<MediaLibrary.AssetInfo | null>;
   try {
-    work = MediaLibrary.getAssetInfoAsync(a, { shouldDownloadFromNetwork: false }).catch(() => null);
+    work = MediaLibrary.getAssetInfoAsync(a, { shouldDownloadFromNetwork: download }).catch(() => null);
   } catch {
     return Promise.resolve(null);
   }
   return Promise.race([work, new Promise<null>((res) => setTimeout(() => res(null), ms))]);
+}
+
+export interface ScanOptions {
+  /** Fetch locations from iCloud for offloaded photos — finds more countries
+   *  but is slower and uses network data. */
+  thorough?: boolean;
+  maxAssets?: number;
 }
 
 /** Scan the whole library (paged) for geotagged photos. Photos taken while you
@@ -51,10 +59,16 @@ function safeAssetInfo(a: MediaLibrary.Asset, ms: number): Promise<MediaLibrary.
 export async function scanPhotosForCountries(
   onProgress?: (p: ScanProgress) => void,
   home: HomeRange[] = [],
+  opts: ScanOptions = {},
+): Promise<ScanResult> {
+  const thorough = opts.thorough ?? false;
   // High enough to cover essentially any personal library — a lower cap could
   // truncate before reaching older trips (e.g. a holiday from several years ago).
-  maxAssets = 200000,
-): Promise<ScanResult> {
+  const maxAssets = opts.maxAssets ?? 200000;
+  // Thorough mode pulls each missing location from iCloud, so allow longer per
+  // asset and a gentler concurrency; the fast pass stays local-only.
+  const perAssetMs = thorough ? 30000 : 12000;
+  const concurrency = thorough ? 6 : 10;
   let perm;
   try {
     perm = await MediaLibrary.requestPermissionsAsync();
@@ -82,13 +96,12 @@ export async function scanPhotosForCountries(
       });
       if (page.assets.length === 0) break;
 
-      for (const group of chunk(page.assets, 10)) {
-        // 12s per asset: iCloud-offloaded photos can be slow to surface their
-        // metadata, and a too-short timeout silently dropped them (so whole
-        // trips stored in iCloud went undetected). The keep-awake lock above
-        // means a longer, more thorough scan won't be cut off by the screen
-        // locking. Reads run 10-at-a-time so throughput stays reasonable.
-        const infos = await Promise.all(group.map((a) => safeAssetInfo(a, 12000)));
+      for (const group of chunk(page.assets, concurrency)) {
+        // iCloud-offloaded photos can be slow to surface their metadata, and a
+        // too-short timeout silently dropped them (so whole trips stored in
+        // iCloud went undetected). The keep-awake lock above means a longer,
+        // more thorough scan won't be cut off by the screen locking.
+        const infos = await Promise.all(group.map((a) => safeAssetInfo(a, perAssetMs, thorough)));
         for (let i = 0; i < group.length; i++) {
           scanned++;
           const loc = infos[i]?.location;
