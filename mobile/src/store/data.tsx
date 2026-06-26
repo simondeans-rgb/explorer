@@ -416,23 +416,37 @@ export function DataProvider({ children }: { children: ReactNode }) {
       for (const t of ownTrips.current) m.set(t.id, t);
       for (const t of sharedTrips.current) if (!m.has(t.id)) m.set(t.id, t);
       const merged = [...m.values()];
+      localRef.current = { ...localRef.current, trips: merged };
       setData((p) => ({ ...p, trips: merged }));
+    };
+    // Keep localRef in step with the live cloud data so functional readers
+    // (e.g. importPlaces' dedup) see the real state, not the empty SEED.
+    const syncRef = (patch: Partial<DataShape>) => {
+      localRef.current = { ...localRef.current, ...patch };
     };
     const unsubs = [
       onSnapshot(q('places'), (snap) => {
-        setData((p) => ({ ...p, places: snap.docs.map((d) => placeFromDoc(d.id, d.data())) }));
+        const places = snap.docs.map((d) => placeFromDoc(d.id, d.data()));
+        syncRef({ places });
+        setData((p) => ({ ...p, places }));
         markReady('places');
       }),
       onSnapshot(q('discoveries'), (snap) => {
-        setData((p) => ({ ...p, discoveries: snap.docs.map((d) => discoveryFromDoc(d.id, d.data())) }));
+        const discoveries = snap.docs.map((d) => discoveryFromDoc(d.id, d.data()));
+        syncRef({ discoveries });
+        setData((p) => ({ ...p, discoveries }));
         markReady('discoveries');
       }),
       onSnapshot(q('expeditions'), (snap) => {
-        setData((p) => ({ ...p, expeditions: snap.docs.map((d) => expeditionFromDoc(d.id, d.data())) }));
+        const expeditions = snap.docs.map((d) => expeditionFromDoc(d.id, d.data()));
+        syncRef({ expeditions });
+        setData((p) => ({ ...p, expeditions }));
         markReady('expeditions');
       }),
       onSnapshot(q('captures'), (snap) => {
-        setData((p) => ({ ...p, captures: snap.docs.map((d) => captureFromDoc(d.id, d.data())) }));
+        const captures = snap.docs.map((d) => captureFromDoc(d.id, d.data()));
+        syncRef({ captures });
+        setData((p) => ({ ...p, captures }));
         markReady('captures');
       }),
       // Trips: your own + trips friends have invited you to collaborate on.
@@ -988,8 +1002,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (fresh.length === 0 && updates.length === 0) return 0;
 
         if (cloud && fdb && uid) {
+          // Reflect the additions immediately (optimistic), then fire the cloud
+          // writes without awaiting — RN Firestore keeps only a memory cache and
+          // its write promises don't resolve offline, so an awaited loop could
+          // hang and the new places might never appear. onSnapshot reconciles to
+          // server truth (with real ids) as soon as the writes land.
+          const now = Date.now();
+          const optimistic: Place[] = fresh.map((r) => ({
+            id: newId(),
+            userId: uid,
+            kind: r.kind,
+            countryCode: r.countryCode,
+            name: r.kind === 'country' ? countryName(r.countryCode) : (r.name ?? '').trim(),
+            relationships: ['visited'],
+            firstYear: r.firstYear,
+            createdAt: now,
+            updatedAt: now,
+          }));
+          const updateMap = new Map(updates.map((u) => [u.id, u.firstYear]));
+          const applyOptimistic = (list: Place[]) => [
+            ...list.map((pl) => (updateMap.has(pl.id) ? { ...pl, firstYear: updateMap.get(pl.id)!, updatedAt: now } : pl)),
+            ...optimistic,
+          ];
+          localRef.current = { ...localRef.current, places: applyOptimistic(localRef.current.places) };
+          setData((p) => ({ ...p, places: applyOptimistic(p.places) }));
           for (const r of fresh) {
-            await addDoc(collection(fdb, 'places'), {
+            addDoc(collection(fdb, 'places'), {
               userId: uid,
               kind: r.kind,
               countryCode: r.countryCode,
@@ -1002,7 +1040,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             }).catch(() => {});
           }
           for (const u of updates) {
-            await updateDoc(doc(fdb, 'places', u.id), { firstYear: u.firstYear, updatedAt: serverTimestamp() }).catch(() => {});
+            updateDoc(doc(fdb, 'places', u.id), { firstYear: u.firstYear, updatedAt: serverTimestamp() }).catch(() => {});
           }
         } else {
           const now = Date.now();
