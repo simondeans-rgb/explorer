@@ -4,9 +4,14 @@
 // expo-media-library for GPS + capture date and an OFFLINE point-in-polygon
 // lookup (no OS reverse geocoder, which iOS rate-limits/hangs).
 import * as MediaLibrary from 'expo-media-library';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import type { PlaceRow } from './flightyImport';
 import { isHome, type HomeRange } from './residence';
 import { countryAt } from './geoLookup';
+
+// Keep the screen on for the duration of a scan: a large library can take a
+// while, and an auto-lock mid-scan would suspend JS and leave it unfinished.
+const KEEP_AWAKE_TAG = 'worldly-photo-scan';
 
 export interface ScanProgress {
   scanned: number;
@@ -63,6 +68,9 @@ export async function scanPhotosForCountries(
   let scanned = 0;
   let partial = false;
 
+  // Best-effort: never let a keep-awake failure stop the scan.
+  await activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => {});
+
   try {
     while (scanned < maxAssets) {
       const page = await MediaLibrary.getAssetsAsync({
@@ -109,6 +117,8 @@ export async function scanPhotosForCountries(
     }
   } catch {
     partial = true; // return whatever we managed to collect
+  } finally {
+    deactivateKeepAwake(KEEP_AWAKE_TAG).catch(() => {});
   }
 
   onProgress?.({ scanned, countries: earliestYear.size, done: true });
