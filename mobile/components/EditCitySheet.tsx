@@ -10,7 +10,6 @@ import { countryName } from '../src/data/countries';
 import type { Place } from '../src/types';
 import { useData } from '../src/store/data';
 import { useToast } from '../src/store/toast';
-import { useConfirm } from '../src/store/confirm';
 
 const thisYear = new Date().getFullYear();
 const YEAR_OPTS: DropdownOption[] = Array.from({ length: 96 }, (_, i) => ({ label: String(thisYear - i), value: thisYear - i }));
@@ -21,14 +20,17 @@ const LBL = { fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700' as cons
 export function EditCitySheet({ city, onClose }: { city: Place | null; onClose: () => void }) {
   const { updatePlace, removePlace } = useData();
   const { toast } = useToast();
-  const confirm = useConfirm();
   const [year, setYear] = useState<number | null>(null);
   const [note, setNote] = useState('');
+  // Inline confirm — a nested Modal (the global confirm dialog) can't present
+  // over this sheet's own Modal on iOS, which froze the screen.
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     if (!city) return;
     setYear(city.firstYear ?? (city.firstDate ? Number(city.firstDate.slice(0, 4)) || null : null));
     setNote(city.note ?? '');
+    setConfirming(false);
   }, [city]);
 
   async function save() {
@@ -38,12 +40,11 @@ export function EditCitySheet({ city, onClose }: { city: Place | null; onClose: 
     onClose();
   }
 
-  async function del() {
+  function del() {
     if (!city) return;
-    if (await confirm({ title: `Remove ${city.name}?`, message: `${city.name} and its dates will be removed from ${countryName(city.countryCode)}.`, confirmLabel: 'Remove', destructive: true })) {
-      removePlace(city.id);
-      onClose();
-    }
+    removePlace(city.id);
+    toast.success(`${city.name} removed`);
+    onClose();
   }
 
   return (
@@ -72,11 +73,30 @@ export function EditCitySheet({ city, onClose }: { city: Place | null; onClose: 
           </View>
         </View>
 
-        <Button label="Save changes" onPress={save} />
-        <Pressable onPress={del} hitSlop={8} className="flex-row items-center justify-center" style={{ gap: 7, paddingVertical: 6 }}>
-          <Trash2 size={15} color={COLORS.danger} />
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.danger }}>Remove city</Text>
-        </Pressable>
+        {confirming ? (
+          <View style={{ gap: 12 }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink2, textAlign: 'center', lineHeight: 20 }}>
+              Remove {city?.name} and its dates from {city ? countryName(city.countryCode) : ''}?
+            </Text>
+            <View className="flex-row" style={{ gap: 10 }}>
+              <Pressable onPress={() => setConfirming(false)} className="flex-1 items-center justify-center rounded-full" style={{ paddingVertical: 14, backgroundColor: 'rgba(20,33,61,0.06)' }}>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.ink2 }}>Keep</Text>
+              </Pressable>
+              <Pressable onPress={del} className="flex-1 flex-row items-center justify-center rounded-full" style={{ paddingVertical: 14, gap: 7, backgroundColor: COLORS.danger }}>
+                <Trash2 size={15} color="#fff" />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: '#fff' }}>Remove</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <>
+            <Button label="Save changes" onPress={save} />
+            <Pressable onPress={() => setConfirming(true)} hitSlop={8} className="flex-row items-center justify-center" style={{ gap: 7, paddingVertical: 6 }}>
+              <Trash2 size={15} color={COLORS.danger} />
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.danger }}>Remove city</Text>
+            </Pressable>
+          </>
+        )}
       </View>
     </SheetShell>
   );
