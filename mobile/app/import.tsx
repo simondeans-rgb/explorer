@@ -11,6 +11,8 @@ import { buildImportPlan, planFromFlights, flightsFromExpeditions } from '../src
 import { parseCountryList } from '../src/lib/listImport';
 import { scanPhotosForCountries } from '../src/lib/photoScan';
 import { homeRanges } from '../src/lib/residence';
+import { ScanResultSheet } from '../components/ScanResultSheet';
+import type { PlaceRow } from '../src/lib/flightyImport';
 
 export default function ImportScreen() {
   const { importPlaces, importExpeditions, places, expeditions, removeExpedition } = useData();
@@ -34,6 +36,16 @@ export default function ImportScreen() {
   const [scanBusy, setScanBusy] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanMsg, setScanMsg] = useState<string | null>(null);
+  const [scanSheetOpen, setScanSheetOpen] = useState(false);
+  const [scanRows, setScanRows] = useState<PlaceRow[]>([]);
+  const [scanScanned, setScanScanned] = useState(0);
+  const [scanNote, setScanNote] = useState('');
+  const [addBusy, setAddBusy] = useState(false);
+
+  // Countries already on the map — used to mark scan results as new vs existing.
+  const existingCountryCodes = new Set(
+    places.filter((p) => p.kind === 'country' && p.countryCode).map((p) => p.countryCode),
+  );
 
   async function importFlighty() {
     setCsvMsg(null);
@@ -119,17 +131,38 @@ export default function ImportScreen() {
       const limitedNote = limited
         ? ' Worldly only has access to selected photos — choose “All Photos” in Settings → Worldly → Photos for a full scan.'
         : '';
-      const partialNote = partial ? ' (The scan stopped early — tap to run it again to finish.)' : '';
+      const partialNote = partial ? ' (The scan stopped early — run it again to finish.)' : '';
       if (rows.length === 0) {
         setScanMsg(`Scanned ${scanned} photos — none had usable location data.${limitedNote}${partialNote}`);
         return;
       }
-      const added = await importPlaces(rows);
-      setScanMsg(`Scanned ${scanned} photos → found ${rows.length} countries, added ${added} new.${limitedNote}${partialNote}`);
+      // Hand the detected countries to the review sheet — the user chooses
+      // which to add rather than importing them silently.
+      setScanScanned(scanned);
+      setScanRows(rows);
+      setScanNote(`${limitedNote}${partialNote}`);
+      setScanSheetOpen(true);
     } catch {
       setScanMsg('Could not scan your photos.');
     } finally {
       setScanBusy(false);
+    }
+  }
+
+  async function addScanned(selected: PlaceRow[]) {
+    setAddBusy(true);
+    try {
+      const added = await importPlaces(selected);
+      setScanSheetOpen(false);
+      setScanMsg(
+        added > 0
+          ? `Added ${added} ${added === 1 ? 'country' : 'countries'} to your map.${scanNote}`
+          : `No new countries added.${scanNote}`,
+      );
+    } catch {
+      setScanMsg('Could not add those countries.');
+    } finally {
+      setAddBusy(false);
     }
   }
 
@@ -188,6 +221,16 @@ export default function ImportScreen() {
           {scanMsg ? <Msg text={scanMsg} /> : null}
         </Card>
       </ScrollView>
+
+      <ScanResultSheet
+        visible={scanSheetOpen}
+        scanned={scanScanned}
+        rows={scanRows}
+        existingCodes={existingCountryCodes}
+        busy={addBusy}
+        onClose={() => setScanSheetOpen(false)}
+        onConfirm={addScanned}
+      />
     </View>
   );
 }
