@@ -9,6 +9,9 @@
       "distribution": "internal",
       "channel": "main",
       "environment": "development",
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      },
       "ios": {
         "simulator": false
       }
@@ -17,6 +20,9 @@
       "distribution": "internal",
       "channel": "main",
       "environment": "preview",
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      },
       "ios": {
         "simulator": false
       }
@@ -24,7 +30,10 @@
     "production": {
       "autoIncrement": true,
       "channel": "main",
-      "environment": "production"
+      "environment": "production",
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      }
     }
   },
   "submit": {
