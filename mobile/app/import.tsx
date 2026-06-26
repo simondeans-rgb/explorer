@@ -40,6 +40,7 @@ export default function ImportScreen() {
   const [scanSheetOpen, setScanSheetOpen] = useState(false);
   const [scanRows, setScanRows] = useState<PlaceRow[]>([]);
   const [scanScanned, setScanScanned] = useState(0);
+  const [scanLocated, setScanLocated] = useState(0);
   const [scanNote, setScanNote] = useState('');
   const [addBusy, setAddBusy] = useState(false);
 
@@ -125,7 +126,7 @@ export default function ImportScreen() {
     setScanThorough(thorough);
     setScanProgress(0);
     try {
-      const { rows, scanned, denied, limited, partial } = await scanPhotosForCountries((p) => setScanProgress(p.scanned), homeRanges(places), { thorough });
+      const { rows, scanned, located, denied, limited, partial } = await scanPhotosForCountries((p) => setScanProgress(p.scanned), homeRanges(places), { thorough });
       if (denied) {
         setScanMsg('Photo access is needed to detect where you’ve been.');
         return;
@@ -135,12 +136,19 @@ export default function ImportScreen() {
         : '';
       const partialNote = partial ? ' (The scan stopped early — run it again to finish.)' : '';
       if (rows.length === 0) {
-        setScanMsg(`Scanned ${scanned} photos — none had usable location data.${limitedNote}${partialNote}`);
+        const locHint =
+          located === 0 && !thorough
+            ? ' None of your photos had a location tag — try the thorough scan, which also checks photos stored in iCloud.'
+            : located === 0
+              ? ' None of your photos had a location tag (location may have been off when they were taken).'
+              : '';
+        setScanMsg(`Scanned ${scanned.toLocaleString()} items, ${located.toLocaleString()} with a location — found no new countries.${locHint}${limitedNote}${partialNote}`);
         return;
       }
       // Hand the detected countries to the review sheet — the user chooses
       // which to add rather than importing them silently.
       setScanScanned(scanned);
+      setScanLocated(located);
       setScanRows(rows);
       setScanNote(`${limitedNote}${partialNote}`);
       setScanSheetOpen(true);
@@ -243,6 +251,7 @@ export default function ImportScreen() {
       <ScanResultSheet
         visible={scanSheetOpen}
         scanned={scanScanned}
+        located={scanLocated}
         rows={scanRows}
         existingCodes={existingCountryCodes}
         busy={addBusy}
