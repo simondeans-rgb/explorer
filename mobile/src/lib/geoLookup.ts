@@ -1,7 +1,15 @@
 // Offline reverse geocoding: lat/lng -> ISO country code, using the bundled
 // world-atlas country polygons (no network, no OS geocoder, no rate limits).
+//
+// Uses the 50m resolution (not the 110m set the map renders): at 110m, small
+// islands such as Cozumel fall outside the simplified coastline entirely, so a
+// genuine Mexico photo there would resolve to nothing. 50m includes those
+// islands while staying light enough to parse once at scan time.
 import { geoContains, geoCentroid, geoBounds, geoDistance } from 'd3-geo';
-import { WORLD_FEATURES } from './worldGeo';
+import { feature } from 'topojson-client';
+import type { Feature, Geometry } from 'geojson';
+import world50 from 'world-atlas/countries-50m.json';
+import { geoAlpha2 } from './worldGeo';
 
 interface Feat {
   code: string;
@@ -10,12 +18,26 @@ interface Feat {
   centroid: [number, number];
 }
 
-const FEATS: Feat[] = WORLD_FEATURES.filter((f) => f.alpha2).map((f) => ({
-  code: f.alpha2!,
-  feature: f.feature as unknown as GeoJSON.Feature,
-  bounds: geoBounds(f.feature) as [[number, number], [number, number]],
-  centroid: geoCentroid(f.feature) as [number, number],
-}));
+const FEATS: Feat[] = (() => {
+  const collection = feature(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    world50 as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (world50 as any).objects.countries,
+  ) as unknown as { features: Feature<Geometry>[] };
+  const out: Feat[] = [];
+  for (const f of collection.features) {
+    const code = geoAlpha2((f.properties as { name?: string } | null)?.name);
+    if (!code) continue;
+    out.push({
+      code,
+      feature: f as unknown as GeoJSON.Feature,
+      bounds: geoBounds(f) as [[number, number], [number, number]],
+      centroid: geoCentroid(f) as [number, number],
+    });
+  }
+  return out;
+})();
 
 function inBounds(b: [[number, number], [number, number]], lng: number, lat: number): boolean {
   const [[w, s], [e, n]] = b;
