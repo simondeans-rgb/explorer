@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { readAsStringAsync } from 'expo-file-system/legacy';
-import { Plane, ListChecks, Images, Check, RefreshCw } from 'lucide-react-native';
+import { Plane, ListChecks, Images, Check, RefreshCw, CloudDownload } from 'lucide-react-native';
 import { PageHero } from '../components/PageHero';
 import { goBack } from '../src/lib/nav';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
@@ -34,6 +34,7 @@ export default function ImportScreen() {
 
   // Photos
   const [scanBusy, setScanBusy] = useState(false);
+  const [scanThorough, setScanThorough] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanMsg, setScanMsg] = useState<string | null>(null);
   const [scanSheetOpen, setScanSheetOpen] = useState(false);
@@ -118,12 +119,13 @@ export default function ImportScreen() {
     }
   }
 
-  async function scanPhotos() {
+  async function scanPhotos(thorough = false) {
     setScanMsg(null);
     setScanBusy(true);
+    setScanThorough(thorough);
     setScanProgress(0);
     try {
-      const { rows, scanned, denied, limited, partial } = await scanPhotosForCountries((p) => setScanProgress(p.scanned), homeRanges(places));
+      const { rows, scanned, denied, limited, partial } = await scanPhotosForCountries((p) => setScanProgress(p.scanned), homeRanges(places), { thorough });
       if (denied) {
         setScanMsg('Photo access is needed to detect where you’ve been.');
         return;
@@ -211,13 +213,29 @@ export default function ImportScreen() {
 
         {/* Photos */}
         <Card icon={Images} title="Scan your photos" body="We read each photo’s location tag and date (on your device only) to detect the countries you’ve visited, in the right year — and skip anywhere you lived at the time, so home doesn’t count as a trip. Scanning your whole library can take a minute.">
-          <Pressable onPress={scanPhotos} disabled={scanBusy} style={btn(scanBusy)}>
-            {scanBusy ? (
+          <Pressable onPress={() => scanPhotos(false)} disabled={scanBusy} style={btn(scanBusy)}>
+            {scanBusy && !scanThorough ? (
               <Text style={btnText}>Scanning… {scanProgress} photos</Text>
             ) : (
               <Text style={btnText}>Scan my photos</Text>
             )}
           </Pressable>
+          <Pressable onPress={() => scanPhotos(true)} disabled={scanBusy} className="flex-row items-center justify-center" style={ghostBtn(scanBusy)}>
+            {scanBusy && scanThorough ? (
+              <>
+                <ActivityIndicator color={COLORS.ink2} />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.ink2, marginLeft: 8 }}>Thorough scan… {scanProgress}</Text>
+              </>
+            ) : (
+              <>
+                <CloudDownload size={15} color={COLORS.ink2} />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.ink2, marginLeft: 7 }}>Thorough scan (uses data)</Text>
+              </>
+            )}
+          </Pressable>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 8, lineHeight: 17 }}>
+            A thorough scan also checks photos stored in iCloud — it finds more countries but is slower and uses network data.
+          </Text>
           {scanMsg ? <Msg text={scanMsg} /> : null}
         </Card>
       </ScrollView>
