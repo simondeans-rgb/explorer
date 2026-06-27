@@ -108,6 +108,34 @@ export function discoveryScoreBreakdown(a: CountryAggregate): ScoreBreakdown {
   return { total: Math.min(100, total), lines, tips };
 }
 
+/** Collapse duplicate city records (same name within a country) into one,
+ *  keeping the earliest first visit and the union of relationships. Such
+ *  duplicates are a data artefact of imports run before dedup was reliable;
+ *  without this a city shows twice and inflates the cities count. */
+function dedupeCities(cities: Place[]): Place[] {
+  const byName = new Map<string, Place>();
+  for (const c of cities) {
+    const key = (c.name ?? '').trim().toLowerCase();
+    if (!key) continue;
+    const prev = byName.get(key);
+    if (!prev) {
+      byName.set(key, c);
+      continue;
+    }
+    const base = (c.firstYear ?? Infinity) < (prev.firstYear ?? Infinity) ? c : prev;
+    const minYear =
+      prev.firstYear == null ? c.firstYear : c.firstYear == null ? prev.firstYear : Math.min(prev.firstYear, c.firstYear);
+    const minDate = !prev.firstDate ? c.firstDate : !c.firstDate ? prev.firstDate : prev.firstDate < c.firstDate ? prev.firstDate : c.firstDate;
+    byName.set(key, {
+      ...base,
+      relationships: [...new Set([...prev.relationships, ...c.relationships])],
+      firstYear: minYear,
+      firstDate: minDate,
+    });
+  }
+  return [...byName.values()];
+}
+
 export function aggregateByCountry(places: Place[]): CountryAggregate[] {
   const groups = new Map<string, Place[]>();
   for (const p of places) {
@@ -120,7 +148,7 @@ export function aggregateByCountry(places: Place[]): CountryAggregate[] {
   const aggregates: CountryAggregate[] = [];
   for (const [code, group] of groups) {
     const countryPlace = group.find((p) => p.kind === 'country');
-    const cities = group.filter((p) => p.kind === 'city');
+    const cities = dedupeCities(group.filter((p) => p.kind === 'city'));
     const regions = group.filter((p) => p.kind === 'region');
 
     const rels = new Set<Relationship>();

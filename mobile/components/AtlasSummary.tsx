@@ -25,7 +25,7 @@ function WorldRing({ pct, size = 116 }: { pct: number; size?: number }) {
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
   const p = Math.max(0, Math.min(100, pct)) / 100;
-  const label = pct < 10 ? pct.toFixed(1) : String(Math.round(pct));
+  const label = String(Math.round(pct));
   return (
     <View style={{ width: size, alignItems: 'center' }}>
       <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -96,7 +96,7 @@ export const AtlasSummary = memo(function AtlasSummary({
   sharing: boolean;
 }) {
   const conts = CONTINENTS.filter((c) => totalByContinent[c]);
-  const pctLabel = worldPct < 10 ? worldPct.toFixed(1) : String(Math.round(worldPct));
+  const pctLabel = String(Math.round(worldPct));
   const nCountries = stats.countriesDiscovered;
   const nConts = stats.continentsDiscovered;
   const narrative =
