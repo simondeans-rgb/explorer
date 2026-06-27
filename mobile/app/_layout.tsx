@@ -88,7 +88,9 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false }}>
+      {/* gestureEnabled + fullScreenGestureEnabled: swipe left-to-right anywhere
+          on a pushed screen (not just the edge) to go back. iOS native-stack. */}
+      <Stack screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="country/[code]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="trip/[id]" options={{ animation: 'slide_from_right' }} />
