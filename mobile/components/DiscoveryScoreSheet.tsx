@@ -21,7 +21,7 @@ export function DiscoveryScoreSheet({
   return (
     <SheetShell visible={visible} title="Discovery Score" onClose={onClose}>
       {aggregate && bd ? (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 12 }}>
+        <ScrollView showsVerticalScrollIndicator contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28 }}>
           {/* hero */}
           <View className="items-center" style={{ marginBottom: 6 }}>
             <ScoreRing score={bd.total} size={104} stroke={9} color={COLORS.coral} trackColor="rgba(20,33,61,0.08)" textColor={COLORS.navy} />

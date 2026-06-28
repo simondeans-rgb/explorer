@@ -117,7 +117,7 @@ export default function FriendsScreen() {
 
       {/* Your code */}
       <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
-        <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 24, padding: 20 }}>
+        <LinearGradient colors={['#22335A', COLORS.navy]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 24, padding: 20 }}>
           <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1.5, opacity: 0.85 }}>YOUR SHARE CODE</Text>
           <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 36, marginTop: 4, letterSpacing: 2 }}>
             {profile ? profile.code : '· · · · · ·'}
