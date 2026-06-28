@@ -51,6 +51,25 @@ const VERDICT_ORDER: Record<string, number> = {
   avoid: 5,
 };
 
+const VERDICT_LABEL: Record<string, string> = {
+  recommend: 'Recommends',
+  'hidden-gem': 'Hidden gem',
+  'worth-visiting': 'Worth a visit',
+  overrated: 'Overrated',
+  avoid: 'Would avoid',
+};
+
+/** Rough northern-hemisphere season for an ISO date — used to tell apart two
+ *  trips to the same country in the same year. */
+function seasonOf(iso?: string): string {
+  const m = iso ? Number(iso.slice(5, 7)) : 0;
+  if (!m) return '';
+  if (m === 12 || m <= 2) return 'Winter';
+  if (m <= 5) return 'Spring';
+  if (m <= 8) return 'Summer';
+  return 'Autumn';
+}
+
 const MONTHS = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
 
 function fmtNum(n: number): string {
@@ -95,6 +114,14 @@ function TempChart({ temps }: { temps: number[] }) {
           <Text key={i} style={{ flex: 1, textAlign: 'center', fontFamily: 'PlusJakarta', fontSize: 9, color: COLORS.ink3 }}>{m}</Text>
         ))}
       </View>
+    </View>
+  );
+}
+
+function CircleAvatar({ name }: { name: string }) {
+  return (
+    <View className="rounded-full items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(155,124,255,0.16)' }}>
+      <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.lavender }}>{name.charAt(0).toUpperCase()}</Text>
     </View>
   );
 }
@@ -221,6 +248,37 @@ export default function CountryScreen() {
     return list.filter((e) => e.countryCodes.every((c) => homeCodes.has(c)));
   }, [expeditions, code, aggregates]);
   const myPhotos = useMemo(() => captures.filter((c) => c.countryCode === code), [captures, code]);
+
+  // Friends in your circle who've been to this country, with their top rec.
+  const circleHere = useMemo(() => {
+    const nameByUid = new Map(friends.map((f) => [f.uid, f.name]));
+    const present = new Map<string, string>();
+    for (const p of friendsData.places) {
+      if (p.countryCode !== code) continue;
+      if (!p.relationships.some((r) => r !== 'aspiring')) continue;
+      if (!present.has(p.userId)) present.set(p.userId, nameByUid.get(p.userId) ?? 'Friend');
+    }
+    const rank = (v?: string) => VERDICT_ORDER[v ?? '_none'] ?? 3;
+    const topByUid = new Map<string, { name: string; verdict?: RecommendationVerdict }>();
+    for (const d of friendDiscoveries) {
+      if (!present.has(d.uid)) continue;
+      const cur = topByUid.get(d.uid);
+      if (!cur || rank(d.verdict) < rank(cur.verdict)) topByUid.set(d.uid, { name: d.name, verdict: d.verdict });
+    }
+    return [...present.entries()]
+      .map(([uid, fname]) => ({ uid, name: fname, top: topByUid.get(uid) }))
+      .sort((a, b) => (a.top ? 0 : 1) - (b.top ? 0 : 1));
+  }, [friendsData.places, friends, friendDiscoveries, code]);
+
+  // Same-country-same-year trips get a season suffix so they're distinguishable.
+  const dupJourneyKeys = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const e of myJourneys) {
+      const k = `${e.countryCodes[0] ?? ''}|${e.startDate?.slice(0, 4) ?? '?'}`;
+      counts.set(k, (counts.get(k) ?? 0) + 1);
+    }
+    return new Set([...counts.entries()].filter(([, n]) => n > 1).map(([k]) => k));
+  }, [myJourneys]);
 
   const name = countryName(code) || code;
   const continent = agg?.continent ?? continentOf(code);
@@ -376,20 +434,58 @@ export default function CountryScreen() {
           </Section>
         ) : null}
 
+        {/* Your Circle — friends who've been here + their top rec */}
+        {friends.length > 0 ? (
+          <Section title="Your Circle">
+            {circleHere.length > 0 ? (
+              <View style={{ gap: 10 }}>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginBottom: 2 }}>
+                  {circleHere.length} {circleHere.length === 1 ? 'person' : 'people'} in your circle {circleHere.length === 1 ? 'has' : 'have'} been to {name}.
+                </Text>
+                {circleHere.map((f) => (
+                  <View key={f.uid} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 14, gap: 12 }}>
+                    <CircleAvatar name={f.name} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{f.name}</Text>
+                      {f.top ? (
+                        <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 1 }}>
+                          {VERDICT_LABEL[f.top.verdict ?? ''] ?? 'Loved'}: {f.top.name}
+                        </Text>
+                      ) : (
+                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 1 }}>Visited {name}</Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View className="bg-white rounded-3xl" style={{ padding: 16 }}>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, color: COLORS.ink3, textAlign: 'center' }}>
+                  None of your circle have been here yet — be the first.
+                </Text>
+              </View>
+            )}
+          </Section>
+        ) : null}
+
         {/* Journeys */}
         {myJourneys.length > 0 ? (
           <Section title={`Journeys (${myJourneys.length})`}>
             <View style={{ gap: 10 }}>
-              {myJourneys.map((e) => (
-                <View key={e.id} className="bg-white rounded-3xl" style={{ padding: 16 }}>
-                  <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy }}>{e.title}</Text>
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2 }}>
-                    {e.countryCodes.map((c) => flagEmoji(c)).join(' ')}
-                    {e.startDate ? ` · ${e.startDate.slice(0, 4)}` : ''}
-                    {e.journeys[0] ? ` · ${JOURNEY_MODE_META[e.journeys[0].mode].label}` : ''}
-                  </Text>
-                </View>
-              ))}
+              {myJourneys.map((e) => {
+                const key = `${e.countryCodes[0] ?? ''}|${e.startDate?.slice(0, 4) ?? '?'}`;
+                const season = dupJourneyKeys.has(key) ? seasonOf(e.startDate) : '';
+                return (
+                  <View key={e.id} className="bg-white rounded-3xl" style={{ padding: 16 }}>
+                    <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy }}>{season ? `${e.title} · ${season}` : e.title}</Text>
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2 }}>
+                      {e.countryCodes.map((c) => flagEmoji(c)).join(' ')}
+                      {e.startDate ? ` · ${e.startDate.slice(0, 4)}` : ''}
+                      {e.journeys[0] ? ` · ${JOURNEY_MODE_META[e.journeys[0].mode].label}` : ''}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
           </Section>
         ) : null}
