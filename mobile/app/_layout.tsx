@@ -96,6 +96,8 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
         <Stack.Screen name="trip/[id]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="discovery/[id]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="friends" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="invite-contacts" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="scan" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
         <Stack.Screen name="add/[code]" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
         <Stack.Screen name="import" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="almanac" options={{ animation: 'slide_from_right' }} />

@@ -67,6 +67,18 @@
           "isAccessMediaLocationEnabled": true
         }
       ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Worldly uses your contacts so you can invite friends you already know to your travel circle."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Worldly uses your camera to scan a friend's Worldly QR code and connect with them."
+        }
+      ],
       "@sentry/react-native",
       "expo-apple-authentication",
       [
