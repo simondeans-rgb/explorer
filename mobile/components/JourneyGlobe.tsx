@@ -227,16 +227,17 @@ export function JourneyGlobe({
   // Tap a country on the Places globe: invert the tap pixel to lon/lat (via the
   // live projection), then hit-test it against the visited/wishlist polygons.
   function handleTap(x: number, y: number) {
-    const { project, size: s, features, onPress } = hitRef.current;
+    const { project, size: s, onPress } = hitRef.current;
     if (!onPress || !project || !s) return;
     // x/y are relative to the Svg view (size×size), so they map straight into
     // the viewBox — no container-centring offset.
     const vb: [number, number] = [(x * VIEW) / s, (y * VIEW) / s];
     const ll = project.invert?.(vb);
     if (!ll || Number.isNaN(ll[0])) return;
-    for (const f of features) {
-      if (geoContains(f.feature, ll)) {
-        onPress(f.code);
+    // Hit-test every country (not just the coloured ones) so any country opens.
+    for (const wf of WORLD_FEATURES) {
+      if (wf.alpha2 && geoContains(wf.feature as unknown as GeoJSON.Feature, ll)) {
+        onPress(wf.alpha2);
         return;
       }
     }
