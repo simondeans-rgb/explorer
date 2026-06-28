@@ -227,11 +227,11 @@ export function JourneyGlobe({
   // Tap a country on the Places globe: invert the tap pixel to lon/lat (via the
   // live projection), then hit-test it against the visited/wishlist polygons.
   function handleTap(x: number, y: number) {
-    const { project, size: s, frameH: fh, w: ww, features, onPress } = hitRef.current;
+    const { project, size: s, features, onPress } = hitRef.current;
     if (!onPress || !project || !s) return;
-    const offX = (ww - s) / 2;
-    const offY = (fh - s) / 2; // negative: SVG overflows the cropped container
-    const vb: [number, number] = [((x - offX) * VIEW) / s, ((y - offY) * VIEW) / s];
+    // x/y are relative to the Svg view (size×size), so they map straight into
+    // the viewBox — no container-centring offset.
+    const vb: [number, number] = [(x * VIEW) / s, (y * VIEW) / s];
     const ll = project.invert?.(vb);
     if (!ll || Number.isNaN(ll[0])) return;
     for (const f of features) {
