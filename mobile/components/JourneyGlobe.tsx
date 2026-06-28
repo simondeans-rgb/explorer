@@ -33,6 +33,8 @@ const PLACE_WISHLIST = '#A48BFF';
 export interface PlacesLayer {
   visited: Set<string>;
   wishlist?: Set<string>;
+  /** Visited country codes in the order they should colour in (chronological). */
+  order?: string[];
   onPressCountry?: (code: string) => void;
 }
 
@@ -75,15 +77,19 @@ export function JourneyGlobe({
    *  well as) drawing journey arcs — turning it into the Places map. */
   places?: PlacesLayer;
 }) {
-  // The country polygons to fill, paired with their colour (Places mode only).
+  // The country polygons to fill, paired with their colour and a reveal index
+  // (`ord`) so they colour in one-by-one in visit order (Places mode only).
   const placeFeatures = useMemo(() => {
-    if (!places) return [] as { code: string; feature: GeoJSON.Feature; fill: string }[];
-    const out: { code: string; feature: GeoJSON.Feature; fill: string }[] = [];
+    if (!places) return [] as { code: string; feature: GeoJSON.Feature; fill: string; ord: number }[];
+    const orderIndex = new Map((places.order ?? []).map((c, i) => [c, i]));
+    let nextOrd = places.order?.length ?? 0; // wish-listed (and any unordered) reveal after the visited ones
+    const out: { code: string; feature: GeoJSON.Feature; fill: string; ord: number }[] = [];
     for (const wf of WORLD_FEATURES) {
       const c = wf.alpha2;
       if (!c) continue;
-      if (places.visited.has(c)) out.push({ code: c, feature: wf.feature as unknown as GeoJSON.Feature, fill: PLACE_VISITED });
-      else if (places.wishlist?.has(c)) out.push({ code: c, feature: wf.feature as unknown as GeoJSON.Feature, fill: PLACE_WISHLIST });
+      const feature = wf.feature as unknown as GeoJSON.Feature;
+      if (places.visited.has(c)) out.push({ code: c, feature, fill: PLACE_VISITED, ord: orderIndex.get(c) ?? nextOrd++ });
+      else if (places.wishlist?.has(c)) out.push({ code: c, feature, fill: PLACE_WISHLIST, ord: nextOrd++ });
     }
     return out;
   }, [places]);
@@ -149,7 +155,7 @@ export function JourneyGlobe({
     size: number;
     frameH: number;
     w: number;
-    features: { code: string; feature: GeoJSON.Feature; fill: string }[];
+    features: { code: string; feature: GeoJSON.Feature; fill: string; ord: number }[];
     onPress?: (code: string) => void;
   }>({ project: null, size: 0, frameH: 0, w: 0, features: [] });
   const animStart = useRef(Date.now());
@@ -163,8 +169,12 @@ export function JourneyGlobe({
 
   const rEff = Math.min(MAX_R, globeR * zoom);
 
-  // Longer networks take a little longer to draw on, capped so it never drags.
-  const duration = useMemo(() => Math.min(1200 + segments.length * 340, 5200), [segments.length]);
+  // Longer networks / more countries take a little longer to draw on, capped so
+  // it never drags.
+  const duration = useMemo(
+    () => (places ? Math.min(1400 + placeFeatures.length * 150, 4600) : Math.min(1200 + segments.length * 340, 5200)),
+    [places, placeFeatures.length, segments.length],
+  );
 
   // Reframe (animated snap to north-up over the region) + replay the draw-on
   // whenever the network changes — e.g. when a year filter is toggled.
@@ -294,7 +304,7 @@ export function JourneyGlobe({
 
     // Places mode: fill visited/wishlist countries on the near hemisphere.
     const countryFills = placeFeatures
-      .map((f) => ({ code: f.code, d: path(f.feature) ?? '', fill: f.fill }))
+      .map((f) => ({ code: f.code, d: path(f.feature) ?? '', fill: f.fill, ord: f.ord }))
       .filter((f) => f.d);
 
     return { landPath: path(LAND_GEOMETRY) ?? '', borderPath: path(BORDERS_GEOMETRY) ?? '', gratPath: path(GRATICULE) ?? '', arcs, dots, countryFills, projection };
@@ -334,18 +344,24 @@ export function JourneyGlobe({
           {/* graticule + land + country outlines (clipped to the near hemisphere) */}
           {gratPath ? <Path d={gratPath} fill="none" stroke={GRAT} strokeWidth={0.5} /> : null}
           {landPath ? <Path d={landPath} fill={LAND} stroke={LAND_STROKE} strokeWidth={0.5} /> : null}
-          {/* Places mode: visited (coral) / wishlist (lavender) country fills */}
-          {countryFills.map((c) => (
-            <Path
-              key={c.code}
-              d={c.d}
-              fill={c.fill}
-              fillOpacity={anim}
-              stroke={c.fill === PLACE_VISITED ? PLACE_VISITED_EDGE : '#FFFFFF'}
-              strokeWidth={0.4}
-              strokeOpacity={0.5 * anim}
-            />
-          ))}
+          {/* Places mode: visited (coral) / wishlist (lavender) fills colour in
+              one-by-one in visit order as `anim` advances 0→1. */}
+          {countryFills.map((c) => {
+            const n = placeFeatures.length;
+            const startAt = n > 1 ? (c.ord / n) * 0.82 : 0;
+            const op = Math.max(0, Math.min(1, (anim - startAt) / 0.18));
+            return (
+              <Path
+                key={c.code}
+                d={c.d}
+                fill={c.fill}
+                fillOpacity={op}
+                stroke={c.fill === PLACE_VISITED ? PLACE_VISITED_EDGE : '#FFFFFF'}
+                strokeWidth={0.4}
+                strokeOpacity={0.5 * op}
+              />
+            );
+          })}
           {borderPath ? <Path d={borderPath} fill="none" stroke={BORDER} strokeWidth={0.4} /> : null}
           {/* journey arcs */}
           {arcs.map((d, i) => (
