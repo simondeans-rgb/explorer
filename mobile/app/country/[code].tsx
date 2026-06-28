@@ -313,9 +313,9 @@ export default function CountryScreen() {
           </Section>
         ) : null}
 
-        {/* Your connection */}
+        {/* Your relationship */}
         {rels.length > 0 || agg?.aspiring ? (
-          <Section title="Your connection">
+          <Section title="Your relationship">
             <View className="flex-row flex-wrap" style={{ gap: 8 }}>
               {agg?.aspiring && rels.length === 0 ? (
                 <View className="rounded-full" style={{ backgroundColor: 'rgba(155,124,255,0.16)', paddingHorizontal: 12, paddingVertical: 7 }}>

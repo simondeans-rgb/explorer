@@ -78,7 +78,8 @@ function GhostCircle() {
 function CirclePreview() {
   return (
     <View style={{ marginTop: 14 }}>
-      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, textAlign: 'center', marginBottom: 10 }}>PREVIEW · HOW YOUR CIRCLE WILL LOOK</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, textAlign: 'center', marginBottom: 4, paddingHorizontal: 16 }}>PREVIEW · HOW YOUR CIRCLE WILL LOOK</Text>
+      <Text style={{ fontFamily: 'Fraunces', fontSize: 12, fontStyle: 'italic', color: COLORS.ink3, textAlign: 'center', marginBottom: 10, paddingHorizontal: 24 }}>Invite friends to see their real activity.</Text>
       <View style={{ gap: 10, opacity: 0.92 }}>
         <View className="bg-white rounded-3xl" style={{ padding: 14 }}>
           <View className="flex-row items-center" style={{ gap: 10 }}>

@@ -91,7 +91,7 @@ export default function FriendsScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
         <ScrollView contentContainerStyle={{ paddingBottom: 112 }}>
-          <PageHero eyebrow="Your circle" title="Friends" subtitle="See where the people you travel with have been." gradient={GRADIENTS.atlas} imageCode="WW" onBack={goBack} />
+          <PageHero eyebrow="Connect" title="Your Circle" subtitle="See where the people you travel with have been." gradient={GRADIENTS.atlas} imageCode="WW" onBack={goBack} />
           <View style={{ paddingHorizontal: 20, marginTop: 20, alignItems: 'center' }}>
             <View className="rounded-full items-center justify-center" style={{ height: 72, width: 72, backgroundColor: 'rgba(155,124,255,0.14)' }}>
               <Users size={30} color={COLORS.lavender} />
@@ -113,7 +113,7 @@ export default function FriendsScreen() {
   // --- Signed in ------------------------------------------------------------
   return (
     <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 112 }} keyboardShouldPersistTaps="handled">
-      <PageHero eyebrow="Your circle" title="Friends" subtitle="See where the people you travel with have been." gradient={GRADIENTS.atlas} imageCode="WW" onBack={goBack} />
+      <PageHero eyebrow="Connect" title="Your Circle" subtitle="See where the people you travel with have been." gradient={GRADIENTS.atlas} imageCode="WW" onBack={goBack} />
 
       {/* Your code */}
       <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
