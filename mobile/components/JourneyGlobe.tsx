@@ -229,9 +229,13 @@ export function JourneyGlobe({
 
   const [w, setW] = useState(0);
   const size = w > 0 ? Math.min(w, maxSize ?? w) : maxSize ?? VIEW;
+  // Crop the container shorter than the square SVG so the globe fills its frame
+  // edge-to-edge instead of leaving a navy band of dead space above/below the
+  // disc (the poles, which carry no content, are what gets clipped).
+  const frameH = Math.round(size * 0.86);
 
   return (
-    <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ backgroundColor: OCEAN_DEEP, height: size, alignItems: 'center', justifyContent: 'center' }}>
+    <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ backgroundColor: OCEAN_DEEP, height: frameH, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
       <GestureDetector gesture={gesture}>
         <Svg width={size} height={size} viewBox={`0 0 ${VIEW} ${VIEW}`}>
           <Defs>

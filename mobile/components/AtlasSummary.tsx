@@ -143,7 +143,7 @@ export const AtlasSummary = memo(function AtlasSummary({
       </View>
 
       {/* share — primary acquisition moment, so make it unmistakably tappable */}
-      <Button label={sharing ? 'Preparing…' : 'Share my world'} icon={Share2} variant="gradient" loading={sharing} onPress={onShare} style={{ marginTop: 20 }} />
+      <Button label={sharing ? 'Preparing…' : 'Share my world'} icon={Share2} variant="primary" loading={sharing} onPress={onShare} style={{ marginTop: 20 }} />
     </View>
   );
 });

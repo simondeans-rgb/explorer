@@ -62,11 +62,11 @@ export function AchievementBadge({ badge, tile = 64 }: { badge: Badge; tile?: nu
           </LinearGradient>
         ) : (
           <>
-            <View style={{ width: tile, height: tile, borderRadius: tile * 0.28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EEF0F6' }}>
+            <View style={{ width: tile, height: tile, borderRadius: tile * 0.28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EEF0F6', opacity: badge.progress === 0 ? 0.92 : 1 }}>
               <Icon size={tile * 0.42} color="#C2C7D6" />
               {badge.progress === 0 ? (
-                <View style={{ position: 'absolute', right: 6, bottom: 6 }}>
-                  <Lock size={12} color="#C2C7D6" />
+                <View style={{ position: 'absolute', right: -2, bottom: -2, width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.navy, borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+                  <Lock size={10} color="#fff" />
                 </View>
               ) : null}
             </View>
@@ -74,7 +74,7 @@ export function AchievementBadge({ badge, tile = 64 }: { badge: Badge; tile?: nu
           </>
         )}
       </View>
-      <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: earned ? COLORS.navy : COLORS.ink3, marginTop: 6, textAlign: 'center' }}>
+      <Text numberOfLines={2} style={{ fontFamily: 'PlusJakarta', fontSize: 10.5, lineHeight: 13, fontWeight: '700', color: earned ? COLORS.navy : COLORS.ink3, marginTop: 6, textAlign: 'center', minHeight: 26 }}>
         {badge.title}
       </Text>
       {!earned && badge.target > 1 ? (
