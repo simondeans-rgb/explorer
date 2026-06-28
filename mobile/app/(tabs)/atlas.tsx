@@ -71,6 +71,12 @@ export default function AtlasScreen() {
   const [sortBy, setSortBy] = useState<SortBy>('az');
   const [scoreAgg, setScoreAgg] = useState<CountryAggregate | null>(null);
   const discovered = useMemo(() => aggregates.filter((a) => a.discovered), [aggregates]);
+  // Home countries (lived/based) — excluded from expedition flag rows so cards
+  // lead with the destination, not the country you flew from.
+  const homeCodes = useMemo(
+    () => new Set(aggregates.filter((a) => a.relationships.some((r) => r === 'lived' || r === 'based')).map((a) => a.code)),
+    [aggregates],
+  );
 
   // Discovered-country count per continent (numerator for progress).
   const discByContinent = useMemo(() => {
@@ -323,7 +329,10 @@ export default function AtlasScreen() {
                 <DestinationImage code={e.countryCodes[0] ?? 'WW'} scrim style={{ height: 132, padding: 14, justifyContent: 'flex-end' }}>
                   <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 22 }}>{e.title}</Text>
                   <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.95 }}>
-                    {e.countryCodes.map((c) => flagEmoji(c)).join(' ')}  ·  {e.startDate?.slice(0, 4)}
+                    {(() => {
+                      const dest = e.countryCodes.filter((c) => !homeCodes.has(c));
+                      return (dest.length ? dest : e.countryCodes.slice(0, 1)).map((c) => flagEmoji(c)).join(' ');
+                    })()}  ·  {e.startDate?.slice(0, 4)}
                     {e.journeys.length ? ` · ${e.journeys.length} ${e.journeys.length === 1 ? 'leg' : 'legs'}` : ''}
                   </Text>
                   {e.note ? (

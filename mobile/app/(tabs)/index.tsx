@@ -128,8 +128,8 @@ export default function StoryScreen() {
                 <View className="flex-row items-end" style={{ gap: 8, paddingRight: 36 }}>
                   <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: numSize, lineHeight: numSize, ...shadow }}>{days === 0 ? '0' : days}</Text>
                   <View style={{ flex: 1, marginBottom: numSize * 0.16 }}>
-                    <Text numberOfLines={2} className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 12, letterSpacing: 1.5, lineHeight: 14, opacity: 0.92, ...shadow }}>
-                      {days === 0 ? 'TODAY' : days === 1 ? 'DAY TO GO' : 'DAYS TO GO'}
+                    <Text numberOfLines={2} className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 12, letterSpacing: 1.2, lineHeight: 14, opacity: 0.92, ...shadow }}>
+                      {days === 0 ? 'TODAY' : days === 1 ? 'DAY' : 'DAYS'}
                     </Text>
                   </View>
                 </View>

@@ -234,7 +234,7 @@ export default function ExploreScreen() {
 
         {/* segmented control */}
         <View className="flex-row bg-white rounded-2xl" style={{ marginHorizontal: 20, marginTop: 6, padding: 5, gap: 5 }}>
-          {([['browse', 'Browse', Compass], ['discoveries', 'Discoveries', MapPin]] as const).map(([id, label, Icon]) => {
+          {([['browse', 'Browse', Compass], ['discoveries', 'My Places', MapPin]] as const).map(([id, label, Icon]) => {
             const active = tab === id;
             return (
               <Pressable key={id} onPress={() => setTab(id)} className="flex-row items-center justify-center rounded-xl" style={{ flex: 1, paddingVertical: 10, gap: 6, backgroundColor: active ? COLORS.navy : 'transparent' }}>

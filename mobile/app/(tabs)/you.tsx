@@ -418,7 +418,7 @@ export default function YouScreen() {
             { icon: ShieldCheck, label: 'Privacy Policy', onPress: () => Linking.openURL(PRIVACY_URL) },
             { icon: FileText, label: 'Terms of Service', onPress: () => Linking.openURL(TERMS_URL) },
             { icon: Mail, label: 'Contact support', sub: SUPPORT_EMAIL, onPress: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=Worldly%20support`) },
-            { icon: RotateCcw, label: recalcing ? 'Recalculating…' : 'Recalculate journeys', sub: 'Re-resolve trips after home changes', onPress: onRecalcJourneys },
+            { icon: RotateCcw, label: recalcing ? 'Recalculating…' : 'Recalculate journeys', sub: 'Rebuild your trips if you’ve updated your home history.', onPress: onRecalcJourneys },
             { icon: FileDown, label: exporting ? 'Preparing your data…' : 'Export my data', onPress: onExport },
           ].map((row, i) => (
             <Pressable key={row.label} onPress={row.onPress} className="flex-row items-center" style={{ paddingHorizontal: 16, paddingVertical: 14, gap: 12, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
