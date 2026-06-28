@@ -5,8 +5,8 @@ import { Compass, ArrowRight } from 'lucide-react-native';
 import Svg, { Path, Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
-import { geoOrthographic, geoPath, geoInterpolate, geoDistance, geoGraticule, geoCentroid } from 'd3-geo';
-import { LAND_GEOMETRY, BORDERS_GEOMETRY } from '../src/lib/worldGeo';
+import { geoOrthographic, geoPath, geoInterpolate, geoDistance, geoGraticule, geoCentroid, geoContains } from 'd3-geo';
+import { LAND_GEOMETRY, BORDERS_GEOMETRY, WORLD_FEATURES } from '../src/lib/worldGeo';
 import type { Segment } from '../src/lib/journeyGeo';
 
 // Square viewBox; the globe is a disc inscribed in it.
@@ -25,6 +25,16 @@ const LAND_STROKE = '#5FC0A2';
 const GRAT = 'rgba(150,180,255,0.10)';
 const ROUTE = '#FF6A8E';
 const ROUTE_EDGE = '#FFC2D2';
+// Choropleth fills for the Places globe (match the old flat map).
+const PLACE_VISITED = '#FF6A8E';
+const PLACE_VISITED_EDGE = '#FFC2D2';
+const PLACE_WISHLIST = '#A48BFF';
+
+export interface PlacesLayer {
+  visited: Set<string>;
+  wishlist?: Set<string>;
+  onPressCountry?: (code: string) => void;
+}
 
 // A coarse 30° graticule reads as a globe without flooding the per-frame path.
 const GRATICULE = geoGraticule().step([30, 30])();
@@ -55,18 +65,46 @@ export function JourneyGlobe({
   maxSize,
   resetKey,
   scrollRef,
+  places,
 }: {
   segments: Segment[];
   maxSize?: number;
   resetKey?: string | number;
   scrollRef?: RefObject<unknown>;
+  /** When set, the globe colours visited/wishlist countries instead of (or as
+   *  well as) drawing journey arcs — turning it into the Places map. */
+  places?: PlacesLayer;
 }) {
-  // Frame on the journey network: centre longitude, zoom to fit its span (close
-  // routes zoom in, capped; a worldwide network stays a full globe), and shift
-  // vertically so the route sits mid-frame WITHOUT tilting — the Earth's axis
-  // stays vertical so the poles stay pinned top and bottom.
+  // The country polygons to fill, paired with their colour (Places mode only).
+  const placeFeatures = useMemo(() => {
+    if (!places) return [] as { code: string; feature: GeoJSON.Feature; fill: string }[];
+    const out: { code: string; feature: GeoJSON.Feature; fill: string }[] = [];
+    for (const wf of WORLD_FEATURES) {
+      const c = wf.alpha2;
+      if (!c) continue;
+      if (places.visited.has(c)) out.push({ code: c, feature: wf.feature as unknown as GeoJSON.Feature, fill: PLACE_VISITED });
+      else if (places.wishlist?.has(c)) out.push({ code: c, feature: wf.feature as unknown as GeoJSON.Feature, fill: PLACE_WISHLIST });
+    }
+    return out;
+  }, [places]);
+
+  // Points the globe frames itself on: visited-country centroids in Places mode,
+  // otherwise the journey endpoints.
+  const framePts = useMemo<[number, number][]>(() => {
+    if (places) {
+      return placeFeatures
+        .filter((f) => places.visited.has(f.code))
+        .map((f) => geoCentroid(f.feature) as [number, number]);
+    }
+    return segments.flatMap((s) => [s.from, s.to]);
+  }, [places, placeFeatures, segments]);
+
+  // Frame on the network: centre longitude, zoom to fit its span (close routes
+  // zoom in, capped; a worldwide network stays a full globe), and shift
+  // vertically so it sits mid-frame WITHOUT tilting — the Earth's axis stays
+  // vertical so the poles stay pinned top and bottom.
   const { lon0, globeR, translateY } = useMemo(() => {
-    const pts = segments.flatMap((s) => [s.from, s.to]);
+    const pts = framePts;
     if (!pts.length) return { lon0: -10, globeR: R, translateY: CENTER, zoomed: false };
     const c = geoCentroid({ type: 'MultiPoint', coordinates: pts }) as [number, number];
     // Furthest endpoint from centre, as a fraction of the sphere radius (sin θ).
@@ -89,7 +127,7 @@ export function JourneyGlobe({
     const maxTY = scale;
     const translateY = minTY <= maxTY ? Math.max(minTY, Math.min(maxTY, desiredTY)) : CENTER;
     return { lon0: -c[0], globeR: scale, translateY, zoomed: scale > R + 1 };
-  }, [segments]);
+  }, [framePts]);
 
   const [lon, setLon] = useState(lon0);
   const [lat, setLat] = useState(0); // pitch — 0 keeps north up; user drag tilts it
@@ -103,6 +141,17 @@ export function JourneyGlobe({
   zoomRef.current = zoom;
   const lon0Ref = useRef(lon0);
   lon0Ref.current = lon0;
+  // For tapping a country: the live projection, on-screen layout, the country
+  // polygons and the press handler — all read through a ref so the memoised tap
+  // gesture never sees a stale closure.
+  const hitRef = useRef<{
+    project: ReturnType<typeof geoOrthographic> | null;
+    size: number;
+    frameH: number;
+    w: number;
+    features: { code: string; feature: GeoJSON.Feature; fill: string }[];
+    onPress?: (code: string) => void;
+  }>({ project: null, size: 0, frameH: 0, w: 0, features: [] });
   const animStart = useRef(Date.now());
   const dragging = useRef(false);
   const lastInteract = useRef(0); // when the user last let go (for idle auto-spin)
@@ -165,6 +214,23 @@ export function JourneyGlobe({
     dragging.current = false;
     lastInteract.current = Date.now();
   }
+  // Tap a country on the Places globe: invert the tap pixel to lon/lat (via the
+  // live projection), then hit-test it against the visited/wishlist polygons.
+  function handleTap(x: number, y: number) {
+    const { project, size: s, frameH: fh, w: ww, features, onPress } = hitRef.current;
+    if (!onPress || !project || !s) return;
+    const offX = (ww - s) / 2;
+    const offY = (fh - s) / 2; // negative: SVG overflows the cropped container
+    const vb: [number, number] = [((x - offX) * VIEW) / s, ((y - offY) * VIEW) / s];
+    const ll = project.invert?.(vb);
+    if (!ll || Number.isNaN(ll[0])) return;
+    for (const f of features) {
+      if (geoContains(f.feature, ll)) {
+        onPress(f.code);
+        return;
+      }
+    }
+  }
   const gesture = useMemo(() => {
     let pan = Gesture.Pan()
       .onBegin(() => runOnJS(beginGesture)())
@@ -179,10 +245,12 @@ export function JourneyGlobe({
       pan = pan.blocksExternalGesture(scrollRef as never);
       pinch = pinch.blocksExternalGesture(scrollRef as never);
     }
-    return Gesture.Simultaneous(pan, pinch);
+    const tap = Gesture.Tap().maxDistance(10).maxDuration(260).onEnd((e) => runOnJS(handleTap)(e.x, e.y));
+    return Gesture.Simultaneous(pan, pinch, tap);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollRef]);
 
-  const { landPath, borderPath, gratPath, arcs, dots } = useMemo(() => {
+  const { landPath, borderPath, gratPath, arcs, dots, countryFills, projection } = useMemo(() => {
     const projection = geoOrthographic().translate([CENTER, translateY]).scale(rEff).rotate([lon, lat, 0]).clipAngle(90);
     const path = geoPath(projection);
     const center: [number, number] = [-lon, -lat];
@@ -224,8 +292,13 @@ export function JourneyGlobe({
       if (localP >= 0.999) addDot(s.to); // …destination when the route lands
     });
 
-    return { landPath: path(LAND_GEOMETRY) ?? '', borderPath: path(BORDERS_GEOMETRY) ?? '', gratPath: path(GRATICULE) ?? '', arcs, dots };
-  }, [lon, lat, rEff, segments, anim, translateY]);
+    // Places mode: fill visited/wishlist countries on the near hemisphere.
+    const countryFills = placeFeatures
+      .map((f) => ({ code: f.code, d: path(f.feature) ?? '', fill: f.fill }))
+      .filter((f) => f.d);
+
+    return { landPath: path(LAND_GEOMETRY) ?? '', borderPath: path(BORDERS_GEOMETRY) ?? '', gratPath: path(GRATICULE) ?? '', arcs, dots, countryFills, projection };
+  }, [lon, lat, rEff, segments, anim, translateY, placeFeatures]);
 
   const [w, setW] = useState(0);
   const size = w > 0 ? Math.min(w, maxSize ?? w) : maxSize ?? VIEW;
@@ -233,6 +306,8 @@ export function JourneyGlobe({
   // edge-to-edge instead of leaving a navy band of dead space above/below the
   // disc (the poles, which carry no content, are what gets clipped).
   const frameH = Math.round(size * 0.86);
+  // Keep the projection + layout + country data fresh for tap hit-testing.
+  hitRef.current = { project: projection, size, frameH, w, features: placeFeatures, onPress: places?.onPressCountry };
 
   return (
     <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ backgroundColor: OCEAN_DEEP, height: frameH, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
@@ -259,6 +334,18 @@ export function JourneyGlobe({
           {/* graticule + land + country outlines (clipped to the near hemisphere) */}
           {gratPath ? <Path d={gratPath} fill="none" stroke={GRAT} strokeWidth={0.5} /> : null}
           {landPath ? <Path d={landPath} fill={LAND} stroke={LAND_STROKE} strokeWidth={0.5} /> : null}
+          {/* Places mode: visited (coral) / wishlist (lavender) country fills */}
+          {countryFills.map((c) => (
+            <Path
+              key={c.code}
+              d={c.d}
+              fill={c.fill}
+              fillOpacity={anim}
+              stroke={c.fill === PLACE_VISITED ? PLACE_VISITED_EDGE : '#FFFFFF'}
+              strokeWidth={0.4}
+              strokeOpacity={0.5 * anim}
+            />
+          ))}
           {borderPath ? <Path d={borderPath} fill="none" stroke={BORDER} strokeWidth={0.4} /> : null}
           {/* journey arcs */}
           {arcs.map((d, i) => (
@@ -272,7 +359,7 @@ export function JourneyGlobe({
         </Svg>
       </GestureDetector>
 
-      {segments.length === 0 ? (
+      {!places && segments.length === 0 ? (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}>
           <View className="rounded-2xl items-center justify-center" style={{ height: 48, width: 48, backgroundColor: 'rgba(255,255,255,0.12)' }}>
             <Compass size={24} color="#fff" />

@@ -13,7 +13,6 @@ const MODE_FILTERS: { key: JourneyMode | 'all'; label: string; Icon: ComponentTy
   { key: 'ferry', label: 'Ferry', Icon: Anchor },
 ];
 import { PageHero } from '../../components/PageHero';
-import { WorldMap } from '../../components/WorldMap';
 import { JourneyGlobe } from '../../components/JourneyGlobe';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AtlasCountryCard } from '../../components/AtlasCountryCard';
@@ -194,7 +193,13 @@ export default function AtlasScreen() {
         <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
           <ScopeChips scope={scope} years={placeYears} onChange={setScope} />
           <View style={{ marginHorizontal: -20, marginTop: 10 }}>
-            <WorldMap visited={visited} wishlist={wishlist} onPressCountry={(code) => router.push(`/country/${code}`)} />
+            <JourneyGlobe
+              segments={[]}
+              maxSize={360}
+              resetKey={String(scope)}
+              scrollRef={scrollRef}
+              places={{ visited, wishlist, onPressCountry: (code) => router.push(`/country/${code}`) }}
+            />
           </View>
           <View className="flex-row items-center" style={{ marginTop: 10, gap: 16, paddingHorizontal: 4 }}>
             <View className="flex-row items-center" style={{ gap: 6 }}>
@@ -207,7 +212,7 @@ export default function AtlasScreen() {
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{wishlist.size} wish-listed</Text>
               </View>
             ) : null}
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginLeft: 'auto' }}>Pinch to zoom · tap a country ›</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginLeft: 'auto' }}>Drag to spin · tap a country ›</Text>
           </View>
 
           {/* Your world — overview stats + continent progress (all-time) */}
