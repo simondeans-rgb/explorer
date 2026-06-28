@@ -76,7 +76,9 @@ export function WorldMap({
     // (and reframes per year as the scope changes).
     const inFrame = WORLD_FEATURES.filter((wf) => wf.alpha2 && (visited.has(wf.alpha2) || wishlist?.has(wf.alpha2)));
     const target = inFrame.length ? { type: 'FeatureCollection' as const, features: inFrame.map((wf) => wf.feature) } : null;
-    const projection = framedEqualEarth(VIEW_W, VIEW_H, target);
+    // Lift the map upward: visited countries cluster in the north, so without a
+    // bias the frame centres them and leaves a navy Arctic band along the top.
+    const projection = framedEqualEarth(VIEW_W, VIEW_H, target, { yBias: 0.07 });
     const path = geoPath(projection);
     const land: { key: string; d: string; fill: string; code?: string }[] = [];
     const glow: { key: string; d: string; code?: string; cx: number }[] = [];
