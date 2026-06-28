@@ -154,6 +154,12 @@ export default function AtlasScreen() {
   }, [shownPlaces, query, sortBy, discCount]);
 
   const visited = useMemo(() => new Set(shownPlaces.map((a) => a.code)), [shownPlaces]);
+  // Visited codes in the order they were first reached — drives the globe's
+  // colour-in-by-visit-order reveal.
+  const visitOrder = useMemo(
+    () => shownPlaces.slice().sort((a, b) => (a.firstYear ?? 9999) - (b.firstYear ?? 9999) || a.name.localeCompare(b.name)).map((a) => a.code),
+    [shownPlaces],
+  );
   const wishlist = useMemo(
     () => (scope === 'all' ? new Set(aggregates.filter((a) => !a.discovered && a.aspiring).map((a) => a.code)) : new Set<string>()),
     [aggregates, scope],
@@ -198,7 +204,7 @@ export default function AtlasScreen() {
               maxSize={360}
               resetKey={String(scope)}
               scrollRef={scrollRef}
-              places={{ visited, wishlist, onPressCountry: (code) => router.push(`/country/${code}`) }}
+              places={{ visited, wishlist, order: visitOrder, onPressCountry: (code) => router.push(`/country/${code}`) }}
             />
           </View>
           <View className="flex-row items-center" style={{ marginTop: 10, gap: 16, paddingHorizontal: 4 }}>
