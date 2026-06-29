@@ -28,7 +28,13 @@ const HAS_PHOTO = new Set([
   'WW', // world default hero (not a real country code)
 ]);
 
-const photoUrl = (code: string) => `${BASE}/${code}.jpg`;
+// Cache-buster: the destination JPEGs are overwritten in place (same filename)
+// when we refresh imagery, but expo-image keys its disk cache by URL and won't
+// revalidate — so a phone keeps showing the old photo forever. Bump this whenever
+// any /destinations image is replaced to force every client to refetch.
+const IMG_VERSION = 2;
+
+const photoUrl = (code: string) => `${BASE}/${code}.jpg?v=${IMG_VERSION}`;
 
 export interface Destination {
   photo?: string;
