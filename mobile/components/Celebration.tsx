@@ -25,43 +25,44 @@ const CONFETTI_COLORS = ['#FF6B9A', '#9B7CFF', '#24D1C3', '#FFB84D', '#FF7A66', 
 // screen first and the achievement is revealed behind it (iMessage-style).
 const CARD_REVEAL_MS = 360;
 
-/** A single confetti piece. It rains the full height of the screen from a
- *  random column, drifting and tumbling, so a screenful of them reads as a
- *  dense celebratory shower rather than a thin stream. */
-function Piece({ index, width, height }: { index: number; width: number; height: number }) {
+/** A single confetti piece. It launches from a central origin, bursting
+ *  outward in every direction, then gravity drags it down and off-screen —
+ *  a confetti-cannon explosion that resolves into a falling shower. */
+function Piece({ index, width, height, originY }: { index: number; width: number; height: number; originY: number }) {
   const p = useSharedValue(0);
-  // Spread start columns across the full width, and stagger vertical entry so
-  // pieces are already strewn down the screen rather than all at the top edge.
-  const startX = useMemo(() => Math.random() * width, [width]);
-  // Spread initial Y from well above the screen to a little below the top, so a
-  // burst populates the whole height at once rather than only streaming in.
-  const startY = useMemo(() => height * (Math.random() * 1.0 - 0.8), [height]);
-  const drift = useMemo(() => (Math.random() - 0.5) * width * 0.5, [width]);
-  const delay = useMemo(() => Math.random() * 520, []);
+  const cx = width / 2;
+  // Radial launch: a random direction + magnitude so pieces fan out evenly.
+  const angle = useMemo(() => Math.random() * Math.PI * 2, []);
+  const mag = useMemo(() => 0.2 + Math.random() * 1.0, []); // 0.2–1.2 of the spread
+  const reach = useMemo(() => Math.cos(angle) * mag * width * 0.62, [angle, mag, width]);
+  const rise = useMemo(() => Math.sin(angle) * mag * height * 0.42, [angle, mag, height]); // up or down impulse
+  const fall = useMemo(() => height * (1.15 + Math.random() * 0.7), [height]); // gravity pulls past the bottom
+  const delay = useMemo(() => Math.random() * 170, []); // tight stagger keeps the burst punchy
   const duration = useMemo(() => 1700 + Math.random() * 1300, []);
-  const spin = useMemo(() => Math.random() * 1000 - 500, []);
-  const sway = useMemo(() => 16 + Math.random() * 26, []);
+  const spin = useMemo(() => Math.random() * 1100 - 550, []);
+  const sway = useMemo(() => 8 + Math.random() * 20, []);
   const color = CONFETTI_COLORS[index % CONFETTI_COLORS.length];
-  const w = useMemo(() => 7 + Math.random() * 6, []);
+  const w = useMemo(() => 6 + Math.random() * 6, []);
   const h = useMemo(() => w * (1.3 + Math.random() * 1.2), [w]);
   const round = useMemo(() => Math.random() < 0.25, []); // a few circles in the mix
 
   useEffect(() => {
-    p.value = withDelay(delay, withTiming(1, { duration, easing: Easing.in(Easing.quad) }));
+    p.value = withDelay(delay, withTiming(1, { duration, easing: Easing.linear }));
   }, [p, delay, duration]);
 
   const style = useAnimatedStyle(() => {
-    // Fall the whole screen height, with a gentle horizontal sway on top of the
-    // overall drift so the tumble feels organic.
-    const travel = height - startY + 120;
-    const swayX = Math.sin(p.value * Math.PI * 3) * sway;
+    const t = p.value;
+    // Burst expands fast then settles (easeOut); gravity accelerates (t²) so the
+    // outward explosion hands off to a downward fall.
+    const eo = 1 - (1 - t) * (1 - t);
+    const swayX = Math.sin(t * Math.PI * 3) * sway;
     return {
       transform: [
-        { translateX: startX + drift * p.value + swayX },
-        { translateY: startY + travel * p.value },
-        { rotate: `${spin * p.value}deg` },
+        { translateX: cx + reach * eo + swayX },
+        { translateY: originY + rise * eo + fall * t * t },
+        { rotate: `${spin * t}deg` },
       ],
-      opacity: interpolate(p.value, [0, 0.05, 0.85, 1], [0, 1, 1, 0], Extrapolation.CLAMP),
+      opacity: interpolate(t, [0, 0.04, 0.86, 1], [0, 1, 1, 0], Extrapolation.CLAMP),
     };
   });
 
@@ -81,7 +82,10 @@ function Piece({ index, width, height }: { index: number; width: number; height:
 export function Celebration({ item, onDismiss }: { item: CelebrationItem; onDismiss: () => void }) {
   const { width, height } = useWindowDimensions();
   // Scale piece count to the screen so it reads as full regardless of device.
-  const pieces = useMemo(() => Math.min(140, Math.max(80, Math.round((width * height) / 3600))), [width, height]);
+  const pieces = useMemo(() => Math.min(260, Math.max(170, Math.round((width * height) / 1700))), [width, height]);
+  // Burst origin — the centre of the card, so the explosion erupts from behind
+  // the achievement as it reveals.
+  const originY = height / 2;
 
   const scale = useSharedValue(0.6);
   const opacity = useSharedValue(0);
@@ -102,7 +106,7 @@ export function Celebration({ item, onDismiss }: { item: CelebrationItem; onDism
       <Animated.View style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(14,16,24,0.55)' }, scrimStyle]} />
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         {Array.from({ length: pieces }).map((_, i) => (
-          <Piece key={i} index={i} width={width} height={height} />
+          <Piece key={i} index={i} width={width} height={height} originY={originY} />
         ))}
         <Animated.View style={cardStyle}>
           <LinearGradient
