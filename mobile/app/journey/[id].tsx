@@ -9,6 +9,9 @@ import type { ComponentType } from 'react';
 import { DestinationImage } from '../../components/DestinationImage';
 import { JourneyGlobe } from '../../components/JourneyGlobe';
 import { RouteBuilder } from '../../components/RouteBuilder';
+import { AirportField } from '../../components/AirportField';
+import { isEndpointResolved, bestAirportMatch } from '../../src/lib/airportSearch';
+import { CircleAlert } from 'lucide-react-native';
 import { Dropdown, type DropdownOption } from '../../components/Dropdown';
 import { journeyLegSegments } from '../../src/lib/journeyGeo';
 import { COLORS } from '../../src/lib/theme';
@@ -137,6 +140,20 @@ export default function JourneyScreen() {
 
   // Flight legs (placeable on the globe) for the route you're building, live.
   const detailSegments = useMemo(() => journeyLegSegments(legs, startDate || undefined), [legs, startDate]);
+
+  // Flight stops typed as free text we can't recognise — they don't count in the
+  // stats until matched. Each gets a best-guess airport for one-tap resolution.
+  const unresolved = useMemo(() => {
+    const list: { legId: string; field: 'from' | 'to'; value: string; suggestion?: ReturnType<typeof bestAirportMatch> }[] = [];
+    for (const l of legs) {
+      if (l.mode !== 'flight') continue;
+      (['from', 'to'] as const).forEach((field) => {
+        const v = l[field];
+        if (v.trim() && !isEndpointResolved(v)) list.push({ legId: l.id, field, value: v.trim(), suggestion: bestAirportMatch(v) });
+      });
+    }
+    return list;
+  }, [legs]);
 
   function patchLeg(legId: string, patch: Partial<Leg>) {
     setLegs((prev) => prev.map((l) => (l.id === legId ? { ...l, ...patch } : l)));
@@ -289,6 +306,31 @@ export default function JourneyScreen() {
         {showRoute ? (
           <RouteBuilder onAdd={(rl) => { setLegs((prev) => [...prev, ...rl.map((l) => ({ ...emptyLeg(l.mode), from: l.from, to: l.to }))]); setShowRoute(false); }} />
         ) : null}
+        {unresolved.length > 0 ? (
+          <View className="rounded-3xl" style={{ marginHorizontal: 20, marginTop: 10, padding: 14, backgroundColor: '#FDF6EA', borderWidth: 1, borderColor: '#F4D58D', gap: 10 }}>
+            <View className="flex-row items-center" style={{ gap: 8 }}>
+              <CircleAlert size={16} color="#C9892B" />
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: '#9A6A1E', flex: 1 }}>
+                {unresolved.length} flight stop{unresolved.length === 1 ? '' : 's'} not recognised
+              </Text>
+            </View>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: '#9A6A1E' }}>
+              These won't count toward your flight distance or domestic/international stats until matched to an airport.
+            </Text>
+            {unresolved.map((u, i) => (
+              <View key={`${u.legId}-${u.field}-${i}`} className="flex-row items-center" style={{ gap: 8 }}>
+                <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.navy, flex: 1 }}>“{u.value}”</Text>
+                {u.suggestion ? (
+                  <Pressable onPress={() => patchLeg(u.legId, { [u.field]: u.suggestion!.label } as Partial<Leg>)} className="rounded-full" style={{ backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: '#F4D58D' }}>
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: '#9A6A1E' }}>Use {u.suggestion.iata}</Text>
+                  </Pressable>
+                ) : (
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>No match</Text>
+                )}
+              </View>
+            ))}
+          </View>
+        ) : null}
         {legs.map((leg, i) => {
           const meta = JOURNEY_MODE_META[leg.mode];
           return (
@@ -311,10 +353,17 @@ export default function JourneyScreen() {
                   );
                 })}
               </View>
-              <View className="flex-row" style={{ gap: 8 }}>
-                <Field flex placeholder={meta.from} value={leg.from} onChange={(t) => patchLeg(leg.id, { from: t })} />
-                <Field flex placeholder={meta.to} value={leg.to} onChange={(t) => patchLeg(leg.id, { to: t })} />
-              </View>
+              {leg.mode === 'flight' ? (
+                <View style={{ gap: 8 }}>
+                  <AirportField placeholder={meta.from} value={leg.from} onChangeText={(t) => patchLeg(leg.id, { from: t })} onPick={(m) => patchLeg(leg.id, { from: m.label })} />
+                  <AirportField placeholder={meta.to} value={leg.to} onChangeText={(t) => patchLeg(leg.id, { to: t })} onPick={(m) => patchLeg(leg.id, { to: m.label })} />
+                </View>
+              ) : (
+                <View className="flex-row" style={{ gap: 8 }}>
+                  <Field flex placeholder={meta.from} value={leg.from} onChange={(t) => patchLeg(leg.id, { from: t })} />
+                  <Field flex placeholder={meta.to} value={leg.to} onChange={(t) => patchLeg(leg.id, { to: t })} />
+                </View>
+              )}
               <View className="flex-row" style={{ gap: 8 }}>
                 <Field flex placeholder="Date (YYYY-MM-DD)" value={leg.date} onChange={(t) => patchLeg(leg.id, { date: t })} />
                 <Field flex placeholder={meta.operator} value={leg.operator} onChange={(t) => patchLeg(leg.id, { operator: t })} />

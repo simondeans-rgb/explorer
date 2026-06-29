@@ -1,8 +1,10 @@
 import { useState, Fragment } from 'react';
-import { View, Text, TextInput, Pressable } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { Plus, Check, X, ChevronRight, Plane, TrainFront, Ship, Car, Anchor } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { COLORS } from '../src/lib/theme';
+import { AirportField } from './AirportField';
+import { isEndpointResolved } from '../src/lib/airportSearch';
 import { JOURNEY_MODES, JOURNEY_MODE_META, type JourneyMode } from '../src/types';
 
 const MODE_ICON: Record<JourneyMode, ComponentType<{ size?: number; color?: string }>> = {
@@ -57,36 +59,42 @@ export function RouteBuilder({ onAdd }: { onAdd: (legs: { mode: JourneyMode; fro
       {/* stops */}
       {stops.length > 0 ? (
         <View className="flex-row flex-wrap items-center" style={{ gap: 6 }}>
-          {stops.map((s, i) => (
-            <Fragment key={`${s}-${i}`}>
-              <View className="flex-row items-center rounded-full" style={{ backgroundColor: COLORS.warmwhite, paddingLeft: 11, paddingRight: 7, paddingVertical: 6, gap: 5 }}>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.navy }}>{s}</Text>
-                <Pressable onPress={() => setStops((p) => p.filter((_, idx) => idx !== i))} hitSlop={6}>
-                  <X size={13} color={COLORS.ink3} />
-                </Pressable>
-              </View>
-              {i < stops.length - 1 ? <ChevronRight size={14} color={COLORS.ink3} /> : null}
-            </Fragment>
-          ))}
+          {stops.map((s, i) => {
+            const unresolved = mode === 'flight' && !isEndpointResolved(s);
+            return (
+              <Fragment key={`${s}-${i}`}>
+                <View className="flex-row items-center rounded-full" style={{ backgroundColor: unresolved ? '#FDF3E0' : COLORS.warmwhite, paddingLeft: 11, paddingRight: 7, paddingVertical: 6, gap: 5, borderWidth: unresolved ? 1 : 0, borderColor: '#F4B740' }}>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: unresolved ? '#B8791F' : COLORS.navy }}>{s}</Text>
+                  <Pressable onPress={() => setStops((p) => p.filter((_, idx) => idx !== i))} hitSlop={6}>
+                    <X size={13} color={COLORS.ink3} />
+                  </Pressable>
+                </View>
+                {i < stops.length - 1 ? <ChevronRight size={14} color={COLORS.ink3} /> : null}
+              </Fragment>
+            );
+          })}
         </View>
       ) : null}
 
-      <View className="flex-row" style={{ gap: 8 }}>
-        <View className="bg-white rounded-2xl" style={{ flex: 1, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: 'rgba(20,33,61,0.08)' }}>
-          <TextInput
-            value={entry}
-            onChangeText={setEntry}
-            onSubmitEditing={addStop}
-            blurOnSubmit={false}
-            placeholder={stops.length === 0 ? 'Start — e.g. London' : 'Next stop…'}
-            placeholderTextColor={COLORS.ink3}
-            style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink }}
-          />
-        </View>
-        <Pressable onPress={addStop} disabled={!entry.trim()} className="rounded-2xl items-center justify-center" style={{ paddingHorizontal: 16, backgroundColor: COLORS.warmwhite, opacity: entry.trim() ? 1 : 0.4 }}>
-          <Plus size={18} color={COLORS.navy} />
-        </Pressable>
-      </View>
+      <AirportField
+        value={entry}
+        onChangeText={setEntry}
+        suggest={mode === 'flight'}
+        showStatus={false}
+        placeholder={mode === 'flight' ? (stops.length === 0 ? 'Start — e.g. London (LHR)' : 'Next stop — code or city') : stops.length === 0 ? 'Start — e.g. London' : 'Next stop…'}
+        onSubmit={addStop}
+        onPick={(m) => { setStops((p) => [...p, m.label]); setEntry(''); }}
+        trailing={
+          <Pressable onPress={addStop} disabled={!entry.trim()} hitSlop={8} className="items-center justify-center" style={{ opacity: entry.trim() ? 1 : 0.4, paddingLeft: 4 }}>
+            <Plus size={18} color={COLORS.navy} />
+          </Pressable>
+        }
+      />
+      {mode === 'flight' ? (
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginTop: -4 }}>
+          Tip: pick a suggested airport so the leg maps and counts in your stats.
+        </Text>
+      ) : null}
 
       <Pressable onPress={create} disabled={legCount < 1} className="flex-row items-center justify-center rounded-2xl" style={{ paddingVertical: 11, gap: 6, backgroundColor: COLORS.coral, opacity: legCount < 1 ? 0.4 : 1 }}>
         <Check size={15} color="#fff" />
