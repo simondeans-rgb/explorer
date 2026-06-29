@@ -6,7 +6,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck } from 'lucide-react-native';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck, Ruler } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
@@ -27,6 +27,8 @@ import { DeleteAccountSheet } from '../../components/DeleteAccountSheet';
 import { XpDetailSheet } from '../../components/XpDetailSheet';
 import { ResolveAirportsSheet } from '../../components/ResolveAirportsSheet';
 import { isEndpointResolved } from '../../src/lib/airportSearch';
+import { useUnits } from '../../src/store/units';
+import type { DistanceUnit } from '../../src/lib/units';
 import { pickPhotoDataUrl } from '../../src/lib/photo';
 import { ensureProfile, loadProfilePhoto, saveProfilePhoto } from '../../src/lib/profile';
 
@@ -76,6 +78,7 @@ export default function YouScreen() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [xpOpen, setXpOpen] = useState(false);
   const [resolveOpen, setResolveOpen] = useState(false);
+  const { unit, setUnit } = useUnits();
 
   // Flight stops across all journeys that don't resolve to a known airport, so
   // the Passport can offer to match them (they don't count in stats until then).
@@ -423,6 +426,32 @@ export default function YouScreen() {
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>When crew edit a shared itinerary</Text>
             </View>
             <Switch value={crewNotifOn} onValueChange={onToggleCrewNotif} trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.aqua }} thumbColor="#fff" />
+          </View>
+        </View>
+      </View>
+
+      {/* Units — miles or kilometres, applied across the app */}
+      <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>UNITS</Text>
+        <View className="bg-white rounded-3xl" style={{ padding: 14 }}>
+          <View className="flex-row items-center" style={{ gap: 12 }}>
+            <View className="rounded-2xl items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
+              <Ruler size={18} color={COLORS.ink2} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>Distance</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Used for distances and areas across the app</Text>
+            </View>
+          </View>
+          <View className="flex-row rounded-full" style={{ backgroundColor: '#F1F1F7', padding: 3, marginTop: 12 }}>
+            {([['mi', 'Miles (mi)'], ['km', 'Kilometres (km)']] as [DistanceUnit, string][]).map(([id, label]) => {
+              const active = unit === id;
+              return (
+                <Pressable key={id} onPress={() => setUnit(id)} style={{ flex: 1, paddingVertical: 8, borderRadius: 999, backgroundColor: active ? COLORS.navy : 'transparent' }}>
+                  <Text style={{ textAlign: 'center', fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{label}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
       </View>

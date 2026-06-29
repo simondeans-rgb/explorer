@@ -34,6 +34,8 @@ import { COUNTRY_FACTS, type CountryFacts } from '../../src/data/countryFacts';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { HERO_CODES } from '../../src/lib/heroImages';
 import { useData } from '../../src/store/data';
+import { useUnits } from '../../src/store/units';
+import { convertAreaKm2, areaUnitLabel, convertDensityPerKm2, perAreaUnitLabel } from '../../src/lib/units';
 
 type Tab = 'browse' | 'discoveries';
 type Entry = [string, CountryFacts];
@@ -113,6 +115,7 @@ function Superlative({ code, icon: Icon, label, value, width }: { code: string; 
 export default function ExploreScreen() {
   const { discoveries, discoveryStats, places, aggregates } = useWorldly();
   const { addPlace, removePlace } = useData();
+  const { unit } = useUnits();
   const { width } = useWindowDimensions();
   const [tab, setTab] = useState<Tab>('browse');
   const [query, setQuery] = useState('');
@@ -164,9 +167,9 @@ export default function ExploreScreen() {
     const cool = byTemp[byTemp.length - 1];
     const superl: Fact[] = [
       { key: 'pop', code: byPop[0][0], icon: Users, label: 'Most populous', value: `${fmtNum(byPop[0][1].population)} people` },
-      { key: 'big', code: byArea[0][0], icon: Maximize2, label: 'Largest country', value: `${fmtNum(byArea[0][1].areaKm2)} km²` },
-      { key: 'small', code: byArea[byArea.length - 1][0], icon: Minimize2, label: 'Smallest country', value: `${fmtNum(byArea[byArea.length - 1][1].areaKm2)} km²` },
-      { key: 'dense', code: byDensity[0][0], icon: Building2, label: 'Most crowded', value: `${Math.round(byDensity[0][1].population / byDensity[0][1].areaKm2)} /km²` },
+      { key: 'big', code: byArea[0][0], icon: Maximize2, label: 'Largest country', value: `${fmtNum(convertAreaKm2(byArea[0][1].areaKm2, unit))} ${areaUnitLabel(unit)}` },
+      { key: 'small', code: byArea[byArea.length - 1][0], icon: Minimize2, label: 'Smallest country', value: `${fmtNum(convertAreaKm2(byArea[byArea.length - 1][1].areaKm2, unit))} ${areaUnitLabel(unit)}` },
+      { key: 'dense', code: byDensity[0][0], icon: Building2, label: 'Most crowded', value: `${Math.round(convertDensityPerKm2(byDensity[0][1].population / byDensity[0][1].areaKm2, unit))} ${perAreaUnitLabel(unit)}` },
       ...(warm ? [{ key: 'warm', code: warm[0], icon: Sun, label: `Warmest in ${MONTHS[month]}`, value: `${warm[1].temps![month]}°C avg` } as Fact] : []),
       ...(cool ? [{ key: 'cool', code: cool[0], icon: Snowflake, label: `Coolest in ${MONTHS[month]}`, value: `${cool[1].temps![month]}°C avg` } as Fact] : []),
     ];
@@ -196,7 +199,7 @@ export default function ExploreScreen() {
       out.push(f);
     }
     return out;
-  }, [month]);
+  }, [month, unit]);
 
   const q = query.trim().toLowerCase();
   const searchHits = useMemo(

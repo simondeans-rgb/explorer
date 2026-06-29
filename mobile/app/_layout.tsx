@@ -20,6 +20,7 @@ import { ToastProvider } from '../src/store/toast';
 import { CelebrationProvider } from '../src/store/celebration';
 import { ConfirmProvider } from '../src/store/confirm';
 import { OnboardingProvider, useOnboarding } from '../src/store/onboarding';
+import { UnitsProvider } from '../src/store/units';
 import { Onboarding } from '../components/Onboarding';
 import { AchievementWatcher } from '../components/AchievementWatcher';
 import { LocationSync } from '../components/LocationSync';
@@ -48,17 +49,19 @@ function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <OnboardingProvider>
-        <AuthProvider>
-          <DataProvider>
-            <ToastProvider>
-              <CelebrationProvider>
-                <ConfirmProvider>
-                  <RootContent fontsLoaded={loaded} />
-                </ConfirmProvider>
-              </CelebrationProvider>
-            </ToastProvider>
-          </DataProvider>
-        </AuthProvider>
+        <UnitsProvider>
+          <AuthProvider>
+            <DataProvider>
+              <ToastProvider>
+                <CelebrationProvider>
+                  <ConfirmProvider>
+                    <RootContent fontsLoaded={loaded} />
+                  </ConfirmProvider>
+                </CelebrationProvider>
+              </ToastProvider>
+            </DataProvider>
+          </AuthProvider>
+        </UnitsProvider>
       </OnboardingProvider>
     </GestureHandlerRootView>
   );
