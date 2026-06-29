@@ -20,6 +20,7 @@ export function AirportField({
   trailing,
   onSubmit,
   autoFocus,
+  near,
 }: {
   value: string;
   onChangeText: (t: string) => void;
@@ -33,13 +34,15 @@ export function AirportField({
   trailing?: ReactNode;
   onSubmit?: () => void;
   autoFocus?: boolean;
+  /** Reference [lng,lat] (e.g. the other endpoint) to rank nearby airports first. */
+  near?: [number, number];
 }) {
   const [focused, setFocused] = useState(false);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const suggestions = useMemo(
-    () => (suggest && focused ? searchAirports(value) : []),
-    [suggest, focused, value],
+    () => (suggest && focused ? searchAirports(value, 6, near) : []),
+    [suggest, focused, value, near],
   );
   const resolved = isEndpointResolved(value);
   const showFlag = showStatus && !!value.trim();
@@ -99,8 +102,8 @@ export function AirportField({
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.navy }}>
                   {m.city} <Text style={{ color: COLORS.ink3, fontWeight: '500' }}>({m.iata})</Text>
                 </Text>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3 }}>
-                  {flagEmoji(m.country)} {airportCountryName(m.country)}
+                <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3 }}>
+                  {flagEmoji(m.country)} {m.name !== m.city ? `${m.name} · ` : ''}{airportCountryName(m.country)}
                 </Text>
               </View>
             </Pressable>

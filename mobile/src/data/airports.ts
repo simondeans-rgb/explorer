@@ -1,372 +1,79 @@
-// IATA airport code → { city, country (ISO 3166-1 alpha-2) }.
-// Used by the Flighty importer to turn flight rows into the cities and
-// countries a Member has visited. Covers the world's busiest airports plus
-// broad secondary coverage; unrecognised codes are surfaced to the user so
-// they can be added manually rather than silently dropped.
+// Worldwide commercial-airport reference, parsed from the generated
+// `airportsDataset.ts` (OurAirports + OpenFlights timezones). Refresh the data
+// with `node scripts/build-airports.mjs` — no code changes required.
+//
+// Used by the Flighty importer, the journey route map, the flight stats, and
+// the airport autocomplete. The legacy `AirportInfo` / `AirportRow` /
+// `airportInfo` / `ALL_AIRPORTS` exports are preserved so older callers keep
+// working; `Airport` adds name, ICAO, coordinates, timezone and aliases.
+import { AIRPORTS_TSV } from './airportsDataset';
 
+export interface Airport {
+  iata: string; // 3-letter IATA
+  icao: string; // 4-letter ICAO (may be empty)
+  name: string; // full airport name
+  city: string; // served city / municipality
+  country: string; // ISO 3166-1 alpha-2
+  lat: number;
+  lng: number;
+  tz: string; // IANA tz database name (may be empty)
+  aliases: string[]; // alternate names / former names / codes
+}
+
+// Back-compat shapes used by older callers.
 export interface AirportInfo {
   city: string;
   country: string; // ISO 3166-1 alpha-2
 }
+export interface AirportRow extends Airport {}
 
-const AIRPORTS: Record<string, AirportInfo> = {
-  // United Kingdom & Ireland
-  LHR: { city: 'London', country: 'GB' },
-  LGW: { city: 'London', country: 'GB' },
-  LCY: { city: 'London', country: 'GB' },
-  LTN: { city: 'London', country: 'GB' },
-  STN: { city: 'London', country: 'GB' },
-  SEN: { city: 'London', country: 'GB' },
-  ABZ: { city: 'Aberdeen', country: 'GB' },
-  EDI: { city: 'Edinburgh', country: 'GB' },
-  GLA: { city: 'Glasgow', country: 'GB' },
-  INV: { city: 'Inverness', country: 'GB' },
-  BHX: { city: 'Birmingham', country: 'GB' },
-  MAN: { city: 'Manchester', country: 'GB' },
-  BRS: { city: 'Bristol', country: 'GB' },
-  NCL: { city: 'Newcastle', country: 'GB' },
-  LBA: { city: 'Leeds', country: 'GB' },
-  LPL: { city: 'Liverpool', country: 'GB' },
-  EMA: { city: 'Nottingham', country: 'GB' },
-  BFS: { city: 'Belfast', country: 'GB' },
-  SOU: { city: 'Southampton', country: 'GB' },
-  CWL: { city: 'Cardiff', country: 'GB' },
-  DUB: { city: 'Dublin', country: 'IE' },
-  ORK: { city: 'Cork', country: 'IE' },
-  SNN: { city: 'Shannon', country: 'IE' },
-
-  // Western & Central Europe
-  CDG: { city: 'Paris', country: 'FR' },
-  ORY: { city: 'Paris', country: 'FR' },
-  BVA: { city: 'Paris', country: 'FR' },
-  NCE: { city: 'Nice', country: 'FR' },
-  LYS: { city: 'Lyon', country: 'FR' },
-  MRS: { city: 'Marseille', country: 'FR' },
-  TLS: { city: 'Toulouse', country: 'FR' },
-  BOD: { city: 'Bordeaux', country: 'FR' },
-  NTE: { city: 'Nantes', country: 'FR' },
-  AMS: { city: 'Amsterdam', country: 'NL' },
-  EIN: { city: 'Eindhoven', country: 'NL' },
-  RTM: { city: 'Rotterdam', country: 'NL' },
-  BRU: { city: 'Brussels', country: 'BE' },
-  CRL: { city: 'Brussels', country: 'BE' },
-  ANR: { city: 'Antwerp', country: 'BE' },
-  LUX: { city: 'Luxembourg', country: 'LU' },
-  ZRH: { city: 'Zurich', country: 'CH' },
-  GVA: { city: 'Geneva', country: 'CH' },
-  BSL: { city: 'Basel', country: 'CH' },
-  BRN: { city: 'Bern', country: 'CH' },
-  FRA: { city: 'Frankfurt', country: 'DE' },
-  MUC: { city: 'Munich', country: 'DE' },
-  BER: { city: 'Berlin', country: 'DE' },
-  TXL: { city: 'Berlin', country: 'DE' },
-  HAM: { city: 'Hamburg', country: 'DE' },
-  DUS: { city: 'Düsseldorf', country: 'DE' },
-  CGN: { city: 'Cologne', country: 'DE' },
-  STR: { city: 'Stuttgart', country: 'DE' },
-  HAJ: { city: 'Hanover', country: 'DE' },
-  NUE: { city: 'Nuremberg', country: 'DE' },
-  VIE: { city: 'Vienna', country: 'AT' },
-  SZG: { city: 'Salzburg', country: 'AT' },
-  INN: { city: 'Innsbruck', country: 'AT' },
-
-  // Southern Europe
-  MAD: { city: 'Madrid', country: 'ES' },
-  BCN: { city: 'Barcelona', country: 'ES' },
-  AGP: { city: 'Málaga', country: 'ES' },
-  PMI: { city: 'Palma de Mallorca', country: 'ES' },
-  VLC: { city: 'Valencia', country: 'ES' },
-  SVQ: { city: 'Seville', country: 'ES' },
-  BIO: { city: 'Bilbao', country: 'ES' },
-  IBZ: { city: 'Ibiza', country: 'ES' },
-  ALC: { city: 'Alicante', country: 'ES' },
-  TFS: { city: 'Tenerife', country: 'ES' },
-  LPA: { city: 'Gran Canaria', country: 'ES' },
-  LIS: { city: 'Lisbon', country: 'PT' },
-  OPO: { city: 'Porto', country: 'PT' },
-  FAO: { city: 'Faro', country: 'PT' },
-  FNC: { city: 'Funchal', country: 'PT' },
-  FCO: { city: 'Rome', country: 'IT' },
-  CIA: { city: 'Rome', country: 'IT' },
-  MXP: { city: 'Milan', country: 'IT' },
-  LIN: { city: 'Milan', country: 'IT' },
-  BGY: { city: 'Milan', country: 'IT' },
-  VCE: { city: 'Venice', country: 'IT' },
-  NAP: { city: 'Naples', country: 'IT' },
-  BLQ: { city: 'Bologna', country: 'IT' },
-  FLR: { city: 'Florence', country: 'IT' },
-  PSA: { city: 'Pisa', country: 'IT' },
-  CTA: { city: 'Catania', country: 'IT' },
-  PMO: { city: 'Palermo', country: 'IT' },
-  ATH: { city: 'Athens', country: 'GR' },
-  SKG: { city: 'Thessaloniki', country: 'GR' },
-  HER: { city: 'Heraklion', country: 'GR' },
-  JTR: { city: 'Santorini', country: 'GR' },
-  JMK: { city: 'Mykonos', country: 'GR' },
-  MLA: { city: 'Valletta', country: 'MT' },
-
-  // Nordics & Baltics
-  CPH: { city: 'Copenhagen', country: 'DK' },
-  BLL: { city: 'Billund', country: 'DK' },
-  ARN: { city: 'Stockholm', country: 'SE' },
-  BMA: { city: 'Stockholm', country: 'SE' },
-  GOT: { city: 'Gothenburg', country: 'SE' },
-  OSL: { city: 'Oslo', country: 'NO' },
-  BGO: { city: 'Bergen', country: 'NO' },
-  TRD: { city: 'Trondheim', country: 'NO' },
-  HEL: { city: 'Helsinki', country: 'FI' },
-  KEF: { city: 'Reykjavík', country: 'IS' },
-  TLL: { city: 'Tallinn', country: 'EE' },
-  RIX: { city: 'Riga', country: 'LV' },
-  VNO: { city: 'Vilnius', country: 'LT' },
-
-  // Eastern Europe
-  PRG: { city: 'Prague', country: 'CZ' },
-  WAW: { city: 'Warsaw', country: 'PL' },
-  WMI: { city: 'Warsaw', country: 'PL' },
-  KRK: { city: 'Kraków', country: 'PL' },
-  GDN: { city: 'Gdańsk', country: 'PL' },
-  BUD: { city: 'Budapest', country: 'HU' },
-  OTP: { city: 'Bucharest', country: 'RO' },
-  SOF: { city: 'Sofia', country: 'BG' },
-  ZAG: { city: 'Zagreb', country: 'HR' },
-  SPU: { city: 'Split', country: 'HR' },
-  DBV: { city: 'Dubrovnik', country: 'HR' },
-  LJU: { city: 'Ljubljana', country: 'SI' },
-  BEG: { city: 'Belgrade', country: 'RS' },
-  KBP: { city: 'Kyiv', country: 'UA' },
-  SVO: { city: 'Moscow', country: 'RU' },
-  DME: { city: 'Moscow', country: 'RU' },
-  LED: { city: 'St Petersburg', country: 'RU' },
-
-  // Türkiye & Caucasus
-  IST: { city: 'Istanbul', country: 'TR' },
-  SAW: { city: 'Istanbul', country: 'TR' },
-  ADB: { city: 'İzmir', country: 'TR' },
-  AYT: { city: 'Antalya', country: 'TR' },
-  ESB: { city: 'Ankara', country: 'TR' },
-  GYD: { city: 'Baku', country: 'AZ' },
-  TBS: { city: 'Tbilisi', country: 'GE' },
-  EVN: { city: 'Yerevan', country: 'AM' },
-
-  // Middle East
-  DXB: { city: 'Dubai', country: 'AE' },
-  DWC: { city: 'Dubai', country: 'AE' },
-  AUH: { city: 'Abu Dhabi', country: 'AE' },
-  DOH: { city: 'Doha', country: 'QA' },
-  BAH: { city: 'Manama', country: 'BH' },
-  KWI: { city: 'Kuwait City', country: 'KW' },
-  RUH: { city: 'Riyadh', country: 'SA' },
-  JED: { city: 'Jeddah', country: 'SA' },
-  DMM: { city: 'Dammam', country: 'SA' },
-  MCT: { city: 'Muscat', country: 'OM' },
-  AMM: { city: 'Amman', country: 'JO' },
-  BEY: { city: 'Beirut', country: 'LB' },
-  TLV: { city: 'Tel Aviv', country: 'IL' },
-
-  // Africa
-  CAI: { city: 'Cairo', country: 'EG' },
-  HRG: { city: 'Hurghada', country: 'EG' },
-  SSH: { city: 'Sharm El Sheikh', country: 'EG' },
-  CMN: { city: 'Casablanca', country: 'MA' },
-  RAK: { city: 'Marrakesh', country: 'MA' },
-  TUN: { city: 'Tunis', country: 'TN' },
-  ALG: { city: 'Algiers', country: 'DZ' },
-  JNB: { city: 'Johannesburg', country: 'ZA' },
-  CPT: { city: 'Cape Town', country: 'ZA' },
-  DUR: { city: 'Durban', country: 'ZA' },
-  NBO: { city: 'Nairobi', country: 'KE' },
-  ADD: { city: 'Addis Ababa', country: 'ET' },
-  LOS: { city: 'Lagos', country: 'NG' },
-  ACC: { city: 'Accra', country: 'GH' },
-  DAR: { city: 'Dar es Salaam', country: 'TZ' },
-  MRU: { city: 'Port Louis', country: 'MU' },
-  SEZ: { city: 'Mahé', country: 'SC' },
-
-  // South Asia
-  DEL: { city: 'Delhi', country: 'IN' },
-  BOM: { city: 'Mumbai', country: 'IN' },
-  BLR: { city: 'Bangalore', country: 'IN' },
-  MAA: { city: 'Chennai', country: 'IN' },
-  HYD: { city: 'Hyderabad', country: 'IN' },
-  CCU: { city: 'Kolkata', country: 'IN' },
-  GOI: { city: 'Goa', country: 'IN' },
-  COK: { city: 'Kochi', country: 'IN' },
-  CMB: { city: 'Colombo', country: 'LK' },
-  MLE: { city: 'Malé', country: 'MV' },
-  KTM: { city: 'Kathmandu', country: 'NP' },
-
-  // East Asia
-  HKG: { city: 'Hong Kong', country: 'HK' },
-  PEK: { city: 'Beijing', country: 'CN' },
-  PKX: { city: 'Beijing', country: 'CN' },
-  PVG: { city: 'Shanghai', country: 'CN' },
-  SHA: { city: 'Shanghai', country: 'CN' },
-  CAN: { city: 'Guangzhou', country: 'CN' },
-  SZX: { city: 'Shenzhen', country: 'CN' },
-  CTU: { city: 'Chengdu', country: 'CN' },
-  XMN: { city: 'Xiamen', country: 'CN' },
-  HGH: { city: 'Hangzhou', country: 'CN' },
-  NKG: { city: 'Nanjing', country: 'CN' },
-  XIY: { city: "Xi'an", country: 'CN' },
-  KMG: { city: 'Kunming', country: 'CN' },
-  TPE: { city: 'Taipei', country: 'TW' },
-  NRT: { city: 'Tokyo', country: 'JP' },
-  HND: { city: 'Tokyo', country: 'JP' },
-  KIX: { city: 'Osaka', country: 'JP' },
-  ITM: { city: 'Osaka', country: 'JP' },
-  NGO: { city: 'Nagoya', country: 'JP' },
-  FUK: { city: 'Fukuoka', country: 'JP' },
-  CTS: { city: 'Sapporo', country: 'JP' },
-  OKA: { city: 'Okinawa', country: 'JP' },
-  ICN: { city: 'Seoul', country: 'KR' },
-  GMP: { city: 'Seoul', country: 'KR' },
-  PUS: { city: 'Busan', country: 'KR' },
-
-  // Southeast Asia
-  SIN: { city: 'Singapore', country: 'SG' },
-  BKK: { city: 'Bangkok', country: 'TH' },
-  DMK: { city: 'Bangkok', country: 'TH' },
-  HKT: { city: 'Phuket', country: 'TH' },
-  CNX: { city: 'Chiang Mai', country: 'TH' },
-  KUL: { city: 'Kuala Lumpur', country: 'MY' },
-  SGN: { city: 'Ho Chi Minh City', country: 'VN' },
-  HAN: { city: 'Hanoi', country: 'VN' },
-  DAD: { city: 'Da Nang', country: 'VN' },
-  CGK: { city: 'Jakarta', country: 'ID' },
-  DPS: { city: 'Bali', country: 'ID' },
-  SUB: { city: 'Surabaya', country: 'ID' },
-  MNL: { city: 'Manila', country: 'PH' },
-  CEB: { city: 'Cebu', country: 'PH' },
-  PNH: { city: 'Phnom Penh', country: 'KH' },
-  REP: { city: 'Siem Reap', country: 'KH' },
-  RGN: { city: 'Yangon', country: 'MM' },
-
-  // Oceania
-  SYD: { city: 'Sydney', country: 'AU' },
-  MEL: { city: 'Melbourne', country: 'AU' },
-  BNE: { city: 'Brisbane', country: 'AU' },
-  PER: { city: 'Perth', country: 'AU' },
-  ADL: { city: 'Adelaide', country: 'AU' },
-  OOL: { city: 'Gold Coast', country: 'AU' },
-  CNS: { city: 'Cairns', country: 'AU' },
-  AKL: { city: 'Auckland', country: 'NZ' },
-  CHC: { city: 'Christchurch', country: 'NZ' },
-  WLG: { city: 'Wellington', country: 'NZ' },
-  ZQN: { city: 'Queenstown', country: 'NZ' },
-  NAN: { city: 'Nadi', country: 'FJ' },
-
-  // United States — East & South
-  JFK: { city: 'New York', country: 'US' },
-  EWR: { city: 'New York', country: 'US' },
-  LGA: { city: 'New York', country: 'US' },
-  BOS: { city: 'Boston', country: 'US' },
-  PHL: { city: 'Philadelphia', country: 'US' },
-  IAD: { city: 'Washington', country: 'US' },
-  DCA: { city: 'Washington', country: 'US' },
-  BWI: { city: 'Baltimore', country: 'US' },
-  ATL: { city: 'Atlanta', country: 'US' },
-  MIA: { city: 'Miami', country: 'US' },
-  FLL: { city: 'Fort Lauderdale', country: 'US' },
-  MCO: { city: 'Orlando', country: 'US' },
-  TPA: { city: 'Tampa', country: 'US' },
-  RSW: { city: 'Fort Myers', country: 'US' },
-  CLT: { city: 'Charlotte', country: 'US' },
-  RDU: { city: 'Raleigh', country: 'US' },
-  CLE: { city: 'Cleveland', country: 'US' },
-  PIT: { city: 'Pittsburgh', country: 'US' },
-  CVG: { city: 'Cincinnati', country: 'US' },
-  BNA: { city: 'Nashville', country: 'US' },
-  MSY: { city: 'New Orleans', country: 'US' },
-  // United States — Central & West
-  ORD: { city: 'Chicago', country: 'US' },
-  MDW: { city: 'Chicago', country: 'US' },
-  DTW: { city: 'Detroit', country: 'US' },
-  MSP: { city: 'Minneapolis', country: 'US' },
-  IND: { city: 'Indianapolis', country: 'US' },
-  STL: { city: 'St Louis', country: 'US' },
-  MCI: { city: 'Kansas City', country: 'US' },
-  DFW: { city: 'Dallas', country: 'US' },
-  IAH: { city: 'Houston', country: 'US' },
-  AUS: { city: 'Austin', country: 'US' },
-  SAT: { city: 'San Antonio', country: 'US' },
-  DEN: { city: 'Denver', country: 'US' },
-  SLC: { city: 'Salt Lake City', country: 'US' },
-  PHX: { city: 'Phoenix', country: 'US' },
-  LAS: { city: 'Las Vegas', country: 'US' },
-  LAX: { city: 'Los Angeles', country: 'US' },
-  SFO: { city: 'San Francisco', country: 'US' },
-  SJC: { city: 'San Jose', country: 'US' },
-  OAK: { city: 'Oakland', country: 'US' },
-  SAN: { city: 'San Diego', country: 'US' },
-  SEA: { city: 'Seattle', country: 'US' },
-  PDX: { city: 'Portland', country: 'US' },
-  HNL: { city: 'Honolulu', country: 'US' },
-  OGG: { city: 'Maui', country: 'US' },
-
-  // Canada
-  YYZ: { city: 'Toronto', country: 'CA' },
-  YUL: { city: 'Montreal', country: 'CA' },
-  YVR: { city: 'Vancouver', country: 'CA' },
-  YYC: { city: 'Calgary', country: 'CA' },
-  YOW: { city: 'Ottawa', country: 'CA' },
-  YEG: { city: 'Edmonton', country: 'CA' },
-  YWG: { city: 'Winnipeg', country: 'CA' },
-  YHZ: { city: 'Halifax', country: 'CA' },
-
-  // Mexico, Central America & Caribbean
-  MEX: { city: 'Mexico City', country: 'MX' },
-  CUN: { city: 'Cancún', country: 'MX' },
-  GDL: { city: 'Guadalajara', country: 'MX' },
-  MTY: { city: 'Monterrey', country: 'MX' },
-  SJD: { city: 'Los Cabos', country: 'MX' },
-  PVR: { city: 'Puerto Vallarta', country: 'MX' },
-  PTY: { city: 'Panama City', country: 'PA' },
-  SJO: { city: 'San José', country: 'CR' },
-  LIR: { city: 'Liberia', country: 'CR' },
-  GUA: { city: 'Guatemala City', country: 'GT' },
-  SAL: { city: 'San Salvador', country: 'SV' },
-  HAV: { city: 'Havana', country: 'CU' },
-  MBJ: { city: 'Montego Bay', country: 'JM' },
-  NAS: { city: 'Nassau', country: 'BS' },
-  PUJ: { city: 'Punta Cana', country: 'DO' },
-  SDQ: { city: 'Santo Domingo', country: 'DO' },
-  AUA: { city: 'Oranjestad', country: 'AW' },
-  BGI: { city: 'Bridgetown', country: 'BB' },
-  POS: { city: 'Port of Spain', country: 'TT' },
-
-  // South America
-  BOG: { city: 'Bogotá', country: 'CO' },
-  MDE: { city: 'Medellín', country: 'CO' },
-  CTG: { city: 'Cartagena', country: 'CO' },
-  LIM: { city: 'Lima', country: 'PE' },
-  CUZ: { city: 'Cusco', country: 'PE' },
-  UIO: { city: 'Quito', country: 'EC' },
-  GYE: { city: 'Guayaquil', country: 'EC' },
-  SCL: { city: 'Santiago', country: 'CL' },
-  EZE: { city: 'Buenos Aires', country: 'AR' },
-  AEP: { city: 'Buenos Aires', country: 'AR' },
-  GRU: { city: 'São Paulo', country: 'BR' },
-  CGH: { city: 'São Paulo', country: 'BR' },
-  GIG: { city: 'Rio de Janeiro', country: 'BR' },
-  BSB: { city: 'Brasília', country: 'BR' },
-  CNF: { city: 'Belo Horizonte', country: 'BR' },
-  SSA: { city: 'Salvador', country: 'BR' },
-  MVD: { city: 'Montevideo', country: 'UY' },
-  ASU: { city: 'Asunción', country: 'PY' },
-};
-
-// A couple of keys above can't be written as bare identifiers; normalise.
-export function airportInfo(iata: string): AirportInfo | undefined {
-  return AIRPORTS[iata?.trim().toUpperCase()];
+function parse(): Airport[] {
+  const out: Airport[] = [];
+  for (const line of AIRPORTS_TSV.split('\n')) {
+    if (!line) continue;
+    const c = line.split('\t');
+    const lat = Number(c[5]);
+    const lng = Number(c[6]);
+    if (!c[0] || !Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+    out.push({
+      iata: c[0],
+      icao: c[1] || '',
+      name: c[2] || c[3] || c[0],
+      city: c[3] || c[2] || c[0],
+      country: c[4] || '',
+      lat,
+      lng,
+      tz: c[7] || '',
+      aliases: c[8] ? c[8].split(';').filter(Boolean) : [],
+    });
+  }
+  return out;
 }
 
-export interface AirportRow extends AirportInfo {
-  iata: string;
+/** Every known commercial airport (already sorted by city). */
+export const ALL_AIRPORTS: Airport[] = parse();
+
+const BY_IATA = new Map<string, Airport>();
+const BY_ICAO = new Map<string, Airport>();
+for (const a of ALL_AIRPORTS) {
+  if (!BY_IATA.has(a.iata)) BY_IATA.set(a.iata, a);
+  if (a.icao && !BY_ICAO.has(a.icao)) BY_ICAO.set(a.icao, a);
 }
 
-/** Flat, searchable list of all known airports (by IATA code or city name). */
-export const ALL_AIRPORTS: AirportRow[] = Object.entries(AIRPORTS)
-  .map(([iata, info]) => ({ iata, ...info }))
-  .sort((a, b) => a.city.localeCompare(b.city));
+/** Look up an airport by IATA (e.g. LHR) or ICAO (e.g. EGLL) code. */
+export function airportInfo(code?: string): Airport | undefined {
+  if (!code) return undefined;
+  const c = code.trim().toUpperCase();
+  return BY_IATA.get(c) || BY_ICAO.get(c);
+}
 
+/** IATA → [lng, lat], for the route map + endpoint resolution. */
+export const AIRPORT_COORDS: Record<string, [number, number]> = {};
+for (const a of ALL_AIRPORTS) if (!AIRPORT_COORDS[a.iata]) AIRPORT_COORDS[a.iata] = [a.lng, a.lat];
+
+/** "ISO|city" (lowercased) → [lng, lat], so a bare city name still resolves. */
+export const CITY_COORDS: Record<string, [number, number]> = {};
+for (const a of ALL_AIRPORTS) {
+  const key = `${a.country}|${a.city.toLowerCase()}`;
+  if (!CITY_COORDS[key]) CITY_COORDS[key] = [a.lng, a.lat];
+}

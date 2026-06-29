@@ -13,7 +13,7 @@ import { AirportField } from '../../components/AirportField';
 import { isEndpointResolved, bestAirportMatch } from '../../src/lib/airportSearch';
 import { CircleAlert } from 'lucide-react-native';
 import { Dropdown, type DropdownOption } from '../../components/Dropdown';
-import { journeyLegSegments } from '../../src/lib/journeyGeo';
+import { journeyLegSegments, resolveEndpoint } from '../../src/lib/journeyGeo';
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
@@ -355,8 +355,8 @@ export default function JourneyScreen() {
               </View>
               {leg.mode === 'flight' ? (
                 <View style={{ gap: 8 }}>
-                  <AirportField placeholder={meta.from} value={leg.from} onChangeText={(t) => patchLeg(leg.id, { from: t })} onPick={(m) => patchLeg(leg.id, { from: m.label })} />
-                  <AirportField placeholder={meta.to} value={leg.to} onChangeText={(t) => patchLeg(leg.id, { to: t })} onPick={(m) => patchLeg(leg.id, { to: m.label })} />
+                  <AirportField placeholder={meta.from} value={leg.from} near={resolveEndpoint(leg.to)} onChangeText={(t) => patchLeg(leg.id, { from: t })} onPick={(m) => patchLeg(leg.id, { from: m.label })} />
+                  <AirportField placeholder={meta.to} value={leg.to} near={resolveEndpoint(leg.from)} onChangeText={(t) => patchLeg(leg.id, { to: t })} onPick={(m) => patchLeg(leg.id, { to: m.label })} />
                 </View>
               ) : (
                 <View className="flex-row" style={{ gap: 8 }}>

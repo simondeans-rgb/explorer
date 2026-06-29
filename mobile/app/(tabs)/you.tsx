@@ -6,7 +6,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned } from 'lucide-react-native';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
@@ -25,6 +25,8 @@ import { friendActivityEnabled, enableFriendActivity, disableFriendActivity, tri
 import { AuthSheet } from '../../components/AuthSheet';
 import { DeleteAccountSheet } from '../../components/DeleteAccountSheet';
 import { XpDetailSheet } from '../../components/XpDetailSheet';
+import { ResolveAirportsSheet } from '../../components/ResolveAirportsSheet';
+import { isEndpointResolved } from '../../src/lib/airportSearch';
 import { pickPhotoDataUrl } from '../../src/lib/photo';
 import { ensureProfile, loadProfilePhoto, saveProfilePhoto } from '../../src/lib/profile';
 
@@ -51,7 +53,7 @@ export default function YouScreen() {
   const almanacCodes = ['PE', 'EG', 'GR', 'IT'];
   const { configured, user, signOutUser } = useAuth();
   const confirm = useConfirm();
-  const { places, discoveries, expeditions, captures, trips, recalculateJourneys } = useData();
+  const { places, discoveries, expeditions, captures, trips, recalculateJourneys, updateExpedition } = useData();
   const { toast } = useToast();
   const [recalcing, setRecalcing] = useState(false);
   async function onRecalcJourneys() {
@@ -73,6 +75,21 @@ export default function YouScreen() {
   const [authOpen, setAuthOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [xpOpen, setXpOpen] = useState(false);
+  const [resolveOpen, setResolveOpen] = useState(false);
+
+  // Flight stops across all journeys that don't resolve to a known airport, so
+  // the Passport can offer to match them (they don't count in stats until then).
+  const unresolvedAirports = useMemo(() => {
+    let n = 0;
+    for (const e of expeditions) {
+      for (const j of e.journeys ?? []) {
+        if (j.mode !== 'flight') continue;
+        if (j.from?.trim() && !isEndpointResolved(j.from)) n++;
+        if (j.to?.trim() && !isEndpointResolved(j.to)) n++;
+      }
+    }
+    return n;
+  }, [expeditions]);
   const [exporting, setExporting] = useState(false);
   const [notifOn, setNotifOn] = useState(false);
   const [circleNotifOn, setCircleNotifOn] = useState(false);
@@ -410,6 +427,34 @@ export default function YouScreen() {
         </View>
       </View>
 
+      {/* Flights — resolve any unrecognised airports so they count in the stats */}
+      {expeditions.length > 0 ? (
+        <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>FLIGHTS</Text>
+          <View className="bg-white rounded-3xl" style={{ overflow: 'hidden' }}>
+            <Pressable onPress={() => setResolveOpen(true)} className="flex-row items-center" style={{ paddingHorizontal: 16, paddingVertical: 14, gap: 12 }}>
+              <View className="rounded-2xl items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
+                <Plane size={18} color={COLORS.ink2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>Resolve airports</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>
+                  {unresolvedAirports > 0 ? `${unresolvedAirports} flight stop${unresolvedAirports === 1 ? '' : 's'} to match for accurate stats` : 'All flight stops are matched'}
+                </Text>
+              </View>
+              {unresolvedAirports > 0 ? (
+                <View className="rounded-full items-center justify-center" style={{ minWidth: 22, height: 22, paddingHorizontal: 7, backgroundColor: '#F4B740' }}>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', color: '#fff' }}>{unresolvedAirports}</Text>
+                </View>
+              ) : (
+                <CircleCheck size={18} color="#12A594" />
+              )}
+              <ChevronRight size={18} color={COLORS.ink3} />
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
       {/* Legal & support */}
       <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>LEGAL & SUPPORT</Text>
@@ -455,6 +500,7 @@ export default function YouScreen() {
       <AuthSheet visible={authOpen} onClose={() => setAuthOpen(false)} />
       <DeleteAccountSheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} />
       <XpDetailSheet visible={xpOpen} onClose={() => setXpOpen(false)} level={level} stats={stats} discovery={discoveryStats} journeys={journeyStats} />
+      <ResolveAirportsSheet visible={resolveOpen} onClose={() => setResolveOpen(false)} expeditions={expeditions} updateExpedition={updateExpedition} />
     </ScrollView>
   );
 }

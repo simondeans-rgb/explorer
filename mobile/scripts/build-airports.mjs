@@ -1,0 +1,130 @@
+// Refreshable airport dataset builder.
+//
+// Pulls the open, regularly-maintained OurAirports dataset (primary: airport
+// name, IATA, ICAO, city, country ISO, lat/lng, type, alias keywords) and
+// merges the OpenFlights tz-database timezone by IATA. Emits a compact TSV
+// baked into src/data/airportsDataset.ts so the app recognises virtually every
+// commercial airport worldwide, offline.
+//
+// Refresh (no code changes needed):  node scripts/build-airports.mjs
+//
+// Sources:
+//   https://ourairports.com/data/         (public domain)
+//   https://openflights.org/data.html     (ODbL, used only for tz lookup)
+import { writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const OURAIRPORTS = 'https://davidmegginson.github.io/ourairports-data/airports.csv';
+const OPENFLIGHTS = 'https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat';
+
+// Commercial airports: the types that carry scheduled passenger service.
+const KEEP_TYPES = new Set(['large_airport', 'medium_airport']);
+
+/** Parse one CSV line into fields, honouring double-quoted values. */
+function parseCsvLine(line) {
+  const out = [];
+  let cur = '';
+  let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQ) {
+      if (c === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; }
+        else inQ = false;
+      } else cur += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ',') { out.push(cur); cur = ''; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+
+async function fetchText(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
+  return res.text();
+}
+
+const clean = (s) => (s || '').replace(/\s+/g, ' ').replace(/\t/g, ' ').trim();
+const round = (n) => Math.round(n * 10000) / 10000;
+
+async function main() {
+  console.log('Fetching OurAirports…');
+  const oaText = await fetchText(OURAIRPORTS);
+  console.log('Fetching OpenFlights (timezones)…');
+  const ofText = await fetchText(OPENFLIGHTS);
+
+  // OpenFlights: IATA → tz-database name (column 12, 0-based 11).
+  const tzByIata = new Map();
+  for (const line of ofText.split('\n')) {
+    if (!line.trim()) continue;
+    const f = parseCsvLine(line);
+    const iata = clean(f[4]).toUpperCase();
+    const tz = clean(f[11]);
+    if (iata.length === 3 && tz && tz !== '\\N') tzByIata.set(iata, tz);
+  }
+
+  const lines = oaText.split('\n');
+  const header = parseCsvLine(lines[0]).map((h) => h.replace(/"/g, ''));
+  const col = (name) => header.indexOf(name);
+  const ci = {
+    type: col('type'), name: col('name'), lat: col('latitude_deg'), lng: col('longitude_deg'),
+    country: col('iso_country'), city: col('municipality'), sched: col('scheduled_service'),
+    icao: col('icao_code'), iata: col('iata_code'), gps: col('gps_code'), keywords: col('keywords'),
+  };
+
+  const rows = [];
+  let withTz = 0;
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const f = parseCsvLine(lines[i]);
+    const iata = clean(f[ci.iata]).toUpperCase();
+    if (!/^[A-Z]{3}$/.test(iata)) continue; // commercial airports carry an IATA code
+    // Keep the big airports plus any smaller field that runs scheduled service
+    // (regional / island hops), so coverage spans real passenger airports.
+    const scheduled = clean(f[ci.sched]).toLowerCase() === 'yes';
+    if (!KEEP_TYPES.has(f[ci.type]) && !scheduled) continue;
+    const icao = (clean(f[ci.icao]) || clean(f[ci.gps])).toUpperCase();
+    const name = clean(f[ci.name]);
+    // Municipality sometimes carries region detail, e.g.
+    // "Paris (Roissy-en-France, Val-d'Oise)" → keep just "Paris".
+    const city = (clean(f[ci.city]).replace(/\s*\(.*?\)\s*/g, ' ').replace(/,.*$/, '').trim()) || name;
+    const country = clean(f[ci.country]).toUpperCase();
+    const lat = Number(f[ci.lat]);
+    const lng = Number(f[ci.lng]);
+    if (!country || !Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+    const tz = tzByIata.get(iata) || '';
+    if (tz) withTz++;
+    // Aliases: OurAirports keywords (alternate names / former names / codes),
+    // de-duped against the obvious city/name to keep the payload small.
+    const aliases = clean(f[ci.keywords])
+      .split(/[,;]/)
+      .map((s) => s.trim())
+      // Keep useful Latin-script aliases (metro codes, former names) and drop
+      // native-script duplicates of the name to keep the payload lean.
+      .filter((s) => s && /[A-Za-z]/.test(s) && s.length <= 30 && s.toLowerCase() !== city.toLowerCase() && s.toLowerCase() !== name.toLowerCase())
+      .slice(0, 4)
+      .join(';');
+    // TSV columns: iata, icao, name, city, country, lat, lng, tz, aliases
+    rows.push([iata, icao, name, city, country, round(lat), round(lng), tz, aliases].join('\t'));
+  }
+
+  rows.sort((a, b) => a.split('\t')[3].localeCompare(b.split('\t')[3]));
+  const tsv = rows.join('\n');
+  const out = `// AUTO-GENERATED by scripts/build-airports.mjs — do not edit by hand.
+// ${rows.length} commercial airports (OurAirports + OpenFlights tz). Refresh:
+//   node scripts/build-airports.mjs
+// Columns (tab-separated): iata, icao, name, city, country, lat, lng, tz, aliases
+export const AIRPORTS_TSV = \`${tsv.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`;
+`;
+
+  const dir = dirname(fileURLToPath(import.meta.url));
+  const target = join(dir, '..', 'src', 'data', 'airportsDataset.ts');
+  writeFileSync(target, out);
+  console.log(`Wrote ${rows.length} airports (${withTz} with timezone) → ${target}`);
+  console.log(`Dataset size: ${(out.length / 1024 / 1024).toFixed(2)} MB`);
+}
+
+main().catch((e) => { console.error(e); process.exit(1); });

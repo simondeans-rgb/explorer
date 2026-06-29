@@ -5,6 +5,7 @@ import type { ComponentType } from 'react';
 import { SheetShell } from './SheetShell';
 import { RouteBuilder } from './RouteBuilder';
 import { AirportField } from './AirportField';
+import { resolveEndpoint } from '../src/lib/journeyGeo';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES } from '../src/data/countries';
@@ -196,8 +197,8 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
 
               {leg.mode === 'flight' ? (
                 <View style={{ gap: 8 }}>
-                  <AirportField placeholder={meta.from} value={leg.from} onChangeText={(t) => patchLeg(leg.id, { from: t })} onPick={(m) => patchLeg(leg.id, { from: m.label })} />
-                  <AirportField placeholder={meta.to} value={leg.to} onChangeText={(t) => patchLeg(leg.id, { to: t })} onPick={(m) => patchLeg(leg.id, { to: m.label })} />
+                  <AirportField placeholder={meta.from} value={leg.from} near={resolveEndpoint(leg.to)} onChangeText={(t) => patchLeg(leg.id, { from: t })} onPick={(m) => patchLeg(leg.id, { from: m.label })} />
+                  <AirportField placeholder={meta.to} value={leg.to} near={resolveEndpoint(leg.from)} onChangeText={(t) => patchLeg(leg.id, { to: t })} onPick={(m) => patchLeg(leg.id, { to: m.label })} />
                 </View>
               ) : (
                 <View className="flex-row" style={{ gap: 8 }}>
