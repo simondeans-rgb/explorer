@@ -14,6 +14,7 @@ const MODE_FILTERS: { key: JourneyMode | 'all'; label: string; Icon: ComponentTy
 ];
 import { PageHero } from '../../components/PageHero';
 import { JourneyGlobe } from '../../components/JourneyGlobe';
+import { JourneyStatsPanel } from '../../components/JourneyStatsPanel';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AtlasCountryCard } from '../../components/AtlasCountryCard';
 import { AtlasSummary } from '../../components/AtlasSummary';
@@ -247,6 +248,11 @@ export default function AtlasScreen() {
             </Text>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginLeft: 'auto' }}>Drag to spin · pinch to zoom</Text>
           </View>
+          {scopedJourneys.length > 0 ? (
+            <View style={{ marginTop: 16 }}>
+              <JourneyStatsPanel expeditions={scopedJourneys} />
+            </View>
+          ) : null}
         </View>
       )}
 
