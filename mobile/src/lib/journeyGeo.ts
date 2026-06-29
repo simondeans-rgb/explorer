@@ -49,6 +49,12 @@ export function resolveEndpoint(label?: string): [number, number] | undefined {
   if (!label) return undefined;
   const iata = iataOf(label);
   if (iata && AIRPORT_COORDS[iata]) return AIRPORT_COORDS[iata];
+  // A bare 4-letter ICAO code (e.g. "EGLL").
+  const t = label.trim().toUpperCase();
+  if (/^[A-Z]{4}$/.test(t)) {
+    const info = airportInfo(t);
+    if (info && AIRPORT_COORDS[info.iata]) return AIRPORT_COORDS[info.iata];
+  }
   const city = cityPart(label);
   if (city && CITY_BY_NAME[city]) return CITY_BY_NAME[city];
   return undefined;
