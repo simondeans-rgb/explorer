@@ -46,7 +46,7 @@ export function CelebrationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!current) return;
-    timer.current = setTimeout(() => showNext(), 3000);
+    timer.current = setTimeout(() => showNext(), 3600);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
