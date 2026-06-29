@@ -3,7 +3,7 @@
 // "London → Paris" maps just like an imported "London (LHR)" one — no airport
 // codes required, and no flight is missed.
 import { AIRPORT_COORDS, CITY_COORDS } from '../data/airportCoords';
-import { ALL_AIRPORTS } from '../data/airports';
+import { ALL_AIRPORTS, airportInfo } from '../data/airports';
 import type { Expedition, Journey } from '../types';
 
 /** Pull an IATA code from a label like "London (LHR)" or a bare "LHR". */
@@ -27,6 +27,18 @@ for (const a of ALL_AIRPORTS) {
   if (co && !CITY_BY_NAME[city]) CITY_BY_NAME[city] = co;
 }
 
+// city name (lowercase) -> ISO country, built the same way, so an endpoint's
+// country can be resolved even when it's typed as a bare city name.
+const COUNTRY_BY_CITY: Record<string, string> = {};
+for (const key of Object.keys(CITY_COORDS)) {
+  const [cc, city] = key.split('|');
+  if (city && cc && !COUNTRY_BY_CITY[city]) COUNTRY_BY_CITY[city] = cc;
+}
+for (const a of ALL_AIRPORTS) {
+  const city = a.city.toLowerCase();
+  if (a.country && !COUNTRY_BY_CITY[city]) COUNTRY_BY_CITY[city] = a.country;
+}
+
 function cityPart(label: string): string {
   // Drop a trailing "(LHR)" and anything after a comma, then normalise.
   return label.replace(/\(.*?\)/g, '').replace(/,.*$/, '').trim().toLowerCase();
@@ -39,6 +51,21 @@ export function resolveEndpoint(label?: string): [number, number] | undefined {
   if (iata && AIRPORT_COORDS[iata]) return AIRPORT_COORDS[iata];
   const city = cityPart(label);
   if (city && CITY_BY_NAME[city]) return CITY_BY_NAME[city];
+  return undefined;
+}
+
+/** Best-effort ISO 3166-1 alpha-2 country for a free-text or coded endpoint —
+ *  by IATA airport first, then by city name. Used to split flights into
+ *  domestic vs international. */
+export function resolveCountry(label?: string): string | undefined {
+  if (!label) return undefined;
+  const iata = iataOf(label);
+  if (iata) {
+    const info = airportInfo(iata);
+    if (info) return info.country;
+  }
+  const city = cityPart(label);
+  if (city && COUNTRY_BY_CITY[city]) return COUNTRY_BY_CITY[city];
   return undefined;
 }
 
