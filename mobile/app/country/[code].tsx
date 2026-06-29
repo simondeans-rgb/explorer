@@ -38,7 +38,7 @@ import {
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useData } from '../../src/store/data';
 import { useUnits } from '../../src/store/units';
-import { convertAreaKm2, areaUnitLabel } from '../../src/lib/units';
+import { convertAreaKm2, areaUnitLabel, tempUnitLabel, type TempUnit } from '../../src/lib/units';
 import { useAuth } from '../../src/store/auth';
 import { useFriends } from '../../src/hooks/useFriends';
 import { goBack } from '../../src/lib/nav';
@@ -94,13 +94,13 @@ function Fact({ icon: Icon, label, value, tint = COLORS.coral }: { icon: Compone
   );
 }
 
-function TempChart({ temps }: { temps: number[] }) {
+function TempChart({ temps, tempUnit }: { temps: number[]; tempUnit: TempUnit }) {
   const max = Math.max(...temps, 1);
   const min = Math.min(...temps, 0);
   const span = Math.max(max - min, 1);
   return (
     <View className="rounded-2xl" style={{ padding: 16, backgroundColor: 'rgba(77,166,255,0.08)' }}>
-      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: COLORS.ink2 }}>AVERAGE TEMPERATURE °C</Text>
+      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: COLORS.ink2 }}>AVERAGE TEMPERATURE {tempUnitLabel(tempUnit)}</Text>
       <View className="flex-row items-end" style={{ height: 70, marginTop: 12, gap: 4 }}>
         {temps.map((t, i) => {
           const h = 10 + Math.round(((t - min) / span) * 52);
@@ -195,7 +195,7 @@ export default function CountryScreen() {
   const code = (rawCode ?? '').toUpperCase();
   const { aggregates, discoveries, expeditions } = useWorldly();
   const { captures } = useData();
-  const { unit } = useUnits();
+  const { unit, tempUnit } = useUnits();
   const { user } = useAuth();
   const myName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
   const { friends, friendsData } = useFriends(user?.uid, myName);
@@ -344,7 +344,7 @@ export default function CountryScreen() {
             </View>
             {facts.temps && facts.temps.length === 12 ? (
               <View style={{ marginTop: 10 }}>
-                <TempChart temps={facts.temps} />
+                <TempChart temps={facts.temps} tempUnit={tempUnit} />
               </View>
             ) : null}
           </Section>

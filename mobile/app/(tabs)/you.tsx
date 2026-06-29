@@ -6,7 +6,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck, Ruler } from 'lucide-react-native';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck, Ruler, Thermometer } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
@@ -28,7 +28,7 @@ import { XpDetailSheet } from '../../components/XpDetailSheet';
 import { ResolveAirportsSheet } from '../../components/ResolveAirportsSheet';
 import { isEndpointResolved } from '../../src/lib/airportSearch';
 import { useUnits } from '../../src/store/units';
-import type { DistanceUnit } from '../../src/lib/units';
+import type { DistanceUnit, TempUnit } from '../../src/lib/units';
 import { pickPhotoDataUrl } from '../../src/lib/photo';
 import { ensureProfile, loadProfilePhoto, saveProfilePhoto } from '../../src/lib/profile';
 
@@ -78,7 +78,7 @@ export default function YouScreen() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [xpOpen, setXpOpen] = useState(false);
   const [resolveOpen, setResolveOpen] = useState(false);
-  const { unit, setUnit } = useUnits();
+  const { unit, setUnit, tempUnit, setTempUnit } = useUnits();
 
   // Flight stops across all journeys that don't resolve to a known airport, so
   // the Passport can offer to match them (they don't count in stats until then).
@@ -448,6 +448,26 @@ export default function YouScreen() {
               const active = unit === id;
               return (
                 <Pressable key={id} onPress={() => setUnit(id)} style={{ flex: 1, paddingVertical: 8, borderRadius: 999, backgroundColor: active ? COLORS.navy : 'transparent' }}>
+                  <Text style={{ textAlign: 'center', fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View className="flex-row items-center" style={{ gap: 12, marginTop: 18 }}>
+            <View className="rounded-2xl items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
+              <Thermometer size={18} color={COLORS.ink2} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>Temperature</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Used on country temperature charts</Text>
+            </View>
+          </View>
+          <View className="flex-row rounded-full" style={{ backgroundColor: '#F1F1F7', padding: 3, marginTop: 12 }}>
+            {([['c', 'Celsius (°C)'], ['f', 'Fahrenheit (°F)']] as [TempUnit, string][]).map(([id, label]) => {
+              const active = tempUnit === id;
+              return (
+                <Pressable key={id} onPress={() => setTempUnit(id)} style={{ flex: 1, paddingVertical: 8, borderRadius: 999, backgroundColor: active ? COLORS.navy : 'transparent' }}>
                   <Text style={{ textAlign: 'center', fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{label}</Text>
                 </Pressable>
               );

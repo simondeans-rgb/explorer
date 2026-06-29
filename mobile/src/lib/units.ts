@@ -5,6 +5,7 @@
 // the Member picked in the Passport so the whole app reads in one system.
 
 export type DistanceUnit = 'mi' | 'km';
+export type TempUnit = 'c' | 'f';
 
 export const KM_PER_MI = 1.609344;
 const KM2_PER_MI2 = 2.589988; // 1 square mile in km²
@@ -44,4 +45,14 @@ export function convertDensityPerKm2(perKm2: number, unit: DistanceUnit): number
 /** Per-area unit label, e.g. "/km²" / "/mi²". */
 export function perAreaUnitLabel(unit: DistanceUnit): string {
   return unit === 'mi' ? '/mi²' : '/km²';
+}
+
+/** Convert a Celsius temperature to the chosen unit (rounded to a whole degree). */
+export function convertCelsius(celsius: number, unit: TempUnit): number {
+  return unit === 'f' ? Math.round((celsius * 9) / 5 + 32) : Math.round(celsius);
+}
+
+/** Temperature unit label, "°C" / "°F". */
+export function tempUnitLabel(unit: TempUnit): string {
+  return unit === 'f' ? '°F' : '°C';
 }
