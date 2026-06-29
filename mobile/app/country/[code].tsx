@@ -37,6 +37,8 @@ import {
 } from '../../src/types';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useData } from '../../src/store/data';
+import { useUnits } from '../../src/store/units';
+import { convertAreaKm2, areaUnitLabel } from '../../src/lib/units';
 import { useAuth } from '../../src/store/auth';
 import { useFriends } from '../../src/hooks/useFriends';
 import { goBack } from '../../src/lib/nav';
@@ -193,6 +195,7 @@ export default function CountryScreen() {
   const code = (rawCode ?? '').toUpperCase();
   const { aggregates, discoveries, expeditions } = useWorldly();
   const { captures } = useData();
+  const { unit } = useUnits();
   const { user } = useAuth();
   const myName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
   const { friends, friendsData } = useFriends(user?.uid, myName);
@@ -337,7 +340,7 @@ export default function CountryScreen() {
               <Fact icon={Building2} label="Capital" value={facts.capital} tint={COLORS.coral} />
               <Fact icon={Coins} label="Currency" value={facts.currency} tint={COLORS.sunburst} />
               <Fact icon={Users} label="Population" value={fmtNum(facts.population)} tint={COLORS.aqua} />
-              <Fact icon={Maximize2} label="Area" value={`${fmtNum(facts.areaKm2)} km²`} tint={COLORS.lavender} />
+              <Fact icon={Maximize2} label="Area" value={`${fmtNum(convertAreaKm2(facts.areaKm2, unit))} ${areaUnitLabel(unit)}`} tint={COLORS.lavender} />
             </View>
             {facts.temps && facts.temps.length === 12 ? (
               <View style={{ marginTop: 10 }}>

@@ -13,6 +13,8 @@ import {
   type TravelStats,
 } from '../src/lib/travelStats';
 import type { Expedition } from '../src/types';
+import { useUnits } from '../src/store/units';
+import { convertMiles, distanceUnitLabel, type DistanceUnit } from '../src/lib/units';
 
 const group = (n: number) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
@@ -113,7 +115,7 @@ function CompareRow({ Icon, tint, multiple, label, frac }: { Icon: ComponentType
   );
 }
 
-function ExtremeRow({ title, f }: { title: string; f: { from: string; to: string; mi: number; date?: string } }) {
+function ExtremeRow({ title, f, unit }: { title: string; f: { from: string; to: string; mi: number; date?: string }; unit: DistanceUnit }) {
   return (
     <View className="flex-row items-center" style={{ gap: 8 }}>
       <View style={{ flex: 1 }}>
@@ -124,7 +126,7 @@ function ExtremeRow({ title, f }: { title: string; f: { from: string; to: string
           <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.ink, flexShrink: 1 }}>{f.to || '—'}</Text>
         </View>
       </View>
-      <Text style={{ fontFamily: 'Fraunces', fontSize: 15, color: COLORS.navy }}>{group(f.mi)} <Text style={{ fontSize: 11, color: COLORS.ink3 }}>mi</Text></Text>
+      <Text style={{ fontFamily: 'Fraunces', fontSize: 15, color: COLORS.navy }}>{group(convertMiles(f.mi, unit))} <Text style={{ fontSize: 11, color: COLORS.ink3 }}>{distanceUnitLabel(unit)}</Text></Text>
     </View>
   );
 }
@@ -154,6 +156,7 @@ function Segmented({ value, onChange }: { value: Gran; onChange: (g: Gran) => vo
  *  longest/shortest flight, and a tally of every other way you've travelled. */
 export function JourneyStatsPanel({ expeditions }: { expeditions: Expedition[] }) {
   const stats: TravelStats = useMemo(() => computeTravelStats(expeditions), [expeditions]);
+  const { unit } = useUnits();
   const [gran, setGran] = useState<Gran>(stats.yearsCovered.length > 1 ? 'year' : 'month');
   const [chartW, setChartW] = useState(0);
 
@@ -220,10 +223,10 @@ export function JourneyStatsPanel({ expeditions }: { expeditions: Expedition[] }
         <View className="bg-white rounded-3xl" style={{ padding: 16, ...SHADOW.card }}>
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 0.6, color: COLORS.ink3 }}>DISTANCE FLOWN</Text>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 40, color: COLORS.navy, lineHeight: 46 }}>
-            {group(distanceMi)} <Text style={{ fontSize: 20, color: COLORS.ink3 }}>mi</Text>
+            {group(convertMiles(distanceMi, unit))} <Text style={{ fontSize: 20, color: COLORS.ink3 }}>{distanceUnitLabel(unit)}</Text>
           </Text>
           {stats.avgFlightMi > 0 ? (
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginBottom: 12 }}>Average flight: {group(stats.avgFlightMi)} mi</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginBottom: 12 }}>Average flight: {group(convertMiles(stats.avgFlightMi, unit))} {distanceUnitLabel(unit)}</Text>
           ) : <View style={{ height: 8 }} />}
           <View style={{ gap: 8 }}>
             <CompareRow Icon={Globe2} tint={COLORS.aqua} multiple={earthX} frac={earthX / maxX} label="around the Earth" />
@@ -233,8 +236,8 @@ export function JourneyStatsPanel({ expeditions }: { expeditions: Expedition[] }
 
           {stats.longest || stats.shortest ? (
             <View style={{ gap: 12, marginTop: 16, borderTopWidth: 1, borderTopColor: '#EEEDF5', paddingTop: 14 }}>
-              {stats.longest ? <ExtremeRow title="LONGEST FLIGHT" f={stats.longest} /> : null}
-              {stats.shortest && stats.shortest !== stats.longest ? <ExtremeRow title="SHORTEST FLIGHT" f={stats.shortest} /> : null}
+              {stats.longest ? <ExtremeRow title="LONGEST FLIGHT" f={stats.longest} unit={unit} /> : null}
+              {stats.shortest && stats.shortest !== stats.longest ? <ExtremeRow title="SHORTEST FLIGHT" f={stats.shortest} unit={unit} /> : null}
             </View>
           ) : null}
         </View>
