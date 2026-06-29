@@ -27,7 +27,12 @@ const HAS_PHOTO = new Set([
   'ZA', 'ZM', 'ZW',
 ]);
 
-const photoPath = (code: string) => `/destinations/${code}.jpg`;
+// Cache-buster: destination JPEGs are overwritten in place when imagery is
+// refreshed, so bump this whenever any /destinations image is replaced to force
+// browsers (and any intermediate cache) to refetch instead of reusing the old file.
+const IMG_VERSION = 2;
+
+const photoPath = (code: string) => `/destinations/${code}.jpg?v=${IMG_VERSION}`;
 
 export interface Destination {
   photo?: string;
@@ -40,7 +45,7 @@ export function heroImage(code?: string): Destination {
   if (code && HAS_PHOTO.has(code)) {
     return { photo: photoPath(code), gradient: gradientFor(code) };
   }
-  return { photo: '/destinations/WW.jpg', gradient: gradientFor(code || 'WW') };
+  return { photo: photoPath('WW'), gradient: gradientFor(code || 'WW') };
 }
 
 // Brand spectrum stops — coral, lavender, aqua, sunburst — so every generated
