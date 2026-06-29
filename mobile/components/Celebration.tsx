@@ -32,13 +32,16 @@ function Piece({ index, width, height, originY }: { index: number; width: number
   const p = useSharedValue(0);
   const cx = width / 2;
   // Radial launch: a random direction + magnitude so pieces fan out evenly.
+  // Magnitude is biased large so plenty of pieces reach the screen edges — the
+  // explosion fills the whole screen at its peak before gravity takes over.
   const angle = useMemo(() => Math.random() * Math.PI * 2, []);
-  const mag = useMemo(() => 0.2 + Math.random() * 1.0, []); // 0.2–1.2 of the spread
-  const reach = useMemo(() => Math.cos(angle) * mag * width * 0.62, [angle, mag, width]);
-  const rise = useMemo(() => Math.sin(angle) * mag * height * 0.42, [angle, mag, height]); // up or down impulse
-  const fall = useMemo(() => height * (1.15 + Math.random() * 0.7), [height]); // gravity pulls past the bottom
-  const delay = useMemo(() => Math.random() * 170, []); // tight stagger keeps the burst punchy
-  const duration = useMemo(() => 1700 + Math.random() * 1300, []);
+  const mag = useMemo(() => 0.45 + Math.random() * 0.85, []); // 0.45–1.3 of the spread
+  // Reach far enough to clear the edges from the centre: >0.5·width / >0.5·height.
+  const reach = useMemo(() => Math.cos(angle) * mag * width * 0.7, [angle, mag, width]);
+  const rise = useMemo(() => Math.sin(angle) * mag * height * 0.68, [angle, mag, height]); // up or down impulse
+  const fall = useMemo(() => height * (1.5 + Math.random() * 0.7), [height]); // gravity pulls past the bottom
+  const delay = useMemo(() => Math.random() * 110, []); // tight stagger keeps the burst a single punch
+  const duration = useMemo(() => 2300 + Math.random() * 500, []);
   const spin = useMemo(() => Math.random() * 1100 - 550, []);
   const sway = useMemo(() => 8 + Math.random() * 20, []);
   const color = CONFETTI_COLORS[index % CONFETTI_COLORS.length];
@@ -52,17 +55,22 @@ function Piece({ index, width, height, originY }: { index: number; width: number
 
   const style = useAnimatedStyle(() => {
     const t = p.value;
-    // Burst expands fast then settles (easeOut); gravity accelerates (t²) so the
-    // outward explosion hands off to a downward fall.
-    const eo = 1 - (1 - t) * (1 - t);
+    // Two decoupled phases. The radial burst expands fast and SATURATES by
+    // t≈0.32 (easeOutCubic on a clamped clock), so at its peak the explosion
+    // covers the whole screen. Gravity is held back until ~t0.24 then accelerates
+    // (squared), so the held-open explosion then drops into a falling shower.
+    const b = Math.min(t / 0.32, 1);
+    const burst = 1 - (1 - b) * (1 - b) * (1 - b);
+    const g = t < 0.24 ? 0 : (t - 0.24) / 0.76;
+    const gravity = g * g;
     const swayX = Math.sin(t * Math.PI * 3) * sway;
     return {
       transform: [
-        { translateX: cx + reach * eo + swayX },
-        { translateY: originY + rise * eo + fall * t * t },
+        { translateX: cx + reach * burst + swayX },
+        { translateY: originY + rise * burst + fall * gravity },
         { rotate: `${spin * t}deg` },
       ],
-      opacity: interpolate(t, [0, 0.04, 0.86, 1], [0, 1, 1, 0], Extrapolation.CLAMP),
+      opacity: interpolate(t, [0, 0.03, 0.9, 1], [0, 1, 1, 0], Extrapolation.CLAMP),
     };
   });
 
@@ -82,7 +90,7 @@ function Piece({ index, width, height, originY }: { index: number; width: number
 export function Celebration({ item, onDismiss }: { item: CelebrationItem; onDismiss: () => void }) {
   const { width, height } = useWindowDimensions();
   // Scale piece count to the screen so it reads as full regardless of device.
-  const pieces = useMemo(() => Math.min(260, Math.max(170, Math.round((width * height) / 1700))), [width, height]);
+  const pieces = useMemo(() => Math.min(300, Math.max(210, Math.round((width * height) / 1350))), [width, height]);
   // Burst origin — the centre of the card, so the explosion erupts from behind
   // the achievement as it reveals.
   const originY = height / 2;
