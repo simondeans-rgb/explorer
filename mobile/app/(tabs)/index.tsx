@@ -78,7 +78,7 @@ export default function StoryScreen() {
       <DestinationImage code={heroCodes[0]} codes={heroCodes} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 64 }}>
         <View style={{ paddingHorizontal: 20 }}>
           <View style={{ alignItems: 'center' }}>
-            <WorldlyLogo white height={58} />
+            <WorldlyLogo height={58} />
             <View className="flex-row items-center" style={{ marginTop: 10 }}>
               <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13.5, letterSpacing: 0.2 }}>Life is better when you </Text>
               <Text style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13.5, letterSpacing: 0.2, color: COLORS.coral }}>explore.</Text>
@@ -94,10 +94,11 @@ export default function StoryScreen() {
           </View>
         </View>
 
-        {/* Subtle 'W' divider: a soft dip, a gentle middle rise, a second dip,
-            then a long sweep up into the page below. */}
-        <Svg width="100%" height={52} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
-          <Path d="M0,64 C120,64 180,88 320,88 C470,88 560,52 720,52 C880,52 970,88 1120,88 C1270,88 1330,42 1440,42 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
+        {/* Two-hump 'W' divider with a purple line tracing the curve where the
+            page meets the hero. */}
+        <Svg width="100%" height={64} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
+          <Path d="M0,78 C90,78 150,38 250,38 C350,38 470,90 560,90 C690,90 780,38 880,38 C1040,38 1180,82 1440,82 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
+          <Path d="M0,78 C90,78 150,38 250,38 C350,38 470,90 560,90 C690,90 780,38 880,38 C1040,38 1180,82 1440,82" fill="none" stroke="#7C5CE6" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
       </DestinationImage>
 
