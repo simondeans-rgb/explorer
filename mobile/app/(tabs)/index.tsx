@@ -94,8 +94,10 @@ export default function StoryScreen() {
           </View>
         </View>
 
-        <Svg width="100%" height={48} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
-          <Path d="M0,72 C240,44 480,40 720,58 C960,76 1200,92 1440,72 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
+        {/* Subtle 'W' divider: a soft dip, a gentle middle rise, a second dip,
+            then a long sweep up into the page below. */}
+        <Svg width="100%" height={52} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
+          <Path d="M0,64 C120,64 180,88 320,88 C470,88 560,52 720,52 C880,52 970,88 1120,88 C1270,88 1330,42 1440,42 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
         </Svg>
       </DestinationImage>
 
