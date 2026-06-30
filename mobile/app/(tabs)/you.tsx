@@ -40,19 +40,29 @@ export default function YouScreen() {
   const { stats, discoveryStats, journeyStats, level, badges, aggregates } = useWorldly();
 
   // Wrapped rotates through your own countries (recent first), padded to 4.
-  const wrappedCodes = useMemo(() => {
-    const mine = aggregates
-      .filter((a) => a.discovered && hasDestinationPhoto(a.code))
-      .sort((a, b) => (b.firstYear ?? 0) - (a.firstYear ?? 0))
-      .map((a) => a.code);
-    const out = [...new Set(mine)].slice(0, 4);
-    for (const c of ['BR', 'JP', 'IN', 'ZA']) {
-      if (out.length >= 4) break;
-      if (!out.includes(c)) out.push(c);
-    }
-    return out;
-  }, [aggregates]);
-  const almanacCodes = ['PE', 'EG', 'GR', 'IT'];
+  // The user's visited countries that have a photo, most recent first — the
+  // source for the Wrapped + Almanac card backdrops. When they haven't visited
+  // anywhere yet, each card falls back to its curated default rotation.
+  const visitedPhotoCodes = useMemo(
+    () =>
+      [...new Set(
+        aggregates
+          .filter((a) => a.discovered && hasDestinationPhoto(a.code))
+          .sort((a, b) => (b.firstYear ?? 0) - (a.firstYear ?? 0))
+          .map((a) => a.code),
+      )],
+    [aggregates],
+  );
+  const wrappedCodes = useMemo(
+    () => (visitedPhotoCodes.length ? visitedPhotoCodes.slice(0, 6) : ['BR', 'JP', 'IN', 'ZA']),
+    [visitedPhotoCodes],
+  );
+  // Almanac rotates the same visited set in the opposite order so the two cards
+  // don't show an identical sequence side by side.
+  const almanacCodes = useMemo(
+    () => (visitedPhotoCodes.length ? [...visitedPhotoCodes].reverse().slice(0, 6) : ['PE', 'EG', 'GR', 'IT']),
+    [visitedPhotoCodes],
+  );
   const { configured, user, signOutUser } = useAuth();
   const confirm = useConfirm();
   const { places, discoveries, expeditions, captures, trips, recalculateJourneys, updateExpedition } = useData();
