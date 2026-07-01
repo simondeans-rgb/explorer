@@ -1,8 +1,8 @@
 import { View, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Path } from 'react-native-svg';
 import { COLORS } from '../src/lib/theme';
 import { DestinationImage } from './DestinationImage';
+import { HeroWave } from './HeroWave';
 import { BackButton } from './BackButton';
 
 /** A page header in the Worldly language: eyebrow, Fraunces title, optional
@@ -19,6 +19,8 @@ export function PageHero({
   motion = false,
   onBack,
   dark = false,
+  waveColor,
+  minHeight,
 }: {
   eyebrow?: string;
   title: string;
@@ -30,6 +32,10 @@ export function PageHero({
   motion?: boolean;
   onBack?: () => void;
   dark?: boolean;
+  /** The section's accent colour for the wave line (Coral/Aqua/…). */
+  waveColor?: string;
+  /** Force a taller hero band so sections line up (e.g. to match Passport). */
+  minHeight?: number;
 }) {
   const pageColor = dark ? COLORS.night : COLORS.warmwhite;
 
@@ -54,22 +60,9 @@ export function PageHero({
 
   // The wave is a full-bleed child of the (un-padded) container so it reaches
   // both edges — an absolute child gets inset by container padding otherwise.
-  const wave = (
-    <Svg
-      width="100%"
-      height={42}
-      viewBox="0 0 1440 120"
-      preserveAspectRatio="none"
-      style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}
-    >
-      <Path
-        d="M0,72 C240,44 480,40 720,58 C960,76 1200,92 1440,72 L1440,121 L0,121 Z"
-        fill={pageColor}
-      />
-    </Svg>
-  );
+  const wave = <HeroWave color={waveColor} pageColor={pageColor} />;
 
-  const padding = { position: 'relative' as const, paddingTop: 64, paddingBottom: 52 };
+  const padding = { position: 'relative' as const, paddingTop: 64, paddingBottom: 52, minHeight };
 
   return (
     <View>

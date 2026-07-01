@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, usePathname } from 'expo-router';
 import { Plus } from 'lucide-react-native';
 import type { ComponentType } from 'react';
-import { COLORS } from '../src/lib/theme';
+import { COLORS, SECTION } from '../src/lib/theme';
 
 const ICONS = {
   story: require('../assets/images/nav/story.png') as ImageSource,
@@ -32,14 +32,15 @@ try {
   liquidGlass = false;
 }
 
-// Brand palette (Coral, Aqua, Sunburst, Lavender, Sky) — the icons are tinted
-// to these exact colours so the nav always matches the design system.
+// Adjusted brand palette (Coral, Aqua, Sunburst, Lavender, Sky) — the icons are
+// tinted to these exact colours so the nav matches the design system, and each
+// matches its section's hero wave line.
 const TABS: TabDef[] = [
-  { path: '/', label: 'Story', icon: ICONS.story, accent: COLORS.coral },
-  { path: '/atlas', label: 'Atlas', icon: ICONS.atlas, accent: COLORS.aqua },
-  { path: '/circle', label: 'Circle', icon: ICONS.circle, accent: COLORS.sunburst },
-  { path: '/explore', label: 'Discover', icon: ICONS.discovery, accent: COLORS.lavender },
-  { path: '/you', label: 'Passport', icon: ICONS.passport, accent: COLORS.sky },
+  { path: '/', label: 'Story', icon: ICONS.story, accent: SECTION.story },
+  { path: '/atlas', label: 'Atlas', icon: ICONS.atlas, accent: SECTION.atlas },
+  { path: '/circle', label: 'Circle', icon: ICONS.circle, accent: SECTION.circle },
+  { path: '/explore', label: 'Discover', icon: ICONS.discovery, accent: SECTION.discover },
+  { path: '/you', label: 'Passport', icon: ICONS.passport, accent: SECTION.passport },
 ];
 
 // Screens where the bar should step aside (immersive / modal).

@@ -43,6 +43,20 @@ export const GRADIENTS = {
 
 export type Gradient = readonly [string, string, ...string[]];
 
+/** Adjusted brand palette (improved colour-vision distinction) mapped to each
+ *  main section. Drives the nav-bar icon tints and each hero's wave line. */
+export const SECTION = {
+  story: '#FF6B9A', // Coral
+  atlas: '#00CFAE', // Aqua
+  circle: '#FFA600', // Sunburst
+  discover: '#9B6DFF', // Lavender
+  passport: '#1E6BFF', // Sky
+} as const;
+
+/** Shared hero-band height so the Atlas / Circle / Discover heroes match the
+ *  taller Passport hero. */
+export const HERO_HEIGHT = 284;
+
 /** A distinct hue per discovery category so categories read as categories — coral
  *  is reserved for primary actions, not blanket-applied to every category icon. */
 export const DISCOVERY_CATEGORY_COLOR = {

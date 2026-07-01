@@ -8,7 +8,7 @@ import { UserPlus, ArrowRight, MapPin, Star, Plus, Sparkles, Settings2, Gem, Boo
 import { useLikes } from '../../src/hooks/useLikes';
 import { PageHero } from '../../components/PageHero';
 import { LandmarkDetailSheet } from '../../components/LandmarkDetailSheet';
-import { COLORS, GRADIENTS, SHADOW } from '../../src/lib/theme';
+import { COLORS, GRADIENTS, SHADOW, SECTION, HERO_HEIGHT } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { aggregateByCountry, computeStats } from '../../src/lib/stats';
@@ -220,6 +220,8 @@ export default function CircleScreen() {
         gradient={GRADIENTS.story}
         imageCodes={HERO_CODES.you}
         motion
+        waveColor={SECTION.circle}
+        minHeight={HERO_HEIGHT}
       />
 
       {!hasCircle ? (
