@@ -33,11 +33,6 @@ const CIRCLE_IMG = 'https://images.pexels.com/photos/7625042/pexels-photo-762504
 // Shared tile height so every Story section card lines up to the same rhythm.
 const TILE_H = 150;
 
-// Story hero divider, traced from the design: a tall sharp peak, a deep narrow
-// trough, a rounded second peak, a dip, then a long sweep up on the right.
-const STORY_CURVE =
-  'M0,83 C85,80 175,35 250,35 C305,35 382,102 410,102 C445,102 525,52 605,52 C695,52 731,83 821,83 C971,83 1190,30 1440,30';
-
 export default function StoryScreen() {
   const { aggregates, stats, level } = useWorldly();
   const { captures, removeCapture, trips } = useData();
@@ -103,7 +98,7 @@ export default function StoryScreen() {
           </View>
         </View>
 
-        <HeroWave color={SECTION.story} curve={STORY_CURVE} />
+        <HeroWave color={SECTION.story} />
       </DestinationImage>
 
       {/* Counting Down */}

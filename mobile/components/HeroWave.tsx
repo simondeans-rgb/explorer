@@ -1,11 +1,11 @@
 import Svg, { Path } from 'react-native-svg';
 import { COLORS } from '../src/lib/theme';
 
-// The signature Story-hero curve, traced from the design: a crest near the
-// left, a deep dip, a modest middle hump, a second dip, then a long sweep up on
-// the right. Shared by every section hero so the border reads identically.
+// The signature hero curve, traced from the design: a softened tall peak, a
+// steep drop to a deep narrow trough, a rounded second peak, a dip, then a long
+// sweep up on the right. Shared by every section hero so the border matches.
 const CURVE =
-  'M0,61 C50,58 90,44 144,44 C240,44 360,93 460,93 C560,93 640,57 720,57 C810,57 910,95 1008,95 C1130,95 1280,30 1440,30';
+  'M0,83 C85,80 175,35 250,35 C305,35 382,102 410,102 C445,102 525,52 605,52 C695,52 731,83 821,83 C971,83 1190,30 1440,30';
 
 /** The wave edge where a hero image melts into the page: a `pageColor` fill
  *  below the curve, and an optional coloured line tracing it (the section's
