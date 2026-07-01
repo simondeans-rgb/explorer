@@ -53,9 +53,8 @@ export const SECTION = {
   passport: '#1E6BFF', // Sky
 } as const;
 
-/** Shared hero-band height so the Atlas / Circle / Discover heroes match the
- *  taller Passport hero. */
-export const HERO_HEIGHT = 284;
+/** Shared hero-band height so every section's hero lines up. */
+export const HERO_HEIGHT = 310;
 
 /** A distinct hue per discovery category so categories read as categories — coral
  *  is reserved for primary actions, not blanket-applied to every category icon. */
