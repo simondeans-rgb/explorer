@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import Svg, { Rect, Line, Polyline, Circle, Text as SvgText } from 'react-native-svg';
-import { Plane, TrainFront, Ship, Car, Anchor, Globe2, Moon, Sun, ArrowRight } from 'lucide-react-native';
+import { Plane, TrainFront, Ship, Car, Anchor, Globe2, Moon, Sun, ArrowRight, Clock, Timer } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import type { JourneyMode } from '../src/types';
 import { COLORS, SHADOW } from '../src/lib/theme';
@@ -17,6 +17,17 @@ import { useUnits } from '../src/store/units';
 import { convertMiles, distanceUnitLabel, type DistanceUnit } from '../src/lib/units';
 
 const group = (n: number) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+/** Minutes → "3d 11h" / "13h 5m" / "45m" for the time-in-air headline. */
+function fmtAir(min: number): string {
+  if (min <= 0) return '0h';
+  const d = Math.floor(min / 1440);
+  const h = Math.floor((min % 1440) / 60);
+  const m = min % 60;
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
 
 const MODE_ICON: Record<JourneyMode, ComponentType<{ size?: number; color?: string }>> = {
   flight: Plane,
@@ -151,6 +162,48 @@ function Segmented({ value, onChange }: { value: Gran; onChange: (g: Gran) => vo
   );
 }
 
+/** A ranked list (airlines / aircraft) with a proportional bar behind each row. */
+function RankBlock({ title, rows, tint, suffix }: { title: string; rows: { label: string; count: number }[]; tint: string; suffix: string }) {
+  const max = Math.max(...rows.map((r) => r.count), 1);
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 0.6, color: COLORS.ink3 }}>{title}</Text>
+      {rows.map((r) => (
+        <View key={r.label} className="rounded-xl" style={{ height: 30, backgroundColor: '#F4F3FB', overflow: 'hidden', justifyContent: 'center' }}>
+          <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.max(8, (r.count / max) * 100)}%`, backgroundColor: tint + '2E' }} />
+          <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 11 }}>
+            <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: COLORS.ink, flexShrink: 1 }}>{r.label}</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink2, marginLeft: 8 }}>
+              <Text style={{ fontWeight: '800', color: COLORS.navy }}>{r.count}</Text> {suffix}
+            </Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** One airline punctuality row: average delay + on-time rate. */
+function PunctRow({ p, label }: { p: { airline: string; avgDelayMin: number; onTimeRate: number; samples: number }; label: string }) {
+  const late = p.avgDelayMin >= 2;
+  const early = p.avgDelayMin <= -2;
+  const tint = late ? COLORS.coral : COLORS.aqua;
+  const avg = Math.abs(p.avgDelayMin);
+  const avgText = avg < 2 ? 'on time' : `${avg}m ${late ? 'late' : 'early'} avg`;
+  return (
+    <View className="flex-row items-center" style={{ gap: 8 }}>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, fontWeight: '700' }}>{label}</Text>
+        <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.navy }}>{p.airline}</Text>
+      </View>
+      <View className="items-end">
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '800', color: early || !late ? COLORS.aqua : tint }}>{avgText}</Text>
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3 }}>{Math.round(p.onTimeRate * 100)}% on time · {p.samples} flight{p.samples === 1 ? '' : 's'}</Text>
+      </View>
+    </View>
+  );
+}
+
 /** The Flighty-style stats block shown under the Journeys globe: flight counts,
  *  a per-year/month/weekday chart, distance flown with cosmic comparisons, the
  *  longest/shortest flight, and a tally of every other way you've travelled. */
@@ -238,6 +291,46 @@ export function JourneyStatsPanel({ expeditions }: { expeditions: Expedition[] }
             <View style={{ gap: 12, marginTop: 16, borderTopWidth: 1, borderTopColor: '#EEEDF5', paddingTop: 14 }}>
               {stats.longest ? <ExtremeRow title="LONGEST FLIGHT" f={stats.longest} unit={unit} /> : null}
               {stats.shortest && stats.shortest !== stats.longest ? <ExtremeRow title="SHORTEST FLIGHT" f={stats.shortest} unit={unit} /> : null}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
+      {/* Trends — time in the air, favourite aircraft & airlines, punctuality */}
+      {flights.total > 0 && (stats.timeInAirMin > 0 || stats.topAircraft.length > 0 || stats.topAirlines.length > 0) ? (
+        <View className="bg-white rounded-3xl" style={{ padding: 16, gap: 16, ...SHADOW.card }}>
+          {stats.timeInAirMin > 0 ? (
+            <View>
+              <View className="flex-row items-center" style={{ gap: 6 }}>
+                <Clock size={13} color={COLORS.ink3} />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 0.6, color: COLORS.ink3 }}>TIME IN THE AIR</Text>
+              </View>
+              <Text style={{ fontFamily: 'Fraunces', fontSize: 40, color: COLORS.navy, lineHeight: 46 }}>{fmtAir(stats.timeInAirMin)}</Text>
+              {stats.timeInAirEstimated ? (
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3 }}>Estimated where flight times aren’t known.</Text>
+              ) : null}
+            </View>
+          ) : null}
+
+          {stats.topAirlines.length > 0 ? (
+            <RankBlock title="TOP AIRLINES" rows={stats.topAirlines} tint={COLORS.lavender} suffix="flights" />
+          ) : null}
+          {stats.topAircraft.length > 0 ? (
+            <RankBlock title="TOP AIRCRAFT" rows={stats.topAircraft} tint={COLORS.aqua} suffix="flights" />
+          ) : null}
+
+          {stats.punctuality.length > 0 ? (
+            <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: '#EEEDF5', paddingTop: 14 }}>
+              <View className="flex-row items-center" style={{ gap: 6 }}>
+                <Timer size={13} color={COLORS.ink3} />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 0.6, color: COLORS.ink3 }}>PUNCTUALITY</Text>
+              </View>
+              {stats.punctuality.slice(0, 1).map((p) => (
+                <PunctRow key={`best-${p.airline}`} p={p} label="Most on time" />
+              ))}
+              {stats.punctuality.length > 1 ? (
+                <PunctRow key="worst" p={stats.punctuality[stats.punctuality.length - 1]} label="Most delayed" />
+              ) : null}
             </View>
           ) : null}
         </View>

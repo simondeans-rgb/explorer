@@ -8,6 +8,8 @@ import { AirportField } from './AirportField';
 import { resolveEndpoint } from '../src/lib/journeyGeo';
 import { lookupFlight, normaliseFlightNumber, flightLookupConfigured } from '../src/lib/flightLookup';
 import { COLORS } from '../src/lib/theme';
+import { formatDistance, KM_PER_MI } from '../src/lib/units';
+import { useUnits } from '../src/store/units';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES } from '../src/data/countries';
 import { JOURNEY_MODES, JOURNEY_MODE_META, type Journey, type JourneyMode } from '../src/types';
@@ -33,6 +35,14 @@ interface Leg {
   vehicle: string;
   departTime: string;
   arriveTime: string;
+  departActual: string;
+  arriveActual: string;
+  departDelayMin?: number;
+  arriveDelayMin?: number;
+  fromTerminal: string;
+  toTerminal: string;
+  distanceKm?: number;
+  durationMin?: number;
   note: string;
 }
 
@@ -43,14 +53,33 @@ function newId() {
   return `leg_${Date.now().toString(36)}_${legCounter++}`;
 }
 function emptyLeg(mode: JourneyMode = 'flight'): Leg {
-  return { id: newId(), mode, from: '', to: '', date: '', carrier: '', reference: '', vehicle: '', departTime: '', arriveTime: '', note: '' };
+  return { id: newId(), mode, from: '', to: '', date: '', carrier: '', reference: '', vehicle: '', departTime: '', arriveTime: '', departActual: '', arriveActual: '', fromTerminal: '', toTerminal: '', note: '' };
 }
 
 const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s.trim());
 
+/** 785 → "13h 5m". */
+function formatDuration(min?: number): string | undefined {
+  if (!min || min <= 0) return undefined;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return h ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`;
+}
+
+/** Delay minutes → chip { text, late } for anything ≥ 2 min off schedule. */
+function delayChip(min?: number): { text: string; late: boolean } | undefined {
+  if (min == null || Math.abs(min) < 2) return undefined;
+  const mag = Math.abs(min);
+  const h = Math.floor(mag / 60);
+  const m = mag % 60;
+  const span = h ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`;
+  return { text: `${span} ${min > 0 ? 'late' : 'early'}`, late: min > 0 };
+}
+
 export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { importExpeditions } = useData();
   const { toast } = useToast();
+  const { unit } = useUnits();
   const [title, setTitle] = useState('');
   const [query, setQuery] = useState('');
   const [codes, setCodes] = useState<Set<string>>(new Set());
@@ -94,7 +123,7 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
     setLookingUp(null);
     if (r.ok) {
       const i = r.info;
-      patchLeg(leg.id, { from: i.from ?? leg.from, to: i.to ?? leg.to, carrier: i.airline ?? leg.carrier, vehicle: i.aircraft ?? leg.vehicle, date: i.date ?? leg.date, departTime: i.departTimeLocal ?? leg.departTime, arriveTime: i.arriveTimeLocal ?? leg.arriveTime, reference: i.flightNumber });
+      patchLeg(leg.id, { from: i.from ?? leg.from, to: i.to ?? leg.to, carrier: i.airline ?? leg.carrier, vehicle: i.aircraft ?? leg.vehicle, date: i.date ?? leg.date, departTime: i.departTimeLocal ?? leg.departTime, arriveTime: i.arriveTimeLocal ?? leg.arriveTime, departActual: i.departActualLocal ?? leg.departActual, arriveActual: i.arriveActualLocal ?? leg.arriveActual, departDelayMin: i.departDelayMin ?? leg.departDelayMin, arriveDelayMin: i.arriveDelayMin ?? leg.arriveDelayMin, fromTerminal: i.fromTerminal ?? leg.fromTerminal, toTerminal: i.toTerminal ?? leg.toTerminal, distanceKm: i.distanceKm ?? leg.distanceKm, durationMin: i.durationMin ?? leg.durationMin, reference: i.flightNumber });
       toast.success(i.departTimeLocal && i.arriveTimeLocal ? `Found · ${i.departTimeLocal} → ${i.arriveTimeLocal}` : 'Flight details filled in');
     } else {
       toast.error(
@@ -121,7 +150,7 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
     setSaving(true);
     try {
       const journeys: Journey[] = legs
-        .filter((l) => l.from || l.to || l.carrier || l.reference || l.date || l.vehicle || l.departTime || l.arriveTime || l.note)
+        .filter((l) => l.from || l.to || l.carrier || l.reference || l.date || l.vehicle || l.departTime || l.arriveTime || l.departActual || l.arriveActual || l.fromTerminal || l.toTerminal || l.note)
         .map((l) => {
           const j: Journey = { id: newId(), mode: l.mode };
           if (l.from.trim()) j.from = l.from.trim();
@@ -132,6 +161,14 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
           if (isDate(l.date)) j.date = l.date.trim();
           if (l.departTime.trim()) j.departTime = l.departTime.trim();
           if (l.arriveTime.trim()) j.arriveTime = l.arriveTime.trim();
+          if (l.departActual.trim()) j.departActual = l.departActual.trim();
+          if (l.arriveActual.trim()) j.arriveActual = l.arriveActual.trim();
+          if (l.departDelayMin != null) j.departDelayMin = l.departDelayMin;
+          if (l.arriveDelayMin != null) j.arriveDelayMin = l.arriveDelayMin;
+          if (l.fromTerminal.trim()) j.fromTerminal = l.fromTerminal.trim();
+          if (l.toTerminal.trim()) j.toTerminal = l.toTerminal.trim();
+          if (l.distanceKm != null) j.distanceKm = l.distanceKm;
+          if (l.durationMin != null) j.durationMin = l.durationMin;
           if (l.note.trim()) j.note = l.note.trim();
           return j;
         });
@@ -246,6 +283,39 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
                 <Field flex placeholder="Depart (HH:MM)" value={leg.departTime} onChange={(t) => patchLeg(leg.id, { departTime: t })} />
                 <Field flex placeholder="Arrive (HH:MM)" value={leg.arriveTime} onChange={(t) => patchLeg(leg.id, { arriveTime: t })} />
               </View>
+              {leg.mode === 'flight' ? (
+                <View className="flex-row" style={{ gap: 8 }}>
+                  <Field flex placeholder="Depart terminal" value={leg.fromTerminal} onChange={(t) => patchLeg(leg.id, { fromTerminal: t })} />
+                  <Field flex placeholder="Arrive terminal" value={leg.toTerminal} onChange={(t) => patchLeg(leg.id, { toTerminal: t })} />
+                </View>
+              ) : null}
+              {leg.mode === 'flight' && (leg.distanceKm != null || leg.durationMin != null) ? (
+                <View className="flex-row items-center" style={{ gap: 8, paddingHorizontal: 4 }}>
+                  {leg.distanceKm != null ? (
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink2 }}>{formatDistance(leg.distanceKm / KM_PER_MI, unit)}</Text>
+                  ) : null}
+                  {leg.distanceKm != null && formatDuration(leg.durationMin) ? (
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>·</Text>
+                  ) : null}
+                  {formatDuration(leg.durationMin) ? (
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink2 }}>{formatDuration(leg.durationMin)}</Text>
+                  ) : null}
+                </View>
+              ) : null}
+              {leg.mode === 'flight' && (delayChip(leg.departDelayMin) || delayChip(leg.arriveDelayMin)) ? (
+                <View className="flex-row items-center flex-wrap" style={{ gap: 6, paddingHorizontal: 4 }}>
+                  {(['departDelayMin', 'arriveDelayMin'] as const).map((k) => {
+                    const chip = delayChip(leg[k]);
+                    if (!chip) return null;
+                    const tint = chip.late ? COLORS.coral : '#00A88E';
+                    return (
+                      <View key={k} className="rounded-full" style={{ paddingHorizontal: 9, paddingVertical: 3, backgroundColor: tint + '1A' }}>
+                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: tint }}>{k === 'departDelayMin' ? 'Dep' : 'Arr'} {chip.text}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : null}
               {leg.mode === 'flight' && flightLookupConfigured() ? (
                 <Pressable onPress={() => lookupLeg(leg)} disabled={lookingUp === leg.id} className="flex-row items-center justify-center rounded-2xl" style={{ paddingVertical: 11, gap: 7, backgroundColor: 'rgba(30,107,255,0.10)' }}>
                   {lookingUp === leg.id ? <ActivityIndicator size="small" color="#1E6BFF" /> : <Search size={15} color="#1E6BFF" />}
@@ -267,7 +337,7 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
           </Pressable>
         </View>
         {showRoute ? (
-          <RouteBuilder onAdd={(rl) => { setLegs((prev) => [...prev.filter((l) => l.from || l.to || l.carrier || l.reference || l.date || l.vehicle || l.departTime || l.arriveTime || l.note), ...rl.map((l) => ({ ...emptyLeg(l.mode), from: l.from, to: l.to }))]); setShowRoute(false); }} />
+          <RouteBuilder onAdd={(rl) => { setLegs((prev) => [...prev.filter((l) => l.from || l.to || l.carrier || l.reference || l.date || l.vehicle || l.departTime || l.arriveTime || l.departActual || l.arriveActual || l.fromTerminal || l.toTerminal || l.note), ...rl.map((l) => ({ ...emptyLeg(l.mode), from: l.from, to: l.to }))]); setShowRoute(false); }} />
         ) : null}
 
         <Pressable onPress={save} disabled={!ready || saving} className="rounded-2xl items-center justify-center flex-row" style={{ marginHorizontal: 20, marginTop: 16, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: ready && !saving ? 1 : 0.4, gap: 8 }}>

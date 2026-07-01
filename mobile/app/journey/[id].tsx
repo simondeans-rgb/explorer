@@ -16,6 +16,8 @@ import { CircleAlert } from 'lucide-react-native';
 import { Dropdown, type DropdownOption } from '../../components/Dropdown';
 import { journeyLegSegments, resolveEndpoint } from '../../src/lib/journeyGeo';
 import { COLORS } from '../../src/lib/theme';
+import { formatDistance, KM_PER_MI } from '../../src/lib/units';
+import { useUnits } from '../../src/store/units';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
 import { goBack } from '../../src/lib/nav';
@@ -67,6 +69,14 @@ interface Leg {
   vehicle: string;
   departTime: string;
   arriveTime: string;
+  departActual: string;
+  arriveActual: string;
+  departDelayMin?: number;
+  arriveDelayMin?: number;
+  fromTerminal: string;
+  toTerminal: string;
+  distanceKm?: number;
+  durationMin?: number;
   note: string;
 }
 
@@ -82,10 +92,36 @@ const legFromJourney = (j: Journey): Leg => ({
   vehicle: j.vehicle ?? '',
   departTime: j.departTime ?? '',
   arriveTime: j.arriveTime ?? '',
+  departActual: j.departActual ?? '',
+  arriveActual: j.arriveActual ?? '',
+  departDelayMin: j.departDelayMin,
+  arriveDelayMin: j.arriveDelayMin,
+  fromTerminal: j.fromTerminal ?? '',
+  toTerminal: j.toTerminal ?? '',
+  distanceKm: j.distanceKm,
+  durationMin: j.durationMin,
   note: j.note ?? '',
 });
-const emptyLeg = (mode: JourneyMode = 'flight'): Leg => ({ id: newId(), mode, from: '', to: '', date: '', operator: '', reference: '', seat: '', vehicle: '', departTime: '', arriveTime: '', note: '' });
+const emptyLeg = (mode: JourneyMode = 'flight'): Leg => ({ id: newId(), mode, from: '', to: '', date: '', operator: '', reference: '', seat: '', vehicle: '', departTime: '', arriveTime: '', departActual: '', arriveActual: '', fromTerminal: '', toTerminal: '', note: '' });
 const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s.trim());
+
+/** 785 → "13h 5m". */
+function formatDuration(min?: number): string | undefined {
+  if (!min || min <= 0) return undefined;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return h ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`;
+}
+
+/** Delay minutes → chip { text, late } for anything ≥ 2 min off schedule. */
+function delayChip(min?: number): { text: string; late: boolean } | undefined {
+  if (min == null || Math.abs(min) < 2) return undefined;
+  const mag = Math.abs(min);
+  const h = Math.floor(mag / 60);
+  const m = mag % 60;
+  const span = h ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`;
+  return { text: `${span} ${min > 0 ? 'late' : 'early'}`, late: min > 0 };
+}
 
 function Field({ value, onChange, placeholder, flex }: { value: string; onChange: (t: string) => void; placeholder: string; flex?: boolean }) {
   return (
@@ -101,6 +137,7 @@ export default function JourneyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { expeditions, updateExpedition, removeExpedition } = useData();
   const { toast } = useToast();
+  const { unit } = useUnits();
   const confirm = useConfirm();
   const expedition = expeditions.find((e) => e.id === id);
 
@@ -179,6 +216,14 @@ export default function JourneyScreen() {
         date: i.date ?? leg.date,
         departTime: i.departTimeLocal ?? leg.departTime,
         arriveTime: i.arriveTimeLocal ?? leg.arriveTime,
+        departActual: i.departActualLocal ?? leg.departActual,
+        arriveActual: i.arriveActualLocal ?? leg.arriveActual,
+        departDelayMin: i.departDelayMin ?? leg.departDelayMin,
+        arriveDelayMin: i.arriveDelayMin ?? leg.arriveDelayMin,
+        fromTerminal: i.fromTerminal ?? leg.fromTerminal,
+        toTerminal: i.toTerminal ?? leg.toTerminal,
+        distanceKm: i.distanceKm ?? leg.distanceKm,
+        durationMin: i.durationMin ?? leg.durationMin,
         reference: i.flightNumber,
       });
       toast.success(i.departTimeLocal && i.arriveTimeLocal ? `Found · ${i.departTimeLocal} → ${i.arriveTimeLocal}` : 'Flight details filled in');
@@ -207,7 +252,7 @@ export default function JourneyScreen() {
     setSaving(true);
     try {
       const journeys: Journey[] = legs
-        .filter((l) => l.from || l.to || l.operator || l.reference || l.date || l.vehicle || l.seat || l.departTime || l.arriveTime || l.note)
+        .filter((l) => l.from || l.to || l.operator || l.reference || l.date || l.vehicle || l.seat || l.departTime || l.arriveTime || l.departActual || l.arriveActual || l.fromTerminal || l.toTerminal || l.note)
         .map((l) => {
           const j: Journey = { id: l.id, mode: l.mode };
           if (l.from.trim()) j.from = l.from.trim();
@@ -219,6 +264,14 @@ export default function JourneyScreen() {
           if (isDate(l.date)) j.date = l.date.trim();
           if (l.departTime.trim()) j.departTime = l.departTime.trim();
           if (l.arriveTime.trim()) j.arriveTime = l.arriveTime.trim();
+          if (l.departActual.trim()) j.departActual = l.departActual.trim();
+          if (l.arriveActual.trim()) j.arriveActual = l.arriveActual.trim();
+          if (l.departDelayMin != null) j.departDelayMin = l.departDelayMin;
+          if (l.arriveDelayMin != null) j.arriveDelayMin = l.arriveDelayMin;
+          if (l.fromTerminal.trim()) j.fromTerminal = l.fromTerminal.trim();
+          if (l.toTerminal.trim()) j.toTerminal = l.toTerminal.trim();
+          if (l.distanceKm != null) j.distanceKm = l.distanceKm;
+          if (l.durationMin != null) j.durationMin = l.durationMin;
           if (l.note.trim()) j.note = l.note.trim();
           return j;
         });
@@ -415,6 +468,39 @@ export default function JourneyScreen() {
                 <Field flex placeholder="Depart (HH:MM)" value={leg.departTime} onChange={(t) => patchLeg(leg.id, { departTime: t })} />
                 <Field flex placeholder="Arrive (HH:MM)" value={leg.arriveTime} onChange={(t) => patchLeg(leg.id, { arriveTime: t })} />
               </View>
+              {leg.mode === 'flight' ? (
+                <View className="flex-row" style={{ gap: 8 }}>
+                  <Field flex placeholder="Depart terminal" value={leg.fromTerminal} onChange={(t) => patchLeg(leg.id, { fromTerminal: t })} />
+                  <Field flex placeholder="Arrive terminal" value={leg.toTerminal} onChange={(t) => patchLeg(leg.id, { toTerminal: t })} />
+                </View>
+              ) : null}
+              {leg.mode === 'flight' && (leg.distanceKm != null || leg.durationMin != null) ? (
+                <View className="flex-row items-center" style={{ gap: 8, paddingHorizontal: 4 }}>
+                  {leg.distanceKm != null ? (
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink2 }}>{formatDistance(leg.distanceKm / KM_PER_MI, unit)}</Text>
+                  ) : null}
+                  {leg.distanceKm != null && formatDuration(leg.durationMin) ? (
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>·</Text>
+                  ) : null}
+                  {formatDuration(leg.durationMin) ? (
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink2 }}>{formatDuration(leg.durationMin)}</Text>
+                  ) : null}
+                </View>
+              ) : null}
+              {leg.mode === 'flight' && (delayChip(leg.departDelayMin) || delayChip(leg.arriveDelayMin)) ? (
+                <View className="flex-row items-center flex-wrap" style={{ gap: 6, paddingHorizontal: 4 }}>
+                  {(['departDelayMin', 'arriveDelayMin'] as const).map((k) => {
+                    const chip = delayChip(leg[k]);
+                    if (!chip) return null;
+                    const tint = chip.late ? COLORS.coral : '#00A88E';
+                    return (
+                      <View key={k} className="rounded-full" style={{ paddingHorizontal: 9, paddingVertical: 3, backgroundColor: tint + '1A' }}>
+                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: tint }}>{k === 'departDelayMin' ? 'Dep' : 'Arr'} {chip.text}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : null}
               {leg.mode === 'flight' && flightLookupConfigured() ? (
                 <Pressable onPress={() => lookupLeg(leg)} disabled={lookingUp === leg.id} className="flex-row items-center justify-center rounded-2xl" style={{ paddingVertical: 11, gap: 7, backgroundColor: 'rgba(30,107,255,0.10)' }}>
                   {lookingUp === leg.id ? <ActivityIndicator size="small" color="#1E6BFF" /> : <Search size={15} color="#1E6BFF" />}

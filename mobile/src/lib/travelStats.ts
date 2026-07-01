@@ -60,6 +60,17 @@ export interface TravelStats {
   airports: number;
   /** Distinct airlines flown (distinct operators on flight legs). */
   airlines: number;
+  /** Total time spent in the air (minutes) — measured from looked-up flight
+   *  durations, estimated from distance for legs without one. */
+  timeInAirMin: number;
+  /** True when at least one leg's air time was estimated from distance. */
+  timeInAirEstimated: boolean;
+  /** Most-flown aircraft types, busiest first. */
+  topAircraft: { label: string; count: number }[];
+  /** Most-flown airlines, busiest first. */
+  topAirlines: { label: string; count: number }[];
+  /** Airline punctuality from legs with a known arrival delay, best first. */
+  punctuality: { airline: string; avgDelayMin: number; onTimeRate: number; samples: number }[];
   longest?: FlightExtreme;
   shortest?: FlightExtreme;
   /** Flights per calendar year, ascending — gaps filled so the line is continuous. */
@@ -101,6 +112,11 @@ export function computeTravelStats(expeditions: Expedition[]): TravelStats {
   const yearsSet = new Set<number>();
   const airportSet = new Set<string>();
   const airlineSet = new Set<string>();
+  const aircraftCounts = new Map<string, { label: string; count: number }>();
+  const airlineCounts = new Map<string, { label: string; count: number }>();
+  const punct = new Map<string, { label: string; sumDelay: number; onTime: number; samples: number }>();
+  let timeInAirMin = 0;
+  let timeInAirEstimated = false;
 
   for (const e of expeditions) {
     for (const j of e.journeys ?? []) {
@@ -108,7 +124,35 @@ export function computeTravelStats(expeditions: Expedition[]): TravelStats {
       totalLegs += 1;
       if (j.mode !== 'flight') continue;
       total += 1;
-      if (j.operator && j.operator.trim()) airlineSet.add(j.operator.trim().toLowerCase());
+      const operator = j.operator?.trim();
+      if (operator) {
+        const key = operator.toLowerCase();
+        airlineSet.add(key);
+        const a = airlineCounts.get(key);
+        if (a) a.count += 1;
+        else airlineCounts.set(key, { label: operator, count: 1 });
+      }
+      const aircraft = j.vehicle?.trim();
+      if (aircraft) {
+        const key = aircraft.toLowerCase();
+        const a = aircraftCounts.get(key);
+        if (a) a.count += 1;
+        else aircraftCounts.set(key, { label: aircraft, count: 1 });
+      }
+      if (operator && j.arriveDelayMin != null && Number.isFinite(j.arriveDelayMin)) {
+        const key = operator.toLowerCase();
+        const p = punct.get(key) ?? { label: operator, sumDelay: 0, onTime: 0, samples: 0 };
+        p.sumDelay += j.arriveDelayMin;
+        if (j.arriveDelayMin <= 15) p.onTime += 1; // within 15 min counts as on time
+        p.samples += 1;
+        punct.set(key, p);
+      }
+      // Time in the air: use the measured flight duration when we have it.
+      let countedAir = false;
+      if (j.durationMin != null && j.durationMin > 0) {
+        timeInAirMin += j.durationMin;
+        countedAir = true;
+      }
 
       // Domestic vs international (only when both ends resolve to a country).
       const ca = resolveCountry(j.from);
@@ -130,6 +174,12 @@ export function computeTravelStats(expeditions: Expedition[]): TravelStats {
           distanceMi += mi;
           placeable += 1;
           if (mi >= LONG_HAUL_MI) longHaul += 1;
+          // No measured duration? Estimate air time: ~30 min taxi/climb/descent
+          // plus cruise at ~500 mph.
+          if (!countedAir) {
+            timeInAirMin += Math.round(30 + (mi / 500) * 60);
+            timeInAirEstimated = true;
+          }
           const extreme: FlightExtreme = { from: cleanLabel(j.from), to: cleanLabel(j.to), mi, date };
           if (!longest || mi > longest.mi) longest = extreme;
           if (!shortest || mi < shortest.mi) shortest = extreme;
@@ -167,6 +217,12 @@ export function computeTravelStats(expeditions: Expedition[]): TravelStats {
     for (let y = min; y <= max; y++) perYear.push({ label: String(y), count: yearCounts.get(y) ?? 0 });
   }
 
+  const topAircraft = [...aircraftCounts.values()].sort((a, b) => b.count - a.count).slice(0, 5);
+  const topAirlines = [...airlineCounts.values()].sort((a, b) => b.count - a.count).slice(0, 5);
+  const punctuality = [...punct.values()]
+    .map((p) => ({ airline: p.label, avgDelayMin: Math.round(p.sumDelay / p.samples), onTimeRate: p.onTime / p.samples, samples: p.samples }))
+    .sort((a, b) => a.avgDelayMin - b.avgDelayMin);
+
   return {
     modeCounts,
     totalLegs,
@@ -175,6 +231,11 @@ export function computeTravelStats(expeditions: Expedition[]): TravelStats {
     avgFlightMi: placeable ? distanceMi / placeable : 0,
     airports: airportSet.size,
     airlines: airlineSet.size,
+    timeInAirMin,
+    timeInAirEstimated,
+    topAircraft,
+    topAirlines,
+    punctuality,
     longest,
     shortest,
     perYear,
