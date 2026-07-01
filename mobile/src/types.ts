@@ -218,6 +218,8 @@ export interface Journey {
   seat?: string; // cabin & seat / class
   vehicle?: string; // aircraft / vehicle type
   date?: string;
+  departTime?: string; // local departure time, "HH:MM"
+  arriveTime?: string; // local arrival time, "HH:MM"
   note?: string;
 }
 
