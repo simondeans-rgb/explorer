@@ -171,12 +171,8 @@ export default function StoryScreen() {
 
       {/* Memories */}
       <View style={{ marginTop: 24 }}>
-        <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 20 }}>
+        <View style={{ paddingHorizontal: 20 }}>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Memories</Text>
-          <Pressable onPress={() => setPhotoOpen(true)} hitSlop={8} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 12, paddingVertical: 7, gap: 5 }}>
-            <Camera size={14} color={COLORS.coral} />
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>Add</Text>
-          </Pressable>
         </View>
         {captures.length > 0 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>

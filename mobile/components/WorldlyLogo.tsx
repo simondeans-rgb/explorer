@@ -4,7 +4,7 @@ const LOCKUP = require('../assets/images/worldly-lockup.png');
 const LOCKUP_WHITE = require('../assets/images/worldly-lockup-white.png');
 const ICON = require('../assets/images/worldly-icon.png');
 
-const LOCKUP_RATIO = 1593 / 415; // colourful "W" cards + "worldly" wordmark, side by side
+const LOCKUP_RATIO = 1079 / 249; // full logo: map-pin "W" + "worldly" wordmark + coral route arc
 const ICON_RATIO = 721 / 415; // colourful "W" cards icon alone
 
 /** The full Worldly lockup (colourful "W" cards + "worldly" wordmark), sized by height.
