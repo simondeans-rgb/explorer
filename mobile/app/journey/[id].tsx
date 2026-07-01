@@ -11,6 +11,7 @@ import { JourneyGlobe } from '../../components/JourneyGlobe';
 import { RouteBuilder } from '../../components/RouteBuilder';
 import { AirportField } from '../../components/AirportField';
 import { isEndpointResolved, bestAirportMatch } from '../../src/lib/airportSearch';
+import { lookupFlight, normaliseFlightNumber, flightLookupConfigured } from '../../src/lib/flightLookup';
 import { CircleAlert } from 'lucide-react-native';
 import { Dropdown, type DropdownOption } from '../../components/Dropdown';
 import { journeyLegSegments, resolveEndpoint } from '../../src/lib/journeyGeo';
@@ -154,6 +155,36 @@ export default function JourneyScreen() {
     }
     return list;
   }, [legs]);
+
+  const [lookingUp, setLookingUp] = useState<string | null>(null);
+  async function lookupLeg(leg: Leg) {
+    const num = normaliseFlightNumber(leg.reference);
+    if (!num) { toast.error('Enter the flight number first.'); return; }
+    const date = (leg.date || startDate || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { toast.error('Add the flight date (YYYY-MM-DD) first.'); return; }
+    setLookingUp(leg.id);
+    const r = await lookupFlight(num, date);
+    setLookingUp(null);
+    if (r.ok) {
+      const i = r.info;
+      patchLeg(leg.id, {
+        from: i.from ?? leg.from,
+        to: i.to ?? leg.to,
+        operator: i.airline ?? leg.operator,
+        vehicle: i.aircraft ?? leg.vehicle,
+        date: i.date ?? leg.date,
+        reference: i.flightNumber,
+      });
+      toast.success(i.departTimeLocal && i.arriveTimeLocal ? `Found · ${i.departTimeLocal} → ${i.arriveTimeLocal}` : 'Flight details filled in');
+    } else {
+      toast.error(
+        r.reason === 'no-key' ? 'Flight lookup isn’t set up yet.'
+        : r.reason === 'no-date' ? 'Add the flight date first.'
+        : r.reason === 'not-found' ? 'No flight found for that number and date.'
+        : 'Lookup failed — check your connection.',
+      );
+    }
+  }
 
   function patchLeg(legId: string, patch: Partial<Leg>) {
     setLegs((prev) => prev.map((l) => (l.id === legId ? { ...l, ...patch } : l)));
@@ -372,6 +403,12 @@ export default function JourneyScreen() {
                 <Field flex placeholder={meta.reference} value={leg.reference} onChange={(t) => patchLeg(leg.id, { reference: t })} />
                 <Field flex placeholder={meta.seat} value={leg.seat} onChange={(t) => patchLeg(leg.id, { seat: t })} />
               </View>
+              {leg.mode === 'flight' && flightLookupConfigured() ? (
+                <Pressable onPress={() => lookupLeg(leg)} disabled={lookingUp === leg.id} className="flex-row items-center justify-center rounded-2xl" style={{ paddingVertical: 11, gap: 7, backgroundColor: 'rgba(30,107,255,0.10)' }}>
+                  {lookingUp === leg.id ? <ActivityIndicator size="small" color="#1E6BFF" /> : <Search size={15} color="#1E6BFF" />}
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: '#1E6BFF' }}>{lookingUp === leg.id ? 'Looking up…' : 'Look up flight'}</Text>
+                </Pressable>
+              ) : null}
               <Field placeholder="Aircraft / vehicle" value={leg.vehicle} onChange={(t) => patchLeg(leg.id, { vehicle: t })} />
               <Field placeholder="Notes" value={leg.note} onChange={(t) => patchLeg(leg.id, { note: t })} />
             </View>
