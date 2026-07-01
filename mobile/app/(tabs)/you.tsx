@@ -25,8 +25,10 @@ import { AuthSheet } from '../../components/AuthSheet';
 import { DeleteAccountSheet } from '../../components/DeleteAccountSheet';
 import { XpDetailSheet } from '../../components/XpDetailSheet';
 import { HeroWave } from '../../components/HeroWave';
-import { ResolveAirportsSheet } from '../../components/ResolveAirportsSheet';
+import { ResolveFlightsSheet } from '../../components/ResolveFlightsSheet';
 import { isEndpointResolved } from '../../src/lib/airportSearch';
+import { flightLookupConfigured } from '../../src/lib/flightLookup';
+import { findEnrichable } from '../../src/lib/flightRefresh';
 import { useUnits } from '../../src/store/units';
 import type { DistanceUnit, TempUnit } from '../../src/lib/units';
 import { pickPhotoDataUrl } from '../../src/lib/photo';
@@ -103,6 +105,14 @@ export default function YouScreen() {
     }
     return n;
   }, [expeditions]);
+
+  // Flights with details we could still fetch by flight number (missing data
+  // points, or a completed flight whose actual times haven't landed yet).
+  const fetchableFlights = useMemo(
+    () => (flightLookupConfigured() ? findEnrichable(expeditions, Date.now(), 'all').length : 0),
+    [expeditions],
+  );
+  const flightsToSort = unresolvedAirports + fetchableFlights;
   const [exporting, setExporting] = useState(false);
   const [notifOn, setNotifOn] = useState(false);
   const [circleNotifOn, setCircleNotifOn] = useState(false);
@@ -494,14 +504,20 @@ export default function YouScreen() {
                 <Plane size={18} color={COLORS.ink2} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>Resolve airports</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>Resolve flights</Text>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>
-                  {unresolvedAirports > 0 ? `${unresolvedAirports} flight stop${unresolvedAirports === 1 ? '' : 's'} to match for accurate stats` : 'All flight stops are matched'}
+                  {unresolvedAirports > 0 && fetchableFlights > 0
+                    ? `${unresolvedAirports} to match · ${fetchableFlights} with details to fetch`
+                    : unresolvedAirports > 0
+                    ? `${unresolvedAirports} flight stop${unresolvedAirports === 1 ? '' : 's'} to match for accurate stats`
+                    : fetchableFlights > 0
+                    ? `${fetchableFlights} flight${fetchableFlights === 1 ? '' : 's'} with details to fetch`
+                    : 'All flights matched & up to date'}
                 </Text>
               </View>
-              {unresolvedAirports > 0 ? (
+              {flightsToSort > 0 ? (
                 <View className="rounded-full items-center justify-center" style={{ minWidth: 22, height: 22, paddingHorizontal: 7, backgroundColor: '#F4B740' }}>
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', color: '#fff' }}>{unresolvedAirports}</Text>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', color: '#fff' }}>{flightsToSort}</Text>
                 </View>
               ) : (
                 <CircleCheck size={18} color="#12A594" />
@@ -557,7 +573,7 @@ export default function YouScreen() {
       <AuthSheet visible={authOpen} onClose={() => setAuthOpen(false)} />
       <DeleteAccountSheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} />
       <XpDetailSheet visible={xpOpen} onClose={() => setXpOpen(false)} level={level} stats={stats} discovery={discoveryStats} journeys={journeyStats} />
-      <ResolveAirportsSheet visible={resolveOpen} onClose={() => setResolveOpen(false)} expeditions={expeditions} updateExpedition={updateExpedition} />
+      <ResolveFlightsSheet visible={resolveOpen} onClose={() => setResolveOpen(false)} expeditions={expeditions} updateExpedition={updateExpedition} />
     </ScrollView>
   );
 }
