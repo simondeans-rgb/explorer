@@ -4,7 +4,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
 import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck, Ruler, Thermometer } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
@@ -12,7 +11,7 @@ import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
 import { HERO_CODES } from '../../src/lib/heroImages';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
-import { COLORS, GRADIENTS } from '../../src/lib/theme';
+import { COLORS, GRADIENTS, SECTION, HERO_HEIGHT } from '../../src/lib/theme';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useConfirm } from '../../src/store/confirm';
 import { useAuth } from '../../src/store/auth';
@@ -25,6 +24,7 @@ import { friendActivityEnabled, enableFriendActivity, disableFriendActivity, tri
 import { AuthSheet } from '../../components/AuthSheet';
 import { DeleteAccountSheet } from '../../components/DeleteAccountSheet';
 import { XpDetailSheet } from '../../components/XpDetailSheet';
+import { HeroWave } from '../../components/HeroWave';
 import { ResolveAirportsSheet } from '../../components/ResolveAirportsSheet';
 import { isEndpointResolved } from '../../src/lib/airportSearch';
 import { useUnits } from '../../src/store/units';
@@ -236,7 +236,7 @@ export default function YouScreen() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 110 }}>
       {/* Identity hero */}
-      <DestinationImage code={HERO_CODES.you[0]} codes={HERO_CODES.you} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 56, alignItems: 'center' }}>
+      <DestinationImage code={HERO_CODES.you[0]} codes={HERO_CODES.you} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 56, minHeight: HERO_HEIGHT, alignItems: 'center' }}>
         <Pressable onPress={changeAvatar}>
           <View className="rounded-full items-center justify-center bg-white/20" style={{ height: 92, width: 92, borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)', overflow: 'hidden' }}>
             {avatar ? (
@@ -253,9 +253,7 @@ export default function YouScreen() {
         <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.92, marginTop: 2 }}>
           {level.title}
         </Text>
-        <Svg width="100%" height={42} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
-          <Path d="M0,72 C240,44 480,40 720,58 C960,76 1200,92 1440,72 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
-        </Svg>
+        <HeroWave color={SECTION.passport} />
       </DestinationImage>
 
       {/* Explorer level — collectible medal card */}

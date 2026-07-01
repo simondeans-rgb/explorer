@@ -26,7 +26,7 @@ import {
 import { PageHero } from '../../components/PageHero';
 import { DestinationImage } from '../../components/DestinationImage';
 import { DiscoveryFan } from '../../components/DiscoveryFan';
-import { COLORS, GRADIENTS, DISCOVERY_CATEGORY_COLOR } from '../../src/lib/theme';
+import { COLORS, GRADIENTS, DISCOVERY_CATEGORY_COLOR, SECTION, HERO_HEIGHT } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
 import { CONTINENTS, DISCOVERY_CATEGORIES, type Continent, type DiscoveryCategory } from '../../src/types';
@@ -233,7 +233,7 @@ export default function ExploreScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets>
-        <PageHero title="Discover" subtitle={tab === 'browse' ? 'Find your next adventure' : 'Your saved places'} gradient={GRADIENTS.explore} imageCodes={HERO_CODES.explore} motion />
+        <PageHero title="Discover" subtitle={tab === 'browse' ? 'Find your next adventure' : 'Your saved places'} gradient={GRADIENTS.explore} imageCodes={HERO_CODES.explore} motion waveColor={SECTION.discover} minHeight={HERO_HEIGHT} />
 
         {/* segmented control */}
         <View className="flex-row bg-white rounded-2xl" style={{ marginHorizontal: 20, marginTop: 6, padding: 5, gap: 5 }}>

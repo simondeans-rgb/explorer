@@ -2,10 +2,10 @@ import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
 import { Camera, ChevronRight, UserPlus, MapPin } from 'lucide-react-native';
 import { WorldlyLogo } from '../../components/WorldlyLogo';
+import { HeroWave } from '../../components/HeroWave';
 import { Squiggle } from '../../components/Squiggle';
 import { DestinationImage } from '../../components/DestinationImage';
 import { LandmarkDetailSheet } from '../../components/LandmarkDetailSheet';
@@ -15,7 +15,7 @@ import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { PassportStamp } from '../../components/PassportStamp';
 import { useConfirm } from '../../src/store/confirm';
 import { circleStoryItems, type CircleStoryItem } from '../../src/lib/circle';
-import { COLORS } from '../../src/lib/theme';
+import { COLORS, SECTION } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
@@ -98,12 +98,7 @@ export default function StoryScreen() {
           </View>
         </View>
 
-        {/* Divider traced from the design: a crest near the left, a deep dip, a
-            modest middle hump, a second dip, then a long sweep up on the right. */}
-        <Svg width="100%" height={74} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
-          <Path d="M0,61 C50,58 90,44 144,44 C240,44 360,93 460,93 C560,93 640,57 720,57 C810,57 910,95 1008,95 C1130,95 1280,30 1440,30 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
-          <Path d="M0,61 C50,58 90,44 144,44 C240,44 360,93 460,93 C560,93 640,57 720,57 C810,57 910,95 1008,95 C1130,95 1280,30 1440,30" fill="none" stroke="#7C5CE6" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
+        <HeroWave color={SECTION.story} />
       </DestinationImage>
 
       {/* Counting Down */}
