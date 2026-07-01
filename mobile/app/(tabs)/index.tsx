@@ -98,11 +98,11 @@ export default function StoryScreen() {
           </View>
         </View>
 
-        {/* Two rounded humps with a long sweep up on the right, a purple line
-            tracing the curve where the page meets the hero. */}
-        <Svg width="100%" height={66} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
-          <Path d="M0,58 C70,58 160,40 300,40 C440,40 500,88 620,88 C740,88 800,44 940,44 C1120,44 1250,32 1440,32 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
-          <Path d="M0,58 C70,58 160,40 300,40 C440,40 500,88 620,88 C740,88 800,44 940,44 C1120,44 1250,32 1440,32" fill="none" stroke="#7C5CE6" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
+        {/* Divider traced from the design: a crest near the left, a deep dip, a
+            modest middle hump, a second dip, then a long sweep up on the right. */}
+        <Svg width="100%" height={74} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
+          <Path d="M0,61 C50,58 90,44 144,44 C240,44 360,93 460,93 C560,93 640,57 720,57 C810,57 910,95 1008,95 C1130,95 1280,30 1440,30 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
+          <Path d="M0,61 C50,58 90,44 144,44 C240,44 360,93 460,93 C560,93 640,57 720,57 C810,57 910,95 1008,95 C1130,95 1280,30 1440,30" fill="none" stroke="#7C5CE6" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
       </DestinationImage>
 
