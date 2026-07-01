@@ -6,7 +6,7 @@ import { AirportField } from './AirportField';
 import { COLORS } from '../src/lib/theme';
 import { isEndpointResolved, bestAirportMatch } from '../src/lib/airportSearch';
 import { flightLookupConfigured, lookupFlight } from '../src/lib/flightLookup';
-import { findEnrichable, enrichFlights, mergeFlightInfo, legFlightDate, type Enrichable } from '../src/lib/flightRefresh';
+import { findEnrichable, enrichFlights, mergeFlightInfo, legFlightDate, missingDataPoints, needsActuals, type Enrichable } from '../src/lib/flightRefresh';
 import { useToast } from '../src/store/toast';
 import type { Expedition, Journey } from '../src/types';
 
@@ -114,19 +114,35 @@ export function ResolveFlightsSheet({
     setFetchingId(c.legId);
     const r = await lookupFlight(c.j.reference ?? '', date);
     setFetchingId(null);
-    if (!r.ok) {
-      toast.error(
-        r.reason === 'not-found' ? 'No flight found for that number and date.'
-        : r.reason === 'out-of-range' ? 'That flight is older than the flight database keeps (about a year).'
-        : 'Lookup failed — try again.',
-      );
+
+    // Transient network error — leave the flight flaggable so it can be retried.
+    if (!r.ok && r.reason !== 'not-found' && r.reason !== 'out-of-range') {
+      toast.error('Lookup failed — check your connection and try again.');
       return;
     }
-    const merged = mergeFlightInfo(c.j, r.info);
-    if (merged === c.j) { toast.success('Already up to date'); return; }
-    const journeys = e.journeys.map((j) => (j.id === c.legId ? merged : j));
-    await updateExpedition(e.id, { title: e.title, countryCodes: e.countryCodes, startDate: e.startDate, endDate: e.endDate, journeys, note: e.note });
-    toast.success('Flight details updated');
+
+    const now = Date.now();
+    let patched = c.j;
+    let updated = false;
+    if (r.ok) {
+      const merged = mergeFlightInfo(c.j, r.info);
+      patched = merged;
+      updated = merged !== c.j;
+    }
+    // Definitive answer but still incomplete → mark checked so it stops showing.
+    if (!patched.flightChecked && (missingDataPoints(patched).length > 0 || needsActuals(patched, e.startDate, now))) {
+      patched = { ...patched, flightChecked: true };
+    }
+    if (patched !== c.j) {
+      const journeys = e.journeys.map((j) => (j.id === c.legId ? patched : j));
+      await updateExpedition(e.id, { title: e.title, countryCodes: e.countryCodes, startDate: e.startDate, endDate: e.endDate, journeys, note: e.note });
+    }
+    toast.success(
+      updated ? 'Flight details updated'
+      : r.ok ? 'No new details available for this flight'
+      : r.reason === 'out-of-range' ? 'Older than the flight database keeps'
+      : 'No flight record found',
+    );
   }
 
   async function fetchAll() {

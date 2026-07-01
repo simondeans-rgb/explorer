@@ -228,6 +228,10 @@ export interface Journey {
   toTerminal?: string; // arrival terminal
   distanceKm?: number; // great-circle distance (km), when known
   durationMin?: number; // scheduled gate-to-gate duration (minutes)
+  /** Set once a flight lookup has been attempted and the database had nothing
+   *  more to add — so the flight stops being flagged as needing resolution.
+   *  Cleared when the flight number / date is edited (the leg is rebuilt). */
+  flightChecked?: boolean;
   note?: string;
 }
 
