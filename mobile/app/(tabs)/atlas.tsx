@@ -19,7 +19,7 @@ import { DestinationImage } from '../../components/DestinationImage';
 import { AtlasCountryCard } from '../../components/AtlasCountryCard';
 import { AtlasSummary } from '../../components/AtlasSummary';
 import { DiscoveryScoreSheet } from '../../components/DiscoveryScoreSheet';
-import { COLORS, GRADIENTS, SHADOW, SECTION, HERO_HEIGHT } from '../../src/lib/theme';
+import { COLORS, GRADIENTS, SHADOW, HERO_HEIGHT } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
 import { routeSegments } from '../../src/lib/journeyGeo';
@@ -186,7 +186,7 @@ export default function AtlasScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
     <ScrollView ref={scrollRef} style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 110 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets>
-      <PageHero title="Your Atlas" subtitle="The world you've explored" gradient={GRADIENTS.atlas} imageCodes={HERO_CODES.atlas} motion waveColor={SECTION.atlas} minHeight={HERO_HEIGHT} />
+      <PageHero title="Your Atlas" subtitle="The world you've explored" gradient={GRADIENTS.atlas} imageCodes={HERO_CODES.atlas} motion minHeight={HERO_HEIGHT} />
 
       {/* segmented control */}
       <View className="flex-row bg-white rounded-2xl" style={{ marginHorizontal: 20, marginTop: 6, padding: 5, gap: 5 }}>

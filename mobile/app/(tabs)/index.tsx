@@ -15,7 +15,7 @@ import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { PassportStamp } from '../../components/PassportStamp';
 import { useConfirm } from '../../src/store/confirm';
 import { circleStoryItems, type CircleStoryItem } from '../../src/lib/circle';
-import { COLORS, SECTION, HERO_HEIGHT } from '../../src/lib/theme';
+import { COLORS, HERO_HEIGHT } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
@@ -98,7 +98,7 @@ export default function StoryScreen() {
           </View>
         </View>
 
-        <HeroWave color={SECTION.story} />
+        <HeroWave />
       </DestinationImage>
 
       {/* Counting Down */}
