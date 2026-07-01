@@ -68,6 +68,8 @@ export function ResolveFlightsSheet({
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [fetchingId, setFetchingId] = useState<string | null>(null);
   const [fetchingAll, setFetchingAll] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [result, setResult] = useState<string | null>(null);
 
   const unresolved = useMemo(() => findUnresolved(expeditions), [expeditions]);
   const enrichable = useMemo<Enrichable[]>(
@@ -108,11 +110,16 @@ export function ResolveFlightsSheet({
     const e = expeditions.find((x) => x.id === c.expId);
     const date = legFlightDate(c.j, e?.startDate);
     if (!e || !date) return;
+    setResult(null);
     setFetchingId(c.legId);
     const r = await lookupFlight(c.j.reference ?? '', date);
     setFetchingId(null);
     if (!r.ok) {
-      toast.error(r.reason === 'not-found' ? 'No flight found for that number and date.' : 'Lookup failed — try again.');
+      toast.error(
+        r.reason === 'not-found' ? 'No flight found for that number and date.'
+        : r.reason === 'out-of-range' ? 'That flight is older than the flight database keeps (about a year).'
+        : 'Lookup failed — try again.',
+      );
       return;
     }
     const merged = mergeFlightInfo(c.j, r.info);
@@ -123,10 +130,35 @@ export function ResolveFlightsSheet({
   }
 
   async function fetchAll() {
+    setResult(null);
     setFetchingAll(true);
-    const res = await enrichFlights(expeditions, updateExpedition, { nowMs: Date.now(), mode: 'all' });
+    setProgress({ done: 0, total: enrichable.length });
+    const res = await enrichFlights(expeditions, updateExpedition, {
+      nowMs: Date.now(),
+      mode: 'all',
+      max: 60,
+      onProgress: (done, total) => setProgress({ done, total }),
+    });
     setFetchingAll(false);
-    toast.success(res.updated > 0 ? `Updated ${res.updated} flight${res.updated === 1 ? '' : 's'}` : 'Nothing new to fetch');
+    setProgress(null);
+
+    // Build a clear summary — including why some flights returned nothing.
+    if (res.updated > 0) {
+      const extras: string[] = [];
+      if (res.noData > 0) extras.push(`${res.noData} had no new data`);
+      if (res.outOfRange > 0) extras.push(`${res.outOfRange} too old`);
+      if (res.truncated > 0) extras.push(`${res.truncated} left — tap again`);
+      setResult(`Updated ${res.updated} flight${res.updated === 1 ? '' : 's'}${extras.length ? ` · ${extras.join(' · ')}` : ''}.`);
+      toast.success(`Updated ${res.updated} flight${res.updated === 1 ? '' : 's'}`);
+    } else if (res.scanned === 0) {
+      setResult('No flights were recent enough to look up — the flight database only covers about the last year.');
+    } else if (res.outOfRange > 0 && res.noData === 0 && res.failed === 0) {
+      setResult('No new details found — these flights are older than the flight database keeps (about a year).');
+    } else if (res.failed > 0 && res.noData === 0) {
+      setResult('Couldn’t reach the flight service — check your connection and try again.');
+    } else {
+      setResult('No new details were found for these flights. The database may not have a record for these numbers and dates.');
+    }
   }
 
   const allGood = enrichable.length === 0 && unresolved.length === 0;
@@ -134,6 +166,11 @@ export function ResolveFlightsSheet({
   return (
     <SheetShell visible={visible} title="Resolve flights" onClose={onClose}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 12 }}>
+        {result ? (
+          <View className="rounded-2xl" style={{ marginHorizontal: 20, marginTop: 4, marginBottom: allGood ? 0 : 14, backgroundColor: '#F4F3FB', paddingHorizontal: 14, paddingVertical: 11 }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2, lineHeight: 18 }}>{result}</Text>
+          </View>
+        ) : null}
         {allGood ? (
           <View className="items-center" style={{ paddingVertical: 40, paddingHorizontal: 24, gap: 10 }}>
             <View className="rounded-full items-center justify-center" style={{ height: 56, width: 56, backgroundColor: 'rgba(36,209,195,0.14)' }}>
@@ -158,7 +195,9 @@ export function ResolveFlightsSheet({
 
                 <Pressable onPress={fetchAll} disabled={busy} className="flex-row items-center justify-center rounded-2xl" style={{ paddingVertical: 12, gap: 8, backgroundColor: COLORS.navy, opacity: busy ? 0.5 : 1 }}>
                   {fetchingAll ? <ActivityIndicator size="small" color="#fff" /> : <Download size={16} color="#fff" />}
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: '#fff' }}>{fetchingAll ? 'Fetching…' : 'Fetch all details'}</Text>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: '#fff' }}>
+                    {fetchingAll ? (progress ? `Fetching ${progress.done}/${progress.total}…` : 'Fetching…') : 'Fetch all details'}
+                  </Text>
                 </Pressable>
 
                 {enrichable.map((c) => (

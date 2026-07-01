@@ -35,7 +35,7 @@ export interface FlightInfo {
 
 export type FlightLookupResult =
   | { ok: true; info: FlightInfo }
-  | { ok: false; reason: 'no-key' | 'not-found' | 'no-date' | 'error' };
+  | { ok: false; reason: 'no-key' | 'not-found' | 'no-date' | 'out-of-range' | 'error' };
 
 /** Normalise "ba 31" / "BA-31" → "BA31". */
 export function normaliseFlightNumber(s: string): string {
@@ -88,6 +88,13 @@ export async function lookupFlight(rawNumber: string, dateISO: string): Promise<
     const url = `https://${HOST}/flights/number/${encodeURIComponent(number)}/${date}?withAircraftImage=false&withLocation=false`;
     const res = await fetch(url, { headers: { 'X-RapidAPI-Key': KEY, 'X-RapidAPI-Host': HOST } });
     if (res.status === 204 || res.status === 404) return { ok: false, reason: 'not-found' };
+    // AeroDataBox rejects dates outside its data window (BASIC = last 365 days)
+    // with a 400 — surface that distinctly so callers can explain it.
+    if (res.status === 400) {
+      let msg = '';
+      try { msg = await res.text(); } catch { /* ignore */ }
+      return { ok: false, reason: /day\(s\) ago|earlier than|out of|range/i.test(msg) ? 'out-of-range' : 'error' };
+    }
     if (!res.ok) return { ok: false, reason: 'error' };
     const data = await res.json();
     const legs = Array.isArray(data) ? data : data?.departures ?? [];

@@ -23,6 +23,9 @@ type UpdateExpedition = (
 
 // BASIC plan is rate-limited per second — space sequential lookups out.
 const RATE_DELAY_MS = 1500;
+// AeroDataBox only holds flight data for roughly the last year; older dates are
+// rejected outright, so there's no point offering to fetch them.
+const LOOKUP_WINDOW_MS = 364 * 24 * 60 * 60 * 1000;
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /** The date a flight leg happened on: its own date, else the trip start. */
@@ -31,10 +34,21 @@ export function legFlightDate(j: Journey, tripStart?: string): string | undefine
   return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : undefined;
 }
 
-/** A flight leg with a usable number + date, so AeroDataBox can look it up. */
-export function canLookupFlight(j: Journey, tripStart?: string): boolean {
+/** Whether a date is recent enough for AeroDataBox to have data for it. */
+export function withinLookupWindow(dateISO: string | undefined, nowMs: number): boolean {
+  if (!dateISO) return false;
+  const t = Date.parse(`${dateISO}T12:00:00`);
+  return !Number.isNaN(t) && t >= nowMs - LOOKUP_WINDOW_MS;
+}
+
+/** A flight leg with a usable number + a date inside the lookup window, so
+ *  AeroDataBox can actually return data for it. */
+export function canLookupFlight(j: Journey, tripStart: string | undefined, nowMs: number): boolean {
   if (j.mode !== 'flight') return false;
-  return normaliseFlightNumber(j.reference ?? '').length >= 3 && !!legFlightDate(j, tripStart);
+  return (
+    normaliseFlightNumber(j.reference ?? '').length >= 3 &&
+    withinLookupWindow(legFlightDate(j, tripStart), nowMs)
+  );
 }
 
 /** Labels for the enrichable data points a flight leg is still missing. */
@@ -105,7 +119,7 @@ export function findEnrichable(expeditions: Expedition[], nowMs: number, mode: '
   const out: Enrichable[] = [];
   for (const e of expeditions) {
     for (const j of e.journeys ?? []) {
-      if (!canLookupFlight(j, e.startDate)) continue;
+      if (!canLookupFlight(j, e.startDate, nowMs)) continue;
       const miss = missingDataPoints(j);
       const wantActuals = needsActuals(j, e.startDate, nowMs);
       const take = mode === 'actuals' ? wantActuals : mode === 'missing' ? miss.length > 0 : wantActuals || miss.length > 0;
@@ -118,19 +132,33 @@ export function findEnrichable(expeditions: Expedition[], nowMs: number, mode: '
   return out;
 }
 
-export interface EnrichResult { updated: number; scanned: number; failed: number }
+export interface EnrichResult {
+  updated: number; // legs that gained new data
+  scanned: number; // legs we actually looked up
+  noData: number; // lookups that returned nothing new (not-found / already current)
+  outOfRange: number; // legs the API considers too old for its data window
+  failed: number; // network / unexpected errors
+  truncated: number; // candidates left unprocessed because of the cap
+}
 
 /** Look up and patch every enrichable flight leg, spacing calls to respect the
- *  API rate limit and batching writes per expedition. */
+ *  API rate limit and batching writes per expedition. Reports progress as each
+ *  lookup completes so callers can show a running count. */
 export async function enrichFlights(
   expeditions: Expedition[],
   updateExpedition: UpdateExpedition,
-  opts: { nowMs: number; mode: 'actuals' | 'missing' | 'all'; max?: number },
+  opts: { nowMs: number; mode: 'actuals' | 'missing' | 'all'; max?: number; onProgress?: (done: number, total: number) => void },
 ): Promise<EnrichResult> {
-  if (!flightLookupConfigured()) return { updated: 0, scanned: 0, failed: 0 };
-  const candidates = findEnrichable(expeditions, opts.nowMs, opts.mode).slice(0, opts.max ?? 40);
+  const empty: EnrichResult = { updated: 0, scanned: 0, noData: 0, outOfRange: 0, failed: 0, truncated: 0 };
+  if (!flightLookupConfigured()) return empty;
+  const all = findEnrichable(expeditions, opts.nowMs, opts.mode);
+  const cap = opts.max ?? 40;
+  const candidates = all.slice(0, cap);
+  const truncated = Math.max(0, all.length - candidates.length);
   const patchedByExp = new Map<string, Map<string, Journey>>();
   let updated = 0;
+  let noData = 0;
+  let outOfRange = 0;
   let failed = 0;
 
   for (let i = 0; i < candidates.length; i++) {
@@ -147,10 +175,17 @@ export async function enrichFlights(
         if (!legs) { legs = new Map(e.journeys.map((j) => [j.id, j])); patchedByExp.set(c.expId, legs); }
         legs.set(c.legId, merged);
         updated += 1;
+      } else {
+        noData += 1;
       }
-    } else if (r.reason === 'error') {
+    } else if (r.reason === 'not-found') {
+      noData += 1;
+    } else if (r.reason === 'out-of-range') {
+      outOfRange += 1;
+    } else {
       failed += 1;
     }
+    opts.onProgress?.(i + 1, candidates.length);
     if (i < candidates.length - 1) await delay(RATE_DELAY_MS);
   }
 
@@ -159,5 +194,5 @@ export async function enrichFlights(
     if (!e) continue;
     await updateExpedition(expId, { title: e.title, countryCodes: e.countryCodes, startDate: e.startDate, endDate: e.endDate, journeys: [...legs.values()], note: e.note });
   }
-  return { updated, scanned: candidates.length, failed };
+  return { updated, scanned: candidates.length, noData, outOfRange, failed, truncated };
 }
