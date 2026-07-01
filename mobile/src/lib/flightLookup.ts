@@ -21,8 +21,16 @@ export interface FlightInfo {
   to?: string;
   aircraft?: string; // model, e.g. "Boeing 777-300ER"
   date?: string; // departure date, ISO YYYY-MM-DD
-  departTimeLocal?: string; // e.g. "12:05" (not stored on the leg yet, shown in the confirm)
-  arriveTimeLocal?: string;
+  departTimeLocal?: string; // scheduled departure, local "12:05"
+  arriveTimeLocal?: string; // scheduled arrival, local
+  departActualLocal?: string; // actual/revised departure, local
+  arriveActualLocal?: string; // actual/revised arrival, local
+  departDelayMin?: number; // actual − scheduled at departure (minutes; negative = early)
+  arriveDelayMin?: number; // actual − scheduled at arrival
+  fromTerminal?: string; // departure terminal, e.g. "5"
+  toTerminal?: string; // arrival terminal
+  distanceKm?: number; // great-circle distance in km
+  durationMin?: number; // scheduled gate-to-gate duration in minutes
 }
 
 export type FlightLookupResult =
@@ -47,6 +55,27 @@ function splitLocal(local?: string): { date?: string; time?: string } {
   return m ? { date: m[1], time: m[2] } : {};
 }
 
+/** Scheduled gate-to-gate minutes from two UTC strings ("2026-07-02 18:20Z"). */
+function durationMinutes(depUtc?: string, arrUtc?: string): number | undefined {
+  if (!depUtc || !arrUtc) return undefined;
+  const dep = Date.parse(depUtc.replace(' ', 'T'));
+  const arr = Date.parse(arrUtc.replace(' ', 'T'));
+  if (Number.isNaN(dep) || Number.isNaN(arr)) return undefined;
+  const min = Math.round((arr - dep) / 60000);
+  return min > 0 && min < 60 * 24 ? min : undefined;
+}
+
+/** Delay in minutes: actual − scheduled (negative = early). Undefined unless
+ *  both UTC timestamps parse and they actually differ or match a real time. */
+function delayMinutes(schedUtc?: string, actualUtc?: string): number | undefined {
+  if (!schedUtc || !actualUtc) return undefined;
+  const s = Date.parse(schedUtc.replace(' ', 'T'));
+  const a = Date.parse(actualUtc.replace(' ', 'T'));
+  if (Number.isNaN(s) || Number.isNaN(a)) return undefined;
+  const min = Math.round((a - s) / 60000);
+  return Math.abs(min) < 60 * 24 ? min : undefined;
+}
+
 /** Look up a flight by number + date (YYYY-MM-DD). */
 export async function lookupFlight(rawNumber: string, dateISO: string): Promise<FlightLookupResult> {
   if (!KEY) return { ok: false, reason: 'no-key' };
@@ -67,6 +96,9 @@ export async function lookupFlight(rawNumber: string, dateISO: string): Promise<
 
     const dep = splitLocal(f.departure?.scheduledTime?.local ?? f.departure?.revisedTime?.local);
     const arr = splitLocal(f.arrival?.scheduledTime?.local ?? f.arrival?.revisedTime?.local);
+    const depActual = splitLocal(f.departure?.revisedTime?.local ?? f.departure?.predictedTime?.local);
+    const arrActual = splitLocal(f.arrival?.revisedTime?.local ?? f.arrival?.predictedTime?.local);
+    const km = f.greatCircleDistance?.km;
     const info: FlightInfo = {
       flightNumber: number,
       airline: f.airline?.name,
@@ -76,6 +108,23 @@ export async function lookupFlight(rawNumber: string, dateISO: string): Promise<
       date: dep.date || date,
       departTimeLocal: dep.time,
       arriveTimeLocal: arr.time,
+      departActualLocal: depActual.time,
+      arriveActualLocal: arrActual.time,
+      departDelayMin: delayMinutes(
+        f.departure?.scheduledTime?.utc,
+        f.departure?.revisedTime?.utc ?? f.departure?.predictedTime?.utc,
+      ),
+      arriveDelayMin: delayMinutes(
+        f.arrival?.scheduledTime?.utc,
+        f.arrival?.revisedTime?.utc ?? f.arrival?.predictedTime?.utc,
+      ),
+      fromTerminal: typeof f.departure?.terminal === 'string' ? f.departure.terminal : undefined,
+      toTerminal: typeof f.arrival?.terminal === 'string' ? f.arrival.terminal : undefined,
+      distanceKm: typeof km === 'number' && km > 0 ? Math.round(km) : undefined,
+      durationMin: durationMinutes(
+        f.departure?.scheduledTime?.utc ?? f.departure?.revisedTime?.utc,
+        f.arrival?.scheduledTime?.utc ?? f.arrival?.revisedTime?.utc,
+      ),
     };
     if (!info.from && !info.to) return { ok: false, reason: 'not-found' };
     return { ok: true, info };

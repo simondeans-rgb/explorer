@@ -218,8 +218,16 @@ export interface Journey {
   seat?: string; // cabin & seat / class
   vehicle?: string; // aircraft / vehicle type
   date?: string;
-  departTime?: string; // local departure time, "HH:MM"
-  arriveTime?: string; // local arrival time, "HH:MM"
+  departTime?: string; // scheduled local departure, "HH:MM"
+  arriveTime?: string; // scheduled local arrival, "HH:MM"
+  departActual?: string; // actual local departure, "HH:MM"
+  arriveActual?: string; // actual local arrival, "HH:MM"
+  departDelayMin?: number; // actual − scheduled at departure (minutes; negative = early)
+  arriveDelayMin?: number; // actual − scheduled at arrival
+  fromTerminal?: string; // departure terminal
+  toTerminal?: string; // arrival terminal
+  distanceKm?: number; // great-circle distance (km), when known
+  durationMin?: number; // scheduled gate-to-gate duration (minutes)
   note?: string;
 }
 
