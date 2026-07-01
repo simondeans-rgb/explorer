@@ -31,6 +31,8 @@ interface Leg {
   carrier: string;
   reference: string;
   vehicle: string;
+  departTime: string;
+  arriveTime: string;
   note: string;
 }
 
@@ -41,7 +43,7 @@ function newId() {
   return `leg_${Date.now().toString(36)}_${legCounter++}`;
 }
 function emptyLeg(mode: JourneyMode = 'flight'): Leg {
-  return { id: newId(), mode, from: '', to: '', date: '', carrier: '', reference: '', vehicle: '', note: '' };
+  return { id: newId(), mode, from: '', to: '', date: '', carrier: '', reference: '', vehicle: '', departTime: '', arriveTime: '', note: '' };
 }
 
 const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s.trim());
@@ -92,7 +94,7 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
     setLookingUp(null);
     if (r.ok) {
       const i = r.info;
-      patchLeg(leg.id, { from: i.from ?? leg.from, to: i.to ?? leg.to, carrier: i.airline ?? leg.carrier, vehicle: i.aircraft ?? leg.vehicle, date: i.date ?? leg.date, reference: i.flightNumber });
+      patchLeg(leg.id, { from: i.from ?? leg.from, to: i.to ?? leg.to, carrier: i.airline ?? leg.carrier, vehicle: i.aircraft ?? leg.vehicle, date: i.date ?? leg.date, departTime: i.departTimeLocal ?? leg.departTime, arriveTime: i.arriveTimeLocal ?? leg.arriveTime, reference: i.flightNumber });
       toast.success(i.departTimeLocal && i.arriveTimeLocal ? `Found · ${i.departTimeLocal} → ${i.arriveTimeLocal}` : 'Flight details filled in');
     } else {
       toast.error(
@@ -119,7 +121,7 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
     setSaving(true);
     try {
       const journeys: Journey[] = legs
-        .filter((l) => l.from || l.to || l.carrier || l.reference || l.date || l.vehicle || l.note)
+        .filter((l) => l.from || l.to || l.carrier || l.reference || l.date || l.vehicle || l.departTime || l.arriveTime || l.note)
         .map((l) => {
           const j: Journey = { id: newId(), mode: l.mode };
           if (l.from.trim()) j.from = l.from.trim();
@@ -128,6 +130,8 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
           if (l.reference.trim()) j.reference = l.reference.trim();
           if (l.vehicle.trim()) j.vehicle = l.vehicle.trim();
           if (isDate(l.date)) j.date = l.date.trim();
+          if (l.departTime.trim()) j.departTime = l.departTime.trim();
+          if (l.arriveTime.trim()) j.arriveTime = l.arriveTime.trim();
           if (l.note.trim()) j.note = l.note.trim();
           return j;
         });
@@ -238,6 +242,10 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
                 <Field flex placeholder={meta.reference} value={leg.reference} onChange={(t) => patchLeg(leg.id, { reference: t })} />
                 <Field flex placeholder="Aircraft / vehicle" value={leg.vehicle} onChange={(t) => patchLeg(leg.id, { vehicle: t })} />
               </View>
+              <View className="flex-row" style={{ gap: 8 }}>
+                <Field flex placeholder="Depart (HH:MM)" value={leg.departTime} onChange={(t) => patchLeg(leg.id, { departTime: t })} />
+                <Field flex placeholder="Arrive (HH:MM)" value={leg.arriveTime} onChange={(t) => patchLeg(leg.id, { arriveTime: t })} />
+              </View>
               {leg.mode === 'flight' && flightLookupConfigured() ? (
                 <Pressable onPress={() => lookupLeg(leg)} disabled={lookingUp === leg.id} className="flex-row items-center justify-center rounded-2xl" style={{ paddingVertical: 11, gap: 7, backgroundColor: 'rgba(30,107,255,0.10)' }}>
                   {lookingUp === leg.id ? <ActivityIndicator size="small" color="#1E6BFF" /> : <Search size={15} color="#1E6BFF" />}
@@ -259,7 +267,7 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
           </Pressable>
         </View>
         {showRoute ? (
-          <RouteBuilder onAdd={(rl) => { setLegs((prev) => [...prev.filter((l) => l.from || l.to || l.carrier || l.reference || l.date || l.vehicle || l.note), ...rl.map((l) => ({ ...emptyLeg(l.mode), from: l.from, to: l.to }))]); setShowRoute(false); }} />
+          <RouteBuilder onAdd={(rl) => { setLegs((prev) => [...prev.filter((l) => l.from || l.to || l.carrier || l.reference || l.date || l.vehicle || l.departTime || l.arriveTime || l.note), ...rl.map((l) => ({ ...emptyLeg(l.mode), from: l.from, to: l.to }))]); setShowRoute(false); }} />
         ) : null}
 
         <Pressable onPress={save} disabled={!ready || saving} className="rounded-2xl items-center justify-center flex-row" style={{ marginHorizontal: 20, marginTop: 16, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: ready && !saving ? 1 : 0.4, gap: 8 }}>

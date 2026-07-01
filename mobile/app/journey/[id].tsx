@@ -65,6 +65,8 @@ interface Leg {
   reference: string;
   seat: string;
   vehicle: string;
+  departTime: string;
+  arriveTime: string;
   note: string;
 }
 
@@ -78,9 +80,11 @@ const legFromJourney = (j: Journey): Leg => ({
   reference: j.reference ?? '',
   seat: j.seat ?? '',
   vehicle: j.vehicle ?? '',
+  departTime: j.departTime ?? '',
+  arriveTime: j.arriveTime ?? '',
   note: j.note ?? '',
 });
-const emptyLeg = (mode: JourneyMode = 'flight'): Leg => ({ id: newId(), mode, from: '', to: '', date: '', operator: '', reference: '', seat: '', vehicle: '', note: '' });
+const emptyLeg = (mode: JourneyMode = 'flight'): Leg => ({ id: newId(), mode, from: '', to: '', date: '', operator: '', reference: '', seat: '', vehicle: '', departTime: '', arriveTime: '', note: '' });
 const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s.trim());
 
 function Field({ value, onChange, placeholder, flex }: { value: string; onChange: (t: string) => void; placeholder: string; flex?: boolean }) {
@@ -173,6 +177,8 @@ export default function JourneyScreen() {
         operator: i.airline ?? leg.operator,
         vehicle: i.aircraft ?? leg.vehicle,
         date: i.date ?? leg.date,
+        departTime: i.departTimeLocal ?? leg.departTime,
+        arriveTime: i.arriveTimeLocal ?? leg.arriveTime,
         reference: i.flightNumber,
       });
       toast.success(i.departTimeLocal && i.arriveTimeLocal ? `Found · ${i.departTimeLocal} → ${i.arriveTimeLocal}` : 'Flight details filled in');
@@ -201,7 +207,7 @@ export default function JourneyScreen() {
     setSaving(true);
     try {
       const journeys: Journey[] = legs
-        .filter((l) => l.from || l.to || l.operator || l.reference || l.date || l.vehicle || l.seat || l.note)
+        .filter((l) => l.from || l.to || l.operator || l.reference || l.date || l.vehicle || l.seat || l.departTime || l.arriveTime || l.note)
         .map((l) => {
           const j: Journey = { id: l.id, mode: l.mode };
           if (l.from.trim()) j.from = l.from.trim();
@@ -211,6 +217,8 @@ export default function JourneyScreen() {
           if (l.seat.trim()) j.seat = l.seat.trim();
           if (l.vehicle.trim()) j.vehicle = l.vehicle.trim();
           if (isDate(l.date)) j.date = l.date.trim();
+          if (l.departTime.trim()) j.departTime = l.departTime.trim();
+          if (l.arriveTime.trim()) j.arriveTime = l.arriveTime.trim();
           if (l.note.trim()) j.note = l.note.trim();
           return j;
         });
@@ -402,6 +410,10 @@ export default function JourneyScreen() {
               <View className="flex-row" style={{ gap: 8 }}>
                 <Field flex placeholder={meta.reference} value={leg.reference} onChange={(t) => patchLeg(leg.id, { reference: t })} />
                 <Field flex placeholder={meta.seat} value={leg.seat} onChange={(t) => patchLeg(leg.id, { seat: t })} />
+              </View>
+              <View className="flex-row" style={{ gap: 8 }}>
+                <Field flex placeholder="Depart (HH:MM)" value={leg.departTime} onChange={(t) => patchLeg(leg.id, { departTime: t })} />
+                <Field flex placeholder="Arrive (HH:MM)" value={leg.arriveTime} onChange={(t) => patchLeg(leg.id, { arriveTime: t })} />
               </View>
               {leg.mode === 'flight' && flightLookupConfigured() ? (
                 <Pressable onPress={() => lookupLeg(leg)} disabled={lookingUp === leg.id} className="flex-row items-center justify-center rounded-2xl" style={{ paddingVertical: 11, gap: 7, backgroundColor: 'rgba(30,107,255,0.10)' }}>
