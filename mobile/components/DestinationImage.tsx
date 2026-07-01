@@ -43,6 +43,7 @@ export const DestinationImage = memo(function DestinationImage({
   style,
   scrim = false,
   motion = false,
+  onActiveCode,
   children,
 }: {
   code: string;
@@ -52,6 +53,8 @@ export const DestinationImage = memo(function DestinationImage({
   style?: StyleProp<ViewStyle>;
   scrim?: boolean;
   motion?: boolean;
+  /** Fires with the country code currently on screen (incl. on rotation). */
+  onActiveCode?: (code: string) => void;
   children?: ReactNode;
 }) {
   const rotate = !!codes && codes.length > 1;
@@ -62,6 +65,11 @@ export const DestinationImage = memo(function DestinationImage({
     const t = setInterval(() => setIdx((i) => (i + 1) % list.length), rotateMs);
     return () => clearInterval(t);
   }, [rotate, list.length, rotateMs]);
+
+  const activeCode = list[idx % list.length];
+  useEffect(() => {
+    onActiveCode?.(activeCode);
+  }, [activeCode, onActiveCode]);
 
   const gradient = destinationImage(list[0]).gradient;
   const photo = destinationImage(list[idx % list.length]).photo;
