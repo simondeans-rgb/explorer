@@ -25,9 +25,11 @@ import { countryName, COUNTRIES } from '../../src/data/countries';
 import { routeSegments } from '../../src/lib/journeyGeo';
 import { shareMapPoster } from '../../src/lib/mapPoster';
 import { useWorldly } from '../../src/hooks/useWorldly';
+import { useFlightAutoRefresh } from '../../src/hooks/useFlightAutoRefresh';
 import type { CountryAggregate } from '../../src/lib/stats';
 import { HERO_CODES } from '../../src/lib/heroImages';
 import { useAuth } from '../../src/store/auth';
+import { useData } from '../../src/store/data';
 
 type SortBy = 'az' | 'found' | 'recent';
 
@@ -62,6 +64,9 @@ function ScopeChips({ scope, years, onChange }: { scope: Scope; years: number[];
 
 export default function AtlasScreen() {
   const { aggregates, discoveries, expeditions, stats } = useWorldly();
+  const { updateExpedition } = useData();
+  // Flights logged ahead of time refresh their actual times/delays once flown.
+  useFlightAutoRefresh(expeditions, updateExpedition);
   const [tab, setTab] = useState<Tab>('places');
   const [scope, setScope] = useState<Scope>('all');
   const [journeyMode, setJourneyMode] = useState<JourneyMode | 'all'>('all');

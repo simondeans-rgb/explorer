@@ -261,67 +261,87 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
               </View>
 
               {leg.mode === 'flight' ? (
-                <View style={{ gap: 8 }}>
-                  <AirportField placeholder={meta.from} value={leg.from} near={resolveEndpoint(leg.to)} onChangeText={(t) => patchLeg(leg.id, { from: t })} onPick={(m) => patchLeg(leg.id, { from: m.label })} />
-                  <AirportField placeholder={meta.to} value={leg.to} near={resolveEndpoint(leg.from)} onChangeText={(t) => patchLeg(leg.id, { to: t })} onPick={(m) => patchLeg(leg.id, { to: m.label })} />
-                </View>
+                <>
+                  {/* Flight number + date lead — look up to auto-fill the rest. */}
+                  <View className="flex-row" style={{ gap: 8 }}>
+                    <Field flex placeholder={meta.reference} value={leg.reference} onChange={(t) => patchLeg(leg.id, { reference: t })} />
+                    <Field flex placeholder="Date (YYYY-MM-DD)" value={leg.date} onChange={(t) => patchLeg(leg.id, { date: t })} />
+                  </View>
+                  {flightLookupConfigured() ? (
+                    <>
+                      <Pressable onPress={() => lookupLeg(leg)} disabled={lookingUp === leg.id} className="flex-row items-center justify-center rounded-2xl" style={{ paddingVertical: 11, gap: 7, backgroundColor: 'rgba(30,107,255,0.10)' }}>
+                        {lookingUp === leg.id ? <ActivityIndicator size="small" color="#1E6BFF" /> : <Search size={15} color="#1E6BFF" />}
+                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: '#1E6BFF' }}>{lookingUp === leg.id ? 'Looking up…' : 'Look up flight'}</Text>
+                      </Pressable>
+                      {!leg.from && !leg.to ? (
+                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, paddingHorizontal: 4, lineHeight: 15 }}>Enter the flight number and date, then look up to fill in the route, airline, aircraft, times and terminals automatically.</Text>
+                      ) : null}
+                    </>
+                  ) : null}
+                  <View style={{ gap: 8 }}>
+                    <AirportField placeholder={meta.from} value={leg.from} near={resolveEndpoint(leg.to)} onChangeText={(t) => patchLeg(leg.id, { from: t })} onPick={(m) => patchLeg(leg.id, { from: m.label })} />
+                    <AirportField placeholder={meta.to} value={leg.to} near={resolveEndpoint(leg.from)} onChangeText={(t) => patchLeg(leg.id, { to: t })} onPick={(m) => patchLeg(leg.id, { to: m.label })} />
+                  </View>
+                  <View className="flex-row" style={{ gap: 8 }}>
+                    <Field flex placeholder={meta.operator} value={leg.carrier} onChange={(t) => patchLeg(leg.id, { carrier: t })} />
+                    <Field flex placeholder="Aircraft" value={leg.vehicle} onChange={(t) => patchLeg(leg.id, { vehicle: t })} />
+                  </View>
+                  <View className="flex-row" style={{ gap: 8 }}>
+                    <Field flex placeholder="Depart (HH:MM)" value={leg.departTime} onChange={(t) => patchLeg(leg.id, { departTime: t })} />
+                    <Field flex placeholder="Arrive (HH:MM)" value={leg.arriveTime} onChange={(t) => patchLeg(leg.id, { arriveTime: t })} />
+                  </View>
+                  <View className="flex-row" style={{ gap: 8 }}>
+                    <Field flex placeholder="Depart terminal" value={leg.fromTerminal} onChange={(t) => patchLeg(leg.id, { fromTerminal: t })} />
+                    <Field flex placeholder="Arrive terminal" value={leg.toTerminal} onChange={(t) => patchLeg(leg.id, { toTerminal: t })} />
+                  </View>
+                  {leg.distanceKm != null || leg.durationMin != null ? (
+                    <View className="flex-row items-center" style={{ gap: 8, paddingHorizontal: 4 }}>
+                      {leg.distanceKm != null ? (
+                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink2 }}>{formatDistance(leg.distanceKm / KM_PER_MI, unit)}</Text>
+                      ) : null}
+                      {leg.distanceKm != null && formatDuration(leg.durationMin) ? (
+                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>·</Text>
+                      ) : null}
+                      {formatDuration(leg.durationMin) ? (
+                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink2 }}>{formatDuration(leg.durationMin)}</Text>
+                      ) : null}
+                    </View>
+                  ) : null}
+                  {delayChip(leg.departDelayMin) || delayChip(leg.arriveDelayMin) ? (
+                    <View className="flex-row items-center flex-wrap" style={{ gap: 6, paddingHorizontal: 4 }}>
+                      {(['departDelayMin', 'arriveDelayMin'] as const).map((k) => {
+                        const chip = delayChip(leg[k]);
+                        if (!chip) return null;
+                        const tint = chip.late ? COLORS.coral : '#00A88E';
+                        return (
+                          <View key={k} className="rounded-full" style={{ paddingHorizontal: 9, paddingVertical: 3, backgroundColor: tint + '1A' }}>
+                            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: tint }}>{k === 'departDelayMin' ? 'Dep' : 'Arr'} {chip.text}</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  ) : null}
+                </>
               ) : (
-                <View className="flex-row" style={{ gap: 8 }}>
-                  <Field flex placeholder={meta.from} value={leg.from} onChange={(t) => patchLeg(leg.id, { from: t })} />
-                  <Field flex placeholder={meta.to} value={leg.to} onChange={(t) => patchLeg(leg.id, { to: t })} />
-                </View>
+                <>
+                  <View className="flex-row" style={{ gap: 8 }}>
+                    <Field flex placeholder={meta.from} value={leg.from} onChange={(t) => patchLeg(leg.id, { from: t })} />
+                    <Field flex placeholder={meta.to} value={leg.to} onChange={(t) => patchLeg(leg.id, { to: t })} />
+                  </View>
+                  <View className="flex-row" style={{ gap: 8 }}>
+                    <Field flex placeholder="Date (YYYY-MM-DD)" value={leg.date} onChange={(t) => patchLeg(leg.id, { date: t })} />
+                    <Field flex placeholder={meta.operator} value={leg.carrier} onChange={(t) => patchLeg(leg.id, { carrier: t })} />
+                  </View>
+                  <View className="flex-row" style={{ gap: 8 }}>
+                    <Field flex placeholder={meta.reference} value={leg.reference} onChange={(t) => patchLeg(leg.id, { reference: t })} />
+                    <Field flex placeholder="Vehicle" value={leg.vehicle} onChange={(t) => patchLeg(leg.id, { vehicle: t })} />
+                  </View>
+                  <View className="flex-row" style={{ gap: 8 }}>
+                    <Field flex placeholder="Depart (HH:MM)" value={leg.departTime} onChange={(t) => patchLeg(leg.id, { departTime: t })} />
+                    <Field flex placeholder="Arrive (HH:MM)" value={leg.arriveTime} onChange={(t) => patchLeg(leg.id, { arriveTime: t })} />
+                  </View>
+                </>
               )}
-              <View className="flex-row" style={{ gap: 8 }}>
-                <Field flex placeholder="Date (YYYY-MM-DD)" value={leg.date} onChange={(t) => patchLeg(leg.id, { date: t })} />
-                <Field flex placeholder={meta.operator} value={leg.carrier} onChange={(t) => patchLeg(leg.id, { carrier: t })} />
-              </View>
-              <View className="flex-row" style={{ gap: 8 }}>
-                <Field flex placeholder={meta.reference} value={leg.reference} onChange={(t) => patchLeg(leg.id, { reference: t })} />
-                <Field flex placeholder="Aircraft / vehicle" value={leg.vehicle} onChange={(t) => patchLeg(leg.id, { vehicle: t })} />
-              </View>
-              <View className="flex-row" style={{ gap: 8 }}>
-                <Field flex placeholder="Depart (HH:MM)" value={leg.departTime} onChange={(t) => patchLeg(leg.id, { departTime: t })} />
-                <Field flex placeholder="Arrive (HH:MM)" value={leg.arriveTime} onChange={(t) => patchLeg(leg.id, { arriveTime: t })} />
-              </View>
-              {leg.mode === 'flight' ? (
-                <View className="flex-row" style={{ gap: 8 }}>
-                  <Field flex placeholder="Depart terminal" value={leg.fromTerminal} onChange={(t) => patchLeg(leg.id, { fromTerminal: t })} />
-                  <Field flex placeholder="Arrive terminal" value={leg.toTerminal} onChange={(t) => patchLeg(leg.id, { toTerminal: t })} />
-                </View>
-              ) : null}
-              {leg.mode === 'flight' && (leg.distanceKm != null || leg.durationMin != null) ? (
-                <View className="flex-row items-center" style={{ gap: 8, paddingHorizontal: 4 }}>
-                  {leg.distanceKm != null ? (
-                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink2 }}>{formatDistance(leg.distanceKm / KM_PER_MI, unit)}</Text>
-                  ) : null}
-                  {leg.distanceKm != null && formatDuration(leg.durationMin) ? (
-                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>·</Text>
-                  ) : null}
-                  {formatDuration(leg.durationMin) ? (
-                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink2 }}>{formatDuration(leg.durationMin)}</Text>
-                  ) : null}
-                </View>
-              ) : null}
-              {leg.mode === 'flight' && (delayChip(leg.departDelayMin) || delayChip(leg.arriveDelayMin)) ? (
-                <View className="flex-row items-center flex-wrap" style={{ gap: 6, paddingHorizontal: 4 }}>
-                  {(['departDelayMin', 'arriveDelayMin'] as const).map((k) => {
-                    const chip = delayChip(leg[k]);
-                    if (!chip) return null;
-                    const tint = chip.late ? COLORS.coral : '#00A88E';
-                    return (
-                      <View key={k} className="rounded-full" style={{ paddingHorizontal: 9, paddingVertical: 3, backgroundColor: tint + '1A' }}>
-                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: tint }}>{k === 'departDelayMin' ? 'Dep' : 'Arr'} {chip.text}</Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              ) : null}
-              {leg.mode === 'flight' && flightLookupConfigured() ? (
-                <Pressable onPress={() => lookupLeg(leg)} disabled={lookingUp === leg.id} className="flex-row items-center justify-center rounded-2xl" style={{ paddingVertical: 11, gap: 7, backgroundColor: 'rgba(30,107,255,0.10)' }}>
-                  {lookingUp === leg.id ? <ActivityIndicator size="small" color="#1E6BFF" /> : <Search size={15} color="#1E6BFF" />}
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: '#1E6BFF' }}>{lookingUp === leg.id ? 'Looking up…' : 'Look up flight'}</Text>
-                </Pressable>
-              ) : null}
               <Field placeholder="Notes" value={leg.note} onChange={(t) => patchLeg(leg.id, { note: t })} />
             </View>
           );
