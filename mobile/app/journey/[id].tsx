@@ -77,6 +77,7 @@ interface Leg {
   toTerminal: string;
   distanceKm?: number;
   durationMin?: number;
+  flightChecked?: boolean;
   note: string;
 }
 
@@ -100,6 +101,7 @@ const legFromJourney = (j: Journey): Leg => ({
   toTerminal: j.toTerminal ?? '',
   distanceKm: j.distanceKm,
   durationMin: j.durationMin,
+  flightChecked: j.flightChecked,
   note: j.note ?? '',
 });
 const emptyLeg = (mode: JourneyMode = 'flight'): Leg => ({ id: newId(), mode, from: '', to: '', date: '', operator: '', reference: '', seat: '', vehicle: '', departTime: '', arriveTime: '', departActual: '', arriveActual: '', fromTerminal: '', toTerminal: '', note: '' });
@@ -272,6 +274,7 @@ export default function JourneyScreen() {
           if (l.toTerminal.trim()) j.toTerminal = l.toTerminal.trim();
           if (l.distanceKm != null) j.distanceKm = l.distanceKm;
           if (l.durationMin != null) j.durationMin = l.durationMin;
+          if (l.flightChecked) j.flightChecked = true;
           if (l.note.trim()) j.note = l.note.trim();
           return j;
         });
@@ -457,11 +460,11 @@ export default function JourneyScreen() {
                 </View>
               )}
               <View className="flex-row" style={{ gap: 8 }}>
-                <Field flex placeholder="Date (YYYY-MM-DD)" value={leg.date} onChange={(t) => patchLeg(leg.id, { date: t })} />
+                <Field flex placeholder="Date (YYYY-MM-DD)" value={leg.date} onChange={(t) => patchLeg(leg.id, { date: t, flightChecked: undefined })} />
                 <Field flex placeholder={meta.operator} value={leg.operator} onChange={(t) => patchLeg(leg.id, { operator: t })} />
               </View>
               <View className="flex-row" style={{ gap: 8 }}>
-                <Field flex placeholder={meta.reference} value={leg.reference} onChange={(t) => patchLeg(leg.id, { reference: t })} />
+                <Field flex placeholder={meta.reference} value={leg.reference} onChange={(t) => patchLeg(leg.id, { reference: t, flightChecked: undefined })} />
                 <Field flex placeholder={meta.seat} value={leg.seat} onChange={(t) => patchLeg(leg.id, { seat: t })} />
               </View>
               <View className="flex-row" style={{ gap: 8 }}>

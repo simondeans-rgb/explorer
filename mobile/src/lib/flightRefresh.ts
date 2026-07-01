@@ -120,6 +120,8 @@ export function findEnrichable(expeditions: Expedition[], nowMs: number, mode: '
   for (const e of expeditions) {
     for (const j of e.journeys ?? []) {
       if (!canLookupFlight(j, e.startDate, nowMs)) continue;
+      // Already looked up with nothing more to add — don't keep flagging it.
+      if (j.flightChecked) continue;
       const miss = missingDataPoints(j);
       const wantActuals = needsActuals(j, e.startDate, nowMs);
       const take = mode === 'actuals' ? wantActuals : mode === 'missing' ? miss.length > 0 : wantActuals || miss.length > 0;
@@ -168,22 +170,31 @@ export async function enrichFlights(
     const date = legFlightDate(c.j, e.startDate);
     if (!date) continue;
     const r = await lookupFlight(c.j.reference ?? '', date);
+    let patched = c.j;
     if (r.ok) {
       const merged = mergeFlightInfo(c.j, r.info);
-      if (merged !== c.j) {
-        let legs = patchedByExp.get(c.expId);
-        if (!legs) { legs = new Map(e.journeys.map((j) => [j.id, j])); patchedByExp.set(c.expId, legs); }
-        legs.set(c.legId, merged);
-        updated += 1;
-      } else {
-        noData += 1;
-      }
+      patched = merged;
+      if (merged !== c.j) updated += 1;
+      else noData += 1;
     } else if (r.reason === 'not-found') {
       noData += 1;
     } else if (r.reason === 'out-of-range') {
       outOfRange += 1;
     } else {
       failed += 1;
+    }
+    // When the API gave a definitive answer (not a transient network error) but
+    // the flight still isn't fully filled, mark it checked so it stops being
+    // flagged as needing resolution.
+    const definitive = r.ok || r.reason === 'not-found' || r.reason === 'out-of-range';
+    if (definitive && !patched.flightChecked &&
+        (missingDataPoints(patched).length > 0 || needsActuals(patched, e.startDate, opts.nowMs))) {
+      patched = { ...patched, flightChecked: true };
+    }
+    if (patched !== c.j) {
+      let legs = patchedByExp.get(c.expId);
+      if (!legs) { legs = new Map(e.journeys.map((j) => [j.id, j])); patchedByExp.set(c.expId, legs); }
+      legs.set(c.legId, patched);
     }
     opts.onProgress?.(i + 1, candidates.length);
     if (i < candidates.length - 1) await delay(RATE_DELAY_MS);
