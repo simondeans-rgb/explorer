@@ -94,16 +94,15 @@ export default function StoryScreen() {
           </View>
 
           <View style={{ marginTop: 30 }}>
-            <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 20, opacity: 0.95 }}>Hi {firstName},</Text>
-            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, lineHeight: 40, marginTop: 4 }}>Where will your next story take you?</Text>
+            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, lineHeight: 42 }}>{firstName}, where will your next story take you?</Text>
           </View>
         </View>
 
-        {/* Two-hump 'W' divider with a purple line tracing the curve where the
-            page meets the hero. */}
-        <Svg width="100%" height={64} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
-          <Path d="M0,78 C90,78 150,38 250,38 C350,38 470,90 560,90 C690,90 780,38 880,38 C1040,38 1180,82 1440,82 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
-          <Path d="M0,78 C90,78 150,38 250,38 C350,38 470,90 560,90 C690,90 780,38 880,38 C1040,38 1180,82 1440,82" fill="none" stroke="#7C5CE6" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
+        {/* Two rounded humps with a long sweep up on the right, a purple line
+            tracing the curve where the page meets the hero. */}
+        <Svg width="100%" height={66} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
+          <Path d="M0,58 C70,58 160,40 300,40 C440,40 500,88 620,88 C740,88 800,44 940,44 C1120,44 1250,32 1440,32 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
+          <Path d="M0,58 C70,58 160,40 300,40 C440,40 500,88 620,88 C740,88 800,44 940,44 C1120,44 1250,32 1440,32" fill="none" stroke="#7C5CE6" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
       </DestinationImage>
 

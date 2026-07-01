@@ -32,12 +32,14 @@ try {
   liquidGlass = false;
 }
 
+// Brand palette (Coral, Aqua, Sunburst, Lavender, Sky) — the icons are tinted
+// to these exact colours so the nav always matches the design system.
 const TABS: TabDef[] = [
-  { path: '/', label: 'Story', icon: ICONS.story, accent: '#FC3C60' },
-  { path: '/atlas', label: 'Atlas', icon: ICONS.atlas, accent: '#12B5AC' },
-  { path: '/circle', label: 'Circle', icon: ICONS.circle, accent: '#F5941E' },
-  { path: '/explore', label: 'Discover', icon: ICONS.discovery, accent: '#8454FC' },
-  { path: '/you', label: 'Passport', icon: ICONS.passport, accent: '#3090FC' },
+  { path: '/', label: 'Story', icon: ICONS.story, accent: COLORS.coral },
+  { path: '/atlas', label: 'Atlas', icon: ICONS.atlas, accent: COLORS.aqua },
+  { path: '/circle', label: 'Circle', icon: ICONS.circle, accent: COLORS.sunburst },
+  { path: '/explore', label: 'Discover', icon: ICONS.discovery, accent: COLORS.lavender },
+  { path: '/you', label: 'Passport', icon: ICONS.passport, accent: COLORS.sky },
 ];
 
 // Screens where the bar should step aside (immersive / modal).
@@ -61,16 +63,17 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
           router.navigate(def.path as never);
         }}
         className="items-center justify-center"
-        style={{ flex: 1, paddingVertical: 6, gap: 3 }}
+        style={{ flex: 1 }}
       >
-        {/* Full-colour when active; a muted grey tint when not. */}
-        <Image
-          source={def.icon}
-          style={{ width: 27, height: 27, opacity: active ? 1 : 0.9 }}
-          contentFit="contain"
-          tintColor={active ? undefined : COLORS.ink3}
-        />
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: active ? def.accent : COLORS.ink3 }}>{def.label}</Text>
+        {/* Icons always full-colour (tinted to their palette hue); the active
+            tab is marked by a soft coloured pill behind it. */}
+        <View
+          className="items-center justify-center"
+          style={{ gap: 3, paddingVertical: 6, paddingHorizontal: 6, borderRadius: 18, backgroundColor: active ? def.accent + '26' : 'transparent' }}
+        >
+          <Image source={def.icon} style={{ width: 32, height: 32 }} contentFit="contain" tintColor={def.accent} />
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: def.accent }}>{def.label}</Text>
+        </View>
       </Pressable>
     );
   }
