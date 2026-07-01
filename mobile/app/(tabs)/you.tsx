@@ -11,7 +11,7 @@ import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
 import { HERO_CODES } from '../../src/lib/heroImages';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
-import { COLORS, GRADIENTS, SECTION, HERO_HEIGHT } from '../../src/lib/theme';
+import { COLORS, GRADIENTS, HERO_HEIGHT } from '../../src/lib/theme';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useConfirm } from '../../src/store/confirm';
 import { useAuth } from '../../src/store/auth';
@@ -263,7 +263,7 @@ export default function YouScreen() {
         <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.92, marginTop: 2 }}>
           {level.title}
         </Text>
-        <HeroWave color={SECTION.passport} />
+        <HeroWave />
       </DestinationImage>
 
       {/* Explorer level — collectible medal card */}

@@ -19,7 +19,6 @@ export function PageHero({
   motion = false,
   onBack,
   dark = false,
-  waveColor,
   minHeight,
 }: {
   eyebrow?: string;
@@ -32,8 +31,6 @@ export function PageHero({
   motion?: boolean;
   onBack?: () => void;
   dark?: boolean;
-  /** The section's accent colour for the wave line (Coral/Aqua/…). */
-  waveColor?: string;
   /** Force a taller hero band so sections line up (e.g. to match Passport). */
   minHeight?: number;
 }) {
@@ -60,7 +57,7 @@ export function PageHero({
 
   // The wave is a full-bleed child of the (un-padded) container so it reaches
   // both edges — an absolute child gets inset by container padding otherwise.
-  const wave = <HeroWave color={waveColor} pageColor={pageColor} />;
+  const wave = <HeroWave pageColor={pageColor} />;
 
   const padding = { position: 'relative' as const, paddingTop: 64, paddingBottom: 52, minHeight };
 
