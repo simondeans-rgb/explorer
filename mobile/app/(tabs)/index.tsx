@@ -15,7 +15,7 @@ import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { PassportStamp } from '../../components/PassportStamp';
 import { useConfirm } from '../../src/store/confirm';
 import { circleStoryItems, type CircleStoryItem } from '../../src/lib/circle';
-import { COLORS, SECTION } from '../../src/lib/theme';
+import { COLORS, SECTION, HERO_HEIGHT } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
@@ -80,21 +80,21 @@ export default function StoryScreen() {
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 110 }}>
       {/* Hero */}
-      <DestinationImage code={heroCodes[0]} codes={heroCodes} scrim motion onActiveCode={setActiveHero} style={{ position: 'relative', paddingTop: 64, paddingBottom: 64 }}>
+      <DestinationImage code={heroCodes[0]} codes={heroCodes} scrim motion onActiveCode={setActiveHero} style={{ position: 'relative', paddingTop: 64, paddingBottom: 40, minHeight: HERO_HEIGHT }}>
         <View style={{ paddingHorizontal: 20 }}>
           <View style={{ alignItems: 'center' }}>
-            <WorldlyLogo white={logoWhite} height={58} />
-            <View className="flex-row items-center" style={{ marginTop: 10 }}>
-              <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13.5, letterSpacing: 0.2 }}>Life is better when you </Text>
-              <Text style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13.5, letterSpacing: 0.2, color: COLORS.coral }}>explore.</Text>
+            <WorldlyLogo white={logoWhite} height={50} />
+            <View className="flex-row items-center" style={{ marginTop: 8 }}>
+              <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13, letterSpacing: 0.2 }}>Life is better when you </Text>
+              <Text style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13, letterSpacing: 0.2, color: COLORS.coral }}>explore.</Text>
             </View>
-            <View style={{ marginTop: 5 }}>
-              <Squiggle width={130} height={16} color={COLORS.coral} />
+            <View style={{ marginTop: 4 }}>
+              <Squiggle width={120} height={14} color={COLORS.coral} />
             </View>
           </View>
 
-          <View style={{ marginTop: 30 }}>
-            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, lineHeight: 42 }}>{firstName}, where will your next story take you?</Text>
+          <View style={{ marginTop: 16 }}>
+            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 25, lineHeight: 30 }}>{firstName} – where will your next story take you?</Text>
           </View>
         </View>
 
