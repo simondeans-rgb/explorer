@@ -308,6 +308,37 @@ export default function YouScreen() {
         </Pressable>
       </View>
 
+      {/* Achievements */}
+      <View style={{ marginTop: 22 }}>
+        <Pressable onPress={() => router.push('/achievements')} className="flex-row items-end justify-between" style={{ paddingHorizontal: 20 }}>
+          <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Achievements</Text>
+          <View className="flex-row items-center" style={{ gap: 2 }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>{earned}/{badges.length} · See all</Text>
+            <ChevronRight size={15} color={COLORS.coral} />
+          </View>
+        </Pressable>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 18, paddingVertical: 14, gap: 6 }}>
+          {[...badges]
+            .sort((a, b) => Number(b.earned) - Number(a.earned) || b.progress - a.progress)
+            .map((b) => (
+              <Pressable key={b.id} onPress={() => router.push('/achievements')}>
+                <AchievementBadge badge={b} tile={62} />
+              </Pressable>
+            ))}
+        </ScrollView>
+        {nextBadge ? (
+          <Pressable onPress={() => router.push('/achievements')} className="bg-white rounded-2xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 2, padding: 12, gap: 12 }}>
+            <AchievementBadge badge={nextBadge} tile={44} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3 }}>NEXT UP</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.navy, marginTop: 1 }}>{nextBadge.title}</Text>
+              <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{nextBadge.description} · {Math.min(nextBadge.value, nextBadge.target)}/{nextBadge.target}</Text>
+            </View>
+            <ChevronRight size={16} color={COLORS.ink3} />
+          </Pressable>
+        ) : null}
+      </View>
+
       {/* Import */}
       <View style={{ paddingHorizontal: 20, marginTop: 12, gap: 10 }}>
         <Pressable onPress={() => router.push('/import')} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
@@ -368,37 +399,6 @@ export default function YouScreen() {
             </LinearGradient>
           </Pressable>
         )}
-      </View>
-
-      {/* Achievements */}
-      <View style={{ marginTop: 22 }}>
-        <Pressable onPress={() => router.push('/achievements')} className="flex-row items-end justify-between" style={{ paddingHorizontal: 20 }}>
-          <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Achievements</Text>
-          <View className="flex-row items-center" style={{ gap: 2 }}>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>{earned}/{badges.length} · See all</Text>
-            <ChevronRight size={15} color={COLORS.coral} />
-          </View>
-        </Pressable>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 18, paddingVertical: 14, gap: 6 }}>
-          {[...badges]
-            .sort((a, b) => Number(b.earned) - Number(a.earned) || b.progress - a.progress)
-            .map((b) => (
-              <Pressable key={b.id} onPress={() => router.push('/achievements')}>
-                <AchievementBadge badge={b} tile={62} />
-              </Pressable>
-            ))}
-        </ScrollView>
-        {nextBadge ? (
-          <Pressable onPress={() => router.push('/achievements')} className="bg-white rounded-2xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 2, padding: 12, gap: 12 }}>
-            <AchievementBadge badge={nextBadge} tile={44} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3 }}>NEXT UP</Text>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.navy, marginTop: 1 }}>{nextBadge.title}</Text>
-              <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{nextBadge.description} · {Math.min(nextBadge.value, nextBadge.target)}/{nextBadge.target}</Text>
-            </View>
-            <ChevronRight size={16} color={COLORS.ink3} />
-          </Pressable>
-        ) : null}
       </View>
 
       {/* Notifications */}

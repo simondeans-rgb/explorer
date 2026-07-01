@@ -11,6 +11,7 @@ import { COLORS, GRADIENTS, SHADOW } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { router } from 'expo-router';
 import { useAuth } from '../src/store/auth';
+import { useConfirm } from '../src/store/confirm';
 import { useFriends } from '../src/hooks/useFriends';
 import {
   sendRequest,
@@ -24,6 +25,14 @@ export default function FriendsScreen() {
   const myName =
     user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
   const { profile, connections, friends, friendsData } = useFriends(user?.uid, myName);
+  const confirm = useConfirm();
+
+  async function removeFriend(uid: string, name: string) {
+    if (!user) return;
+    if (await confirm({ title: `Remove ${name}?`, message: `You'll stop following each other's travels. You can add ${name} again anytime with their code.`, confirmLabel: 'Remove', destructive: true })) {
+      removeConnection(uid < user.uid ? `${uid}__${user.uid}` : `${user.uid}__${uid}`);
+    }
+  }
 
   const [authOpen, setAuthOpen] = useState(false);
   const [code, setCode] = useState('');
@@ -248,7 +257,7 @@ export default function FriendsScreen() {
                     {codes.length > 0 ? `${codes.length} ${codes.length === 1 ? 'country' : 'countries'} · ${codes.slice(0, 10).map((c) => flagEmoji(c)).join(' ')}` : 'No countries shared yet'}
                   </Text>
                 </View>
-                <Pressable onPress={() => removeConnection(f.uid < user.uid ? `${f.uid}__${user.uid}` : `${user.uid}__${f.uid}`)} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 34, width: 34, backgroundColor: COLORS.warmwhite }}>
+                <Pressable onPress={() => removeFriend(f.uid, f.name)} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 34, width: 34, backgroundColor: COLORS.warmwhite }}>
                   <X size={16} color={COLORS.ink3} />
                 </Pressable>
               </View>
