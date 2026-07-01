@@ -1,12 +1,21 @@
 import { View, Text, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { Image, type ImageSource } from 'expo-image';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, usePathname } from 'expo-router';
-import { BookMarked, Globe2, Compass, UserRound, Users, Plus } from 'lucide-react-native';
+import { Plus } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { COLORS } from '../src/lib/theme';
 
-type TabDef = { path: string; label: string; icon: ComponentType<{ size?: number; color?: string }> };
+const ICONS = {
+  story: require('../assets/images/nav/story.png') as ImageSource,
+  atlas: require('../assets/images/nav/atlas.png') as ImageSource,
+  circle: require('../assets/images/nav/circle.png') as ImageSource,
+  discovery: require('../assets/images/nav/discovery.png') as ImageSource,
+  passport: require('../assets/images/nav/passport.png') as ImageSource,
+};
+
+type TabDef = { path: string; label: string; icon: ImageSource; accent: string };
 
 // Use Apple's native Liquid Glass material on iOS 26+ real builds; otherwise
 // (Expo Go, older iOS, Android) fall back to the frosted blur below. Loaded
@@ -24,11 +33,11 @@ try {
 }
 
 const TABS: TabDef[] = [
-  { path: '/', label: 'Story', icon: BookMarked },
-  { path: '/atlas', label: 'Atlas', icon: Globe2 },
-  { path: '/circle', label: 'Circle', icon: Users },
-  { path: '/explore', label: 'Discover', icon: Compass },
-  { path: '/you', label: 'Passport', icon: UserRound },
+  { path: '/', label: 'Story', icon: ICONS.story, accent: '#FC3C60' },
+  { path: '/atlas', label: 'Atlas', icon: ICONS.atlas, accent: '#12B5AC' },
+  { path: '/circle', label: 'Circle', icon: ICONS.circle, accent: '#F5941E' },
+  { path: '/explore', label: 'Discover', icon: ICONS.discovery, accent: '#8454FC' },
+  { path: '/you', label: 'Passport', icon: ICONS.passport, accent: '#3090FC' },
 ];
 
 // Screens where the bar should step aside (immersive / modal).
@@ -43,8 +52,6 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
 
   function Tab({ def }: { def: TabDef }) {
     const active = pathname === def.path;
-    const Icon = def.icon;
-    const color = active ? COLORS.coral : COLORS.ink2;
     return (
       <Pressable
         onPress={() => {
@@ -56,8 +63,14 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
         className="items-center justify-center"
         style={{ flex: 1, paddingVertical: 6, gap: 3 }}
       >
-        <Icon size={22} color={color} />
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color }}>{def.label}</Text>
+        {/* Full-colour when active; a muted grey tint when not. */}
+        <Image
+          source={def.icon}
+          style={{ width: 27, height: 27, opacity: active ? 1 : 0.9 }}
+          contentFit="contain"
+          tintColor={active ? undefined : COLORS.ink3}
+        />
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: active ? def.accent : COLORS.ink3 }}>{def.label}</Text>
       </Pressable>
     );
   }
@@ -83,15 +96,20 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
           <GlassView style={[StyleSheet.absoluteFill, { borderRadius: 33 }]} glassEffectStyle="regular" />
         ) : (
           <>
-            <BlurView intensity={72} tint="light" style={StyleSheet.absoluteFill} />
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.34)' }]} />
+            {/* Liquid-glass fallback: a strong translucent frost so the content
+                behind reads through, with a specular sheen top and bottom. */}
+            <BlurView intensity={94} tint="light" style={StyleSheet.absoluteFill} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.22)' }]} />
+            <LinearGradient
+              colors={['rgba(255,255,255,0.6)', 'rgba(255,255,255,0)']}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 30 }}
+            />
+            <LinearGradient
+              colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.28)']}
+              style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 22 }}
+            />
           </>
         )}
-        {/* glassy top sheen */}
-        <LinearGradient
-          colors={['rgba(255,255,255,0.55)', 'rgba(255,255,255,0)']}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 26 }}
-        />
         <View className="flex-row items-center" style={{ height: 66, paddingHorizontal: 6 }}>
           {TABS.map((d) => (
             <Tab key={d.path} def={d} />

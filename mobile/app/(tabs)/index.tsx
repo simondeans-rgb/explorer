@@ -21,6 +21,7 @@ import { countryName } from '../../src/data/countries';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { HERO_CODES } from '../../src/lib/heroImages';
+import { heroLogoIsWhite } from '../../src/lib/heroLuminance';
 import { useData } from '../../src/store/data';
 import { useAuth } from '../../src/store/auth';
 import { useFriends } from '../../src/hooks/useFriends';
@@ -50,6 +51,10 @@ export default function StoryScreen() {
     }
     return out;
   }, [discovered]);
+  // The hero rotates through photos; track which is on screen so the wordmark
+  // can flip white↔navy for contrast against that image's top strip.
+  const [activeHero, setActiveHero] = useState(() => heroCodes[0]);
+  const logoWhite = heroLogoIsWhite(activeHero);
   const [addOpen, setAddOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
   const [circleItem, setCircleItem] = useState<CircleStoryItem | null>(null);
@@ -75,10 +80,10 @@ export default function StoryScreen() {
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 110 }}>
       {/* Hero */}
-      <DestinationImage code={heroCodes[0]} codes={heroCodes} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 64 }}>
+      <DestinationImage code={heroCodes[0]} codes={heroCodes} scrim motion onActiveCode={setActiveHero} style={{ position: 'relative', paddingTop: 64, paddingBottom: 64 }}>
         <View style={{ paddingHorizontal: 20 }}>
           <View style={{ alignItems: 'center' }}>
-            <WorldlyLogo height={58} />
+            <WorldlyLogo white={logoWhite} height={58} />
             <View className="flex-row items-center" style={{ marginTop: 10 }}>
               <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13.5, letterSpacing: 0.2 }}>Life is better when you </Text>
               <Text style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13.5, letterSpacing: 0.2, color: COLORS.coral }}>explore.</Text>
