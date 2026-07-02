@@ -1,12 +1,13 @@
 import Svg, { Path, Defs, ClipPath } from 'react-native-svg';
 import { COLORS } from '../src/lib/theme';
 
-// The signature hero curve, traced from the design: a small rounded peak at the
-// left, a deep narrow notch, a gentle recovery, then a long smooth sweep up to
-// the right with a slight settle at the edge. Shared by every section hero so
-// the border matches.
+// The signature hero curve, traced from the design: a small "W" scallop at the
+// lower left (the Worldly mark echoed in the border — a shoulder, two sharp
+// valleys with a middle peak, another shoulder), a gentle plateau, then a long
+// smooth sweep up to the right. Shared by every section hero so the border
+// matches.
 const CURVE =
-  'M0,93 C16.3,91.2 64.2,78.5 98,82 C131.8,85.5 161.8,114 203,114 C244.2,114 296.8,86.7 345,82 C393.2,77.3 442.8,86.7 492,86 C541.2,85.3 582.5,83.2 640,78 C697.5,72.8 771.3,63.7 837,55 C902.7,46.3 966.8,34.3 1034,26 C1101.2,17.7 1182.3,8.3 1240,5 C1297.7,1.7 1346.7,5 1380,6 C1413.3,7 1430,10.2 1440,11';
+  'M0,93 C12.2,91.3 62.5,77.9 86,81 C109.5,84.1 148.6,113 166,115 C183.4,117 197.7,95 209,95 C220.3,95 229.4,117 246,115 C262.6,113 291.1,85.1 326,81 C360.9,76.9 447.5,86.4 492,86 C536.5,85.6 591.1,82.4 640,78 C688.9,73.6 781.2,62.4 837,55 C892.8,47.6 976.9,33.1 1034,26 C1091.1,18.9 1191,7.8 1240,5 C1289,2.2 1351.7,5.2 1380,6 C1408.3,6.8 1431.5,10.3 1440,11';
 
 /** The wave edge where a hero image melts into the page: a `pageColor` fill
  *  below the curve, plus a very soft warm-neutral shadow tucked under the wave
