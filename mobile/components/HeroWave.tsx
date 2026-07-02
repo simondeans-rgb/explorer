@@ -6,7 +6,7 @@ import { COLORS } from '../src/lib/theme';
 // the right with a slight settle at the edge. Shared by every section hero so
 // the border matches.
 const CURVE =
-  'M0,99 C12,97.2 37,85 72,88 C107,91 165.3,117.2 210,117 C254.7,116.8 288.3,92.2 340,87 C391.7,81.8 450,88.5 520,86 C590,83.5 678.3,79.7 760,72 C841.7,64.3 930,50.3 1010,40 C1090,29.7 1168.3,14.5 1240,10 C1311.7,5.5 1406.7,12.5 1440,13';
+  'M0,93 C16.3,91.2 64.2,78.5 98,82 C131.8,85.5 161.8,114 203,114 C244.2,114 296.8,86.7 345,82 C393.2,77.3 442.8,86.7 492,86 C541.2,85.3 582.5,83.2 640,78 C697.5,72.8 771.3,63.7 837,55 C902.7,46.3 966.8,34.3 1034,26 C1101.2,17.7 1182.3,8.3 1240,5 C1297.7,1.7 1346.7,5 1380,6 C1413.3,7 1430,10.2 1440,11';
 
 /** The wave edge where a hero image melts into the page: a `pageColor` fill
  *  below the curve, plus a very soft warm-neutral shadow tucked under the wave
@@ -14,7 +14,7 @@ const CURVE =
  *  `curve` to override the shape. Absolutely positioned at the hero's bottom. */
 export function HeroWave({
   pageColor = COLORS.warmwhite,
-  height = 74,
+  height = 82,
   curve = CURVE,
 }: {
   pageColor?: string;
