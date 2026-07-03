@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-na
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Camera, ChevronRight, UserPlus, MapPin } from 'lucide-react-native';
+import { Camera, ChevronRight, UserPlus, MapPin, CloudUpload } from 'lucide-react-native';
 import { WorldlyLogo } from '../../components/WorldlyLogo';
 import { HeroWave } from '../../components/HeroWave';
 import { Squiggle } from '../../components/Squiggle';
@@ -35,12 +35,13 @@ const TILE_H = 150;
 
 export default function StoryScreen() {
   const { aggregates, stats, level } = useWorldly();
-  const { captures, removeCapture, trips } = useData();
+  const { captures, removeCapture, trips, places, discoveries } = useData();
   const confirm = useConfirm();
   const { width } = useWindowDimensions();
   const { user } = useAuth();
-  const firstName = user?.displayName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Alex');
-  const { friends, friendsData } = useFriends(user?.uid, firstName);
+  // No placeholder identity: signed-out users get the question without a name.
+  const firstName = user?.displayName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : '');
+  const { friends, friendsData } = useFriends(user?.uid, firstName || 'Explorer');
   const discovered = aggregates.filter((a) => a.discovered);
   // Rotate through your own discovered countries first, padded with defaults to 4.
   const heroCodes = useMemo(() => {
@@ -94,12 +95,39 @@ export default function StoryScreen() {
           </View>
 
           <View style={{ marginTop: 16 }}>
-            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 25, lineHeight: 30 }}>{firstName} – where will your next story take you?</Text>
+            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 25, lineHeight: 30 }}>{firstName ? `${firstName} – where` : 'Where'} will your next story take you?</Text>
           </View>
         </View>
 
         <HeroWave />
       </DestinationImage>
+
+      {/* Backup nudge — a guest with a real archive is one lost phone from
+          losing it all; ask exactly once they have something worth keeping. */}
+      {(() => {
+        const kept = places.length + discoveries.length;
+        if (user || kept < 10) return null;
+        return (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back up your world — sign in to sync your places"
+            onPress={() => router.push('/you')}
+            className="flex-row items-center rounded-3xl"
+            style={{ marginHorizontal: 20, marginTop: 16, padding: 16, gap: 13, backgroundColor: COLORS.navy }}
+          >
+            <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: 'rgba(255,255,255,0.14)' }}>
+              <CloudUpload size={20} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Back up your world</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>
+                {kept} places live only on this phone. Sign in to keep them safe.
+              </Text>
+            </View>
+            <ChevronRight size={18} color="rgba(255,255,255,0.7)" />
+          </Pressable>
+        );
+      })()}
 
       {/* Counting Down */}
       {(() => {
@@ -140,7 +168,7 @@ export default function StoryScreen() {
                   <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 24, ...shadow }}>{t.title}</Text>
                   <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.9, marginTop: 1, ...shadow }}>{secondary}</Text>
                   <View className="flex-row items-center rounded-full" style={{ alignSelf: 'flex-start', marginTop: 10, backgroundColor: 'rgba(255,255,255,0.22)', paddingLeft: 11, paddingRight: 8, paddingVertical: 5, gap: 3 }}>
-                    <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 10.5, letterSpacing: 1 }}>PLAN ITINERARY</Text>
+                    <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 11, letterSpacing: 1 }}>PLAN ITINERARY</Text>
                     <ChevronRight size={13} color="#fff" />
                   </View>
                 </View>

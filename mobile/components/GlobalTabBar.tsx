@@ -4,8 +4,9 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, usePathname } from 'expo-router';
 import { Plus } from 'lucide-react-native';
-import type { ComponentType } from 'react';
+import { useEffect, type ComponentType } from 'react';
 import { COLORS, SECTION } from '../src/lib/theme';
+import { track } from '../src/lib/analytics';
 
 const ICONS = {
   story: require('../assets/images/nav/story.png') as ImageSource,
@@ -51,12 +52,22 @@ const HIDDEN = new Set(['/wrapped', '/search']);
  *  right within easy thumb reach. */
 export function GlobalTabBar({ onFab }: { onFab: () => void }) {
   const pathname = usePathname();
+
+  // This bar renders on every screen, so it's the one cheap place to observe
+  // navigation for analytics without touching each route.
+  useEffect(() => {
+    track('screen_viewed', { path: pathname });
+  }, [pathname]);
+
   if (HIDDEN.has(pathname)) return null;
 
   function Tab({ def }: { def: TabDef }) {
     const active = pathname === def.path;
     return (
       <Pressable
+        accessibilityRole="tab"
+        accessibilityLabel={def.label}
+        accessibilityState={{ selected: active }}
         onPress={() => {
           if (active) return;
           // Pop any pushed screen (country/import/etc.) before switching tab.
@@ -123,6 +134,8 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
 
       {/* Action button — floated to the bottom right, raised above the bar. */}
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Add to your world"
         onPress={onFab}
         className="items-center justify-center rounded-full"
         style={{

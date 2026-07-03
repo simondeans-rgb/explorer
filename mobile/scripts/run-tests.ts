@@ -1,0 +1,143 @@
+// First-line regression tests for the pure-function core: the import parsers
+// and country matching. No test framework — plain asserts, run with
+// `npm test` (tsx). Fails loudly with a non-zero exit for CI.
+import assert from 'node:assert/strict';
+import { buildImportPlan } from '../src/lib/flightyImport';
+import { parseTakeout } from '../src/lib/takeoutImport';
+import { parseCheckins } from '../src/lib/checkinsImport';
+import { parsePolarsteps } from '../src/lib/polarstepsImport';
+import { parseTripit } from '../src/lib/tripitImport';
+import { parseCountryList, matchCountry, scanCountries } from '../src/lib/listImport';
+
+let passed = 0;
+function test(name: string, fn: () => void) {
+  try {
+    fn();
+    passed++;
+  } catch (e) {
+    console.error(`✗ ${name}`);
+    throw e;
+  }
+}
+
+// ---- Flight CSV (Flighty + header-alias sources) ---------------------------
+
+test('flighty: canonical headers parse', () => {
+  const plan = buildImportPlan('Date,From,To,Flight,Canceled\n2023-05-01,LHR,JFK,BA117,false\n', new Set(), []);
+  assert.equal(plan.flightCount, 1);
+  assert.ok(plan.places.some((p) => p.kind === 'country' && p.countryCode === 'GB'));
+  assert.ok(plan.places.some((p) => p.kind === 'country' && p.countryCode === 'US'));
+});
+
+test('flight CSV: MyFlightradar24-style headers, wrapped IATA and dotted dates', () => {
+  const csv = 'Flight date,Departure,Arrival,Flight number\n01.06.2022,"London Heathrow (LHR / EGLL)","New York JFK (JFK / KJFK)",BA173\n';
+  const plan = buildImportPlan(csv, new Set(), []);
+  assert.equal(plan.flightCount, 1);
+  assert.ok(plan.expeditions.length >= 1);
+  const leg = plan.expeditions[0].journeys[0];
+  assert.equal(leg.date, '2022-06-01');
+});
+
+test('flight CSV: canceled flights and unknown airports are skipped', () => {
+  const plan = buildImportPlan('Date,From,To,Canceled\n2023-05-01,LHR,JFK,true\n2023-05-02,???,JFK,false\n', new Set(), []);
+  assert.equal(plan.flightCount, 0);
+});
+
+// ---- Google Takeout --------------------------------------------------------
+
+test('takeout: reviews GeoJSON → verdicts, categories, dedupe', () => {
+  const rows = parseTakeout(JSON.stringify({
+    type: 'FeatureCollection',
+    features: [
+      { properties: { location: { name: 'Bar Brutal', country_code: 'ES' }, five_star_rating_published: 5, review_text_published: 'Superb' } },
+      { properties: { location: { name: 'Tourist Trap Cafe', country_code: 'FR' }, five_star_rating_published: 2 } },
+      { properties: { location: { name: 'Bar Brutal', country_code: 'ES' } } }, // duplicate
+    ],
+  }));
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].verdict, 'recommend');
+  assert.equal(rows[0].countryCode, 'ES');
+  assert.equal(rows[0].note, 'Superb');
+  assert.equal(rows[0].category, 'food');
+  assert.equal(rows[1].verdict, 'overrated');
+});
+
+test('takeout: saved-list CSV', () => {
+  const rows = parseTakeout('Title,Note,URL\n"Hotel Okura","great lobby",http://x\nBondi Beach,,http://y\n');
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].category, 'accommodation');
+  assert.equal(rows[1].category, 'nature');
+});
+
+// ---- Swarm / Foursquare ----------------------------------------------------
+
+test('checkins: venues → discoveries with categories and dedupe', () => {
+  const rows = parseCheckins(JSON.stringify({
+    items: [
+      { venue: { name: 'Blue Bottle', location: { cc: 'US', city: 'SF' }, categories: [{ pluralName: 'Coffee Shops' }] }, shout: 'good' },
+      { venue: { name: 'The Louvre', location: { cc: 'FR', city: 'Paris' }, categories: [{ name: 'Art Museum' }] } },
+      { venue: { name: 'Blue Bottle', location: { cc: 'US' }, categories: [] } },
+    ],
+  }));
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].category, 'food');
+  assert.equal(rows[0].note, 'good');
+  assert.equal(rows[1].category, 'culture');
+});
+
+// ---- Polarsteps ------------------------------------------------------------
+
+test('polarsteps: step-less trip falls back to name; compound name → both countries', () => {
+  const r = parsePolarsteps(JSON.stringify([
+    { name: 'USA & Mexico', start_date: 1562504085, end_date: 1563900000, all_steps: [] },
+    { name: 'Spain', start_date: 1636221456, end_date: 1636739865, all_steps: [] },
+  ]));
+  assert.equal(r.expeditions.length, 2);
+  assert.deepEqual([...r.expeditions[0].countryCodes].sort(), ['MX', 'US']);
+  assert.equal(r.expeditions[1].startDate, '2021-11-06');
+  const es = r.places.find((p) => p.countryCode === 'ES');
+  assert.equal(es?.firstYear, 2021);
+});
+
+test('polarsteps: geocoded steps win and keep earliest year per country', () => {
+  const r = parsePolarsteps(JSON.stringify([
+    { name: 'Trip A', all_steps: [{ location: { country_code: 'JP', name: 'Kyoto' }, start_time: 1650000000 }] },
+    { name: 'Trip B', all_steps: [{ location: { country_code: 'JP', name: 'Tokyo' }, start_time: 1450000000 }] },
+  ]));
+  const jp = r.places.find((p) => p.kind === 'country' && p.countryCode === 'JP');
+  assert.equal(jp?.firstYear, 2015);
+  assert.ok(r.places.some((p) => p.kind === 'city' && p.name === 'Kyoto'));
+});
+
+// ---- TripIt ----------------------------------------------------------------
+
+test('tripit: VEVENT locations → countries + cities with years', () => {
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'BEGIN:VEVENT', 'SUMMARY:Hotel', 'LOCATION:Tokyo\\, Japan', 'DTSTART:20230410T090000', 'END:VEVENT',
+    'BEGIN:VEVENT', 'SUMMARY:Dinner', 'LOCATION:Barcelona\\, Spain', 'DTSTART;VALUE=DATE:20230715', 'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+  const { rows, events, matched } = parseTripit(ics);
+  assert.equal(events, 2);
+  assert.equal(matched, 2);
+  assert.ok(rows.some((r) => r.kind === 'country' && r.countryCode === 'JP' && r.firstYear === 2023));
+  assert.ok(rows.some((r) => r.kind === 'city' && r.name === 'Barcelona'));
+});
+
+// ---- Country matching ------------------------------------------------------
+
+test('country list: names, aliases, city pairs', () => {
+  const { rows, unmatched } = parseCountryList('Japan\nKyoto, Japan\nUSA\nNarnia');
+  assert.ok(rows.some((r) => r.kind === 'city' && r.name === 'Kyoto' && r.countryCode === 'JP'));
+  assert.ok(rows.some((r) => r.kind === 'country' && r.countryCode === 'US'));
+  assert.deepEqual(unmatched, ['Narnia']);
+  assert.equal(matchCountry('gb'), 'GB');
+});
+
+test('scanCountries: word-boundary match, no false hits', () => {
+  assert.deepEqual(scanCountries('Flight to Tokyo, Japan '), ['JP']);
+  assert.deepEqual(scanCountries('Meeting Mr Chadwick at noon'), []);
+});
+
+console.log(`✓ all ${passed} tests passed`);

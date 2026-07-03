@@ -58,7 +58,7 @@ export function DiscoveryCard({ discovery: d, onPress }: { discovery: Discovery;
           <Text style={{ flex: 1, fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy }}>{d.name}</Text>
           {chip ? (
             <View className="rounded-full" style={{ backgroundColor: chip.bg, paddingHorizontal: 9, paddingVertical: 3 }}>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '700', color: chip.fg }}>{VERDICT_META[d.verdict!].label}</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: chip.fg }}>{VERDICT_META[d.verdict!].label}</Text>
             </View>
           ) : null}
         </View>

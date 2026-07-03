@@ -74,11 +74,11 @@ export function AchievementBadge({ badge, tile = 64 }: { badge: Badge; tile?: nu
           </>
         )}
       </View>
-      <Text numberOfLines={2} style={{ fontFamily: 'PlusJakarta', fontSize: 10.5, lineHeight: 13, fontWeight: '700', color: earned ? COLORS.navy : COLORS.ink3, marginTop: 6, textAlign: 'center', minHeight: 26 }}>
+      <Text numberOfLines={2} style={{ fontFamily: 'PlusJakarta', fontSize: 11, lineHeight: 14, fontWeight: '700', color: earned ? COLORS.navy : COLORS.ink3, marginTop: 6, textAlign: 'center', minHeight: 26 }}>
         {badge.title}
       </Text>
       {!earned && badge.target > 1 ? (
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, color: COLORS.ink3, opacity: 0.8 }}>{Math.min(badge.value, badge.target)}/{badge.target}</Text>
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, opacity: 0.8 }}>{Math.min(badge.value, badge.target)}/{badge.target}</Text>
       ) : null}
     </View>
   );

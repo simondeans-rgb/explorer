@@ -318,7 +318,7 @@ export default function CircleScreen() {
                         <LinearGradient colors={['transparent', 'rgba(0,0,0,0.6)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 10, paddingTop: 28 }}>
                           <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700' }}>{s.friend}</Text>
                           {s.city || s.countryCode ? (
-                            <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 10.5, opacity: 0.9 }}>{s.city ?? (s.countryCode ? countryName(s.countryCode) : '')}</Text>
+                            <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, opacity: 0.9 }}>{s.city ?? (s.countryCode ? countryName(s.countryCode) : '')}</Text>
                           ) : null}
                         </LinearGradient>
                         <Pressable onPress={() => toggle(s.id, s.userId)} hitSlop={8} className="absolute flex-row items-center rounded-full" style={{ top: 8, right: 8, gap: 4, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: 'rgba(0,0,0,0.4)' }}>
@@ -346,7 +346,7 @@ export default function CircleScreen() {
                 </View>
                 <View className="items-end">
                   <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.lavender }}>{m.xp.toLocaleString()}</Text>
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.5, color: COLORS.ink3 }}>XP</Text>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 0.5, color: COLORS.ink3 }}>XP</Text>
                 </View>
               </View>
             ))}

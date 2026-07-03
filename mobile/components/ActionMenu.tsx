@@ -1,13 +1,15 @@
 import { Modal, View, Text, Pressable } from 'react-native';
-import { MapPin, Compass, Plane, Camera, CalendarDays, Gem } from 'lucide-react-native';
+import { MapPin, Plane, Camera, CalendarDays, Gem } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { COLORS } from '../src/lib/theme';
 
 export type ActionKind = 'quicklog' | 'place' | 'discovery' | 'journey' | 'photo' | 'trip';
 
+// Kept tight on purpose: the full discovery editor isn't a separate menu item —
+// it's reached from Quick Log ("Add full details") and from country pages, so
+// the menu offers one clear way to do each thing.
 const OPTIONS: { kind: ActionKind; label: string; hint: string; icon: ComponentType<{ size?: number; color?: string }> }[] = [
   { kind: 'place', label: 'Add a place', hint: 'A country or city you’ve been to', icon: MapPin },
-  { kind: 'discovery', label: 'Add a discovery', hint: 'With photos, notes & category', icon: Compass },
   { kind: 'journey', label: 'Log a journey', hint: 'A trip and how you travelled', icon: Plane },
   { kind: 'photo', label: 'Add a photo', hint: 'A memory from your travels', icon: Camera },
   { kind: 'trip', label: 'Plan a trip', hint: 'Somewhere you’re dreaming of', icon: CalendarDays },
@@ -31,7 +33,7 @@ export function ActionMenu({
           <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, paddingHorizontal: 20, marginBottom: 10 }}>Add to your world</Text>
 
           {/* Quick Log — the hero: rate a place in seconds. */}
-          <Pressable onPress={() => onPick('quicklog')} className="flex-row items-center" style={{ marginHorizontal: 20, marginBottom: 6, borderRadius: 22, gap: 14, paddingHorizontal: 16, paddingVertical: 15, backgroundColor: COLORS.coral }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Leave a verdict — rate a place in seconds" onPress={() => onPick('quicklog')} className="flex-row items-center" style={{ marginHorizontal: 20, marginBottom: 6, borderRadius: 22, gap: 14, paddingHorizontal: 16, paddingVertical: 15, backgroundColor: COLORS.coral }}>
             <View className="rounded-2xl items-center justify-center" style={{ height: 46, width: 46, backgroundColor: 'rgba(255,255,255,0.22)' }}>
               <Gem size={22} color="#fff" />
             </View>
@@ -44,7 +46,7 @@ export function ActionMenu({
           {OPTIONS.map((o) => {
             const Icon = o.icon;
             return (
-              <Pressable key={o.kind} onPress={() => onPick(o.kind)} className="flex-row items-center" style={{ paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
+              <Pressable key={o.kind} accessibilityRole="button" accessibilityLabel={`${o.label} — ${o.hint}`} onPress={() => onPick(o.kind)} className="flex-row items-center" style={{ paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
                 <View className="rounded-2xl items-center justify-center" style={{ height: 46, width: 46, backgroundColor: '#fff' }}>
                   <Icon size={20} color={COLORS.coral} />
                 </View>

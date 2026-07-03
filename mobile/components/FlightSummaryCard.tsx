@@ -132,7 +132,7 @@ export function FlightSummaryCard(p: FlightSummaryProps) {
             return (
               <View className="flex-row">
                 <View className="rounded-full" style={{ backgroundColor: tint + '1A', paddingHorizontal: 9, paddingVertical: 2 }}>
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '800', letterSpacing: 0.5, color: tint }}>{actual ? 'ACTUAL' : 'SCHEDULED'}</Text>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 0.5, color: tint }}>{actual ? 'ACTUAL' : 'SCHEDULED'}</Text>
                 </View>
               </View>
             );
@@ -140,7 +140,7 @@ export function FlightSummaryCard(p: FlightSummaryProps) {
           <View className="flex-row items-start justify-between">
           <View style={{ flexShrink: 1 }}>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 16, fontWeight: '800', color: COLORS.navy }}>{p.departTime || '—'}</Text>
-            {p.fromTerminal ? <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, color: COLORS.ink3 }}>Terminal {p.fromTerminal}</Text> : null}
+            {p.fromTerminal ? <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3 }}>Terminal {p.fromTerminal}</Text> : null}
             {depInfo ? <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: depInfo.tint, marginTop: 2 }}>{depInfo.label}</Text> : null}
           </View>
           {dur ? (
@@ -150,7 +150,7 @@ export function FlightSummaryCard(p: FlightSummaryProps) {
           ) : null}
           <View style={{ alignItems: 'flex-end', flexShrink: 1 }}>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 16, fontWeight: '800', color: COLORS.navy }}>{p.arriveTime || '—'}</Text>
-            {p.toTerminal ? <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, color: COLORS.ink3 }}>Terminal {p.toTerminal}</Text> : null}
+            {p.toTerminal ? <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3 }}>Terminal {p.toTerminal}</Text> : null}
             {arrInfo ? <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: arrInfo.tint, marginTop: 2 }}>{arrInfo.label}</Text> : null}
           </View>
           </View>

@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { DownloadCloud, Images, MapPin, ChevronRight } from 'lucide-react-native';
 import { COLORS } from '../src/lib/theme';
+import { track } from '../src/lib/analytics';
 
 const { width } = Dimensions.get('window');
 
@@ -66,6 +67,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   // land on an empty app. Routing to /import surfaces every source (flights,
   // Polarsteps, Google Maps, photos…) in one place.
   function go(route?: string) {
+    track('onboarding_completed', { quickstart: route ?? 'skip' });
     onDone();
     if (route) router.push(route);
   }

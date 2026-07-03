@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { reportError } from '../lib/sentry';
 import {
   addDoc,
   arrayRemove,
@@ -217,6 +218,10 @@ const DataContext = createContext<DataApi>({
   importPlaces: async () => 0,
   importExpeditions: async () => 0,
 });
+
+// Fire-and-forget writes stay non-blocking (Firestore's offline queue owns
+// delivery), but failures are no longer invisible — they land in Sentry.
+const logWriteError = (e: unknown) => reportError(e, { where: 'data-write' });
 
 export function useData(): DataApi {
   return useContext(DataContext);
@@ -473,7 +478,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   function persistLocal(next: DataShape) {
     localRef.current = next;
     setData(next);
-    AsyncStorage.setItem(KEY, JSON.stringify(next)).catch(() => {});
+    AsyncStorage.setItem(KEY, JSON.stringify(next)).catch(logWriteError);
   }
 
   const api = useMemo<DataApi>(() => {
@@ -485,11 +490,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ...fields,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      }).catch(() => {});
+      }).catch(logWriteError);
     }
     function remove(coll: Coll, id: string) {
       if (cloud && fdb && uid) {
-        deleteDoc(doc(fdb, coll, id)).catch(() => {});
+        deleteDoc(doc(fdb, coll, id)).catch(logWriteError);
       } else {
         const cur = localRef.current;
         const list = cur[coll] as { id: string }[];
@@ -557,7 +562,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             ...(patch.firstDate !== undefined ? { firstDate: patch.firstDate ?? null } : {}),
             ...(patch.note !== undefined ? { note: patch.note.trim() || null } : {}),
             updatedAt: serverTimestamp(),
-          }).catch(() => {});
+          }).catch(logWriteError);
         } else {
           const cur = localRef.current;
           persistLocal({
@@ -613,7 +618,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             photoPath,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
-          }).catch(() => {});
+          }).catch(logWriteError);
         } else {
           const now = Date.now();
           const discovery: Discovery = {
@@ -740,7 +745,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             journeys: input.journeys,
             note: input.note?.trim() || null,
             updatedAt: serverTimestamp(),
-          }).catch(() => {});
+          }).catch(logWriteError);
         } else {
           const cur = localRef.current;
           persistLocal({
@@ -802,7 +807,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             caption: input.caption?.trim() || null,
             storagePath,
             createdAt: serverTimestamp(),
-          }).catch(() => {});
+          }).catch(logWriteError);
         } else {
           const capture: Capture = {
             id: newId(),
@@ -827,7 +832,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             } catch {
               /* best-effort image cleanup */
             }
-            deleteDoc(doc(fdb, 'captures', id)).catch(() => {});
+            deleteDoc(doc(fdb, 'captures', id)).catch(logWriteError);
           })();
         } else {
           const cur = localRef.current;
@@ -876,7 +881,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             [`memberNames.${friend.uid}`]: friend.name,
             [`memberNames.${owner.uid}`]: owner.name,
             updatedAt: serverTimestamp(),
-          }).catch(() => {});
+          }).catch(logWriteError);
         } else {
           const cur = localRef.current;
           persistLocal({
@@ -897,7 +902,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setDayNote: (tripId, day, note) => {
         const text = note.trim();
         if (cloud && fdb && uid) {
-          updateDoc(doc(fdb, 'trips', tripId), { [`dayNotes.${day}`]: text || null, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(() => {});
+          updateDoc(doc(fdb, 'trips', tripId), { [`dayNotes.${day}`]: text || null, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(logWriteError);
         } else {
           const cur = localRef.current;
           persistLocal({
@@ -914,7 +919,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       },
       setTripTracking: (tripId, on) => {
         if (cloud && fdb && uid) {
-          updateDoc(doc(fdb, 'trips', tripId), { autoTrack: on, updatedAt: serverTimestamp() }).catch(() => {});
+          updateDoc(doc(fdb, 'trips', tripId), { autoTrack: on, updatedAt: serverTimestamp() }).catch(logWriteError);
         } else {
           const cur = localRef.current;
           persistLocal({
@@ -928,7 +933,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           updateDoc(doc(fdb, 'trips', tripId), {
             memberIds: arrayRemove(memberUid),
             updatedAt: serverTimestamp(),
-          }).catch(() => {});
+          }).catch(logWriteError);
         } else {
           const cur = localRef.current;
           persistLocal({
@@ -945,7 +950,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (!trip) return;
         const itinerary: ItineraryItem[] = [...trip.itinerary, clean({ id: newId(), ...item }) as ItineraryItem];
         if (cloud && fdb && uid) {
-          updateDoc(doc(fdb, 'trips', tripId), { itinerary, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(() => {});
+          updateDoc(doc(fdb, 'trips', tripId), { itinerary, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(logWriteError);
         } else {
           const cur = localRef.current;
           persistLocal({ ...cur, trips: cur.trips.map((t) => (t.id === tripId ? { ...t, itinerary, updatedAt: Date.now() } : t)) });
@@ -956,7 +961,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (!trip) return;
         const itinerary = trip.itinerary.filter((i) => i.id !== itemId);
         if (cloud && fdb && uid) {
-          updateDoc(doc(fdb, 'trips', tripId), { itinerary, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(() => {});
+          updateDoc(doc(fdb, 'trips', tripId), { itinerary, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(logWriteError);
         } else {
           const cur = localRef.current;
           persistLocal({ ...cur, trips: cur.trips.map((t) => (t.id === tripId ? { ...t, itinerary, updatedAt: Date.now() } : t)) });
@@ -967,7 +972,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (!trip) return;
         const itinerary = trip.itinerary.map((i) => (i.id === itemId ? clean({ ...i, ...patch }) as ItineraryItem : i));
         if (cloud && fdb && uid) {
-          updateDoc(doc(fdb, 'trips', tripId), { itinerary, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(() => {});
+          updateDoc(doc(fdb, 'trips', tripId), { itinerary, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(logWriteError);
         } else {
           const cur = localRef.current;
           persistLocal({ ...cur, trips: cur.trips.map((t) => (t.id === tripId ? { ...t, itinerary, updatedAt: Date.now() } : t)) });
@@ -976,7 +981,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       reorderItinerary: (tripId, items) => {
         const itinerary = items.map((i) => clean({ ...i }) as ItineraryItem);
         if (cloud && fdb && uid) {
-          updateDoc(doc(fdb, 'trips', tripId), { itinerary, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(() => {});
+          updateDoc(doc(fdb, 'trips', tripId), { itinerary, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(logWriteError);
         } else {
           const cur = localRef.current;
           persistLocal({ ...cur, trips: cur.trips.map((t) => (t.id === tripId ? { ...t, itinerary, updatedAt: Date.now() } : t)) });
@@ -1037,10 +1042,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
               note: null,
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
-            }).catch(() => {});
+            }).catch(logWriteError);
           }
           for (const u of updates) {
-            updateDoc(doc(fdb, 'places', u.id), { firstYear: u.firstYear, updatedAt: serverTimestamp() }).catch(() => {});
+            updateDoc(doc(fdb, 'places', u.id), { firstYear: u.firstYear, updatedAt: serverTimestamp() }).catch(logWriteError);
           }
         } else {
           const now = Date.now();
@@ -1081,7 +1086,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
               note: r.note?.trim() || null,
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
-            }).catch(() => {});
+            }).catch(logWriteError);
           }
         } else {
           const now = Date.now();
