@@ -27,7 +27,7 @@ Object.assign(NAME_TO_CODE, {
   vietnam: 'VN',
 });
 
-function matchCountry(token: string): string | undefined {
+export function matchCountry(token: string): string | undefined {
   const n = norm(token);
   if (!n) return undefined;
   if (NAME_TO_CODE[n]) return NAME_TO_CODE[n];
@@ -37,6 +37,21 @@ function matchCountry(token: string): string | undefined {
   // loose contains (e.g. "Republic of Korea")
   const hit = COUNTRIES.find((c) => norm(c.name).includes(n) || n.includes(norm(c.name)));
   return hit?.code;
+}
+
+/** Scan a free-text blob (e.g. a calendar LOCATION field) for any country
+ *  mentioned by name, returning the matched codes. Word-boundary matched so
+ *  "Chad" doesn't fire inside "Chadwick". Best-effort — used by fuzzier
+ *  importers where there's no explicit country field. */
+export function scanCountries(text: string): string[] {
+  const n = ` ${norm(text)} `;
+  if (n.trim().length < 3) return [];
+  const found = new Set<string>();
+  for (const [name, code] of Object.entries(NAME_TO_CODE)) {
+    if (name.length < 4) continue; // skip short aliases (uk, uae…) to avoid noise
+    if (n.includes(` ${name} `) || n.includes(` ${name},`) || n.includes(`,${name} `)) found.add(code);
+  }
+  return [...found];
 }
 
 export interface ListParseResult {

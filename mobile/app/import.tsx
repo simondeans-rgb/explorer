@@ -2,13 +2,16 @@ import { useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { readAsStringAsync } from 'expo-file-system/legacy';
-import { Plane, ListChecks, Images, Check, RefreshCw, CloudDownload, MapPin } from 'lucide-react-native';
+import { Plane, ListChecks, Images, Check, RefreshCw, CloudDownload, MapPin, Coffee, Route, CalendarClock } from 'lucide-react-native';
 import { PageHero } from '../components/PageHero';
 import { goBack } from '../src/lib/nav';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
 import { useData } from '../src/store/data';
 import { buildImportPlan, planFromFlights, flightsFromExpeditions } from '../src/lib/flightyImport';
 import { parseTakeout } from '../src/lib/takeoutImport';
+import { parseCheckins } from '../src/lib/checkinsImport';
+import { parsePolarsteps, parsePolarstepsZip } from '../src/lib/polarstepsImport';
+import { parseTripit } from '../src/lib/tripitImport';
 import { parseCountryList } from '../src/lib/listImport';
 import { scanPhotosForCountries } from '../src/lib/photoScan';
 import { homeRanges } from '../src/lib/residence';
@@ -20,6 +23,41 @@ export default function ImportScreen() {
   const [takeoutBusy, setTakeoutBusy] = useState(false);
   const [takeoutMsg, setTakeoutMsg] = useState<string | null>(null);
   const [takeoutProgress, setTakeoutProgress] = useState<{ done: number; total: number } | null>(null);
+
+  // Foursquare / Swarm
+  const [swarmBusy, setSwarmBusy] = useState(false);
+  const [swarmMsg, setSwarmMsg] = useState<string | null>(null);
+  const [swarmProgress, setSwarmProgress] = useState<{ done: number; total: number } | null>(null);
+
+  // Polarsteps
+  const [polarBusy, setPolarBusy] = useState(false);
+  const [polarMsg, setPolarMsg] = useState<string | null>(null);
+
+  // TripIt
+  const [tripitBusy, setTripitBusy] = useState(false);
+  const [tripitMsg, setTripitMsg] = useState<string | null>(null);
+
+  /** Add a batch of parsed discovery rows, skipping any already logged (by
+   *  name), reporting progress. Returns { added, skipped }. */
+  async function addDiscoveryRows(
+    rows: { name: string; category: import('../src/lib/takeoutImport').DiscoveryRow['category']; verdict?: import('../src/lib/takeoutImport').DiscoveryRow['verdict']; countryCode?: string; city?: string; note?: string }[],
+    onProgress: (p: { done: number; total: number } | null) => void,
+  ): Promise<{ added: number; skipped: number }> {
+    const have = new Set(discoveries.map((d) => d.name.trim().toLowerCase()));
+    const fresh = rows.filter((r) => !have.has(r.name.trim().toLowerCase()));
+    let added = 0;
+    onProgress({ done: 0, total: fresh.length });
+    for (let i = 0; i < fresh.length; i++) {
+      const r = fresh[i];
+      try {
+        await addDiscovery({ name: r.name, category: r.category, verdict: r.verdict, countryCode: r.countryCode, city: r.city, note: r.note });
+        added += 1;
+      } catch { /* skip a bad row, keep going */ }
+      onProgress({ done: i + 1, total: fresh.length });
+    }
+    onProgress(null);
+    return { added, skipped: rows.length - fresh.length };
+  }
 
   async function importTakeout() {
     setTakeoutMsg(null);
@@ -33,26 +71,81 @@ export default function ImportScreen() {
         setTakeoutMsg("Couldn't find places in that file. In Google Takeout, export “Maps (your places)” and pick a Reviews or saved-list file (.json or .csv).");
         return;
       }
-      // Skip places already logged (by name), then add the rest one by one.
-      const have = new Set(discoveries.map((d) => d.name.trim().toLowerCase()));
-      const fresh = rows.filter((r) => !have.has(r.name.trim().toLowerCase()));
-      let added = 0;
-      setTakeoutProgress({ done: 0, total: fresh.length });
-      for (let i = 0; i < fresh.length; i++) {
-        const r = fresh[i];
-        try {
-          await addDiscovery({ name: r.name, category: r.category, verdict: r.verdict, countryCode: r.countryCode, city: r.city, note: r.note });
-          added += 1;
-        } catch { /* skip a bad row, keep going */ }
-        setTakeoutProgress({ done: i + 1, total: fresh.length });
-      }
-      const skipped = rows.length - fresh.length;
+      const { added, skipped } = await addDiscoveryRows(rows, setTakeoutProgress);
       setTakeoutMsg(`Imported ${added} discover${added === 1 ? 'y' : 'ies'} from Google Maps${skipped ? ` · ${skipped} already logged` : ''}. Refine any verdicts or categories any time.`);
     } catch {
       setTakeoutMsg('Could not read that file.');
     } finally {
       setTakeoutBusy(false);
       setTakeoutProgress(null);
+    }
+  }
+
+  async function importSwarm() {
+    setSwarmMsg(null);
+    const res = await DocumentPicker.getDocumentAsync({ type: ['application/json', '*/*'], copyToCacheDirectory: true });
+    if (res.canceled || !res.assets?.[0]) return;
+    setSwarmBusy(true);
+    try {
+      const text = await readAsStringAsync(res.assets[0].uri);
+      const rows = parseCheckins(text);
+      if (rows.length === 0) {
+        setSwarmMsg("Couldn't find check-ins in that file. Export your data from Foursquare/Swarm and pick the check-ins .json.");
+        return;
+      }
+      const { added, skipped } = await addDiscoveryRows(rows, setSwarmProgress);
+      setSwarmMsg(`Imported ${added} place${added === 1 ? '' : 's'} from your check-ins${skipped ? ` · ${skipped} already logged` : ''}.`);
+    } catch {
+      setSwarmMsg('Could not read that file.');
+    } finally {
+      setSwarmBusy(false);
+      setSwarmProgress(null);
+    }
+  }
+
+  async function importPolarsteps() {
+    setPolarMsg(null);
+    const res = await DocumentPicker.getDocumentAsync({ type: ['application/zip', 'application/json', '*/*'], copyToCacheDirectory: true });
+    if (res.canceled || !res.assets?.[0]) return;
+    const asset = res.assets[0];
+    setPolarBusy(true);
+    try {
+      const isZip = /\.zip$/i.test(asset.name ?? '') || asset.mimeType === 'application/zip';
+      const result = isZip
+        ? await parsePolarstepsZip(await readAsStringAsync(asset.uri, { encoding: 'base64' }))
+        : parsePolarsteps(await readAsStringAsync(asset.uri));
+      if (result.expeditions.length === 0 && result.places.length === 0) {
+        setPolarMsg("Couldn't find trips in that file. Download your Polarsteps data (Account → Download data) and pick the .zip, or a trip.json inside it.");
+        return;
+      }
+      const added = await importPlaces(result.places);
+      await importExpeditions(result.expeditions);
+      setPolarMsg(`Imported ${result.expeditions.length} trip${result.expeditions.length === 1 ? '' : 's'} → ${added} new place${added === 1 ? '' : 's'}.`);
+    } catch {
+      setPolarMsg('Could not read that Polarsteps export.');
+    } finally {
+      setPolarBusy(false);
+    }
+  }
+
+  async function importTripit() {
+    setTripitMsg(null);
+    const res = await DocumentPicker.getDocumentAsync({ type: ['text/calendar', 'application/octet-stream', '*/*'], copyToCacheDirectory: true });
+    if (res.canceled || !res.assets?.[0]) return;
+    setTripitBusy(true);
+    try {
+      const text = await readAsStringAsync(res.assets[0].uri);
+      const { rows, events, matched } = parseTripit(text);
+      if (rows.length === 0) {
+        setTripitMsg(events === 0 ? "That doesn't look like a TripIt calendar (.ics). In TripIt, export or share your trips as a calendar file." : `Read ${events} item${events === 1 ? '' : 's'} but couldn't pin any to a country.`);
+        return;
+      }
+      const added = await importPlaces(rows);
+      setTripitMsg(`Imported ${added} new place${added === 1 ? '' : 's'} from ${matched} of ${events} itinerary item${events === 1 ? '' : 's'}.`);
+    } catch {
+      setTripitMsg('Could not read that file.');
+    } finally {
+      setTripitBusy(false);
     }
   }
   // Countries you live in — so imported trips aren't labelled as visits home.
@@ -218,10 +311,10 @@ export default function ImportScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 112 }}>
-        <PageHero eyebrow="Bring your history in" title="Import travels" subtitle="Add the places you’ve already been, three quick ways." gradient={GRADIENTS.atlas} imageCode="WW" onBack={goBack} />
+        <PageHero eyebrow="Bring your history in" title="Import travels" subtitle="Pull in the places you’ve already been — from your flights, other travel apps, or your photos." gradient={GRADIENTS.atlas} imageCode="WW" onBack={goBack} />
 
-        {/* Flighty */}
-        <Card icon={Plane} title="Flighty CSV" body="Export your flight history from Flighty (Settings → Export) and pick the CSV. We’ll map every flight to countries, cities and trips.">
+        {/* Flight history CSV — Flighty, App in the Air, MyFlightradar24… */}
+        <Card icon={Plane} title="Flight history (CSV)" body="Export your flights as CSV — from Flighty, App in the Air, MyFlightradar24 or FlightMemory — and pick the file. We’ll map every flight to countries, cities and trips.">
           <Pressable onPress={importFlighty} disabled={csvBusy || reBusy} style={btn(csvBusy || reBusy)}>
             {csvBusy ? <ActivityIndicator color="#fff" /> : <Text style={btnText}>Choose CSV file</Text>}
           </Pressable>
@@ -240,6 +333,22 @@ export default function ImportScreen() {
           {csvMsg ? <Msg text={csvMsg} /> : null}
         </Card>
 
+        {/* Polarsteps */}
+        <Card icon={Route} title="Polarsteps" body="Download your Polarsteps data (Profile → Settings → Download your data) and pick the .zip — we’ll turn each trip into a journey with its countries and dates.">
+          <Pressable onPress={importPolarsteps} disabled={polarBusy} style={btn(polarBusy)}>
+            {polarBusy ? <ActivityIndicator color="#fff" /> : <Text style={btnText}>Choose Polarsteps file</Text>}
+          </Pressable>
+          {polarMsg ? <Msg text={polarMsg} /> : null}
+        </Card>
+
+        {/* TripIt */}
+        <Card icon={CalendarClock} title="TripIt" body="Share or export your TripIt trips as a calendar (.ics) file and pick it here — we’ll add the countries you travelled to.">
+          <Pressable onPress={importTripit} disabled={tripitBusy} style={btn(tripitBusy)}>
+            {tripitBusy ? <ActivityIndicator color="#fff" /> : <Text style={btnText}>Choose calendar file</Text>}
+          </Pressable>
+          {tripitMsg ? <Msg text={tripitMsg} /> : null}
+        </Card>
+
         {/* Google Maps (Takeout) */}
         <Card icon={MapPin} title="Google Maps reviews" body="Already rated places on Google Maps? In Google Takeout, export “Maps (your places)”, then pick your Reviews or saved-list file — we’ll turn each into a discovery with a verdict.">
           <Pressable onPress={importTakeout} disabled={takeoutBusy} style={btn(takeoutBusy)}>
@@ -253,6 +362,21 @@ export default function ImportScreen() {
             )}
           </Pressable>
           {takeoutMsg ? <Msg text={takeoutMsg} /> : null}
+        </Card>
+
+        {/* Foursquare / Swarm check-ins */}
+        <Card icon={Coffee} title="Swarm / Foursquare" body="Download your Foursquare/Swarm data and pick the check-ins file — every venue you’ve checked into becomes a discovery, with its category filled in.">
+          <Pressable onPress={importSwarm} disabled={swarmBusy} style={btn(swarmBusy)}>
+            {swarmBusy ? (
+              <View className="flex-row items-center" style={{ gap: 8 }}>
+                <ActivityIndicator color="#fff" />
+                {swarmProgress ? <Text style={btnText}>Importing {swarmProgress.done}/{swarmProgress.total}…</Text> : null}
+              </View>
+            ) : (
+              <Text style={btnText}>Choose check-ins file</Text>
+            )}
+          </Pressable>
+          {swarmMsg ? <Msg text={swarmMsg} /> : null}
         </Card>
 
         {/* List */}

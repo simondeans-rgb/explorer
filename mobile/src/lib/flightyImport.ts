@@ -72,26 +72,69 @@ function parseCsv(text: string): string[][] {
 let idCounter = 0;
 const newId = () => `imp_${Date.now().toString(36)}_${idCounter++}`;
 
+// Column-name synonyms, so one parser covers Flighty, App in the Air,
+// MyFlightradar24, FlightMemory and hand-rolled CSVs. First match wins.
+const HEADER_ALIASES: Record<'date' | 'from' | 'to' | 'flight' | 'canceled' | 'diverted', string[]> = {
+  date: ['date', 'flight date', 'departure date', 'dep date', 'day'],
+  from: ['from', 'origin', 'departure', 'dep', 'from airport', 'departure airport', 'origin airport'],
+  to: ['to', 'destination', 'arrival', 'arr', 'to airport', 'arrival airport', 'destination airport'],
+  flight: ['flight', 'flight number', 'flight no', 'flight no.', 'flightnumber', 'flight #'],
+  canceled: ['canceled', 'cancelled'],
+  diverted: ['diverted to', 'diverted'],
+};
+
+/** Pull a 3-letter IATA code out of a cell. Flighty stores the bare code
+ *  ("LHR"); MyFlightradar24 writes "London Heathrow (LHR / EGLL)" and others
+ *  "LHR / EGLL" — so we accept a bare code or the first 3-letter token inside
+ *  parentheses / before a slash. */
+function extractIata(cell: string): string {
+  const s = cell.trim().toUpperCase();
+  if (/^[A-Z]{3}$/.test(s)) return s;
+  const paren = s.match(/\(([^)]*)\)/);
+  const scope = paren ? paren[1] : s;
+  const m = scope.match(/\b([A-Z]{3})\b/);
+  return m ? m[1] : '';
+}
+
+/** Normalise a date cell to YYYY-MM-DD. Handles ISO (Flighty, MyFlightradar24),
+ *  YYYY/MM/DD, and dotted DD.MM.YYYY (FlightMemory). Slash dates stay ambiguous
+ *  so we leave DD/MM vs MM/DD alone rather than guess wrong. */
+function normalizeDate(cell: string): string {
+  const s = cell.trim();
+  const iso = s.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const dotted = s.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+  if (dotted) return `${dotted[3]}-${dotted[2]}-${dotted[1]}`;
+  return s.slice(0, 10);
+}
+
 function parseFlights(text: string): Flight[] {
   const rows = parseCsv(text).filter((r) => r.some((c) => c.trim() !== ''));
   if (rows.length < 2) return [];
   const header = rows[0].map((h) => h.trim());
-  const col = (name: string) => header.indexOf(name);
-  const iDate = col('Date');
-  const iFrom = col('From');
-  const iTo = col('To');
-  const iFlight = col('Flight');
-  const iCanceled = col('Canceled');
-  const iDiverted = col('Diverted To');
+  const lower = header.map((h) => h.toLowerCase());
+  const col = (key: keyof typeof HEADER_ALIASES) => {
+    for (const alias of HEADER_ALIASES[key]) {
+      const i = lower.indexOf(alias);
+      if (i >= 0) return i;
+    }
+    return -1;
+  };
+  const iDate = col('date');
+  const iFrom = col('from');
+  const iTo = col('to');
+  const iFlight = col('flight');
+  const iCanceled = col('canceled');
+  const iDiverted = col('diverted');
   if (iDate < 0 || iFrom < 0 || iTo < 0) return [];
 
   const flights: Flight[] = [];
   for (let r = 1; r < rows.length; r++) {
     const cells = rows[r];
-    const date = (cells[iDate] ?? '').trim().slice(0, 10);
-    const from = (cells[iFrom] ?? '').trim().toUpperCase();
-    const diverted = iDiverted >= 0 ? (cells[iDiverted] ?? '').trim().toUpperCase() : '';
-    const to = (diverted || (cells[iTo] ?? '').trim()).toUpperCase();
+    const date = normalizeDate(cells[iDate] ?? '');
+    const from = extractIata(cells[iFrom] ?? '');
+    const diverted = iDiverted >= 0 ? extractIata(cells[iDiverted] ?? '') : '';
+    const to = diverted || extractIata(cells[iTo] ?? '');
     const flightNo = iFlight >= 0 ? (cells[iFlight] ?? '').trim() : '';
     const canceled = iCanceled >= 0 ? /^(yes|true|1)$/i.test((cells[iCanceled] ?? '').trim()) : false;
     if (!date || !from || !to) continue;
