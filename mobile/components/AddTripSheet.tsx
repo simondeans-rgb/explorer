@@ -5,10 +5,11 @@ import type { ComponentType } from 'react';
 import { SheetShell } from './SheetShell';
 import { RouteBuilder } from './RouteBuilder';
 import { AirportField } from './AirportField';
+import { DateField } from './DateField';
+import { FlightSummaryCard } from './FlightSummaryCard';
 import { resolveEndpoint } from '../src/lib/journeyGeo';
 import { lookupFlight, normaliseFlightNumber, flightLookupConfigured } from '../src/lib/flightLookup';
 import { COLORS } from '../src/lib/theme';
-import { formatDistance, KM_PER_MI } from '../src/lib/units';
 import { useUnits } from '../src/store/units';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES } from '../src/data/countries';
@@ -57,24 +58,6 @@ function emptyLeg(mode: JourneyMode = 'flight'): Leg {
 }
 
 const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s.trim());
-
-/** 785 → "13h 5m". */
-function formatDuration(min?: number): string | undefined {
-  if (!min || min <= 0) return undefined;
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return h ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`;
-}
-
-/** Delay minutes → chip { text, late } for anything ≥ 2 min off schedule. */
-function delayChip(min?: number): { text: string; late: boolean } | undefined {
-  if (min == null || Math.abs(min) < 2) return undefined;
-  const mag = Math.abs(min);
-  const h = Math.floor(mag / 60);
-  const m = mag % 60;
-  const span = h ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`;
-  return { text: `${span} ${min > 0 ? 'late' : 'early'}`, late: min > 0 };
-}
 
 export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { importExpeditions } = useData();
@@ -263,10 +246,8 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
               {leg.mode === 'flight' ? (
                 <>
                   {/* Flight number + date lead — look up to auto-fill the rest. */}
-                  <View className="flex-row" style={{ gap: 8 }}>
-                    <Field flex placeholder={meta.reference} value={leg.reference} onChange={(t) => patchLeg(leg.id, { reference: t })} />
-                    <Field flex placeholder="Date (YYYY-MM-DD)" value={leg.date} onChange={(t) => patchLeg(leg.id, { date: t })} />
-                  </View>
+                  <Field placeholder={meta.reference} value={leg.reference} onChange={(t) => patchLeg(leg.id, { reference: t })} />
+                  <DateField value={leg.date} label="Flight date" onChange={(iso) => patchLeg(leg.id, { date: iso })} />
                   {flightLookupConfigured() ? (
                     <>
                       <Pressable onPress={() => lookupLeg(leg)} disabled={lookingUp === leg.id} className="flex-row items-center justify-center rounded-2xl" style={{ paddingVertical: 11, gap: 7, backgroundColor: 'rgba(30,107,255,0.10)' }}>
@@ -294,33 +275,7 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
                     <Field flex placeholder="Depart terminal" value={leg.fromTerminal} onChange={(t) => patchLeg(leg.id, { fromTerminal: t })} />
                     <Field flex placeholder="Arrive terminal" value={leg.toTerminal} onChange={(t) => patchLeg(leg.id, { toTerminal: t })} />
                   </View>
-                  {leg.distanceKm != null || leg.durationMin != null ? (
-                    <View className="flex-row items-center" style={{ gap: 8, paddingHorizontal: 4 }}>
-                      {leg.distanceKm != null ? (
-                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink2 }}>{formatDistance(leg.distanceKm / KM_PER_MI, unit)}</Text>
-                      ) : null}
-                      {leg.distanceKm != null && formatDuration(leg.durationMin) ? (
-                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>·</Text>
-                      ) : null}
-                      {formatDuration(leg.durationMin) ? (
-                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink2 }}>{formatDuration(leg.durationMin)}</Text>
-                      ) : null}
-                    </View>
-                  ) : null}
-                  {delayChip(leg.departDelayMin) || delayChip(leg.arriveDelayMin) ? (
-                    <View className="flex-row items-center flex-wrap" style={{ gap: 6, paddingHorizontal: 4 }}>
-                      {(['departDelayMin', 'arriveDelayMin'] as const).map((k) => {
-                        const chip = delayChip(leg[k]);
-                        if (!chip) return null;
-                        const tint = chip.late ? COLORS.coral : '#00A88E';
-                        return (
-                          <View key={k} className="rounded-full" style={{ paddingHorizontal: 9, paddingVertical: 3, backgroundColor: tint + '1A' }}>
-                            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: tint }}>{k === 'departDelayMin' ? 'Dep' : 'Arr'} {chip.text}</Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  ) : null}
+                  <FlightSummaryCard from={leg.from} to={leg.to} airline={leg.carrier} flightNumber={leg.reference} aircraft={leg.vehicle} departTime={leg.departTime} arriveTime={leg.arriveTime} fromTerminal={leg.fromTerminal} toTerminal={leg.toTerminal} distanceKm={leg.distanceKm} durationMin={leg.durationMin} departDelayMin={leg.departDelayMin} arriveDelayMin={leg.arriveDelayMin} unit={unit} />
                 </>
               ) : (
                 <>
@@ -328,10 +283,8 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
                     <Field flex placeholder={meta.from} value={leg.from} onChange={(t) => patchLeg(leg.id, { from: t })} />
                     <Field flex placeholder={meta.to} value={leg.to} onChange={(t) => patchLeg(leg.id, { to: t })} />
                   </View>
-                  <View className="flex-row" style={{ gap: 8 }}>
-                    <Field flex placeholder="Date (YYYY-MM-DD)" value={leg.date} onChange={(t) => patchLeg(leg.id, { date: t })} />
-                    <Field flex placeholder={meta.operator} value={leg.carrier} onChange={(t) => patchLeg(leg.id, { carrier: t })} />
-                  </View>
+                  <DateField value={leg.date} label="Date" onChange={(iso) => patchLeg(leg.id, { date: iso })} />
+                  <Field flex placeholder={meta.operator} value={leg.carrier} onChange={(t) => patchLeg(leg.id, { carrier: t })} />
                   <View className="flex-row" style={{ gap: 8 }}>
                     <Field flex placeholder={meta.reference} value={leg.reference} onChange={(t) => patchLeg(leg.id, { reference: t })} />
                     <Field flex placeholder="Vehicle" value={leg.vehicle} onChange={(t) => patchLeg(leg.id, { vehicle: t })} />
