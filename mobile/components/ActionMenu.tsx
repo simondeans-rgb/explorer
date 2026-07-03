@@ -1,8 +1,7 @@
 import { Modal, View, Text, Pressable } from 'react-native';
 import { MapPin, Compass, Plane, Camera, CalendarDays, Gem } from 'lucide-react-native';
 import type { ComponentType } from 'react';
-import { COLORS, GRADIENTS } from '../src/lib/theme';
-import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS } from '../src/lib/theme';
 
 export type ActionKind = 'quicklog' | 'place' | 'discovery' | 'journey' | 'photo' | 'trip';
 
@@ -32,16 +31,14 @@ export function ActionMenu({
           <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, paddingHorizontal: 20, marginBottom: 10 }}>Add to your world</Text>
 
           {/* Quick Log — the hero: rate a place in seconds. */}
-          <Pressable onPress={() => onPick('quicklog')} style={{ marginHorizontal: 20, marginBottom: 6, borderRadius: 22, overflow: 'hidden' }}>
-            <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 15 }}>
-              <View className="rounded-2xl items-center justify-center" style={{ height: 46, width: 46, backgroundColor: 'rgba(255,255,255,0.22)' }}>
-                <Gem size={22} color="#fff" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 16, fontWeight: '800', color: '#fff' }}>Leave a verdict</Text>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: 'rgba(255,255,255,0.92)', marginTop: 1 }}>Rate a place in seconds</Text>
-              </View>
-            </LinearGradient>
+          <Pressable onPress={() => onPick('quicklog')} className="flex-row items-center" style={{ marginHorizontal: 20, marginBottom: 6, borderRadius: 22, gap: 14, paddingHorizontal: 16, paddingVertical: 15, backgroundColor: COLORS.coral }}>
+            <View className="rounded-2xl items-center justify-center" style={{ height: 46, width: 46, backgroundColor: 'rgba(255,255,255,0.22)' }}>
+              <Gem size={22} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 16, fontWeight: '800', color: '#fff' }}>Leave a verdict</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: 'rgba(255,255,255,0.92)', marginTop: 1 }}>Rate a place in seconds</Text>
+            </View>
           </Pressable>
 
           {OPTIONS.map((o) => {

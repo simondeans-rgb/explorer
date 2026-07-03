@@ -4,7 +4,6 @@ import { MapPin, Gem, Heart, ThumbsUp, Meh, ThumbsDown, Check, Users, Plus, Spar
 import type { ComponentType } from 'react';
 import { SheetShell } from './SheetShell';
 import { COLORS } from '../src/lib/theme';
-import { detectLocation } from '../src/lib/checkIn';
 import { countryName } from '../src/data/countries';
 import { flagEmoji } from '../src/lib/flags';
 import { RECOMMENDATION_VERDICTS, VERDICT_META, type RecommendationVerdict } from '../src/types';
@@ -14,6 +13,30 @@ import { useToast } from '../src/store/toast';
 // The Quick Log — capture first, enrich later. One place + one verdict, saved
 // the moment the verdict is tapped. Everything else (name refinement, category,
 // photo, note) is optional enrichment added later in the discovery editor.
+
+// Reverse-geocode the current position to the most granular sensible label —
+// a venue/POI name if the device reports one, else the street, so a restaurant
+// can be captured without typing. Always editable afterwards.
+async function detectPlace(): Promise<{ status: 'ok' | 'denied' | 'error'; countryCode?: string; city?: string; name?: string }> {
+  try {
+    const Location = await import('expo-location');
+    if (!(await Location.hasServicesEnabledAsync())) return { status: 'error' };
+    const perm = await Location.requestForegroundPermissionsAsync();
+    if (perm.status !== 'granted') return { status: 'denied' };
+    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+    const a = (await Location.reverseGeocodeAsync({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }))[0];
+    if (!a) return { status: 'error' };
+    const countryCode = a.isoCountryCode?.toUpperCase();
+    const city = a.city ?? a.subregion ?? a.district ?? a.region ?? undefined;
+    const nm = a.name?.trim();
+    let name: string | undefined;
+    if (nm && !/^\d+$/.test(nm) && nm.toLowerCase() !== (city ?? '').toLowerCase()) name = nm;
+    else if (a.street) name = a.streetNumber ? `${a.streetNumber} ${a.street}` : a.street;
+    return { status: 'ok', countryCode, city, name };
+  } catch {
+    return { status: 'error' };
+  }
+}
 
 const VERDICT_STYLE: Record<RecommendationVerdict, { tint: string; icon: ComponentType<{ size?: number; color?: string }> }> = {
   recommend: { tint: '#00A88E', icon: ThumbsUp },
@@ -39,12 +62,12 @@ export function QuickLogSheet({ visible, onClose }: { visible: boolean; onClose:
     setWhere(''); setCountryCode(undefined); setCity(undefined); setSaved(null); setSaving(null);
     let cancelled = false;
     setLocating(true);
-    detectLocation()
+    detectPlace()
       .then((r) => {
         if (cancelled || r.status !== 'ok') return;
         setCountryCode(r.countryCode);
         setCity(r.city);
-        setWhere((w) => w || r.city || '');
+        setWhere((w) => w || r.name || r.city || '');
       })
       .finally(() => { if (!cancelled) setLocating(false); });
     return () => { cancelled = true; };
@@ -52,12 +75,13 @@ export function QuickLogSheet({ visible, onClose }: { visible: boolean; onClose:
 
   async function useLocation() {
     setLocating(true);
-    const r = await detectLocation();
+    const r = await detectPlace();
     setLocating(false);
     if (r.status === 'ok') {
       setCountryCode(r.countryCode);
       setCity(r.city);
-      setWhere((w) => w || r.city || '');
+      // Explicit tap → fill with the most specific place we found (overwrite).
+      setWhere(r.name || r.city || '');
     } else {
       toast.error(r.status === 'denied' ? 'Location permission is off — type where you are instead.' : "Couldn't get your location — type it instead.");
     }

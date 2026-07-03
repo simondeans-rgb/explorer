@@ -5,7 +5,7 @@ import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck, Ruler, Thermometer } from 'lucide-react-native';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck, Ruler, Thermometer, Gem } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
@@ -285,6 +285,22 @@ export default function YouScreen() {
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>
             {discoveryStats.total} discoveries · {Math.max(0, nextDiscovery.target - Math.min(nextDiscovery.value, nextDiscovery.target))} more to unlock <Text style={{ fontWeight: '700', color: COLORS.coral }}>{nextDiscovery.title}</Text>
           </Text>
+        </Pressable>
+      ) : null}
+
+      {/* Hidden Gems — the collection mechanic, surfaced prominently. */}
+      {discoveryStats.total > 0 ? (
+        <Pressable onPress={() => router.push('/achievements')} className="flex-row items-center rounded-2xl" style={{ marginHorizontal: 20, marginTop: 10, paddingHorizontal: 14, paddingVertical: 12, gap: 12, backgroundColor: 'rgba(245,166,35,0.10)' }}>
+          <View className="rounded-full items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(245,166,35,0.18)' }}>
+            <Gem size={20} color="#F5A623" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy }}>{discoveryStats.hiddenGems} hidden gem{discoveryStats.hiddenGems === 1 ? '' : 's'} found</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>
+              {discoveryStats.hiddenGems >= 5 ? 'Gem Hunter unlocked ✦' : `${5 - discoveryStats.hiddenGems} more to unlock Gem Hunter`}
+            </Text>
+          </View>
+          <ChevronRight size={18} color={COLORS.ink3} />
         </Pressable>
       ) : null}
 
