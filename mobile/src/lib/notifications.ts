@@ -5,9 +5,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { countryName } from '../data/countries';
-import type { Place, Expedition } from '../types';
+import type { Place, Expedition, Trip } from '../types';
 
 const PREF_KEY = 'worldly.notif.anniversaries';
+const POSTTRIP_KEY = 'worldly.notif.posttrip';
 
 // Present notifications (banner + sound) even while the app is in the
 // foreground. Without a handler, iOS silently drops foreground notifications —
@@ -32,6 +33,21 @@ export async function anniversariesEnabled(): Promise<boolean> {
 export async function setAnniversariesEnabled(on: boolean): Promise<void> {
   try {
     await AsyncStorage.setItem(PREF_KEY, on ? '1' : '0');
+  } catch {
+    /* ignore */
+  }
+}
+
+export async function postTripRemindersEnabled(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(POSTTRIP_KEY)) === '1';
+  } catch {
+    return false;
+  }
+}
+export async function setPostTripRemindersEnabled(on: boolean): Promise<void> {
+  try {
+    await AsyncStorage.setItem(POSTTRIP_KEY, on ? '1' : '0');
   } catch {
     /* ignore */
   }
@@ -112,21 +128,60 @@ export function computeAnniversaries(expeditions: Expedition[], places: Place[],
   return out.sort((a, b) => a.next - b.next).slice(0, limit);
 }
 
-/** Cancel and reschedule the upcoming anniversaries (no-op unless enabled + permitted). */
-export async function rescheduleAnniversaries(expeditions: Expedition[], places: Place[]): Promise<void> {
+interface PostTripPrompt { at: number; title: string; body: string }
+
+/** A one-shot "you just got back — log your discoveries" nudge ~36h after each
+ *  planned trip ends, while the holiday glow is still fresh. Only future times. */
+export function computePostTripPrompts(trips: Trip[], limit = 24): PostTripPrompt[] {
+  const now = Date.now();
+  const horizon = now + 400 * 24 * 3600 * 1000; // don't schedule absurdly far out
+  const out: PostTripPrompt[] = [];
+  for (const t of trips) {
+    const end = parseDate(t.endDate || t.startDate);
+    if (!end) continue;
+    const at = new Date(end.y, end.m - 1, end.d, 10, 0, 0, 0).getTime() + 36 * 3600 * 1000;
+    if (at <= now || at > horizon) continue;
+    const country = t.countryCode ? countryName(t.countryCode) : '';
+    out.push({
+      at,
+      title: country ? `How was ${country}? ✨` : 'How was your trip? ✨',
+      body: `Add what you discovered — restaurants, museums, experiences — before the memories fade.`,
+    });
+  }
+  return out.sort((a, b) => a.at - b.at).slice(0, limit);
+}
+
+/** Cancel and reschedule every on-device reminder we own (anniversaries +
+ *  post-trip discovery nudges), honouring each toggle. Called on launch, on
+ *  foreground, and whenever a toggle changes. */
+export async function rescheduleNotifications(expeditions: Expedition[], places: Place[], trips: Trip[] = []): Promise<void> {
   try {
-    if (!(await anniversariesEnabled())) return;
     if (!(await Notifications.getPermissionsAsync()).granted) return;
     await Notifications.cancelAllScheduledNotificationsAsync();
-    for (const a of computeAnniversaries(expeditions, places)) {
-      await Notifications.scheduleNotificationAsync({
-        content: { title: a.title, body: a.body },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: a.next },
-      });
+    if (await anniversariesEnabled()) {
+      for (const a of computeAnniversaries(expeditions, places)) {
+        await Notifications.scheduleNotificationAsync({
+          content: { title: a.title, body: a.body },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: a.next },
+        });
+      }
+    }
+    if (await postTripRemindersEnabled()) {
+      for (const p of computePostTripPrompts(trips)) {
+        await Notifications.scheduleNotificationAsync({
+          content: { title: p.title, body: p.body },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: p.at },
+        });
+      }
     }
   } catch {
     /* never let scheduling crash the app */
   }
+}
+
+/** @deprecated use rescheduleNotifications — kept for callers not yet migrated. */
+export async function rescheduleAnniversaries(expeditions: Expedition[], places: Place[]): Promise<void> {
+  return rescheduleNotifications(expeditions, places, []);
 }
 
 export async function cancelAnniversaries(): Promise<void> {
