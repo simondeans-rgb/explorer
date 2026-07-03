@@ -16,7 +16,7 @@ const EARTH_R_KM = 6371;
 // Cosmic yardsticks (miles) for the "how far is that really?" comparisons.
 export const EARTH_CIRCUMFERENCE_MI = 24901; // around the equator
 export const MOON_DISTANCE_MI = 238855; // Earth → Moon
-export const SUN_CIRCUMFERENCE_MI = 2_715_000; // around the Sun (≈ π × 864,938 mi)
+export const LONDON_NY_MI = 3451; // London (LHR) → New York (JFK), a felt long-haul yardstick
 
 // A flight is "long haul" once it passes ~2,500 mi (≈ 4,000 km / 6+ hours).
 const LONG_HAUL_MI = 2500;
