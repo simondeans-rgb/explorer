@@ -71,6 +71,8 @@ export interface TravelStats {
   topAirlines: { label: string; count: number }[];
   /** Airline punctuality from legs with a known arrival delay, best first. */
   punctuality: { airline: string; avgDelayMin: number; onTimeRate: number; samples: number }[];
+  /** Total minutes lost to late arrivals across all flights with delay data. */
+  totalDelayMin: number;
   longest?: FlightExtreme;
   shortest?: FlightExtreme;
   /** Flights per calendar year, ascending — gaps filled so the line is continuous. */
@@ -117,6 +119,7 @@ export function computeTravelStats(expeditions: Expedition[]): TravelStats {
   const punct = new Map<string, { label: string; sumDelay: number; onTime: number; samples: number }>();
   let timeInAirMin = 0;
   let timeInAirEstimated = false;
+  let totalDelayMin = 0; // total minutes lost to late arrivals
 
   for (const e of expeditions) {
     for (const j of e.journeys ?? []) {
@@ -147,6 +150,9 @@ export function computeTravelStats(expeditions: Expedition[]): TravelStats {
         p.samples += 1;
         punct.set(key, p);
       }
+      // Total time lost to delays counts every late arrival (early ones don't
+      // give time back), regardless of whether the airline is named.
+      if (j.arriveDelayMin != null && j.arriveDelayMin > 0) totalDelayMin += j.arriveDelayMin;
       // Time in the air: use the measured flight duration when we have it.
       let countedAir = false;
       if (j.durationMin != null && j.durationMin > 0) {
@@ -236,6 +242,7 @@ export function computeTravelStats(expeditions: Expedition[]): TravelStats {
     topAircraft,
     topAirlines,
     punctuality,
+    totalDelayMin,
     longest,
     shortest,
     perYear,

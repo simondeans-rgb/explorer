@@ -319,12 +319,18 @@ export function JourneyStatsPanel({ expeditions }: { expeditions: Expedition[] }
             <RankBlock title="TOP AIRCRAFT" rows={stats.topAircraft} tint={COLORS.aqua} suffix="flights" />
           ) : null}
 
-          {stats.punctuality.length > 0 ? (
+          {stats.punctuality.length > 0 || stats.totalDelayMin > 0 ? (
             <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: '#EEEDF5', paddingTop: 14 }}>
               <View className="flex-row items-center" style={{ gap: 6 }}>
                 <Timer size={13} color={COLORS.ink3} />
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 0.6, color: COLORS.ink3 }}>PUNCTUALITY</Text>
               </View>
+              {stats.totalDelayMin > 0 ? (
+                <View className="flex-row items-center justify-between rounded-2xl" style={{ backgroundColor: 'rgba(255,107,154,0.08)', paddingHorizontal: 12, paddingVertical: 9 }}>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: COLORS.ink2 }}>Time lost to delays</Text>
+                  <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.coral }}>{fmtAir(stats.totalDelayMin)}</Text>
+                </View>
+              ) : null}
               {stats.punctuality.slice(0, 1).map((p) => (
                 <PunctRow key={`best-${p.airline}`} p={p} label="Most on time" />
               ))}
