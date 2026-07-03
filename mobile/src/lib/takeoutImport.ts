@@ -34,7 +34,7 @@ const CATEGORY_HINTS: [DiscoveryCategory, string[]][] = [
   ['nature', ['park', 'beach', 'garden', 'falls', 'waterfall', 'mountain', 'lake', 'trail', 'viewpoint', 'national park', 'reserve', 'forest', 'cliff', 'bay', 'island', 'volcano', 'hot spring']],
 ];
 
-function inferCategory(name: string): DiscoveryCategory {
+export function inferCategory(name: string): DiscoveryCategory {
   const n = name.toLowerCase();
   for (const [cat, hints] of CATEGORY_HINTS) if (hints.some((h) => n.includes(h))) return cat;
   return 'experience';
