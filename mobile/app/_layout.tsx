@@ -29,6 +29,7 @@ import { GlobalTabBar } from '../components/GlobalTabBar';
 import { ActionMenu, type ActionKind } from '../components/ActionMenu';
 import { AddPlaceSheet } from '../components/AddPlaceSheet';
 import { AddDiscoverySheet } from '../components/AddDiscoverySheet';
+import { QuickLogSheet } from '../components/QuickLogSheet';
 import { AddTripSheet } from '../components/AddTripSheet';
 import { AddPhotoSheet } from '../components/AddPhotoSheet';
 import { AddTripPlanSheet } from '../components/AddTripPlanSheet';
@@ -122,6 +123,7 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
           setSheet(kind);
         }}
       />
+      <QuickLogSheet visible={sheet === 'quicklog'} onClose={() => setSheet(null)} />
       <AddPlaceSheet visible={sheet === 'place'} onClose={() => setSheet(null)} />
       <AddDiscoverySheet visible={sheet === 'discovery'} onClose={() => setSheet(null)} />
       <AddTripSheet visible={sheet === 'journey'} onClose={() => setSheet(null)} />
