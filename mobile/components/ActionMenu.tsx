@@ -1,13 +1,14 @@
 import { Modal, View, Text, Pressable } from 'react-native';
-import { MapPin, Compass, Plane, Camera, CalendarDays } from 'lucide-react-native';
+import { MapPin, Compass, Plane, Camera, CalendarDays, Gem } from 'lucide-react-native';
 import type { ComponentType } from 'react';
-import { COLORS } from '../src/lib/theme';
+import { COLORS, GRADIENTS } from '../src/lib/theme';
+import { LinearGradient } from 'expo-linear-gradient';
 
-export type ActionKind = 'place' | 'discovery' | 'journey' | 'photo' | 'trip';
+export type ActionKind = 'quicklog' | 'place' | 'discovery' | 'journey' | 'photo' | 'trip';
 
 const OPTIONS: { kind: ActionKind; label: string; hint: string; icon: ComponentType<{ size?: number; color?: string }> }[] = [
   { kind: 'place', label: 'Add a place', hint: 'A country or city you’ve been to', icon: MapPin },
-  { kind: 'discovery', label: 'Add a discovery', hint: 'A place or experience worth remembering', icon: Compass },
+  { kind: 'discovery', label: 'Add a discovery', hint: 'With photos, notes & category', icon: Compass },
   { kind: 'journey', label: 'Log a journey', hint: 'A trip and how you travelled', icon: Plane },
   { kind: 'photo', label: 'Add a photo', hint: 'A memory from your travels', icon: Camera },
   { kind: 'trip', label: 'Plan a trip', hint: 'Somewhere you’re dreaming of', icon: CalendarDays },
@@ -29,6 +30,20 @@ export function ActionMenu({
         <Pressable onPress={(e) => e.stopPropagation()} style={{ backgroundColor: COLORS.warmwhite, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 14, paddingBottom: 36 }}>
           <View style={{ alignSelf: 'center', height: 5, width: 44, borderRadius: 3, backgroundColor: 'rgba(20,33,61,0.15)', marginBottom: 10 }} />
           <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, paddingHorizontal: 20, marginBottom: 10 }}>Add to your world</Text>
+
+          {/* Quick Log — the hero: rate a place in seconds. */}
+          <Pressable onPress={() => onPick('quicklog')} style={{ marginHorizontal: 20, marginBottom: 6, borderRadius: 22, overflow: 'hidden' }}>
+            <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 15 }}>
+              <View className="rounded-2xl items-center justify-center" style={{ height: 46, width: 46, backgroundColor: 'rgba(255,255,255,0.22)' }}>
+                <Gem size={22} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 16, fontWeight: '800', color: '#fff' }}>Leave a verdict</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: 'rgba(255,255,255,0.92)', marginTop: 1 }}>Rate a place in seconds</Text>
+              </View>
+            </LinearGradient>
+          </Pressable>
+
           {OPTIONS.map((o) => {
             const Icon = o.icon;
             return (
