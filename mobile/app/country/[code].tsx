@@ -438,6 +438,20 @@ export default function CountryScreen() {
           </Section>
         ) : null}
 
+        {/* Circle discovery gap — you've been here but logged nothing yet. */}
+        {rels.length > 0 && myDiscoveries.length === 0 ? (
+          <Pressable onPress={() => setDiscOpen(true)} className="rounded-3xl" style={{ marginHorizontal: 20, marginTop: 4, padding: 16, gap: 6, backgroundColor: 'rgba(255,107,154,0.08)' }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy }}>Your Circle hasn’t seen your picks yet</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2, lineHeight: 19 }}>
+              You’ve been to {name} — add your first discovery so your Circle can see what you loved.
+            </Text>
+            <View className="flex-row items-center rounded-full" style={{ alignSelf: 'flex-start', backgroundColor: COLORS.coral, paddingHorizontal: 14, paddingVertical: 9, gap: 6, marginTop: 4 }}>
+              <Plus size={15} color="#fff" />
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: '#fff' }}>Add your first discovery</Text>
+            </View>
+          </Pressable>
+        ) : null}
+
         {/* Your Circle — friends who've been here + their top rec */}
         {friends.length > 0 ? (
           <Section title="Your Circle">
