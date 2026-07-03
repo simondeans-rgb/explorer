@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { readAsStringAsync } from 'expo-file-system/legacy';
-import { Plane, ListChecks, Images, Check, RefreshCw, CloudDownload } from 'lucide-react-native';
+import { Plane, ListChecks, Images, Check, RefreshCw, CloudDownload, MapPin } from 'lucide-react-native';
 import { PageHero } from '../components/PageHero';
 import { goBack } from '../src/lib/nav';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
 import { useData } from '../src/store/data';
 import { buildImportPlan, planFromFlights, flightsFromExpeditions } from '../src/lib/flightyImport';
+import { parseTakeout } from '../src/lib/takeoutImport';
 import { parseCountryList } from '../src/lib/listImport';
 import { scanPhotosForCountries } from '../src/lib/photoScan';
 import { homeRanges } from '../src/lib/residence';
@@ -15,7 +16,45 @@ import { ScanResultSheet } from '../components/ScanResultSheet';
 import type { PlaceRow } from '../src/lib/flightyImport';
 
 export default function ImportScreen() {
-  const { importPlaces, importExpeditions, places, expeditions, removeExpedition } = useData();
+  const { importPlaces, importExpeditions, places, expeditions, removeExpedition, addDiscovery, discoveries } = useData();
+  const [takeoutBusy, setTakeoutBusy] = useState(false);
+  const [takeoutMsg, setTakeoutMsg] = useState<string | null>(null);
+  const [takeoutProgress, setTakeoutProgress] = useState<{ done: number; total: number } | null>(null);
+
+  async function importTakeout() {
+    setTakeoutMsg(null);
+    const res = await DocumentPicker.getDocumentAsync({ type: ['application/json', 'text/csv', 'text/comma-separated-values', 'application/geo+json', '*/*'], copyToCacheDirectory: true });
+    if (res.canceled || !res.assets?.[0]) return;
+    setTakeoutBusy(true);
+    try {
+      const text = await readAsStringAsync(res.assets[0].uri);
+      const rows = parseTakeout(text);
+      if (rows.length === 0) {
+        setTakeoutMsg("Couldn't find places in that file. In Google Takeout, export “Maps (your places)” and pick a Reviews or saved-list file (.json or .csv).");
+        return;
+      }
+      // Skip places already logged (by name), then add the rest one by one.
+      const have = new Set(discoveries.map((d) => d.name.trim().toLowerCase()));
+      const fresh = rows.filter((r) => !have.has(r.name.trim().toLowerCase()));
+      let added = 0;
+      setTakeoutProgress({ done: 0, total: fresh.length });
+      for (let i = 0; i < fresh.length; i++) {
+        const r = fresh[i];
+        try {
+          await addDiscovery({ name: r.name, category: r.category, verdict: r.verdict, countryCode: r.countryCode, city: r.city, note: r.note });
+          added += 1;
+        } catch { /* skip a bad row, keep going */ }
+        setTakeoutProgress({ done: i + 1, total: fresh.length });
+      }
+      const skipped = rows.length - fresh.length;
+      setTakeoutMsg(`Imported ${added} discover${added === 1 ? 'y' : 'ies'} from Google Maps${skipped ? ` · ${skipped} already logged` : ''}. Refine any verdicts or categories any time.`);
+    } catch {
+      setTakeoutMsg('Could not read that file.');
+    } finally {
+      setTakeoutBusy(false);
+      setTakeoutProgress(null);
+    }
+  }
   // Countries you live in — so imported trips aren't labelled as visits home.
   const homeCodes = new Set(
     places.filter((p) => p.relationships.some((r) => r === 'lived' || r === 'based')).map((p) => p.countryCode),
@@ -199,6 +238,21 @@ export default function ImportScreen() {
             </Pressable>
           ) : null}
           {csvMsg ? <Msg text={csvMsg} /> : null}
+        </Card>
+
+        {/* Google Maps (Takeout) */}
+        <Card icon={MapPin} title="Google Maps reviews" body="Already rated places on Google Maps? In Google Takeout, export “Maps (your places)”, then pick your Reviews or saved-list file — we’ll turn each into a discovery with a verdict.">
+          <Pressable onPress={importTakeout} disabled={takeoutBusy} style={btn(takeoutBusy)}>
+            {takeoutBusy ? (
+              <View className="flex-row items-center" style={{ gap: 8 }}>
+                <ActivityIndicator color="#fff" />
+                {takeoutProgress ? <Text style={btnText}>Importing {takeoutProgress.done}/{takeoutProgress.total}…</Text> : null}
+              </View>
+            ) : (
+              <Text style={btnText}>Choose Takeout file</Text>
+            )}
+          </Pressable>
+          {takeoutMsg ? <Msg text={takeoutMsg} /> : null}
         </Card>
 
         {/* List */}
