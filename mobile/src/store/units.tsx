@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { DistanceUnit, TempUnit } from '../lib/units';
+import { localeDistanceUnit, type DistanceUnit, type TempUnit } from '../lib/units';
 
 const KEY = 'worldly:units:v1';
 const TEMP_KEY = 'worldly:tempUnit:v1';
@@ -23,9 +23,10 @@ interface UnitsApi {
   setTempUnit: (u: TempUnit) => void;
 }
 
-// Default to miles + Celsius, which is what the app showed before these
-// preferences existed, so nothing changes for current users until they pick.
-const UnitsContext = createContext<UnitsApi>({ ready: false, unit: 'mi', setUnit: () => {}, tempUnit: 'c', setTempUnit: () => {} });
+// Default the distance unit from the device locale (km for most of the world,
+// miles only for the few miles-using regions) until the Member picks in the
+// Passport. Temperature stays Celsius by default.
+const UnitsContext = createContext<UnitsApi>({ ready: false, unit: 'km', setUnit: () => {}, tempUnit: 'c', setTempUnit: () => {} });
 
 export function useUnits(): UnitsApi {
   return useContext(UnitsContext);
@@ -33,7 +34,7 @@ export function useUnits(): UnitsApi {
 
 export function UnitsProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
-  const [unit, setUnitState] = useState<DistanceUnit>('mi');
+  const [unit, setUnitState] = useState<DistanceUnit>(localeDistanceUnit);
   const [tempUnit, setTempUnitState] = useState<TempUnit>('c');
 
   useEffect(() => {

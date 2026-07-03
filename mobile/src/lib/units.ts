@@ -7,6 +7,23 @@
 export type DistanceUnit = 'mi' | 'km';
 export type TempUnit = 'c' | 'f';
 
+// Only a handful of regions use miles day-to-day; everyone else expects km.
+const MILES_REGIONS = new Set(['US', 'LR', 'MM']);
+
+/** The sensible default distance unit for this device, from its locale region.
+ *  Kilometres everywhere except the few miles-using countries. Pure JS via Intl
+ *  (available in Hermes) so it needs no native module. Members can still switch
+ *  in the Passport. */
+export function localeDistanceUnit(): DistanceUnit {
+  try {
+    const loc = Intl.DateTimeFormat().resolvedOptions().locale || '';
+    const region = (loc.split('-')[1] || '').toUpperCase();
+    return MILES_REGIONS.has(region) ? 'mi' : 'km';
+  } catch {
+    return 'km';
+  }
+}
+
 export const KM_PER_MI = 1.609344;
 const KM2_PER_MI2 = 2.589988; // 1 square mile in km²
 

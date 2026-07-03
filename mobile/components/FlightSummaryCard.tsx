@@ -123,9 +123,21 @@ export function FlightSummaryCard(p: FlightSummaryProps) {
         </View>
       </View>
 
-      {/* times: scheduled (big), terminal, then actual + delay */}
+      {/* times: a status label, then scheduled (big), terminal, actual + delay */}
       {p.departTime || p.arriveTime ? (
-        <View className="flex-row items-start justify-between" style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 12, gap: 6 }}>
+          {(() => {
+            const actual = !!(p.departActual || p.arriveActual);
+            const tint = actual ? TEAL : COLORS.ink3;
+            return (
+              <View className="flex-row">
+                <View className="rounded-full" style={{ backgroundColor: tint + '1A', paddingHorizontal: 9, paddingVertical: 2 }}>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '800', letterSpacing: 0.5, color: tint }}>{actual ? 'ACTUAL' : 'SCHEDULED'}</Text>
+                </View>
+              </View>
+            );
+          })()}
+          <View className="flex-row items-start justify-between">
           <View style={{ flexShrink: 1 }}>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 16, fontWeight: '800', color: COLORS.navy }}>{p.departTime || '—'}</Text>
             {p.fromTerminal ? <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, color: COLORS.ink3 }}>Terminal {p.fromTerminal}</Text> : null}
@@ -140,6 +152,7 @@ export function FlightSummaryCard(p: FlightSummaryProps) {
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 16, fontWeight: '800', color: COLORS.navy }}>{p.arriveTime || '—'}</Text>
             {p.toTerminal ? <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, color: COLORS.ink3 }}>Terminal {p.toTerminal}</Text> : null}
             {arrInfo ? <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: arrInfo.tint, marginTop: 2 }}>{arrInfo.label}</Text> : null}
+          </View>
           </View>
         </View>
       ) : null}

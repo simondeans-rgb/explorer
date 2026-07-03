@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import Svg, { Rect, Line, Polyline, Circle, Text as SvgText } from 'react-native-svg';
-import { Plane, TrainFront, Ship, Car, Anchor, Globe2, Moon, Sun, ArrowRight, Clock, Timer } from 'lucide-react-native';
+import { Plane, TrainFront, Ship, Car, Anchor, Globe2, Moon, ArrowRight, Clock, Timer } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import type { JourneyMode } from '../src/types';
 import { COLORS, SHADOW } from '../src/lib/theme';
@@ -9,7 +9,7 @@ import {
   computeTravelStats,
   EARTH_CIRCUMFERENCE_MI,
   MOON_DISTANCE_MI,
-  SUN_CIRCUMFERENCE_MI,
+  LONDON_NY_MI,
   type TravelStats,
 } from '../src/lib/travelStats';
 import type { Expedition } from '../src/types';
@@ -50,7 +50,7 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 type Gran = 'year' | 'month' | 'weekday';
 
 /** A compact bar/line chart drawn with react-native-svg, sized to its width. */
-function Chart({ values, labels, kind, width }: { values: number[]; labels: string[]; kind: 'line' | 'bar'; width: number }) {
+function Chart({ values, labels, kind, width, partialLast }: { values: number[]; labels: string[]; kind: 'line' | 'bar'; width: number; partialLast?: boolean }) {
   const H = 150;
   const padL = 26;
   const padR = 8;
@@ -89,10 +89,20 @@ function Chart({ values, labels, kind, width }: { values: number[]; labels: stri
           })
         : (
           <>
-            <Polyline points={values.map((v, i) => `${x(i)},${y(v)}`).join(' ')} fill="none" stroke={COLORS.lavender} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
-            {values.map((v, i) => (
-              <Circle key={i} cx={x(i)} cy={y(v)} r={3.5} fill="#fff" stroke={COLORS.lavender} strokeWidth={2} />
-            ))}
+            {/* solid line through completed points; the current (partial) year
+                is drawn with a dashed lead-in + a hollow dot so it doesn't read
+                as a real drop-off. */}
+            <Polyline points={values.slice(0, partialLast && n > 1 ? n - 1 : n).map((v, i) => `${x(i)},${y(v)}`).join(' ')} fill="none" stroke={COLORS.lavender} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+            {partialLast && n > 1 ? (
+              <Line x1={x(n - 2)} y1={y(values[n - 2])} x2={x(n - 1)} y2={y(values[n - 1])} stroke={COLORS.lavender} strokeWidth={2.5} strokeDasharray="4 4" strokeLinecap="round" />
+            ) : null}
+            {values.map((v, i) => {
+              const partial = partialLast && i === n - 1;
+              return <Circle key={i} cx={x(i)} cy={y(v)} r={3.5} fill="#fff" stroke={partial ? COLORS.ink3 : COLORS.lavender} strokeWidth={2} />;
+            })}
+            {partialLast && n > 0 ? (
+              <SvgText x={x(n - 1)} y={y(values[n - 1]) - 8} fontSize={8.5} fill={COLORS.ink3} textAnchor="middle">so far</SvgText>
+            ) : null}
           </>
         )}
       {labels.map((lab, i) =>
@@ -163,7 +173,7 @@ function Segmented({ value, onChange }: { value: Gran; onChange: (g: Gran) => vo
 }
 
 /** A ranked list (airlines / aircraft) with a proportional bar behind each row. */
-function RankBlock({ title, rows, tint, suffix }: { title: string; rows: { label: string; count: number }[]; tint: string; suffix: string }) {
+function RankBlock({ title, rows, tint }: { title: string; rows: { label: string; count: number }[]; tint: string }) {
   const max = Math.max(...rows.map((r) => r.count), 1);
   return (
     <View style={{ gap: 8 }}>
@@ -174,7 +184,7 @@ function RankBlock({ title, rows, tint, suffix }: { title: string; rows: { label
           <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 11 }}>
             <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: COLORS.ink, flexShrink: 1 }}>{r.label}</Text>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink2, marginLeft: 8 }}>
-              <Text style={{ fontWeight: '800', color: COLORS.navy }}>{r.count}</Text> {suffix}
+              <Text style={{ fontWeight: '800', color: COLORS.navy }}>{r.count}</Text> {r.count === 1 ? 'flight' : 'flights'}
             </Text>
           </View>
         </View>
@@ -219,17 +229,24 @@ export function JourneyStatsPanel({ expeditions }: { expeditions: Expedition[] }
   // Nothing to show if there are no flights and no other legs.
   if (stats.totalLegs === 0) return null;
 
+  const currentYear = new Date().getFullYear();
   const chart = (() => {
-    if (gran === 'month') return { values: stats.perMonth, labels: MONTHS, kind: 'bar' as const };
-    if (gran === 'weekday') return { values: stats.perWeekday, labels: WEEKDAYS, kind: 'bar' as const };
-    return { values: stats.perYear.map((p) => p.count), labels: stats.perYear.map((p) => p.label), kind: 'line' as const };
+    if (gran === 'month') return { values: stats.perMonth, labels: MONTHS, kind: 'bar' as const, partialLast: false };
+    if (gran === 'weekday') return { values: stats.perWeekday, labels: WEEKDAYS, kind: 'bar' as const, partialLast: false };
+    const py = stats.perYear;
+    return {
+      values: py.map((p) => p.count),
+      labels: py.map((p) => p.label),
+      kind: 'line' as const,
+      partialLast: py.length > 0 && py[py.length - 1].label === String(currentYear),
+    };
   })();
   const hasChartData = chart.values.some((v) => v > 0);
 
   const earthX = distanceMi / EARTH_CIRCUMFERENCE_MI;
   const moonX = distanceMi / MOON_DISTANCE_MI;
-  const sunX = distanceMi / SUN_CIRCUMFERENCE_MI;
-  const maxX = Math.max(earthX, moonX, sunX, 0.0001);
+  const lnyX = distanceMi / LONDON_NY_MI;
+  const maxX = Math.max(earthX, moonX, lnyX, 0.0001);
 
   return (
     <View style={{ gap: 12 }}>
@@ -248,19 +265,19 @@ export function JourneyStatsPanel({ expeditions }: { expeditions: Expedition[] }
             ] as [string, number][]).filter(([, v]) => v > 0).map(([label, v]) => (
               <View key={label} className="flex-row items-baseline rounded-full" style={{ backgroundColor: '#F4F3FB', paddingHorizontal: 10, paddingVertical: 4, gap: 4 }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '800', color: COLORS.navy }}>{v}</Text>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{label}</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{v === 1 ? label.replace(/s$/, '') : label}</Text>
               </View>
             ))}
           </View>
 
           <View style={{ marginTop: 16, marginBottom: 8 }}>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 0.6, color: COLORS.ink3, marginBottom: 8 }}>FLIGHTS PER</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 0.6, color: COLORS.ink3, marginBottom: 8 }}>FLIGHTS PER {gran.toUpperCase()}</Text>
             <Segmented value={gran} onChange={setGran} />
           </View>
           <View onLayout={(e) => setChartW(e.nativeEvent.layout.width)}>
             {chartW > 0 ? (
               hasChartData ? (
-                <Chart values={chart.values} labels={chart.labels} kind={chart.kind} width={chartW} />
+                <Chart values={chart.values} labels={chart.labels} kind={chart.kind} width={chartW} partialLast={chart.partialLast} />
               ) : (
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, textAlign: 'center', paddingVertical: 24 }}>
                   Add dates to your flights to see this chart.
@@ -283,8 +300,8 @@ export function JourneyStatsPanel({ expeditions }: { expeditions: Expedition[] }
           ) : <View style={{ height: 8 }} />}
           <View style={{ gap: 8 }}>
             <CompareRow Icon={Globe2} tint={COLORS.aqua} multiple={earthX} frac={earthX / maxX} label="around the Earth" />
+            <CompareRow Icon={Plane} tint={COLORS.sunburst} multiple={lnyX} frac={lnyX / maxX} label="London → New York" />
             <CompareRow Icon={Moon} tint={COLORS.lavender} multiple={moonX} frac={moonX / maxX} label="to the Moon" />
-            <CompareRow Icon={Sun} tint={COLORS.sunburst} multiple={sunX} frac={sunX / maxX} label="around the Sun" />
           </View>
 
           {stats.longest || stats.shortest ? (
@@ -313,10 +330,10 @@ export function JourneyStatsPanel({ expeditions }: { expeditions: Expedition[] }
           ) : null}
 
           {stats.topAirlines.length > 0 ? (
-            <RankBlock title="TOP AIRLINES" rows={stats.topAirlines} tint={COLORS.lavender} suffix="flights" />
+            <RankBlock title="TOP AIRLINES" rows={stats.topAirlines} tint={COLORS.lavender} />
           ) : null}
           {stats.topAircraft.length > 0 ? (
-            <RankBlock title="TOP AIRCRAFT" rows={stats.topAircraft} tint={COLORS.aqua} suffix="flights" />
+            <RankBlock title="TOP AIRCRAFT" rows={stats.topAircraft} tint={COLORS.lavender} />
           ) : null}
 
           {stats.punctuality.length > 0 || stats.totalDelayMin > 0 ? (
