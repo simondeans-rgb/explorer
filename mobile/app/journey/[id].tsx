@@ -465,7 +465,7 @@ export default function JourneyScreen() {
                 </Pressable>
               ) : null}
               {leg.mode === 'flight' ? (
-                <FlightSummaryCard from={leg.from} to={leg.to} airline={leg.operator} flightNumber={leg.reference} aircraft={leg.vehicle} departTime={leg.departTime} arriveTime={leg.arriveTime} fromTerminal={leg.fromTerminal} toTerminal={leg.toTerminal} distanceKm={leg.distanceKm} durationMin={leg.durationMin} departDelayMin={leg.departDelayMin} arriveDelayMin={leg.arriveDelayMin} unit={unit} />
+                <FlightSummaryCard from={leg.from} to={leg.to} airline={leg.operator} flightNumber={leg.reference} aircraft={leg.vehicle} departTime={leg.departTime} arriveTime={leg.arriveTime} departActual={leg.departActual} arriveActual={leg.arriveActual} fromTerminal={leg.fromTerminal} toTerminal={leg.toTerminal} distanceKm={leg.distanceKm} durationMin={leg.durationMin} departDelayMin={leg.departDelayMin} arriveDelayMin={leg.arriveDelayMin} unit={unit} />
               ) : null}
               <Field placeholder="Aircraft / vehicle" value={leg.vehicle} onChange={(t) => patchLeg(leg.id, { vehicle: t })} />
               <Field placeholder="Notes" value={leg.note} onChange={(t) => patchLeg(leg.id, { note: t })} />
