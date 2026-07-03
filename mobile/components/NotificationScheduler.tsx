@@ -1,21 +1,21 @@
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { useData } from '../src/store/data';
-import { rescheduleAnniversaries } from '../src/lib/notifications';
+import { rescheduleNotifications } from '../src/lib/notifications';
 
-/** Reschedules travel-anniversary notifications on launch and whenever the app
- *  returns to the foreground, so the upcoming "on this day" reminders stay
- *  current as the user's trips and places change. Renders nothing. */
+/** Reschedules our on-device reminders (travel anniversaries + post-trip
+ *  discovery nudges) on launch and whenever the app returns to the foreground,
+ *  so they stay current as the user's trips and places change. Renders nothing. */
 export function NotificationScheduler() {
-  const { places, expeditions } = useData();
+  const { places, expeditions, trips } = useData();
 
   useEffect(() => {
-    rescheduleAnniversaries(expeditions, places);
+    rescheduleNotifications(expeditions, places, trips);
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') rescheduleAnniversaries(expeditions, places);
+      if (s === 'active') rescheduleNotifications(expeditions, places, trips);
     });
     return () => sub.remove();
-  }, [places, expeditions]);
+  }, [places, expeditions, trips]);
 
   return null;
 }
