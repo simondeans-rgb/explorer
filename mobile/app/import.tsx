@@ -97,7 +97,10 @@ export default function ImportScreen() {
       }
       const { added, skipped } = await addDiscoveryRows(rows, setSwarmProgress);
       setSwarmMsg(`Imported ${added} place${added === 1 ? '' : 's'} from your check-ins${skipped ? ` · ${skipped} already logged` : ''}.`);
+<<<<<<< HEAD
       track('import_run', { source: 'swarm', count: added });
+=======
+>>>>>>> origin/claude/explorers-passport-product-t44t5z
     } catch {
       setSwarmMsg('Could not read that file.');
     } finally {
@@ -124,7 +127,10 @@ export default function ImportScreen() {
       const added = await importPlaces(result.places);
       await importExpeditions(result.expeditions);
       setPolarMsg(`Imported ${result.expeditions.length} trip${result.expeditions.length === 1 ? '' : 's'} → ${added} new place${added === 1 ? '' : 's'}.`);
+<<<<<<< HEAD
       track('import_run', { source: 'polarsteps', count: result.expeditions.length });
+=======
+>>>>>>> origin/claude/explorers-passport-product-t44t5z
     } catch {
       setPolarMsg('Could not read that Polarsteps export.');
     } finally {
@@ -146,7 +152,10 @@ export default function ImportScreen() {
       }
       const added = await importPlaces(rows);
       setTripitMsg(`Imported ${added} new place${added === 1 ? '' : 's'} from ${matched} of ${events} itinerary item${events === 1 ? '' : 's'}.`);
+<<<<<<< HEAD
       track('import_run', { source: 'tripit', count: added });
+=======
+>>>>>>> origin/claude/explorers-passport-product-t44t5z
     } catch {
       setTripitMsg('Could not read that file.');
     } finally {
