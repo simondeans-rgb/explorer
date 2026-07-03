@@ -15,6 +15,7 @@ import { parseTripit } from '../src/lib/tripitImport';
 import { parseCountryList } from '../src/lib/listImport';
 import { scanPhotosForCountries } from '../src/lib/photoScan';
 import { homeRanges } from '../src/lib/residence';
+import { track } from '../src/lib/analytics';
 import { ScanResultSheet } from '../components/ScanResultSheet';
 import type { PlaceRow } from '../src/lib/flightyImport';
 
@@ -73,6 +74,7 @@ export default function ImportScreen() {
       }
       const { added, skipped } = await addDiscoveryRows(rows, setTakeoutProgress);
       setTakeoutMsg(`Imported ${added} discover${added === 1 ? 'y' : 'ies'} from Google Maps${skipped ? ` · ${skipped} already logged` : ''}. Refine any verdicts or categories any time.`);
+      track('import_run', { source: 'google_maps', count: added });
     } catch {
       setTakeoutMsg('Could not read that file.');
     } finally {
@@ -95,6 +97,10 @@ export default function ImportScreen() {
       }
       const { added, skipped } = await addDiscoveryRows(rows, setSwarmProgress);
       setSwarmMsg(`Imported ${added} place${added === 1 ? '' : 's'} from your check-ins${skipped ? ` · ${skipped} already logged` : ''}.`);
+<<<<<<< HEAD
+      track('import_run', { source: 'swarm', count: added });
+=======
+>>>>>>> origin/claude/explorers-passport-product-t44t5z
     } catch {
       setSwarmMsg('Could not read that file.');
     } finally {
@@ -121,6 +127,10 @@ export default function ImportScreen() {
       const added = await importPlaces(result.places);
       await importExpeditions(result.expeditions);
       setPolarMsg(`Imported ${result.expeditions.length} trip${result.expeditions.length === 1 ? '' : 's'} → ${added} new place${added === 1 ? '' : 's'}.`);
+<<<<<<< HEAD
+      track('import_run', { source: 'polarsteps', count: result.expeditions.length });
+=======
+>>>>>>> origin/claude/explorers-passport-product-t44t5z
     } catch {
       setPolarMsg('Could not read that Polarsteps export.');
     } finally {
@@ -142,6 +152,10 @@ export default function ImportScreen() {
       }
       const added = await importPlaces(rows);
       setTripitMsg(`Imported ${added} new place${added === 1 ? '' : 's'} from ${matched} of ${events} itinerary item${events === 1 ? '' : 's'}.`);
+<<<<<<< HEAD
+      track('import_run', { source: 'tripit', count: added });
+=======
+>>>>>>> origin/claude/explorers-passport-product-t44t5z
     } catch {
       setTripitMsg('Could not read that file.');
     } finally {
@@ -196,6 +210,7 @@ export default function ImportScreen() {
       const added = await importPlaces(plan.places);
       await importExpeditions(plan.expeditions);
       setCsvMsg(`Imported ${plan.flightCount} flights → ${added} new places and ${plan.expeditions.length} trips.`);
+      track('import_run', { source: 'flights_csv', count: plan.flightCount });
     } catch {
       setCsvMsg('Could not read that file.');
     } finally {
@@ -246,6 +261,7 @@ export default function ImportScreen() {
       const added = await importPlaces(rows);
       const extra = unmatched.length ? ` (${unmatched.length} not recognised)` : '';
       setListMsg(`Added ${added} new place${added === 1 ? '' : 's'}${extra}.`);
+      track('import_run', { source: 'list', count: added });
       setListText('');
     } finally {
       setListBusy(false);
@@ -284,6 +300,7 @@ export default function ImportScreen() {
       setScanRows(rows);
       setScanNote(`${limitedNote}${partialNote}`);
       setScanSheetOpen(true);
+      track('import_run', { source: 'photo_scan', count: rows.length });
     } catch {
       setScanMsg('Could not scan your photos.');
     } finally {

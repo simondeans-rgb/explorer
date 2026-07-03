@@ -20,6 +20,7 @@ import { useToast } from '../../src/store/toast';
 import { useOnboarding } from '../../src/store/onboarding';
 import { exportMyData } from '../../src/lib/exportData';
 import { anniversariesEnabled, setAnniversariesEnabled, postTripRemindersEnabled, setPostTripRemindersEnabled, requestNotificationPermission, rescheduleNotifications } from '../../src/lib/notifications';
+import { track } from '../../src/lib/analytics';
 import { friendActivityEnabled, enableFriendActivity, disableFriendActivity, tripActivityEnabled, enableTripActivity, disableTripActivity, refreshPushToken } from '../../src/lib/push';
 import { AuthSheet } from '../../components/AuthSheet';
 import { DeleteAccountSheet } from '../../components/DeleteAccountSheet';
@@ -136,11 +137,13 @@ export default function YouScreen() {
       }
       await setPostTripRemindersEnabled(true);
       setPostTripOn(true);
+      track('notification_toggled', { type: 'post_trip', on: true });
       await rescheduleNotifications(expeditions, places, trips);
       toast.success('Trip discovery reminders on ✨');
     } else {
       await setPostTripRemindersEnabled(false);
       setPostTripOn(false);
+      track('notification_toggled', { type: 'post_trip', on: false });
       await rescheduleNotifications(expeditions, places, trips);
     }
   }
@@ -156,10 +159,12 @@ export default function YouScreen() {
         return;
       }
       setCrewNotifOn(true);
+      track('notification_toggled', { type: 'trip_crew', on: true });
       toast.success('Trip crew updates on 🗺️');
     } else {
       await disableTripActivity();
       setCrewNotifOn(false);
+      track('notification_toggled', { type: 'trip_crew', on: false });
     }
   }
 
@@ -174,10 +179,12 @@ export default function YouScreen() {
         return;
       }
       setCircleNotifOn(true);
+      track('notification_toggled', { type: 'circle', on: true });
       toast.success('Circle updates on 👋');
     } else {
       await disableFriendActivity();
       setCircleNotifOn(false);
+      track('notification_toggled', { type: 'circle', on: false });
     }
   }
 
@@ -189,11 +196,13 @@ export default function YouScreen() {
       }
       await setAnniversariesEnabled(true);
       setNotifOn(true);
+      track('notification_toggled', { type: 'anniversaries', on: true });
       await rescheduleNotifications(expeditions, places, trips);
       toast.success('Anniversary reminders on ✈️');
     } else {
       await setAnniversariesEnabled(false);
       setNotifOn(false);
+      track('notification_toggled', { type: 'anniversaries', on: false });
       await rescheduleNotifications(expeditions, places, trips);
     }
   }
@@ -295,7 +304,7 @@ export default function YouScreen() {
         {statItems.map(([label, value, color]) => (
           <View key={label} className="rounded-2xl items-center" style={{ flex: 1, paddingVertical: 14, backgroundColor: `${color}16` }}>
             <Text style={{ fontFamily: 'Fraunces', fontSize: 24, color }}>{value}</Text>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, color: COLORS.ink2, marginTop: 2, fontWeight: '700', letterSpacing: 0.4 }}>{label.toUpperCase()}</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink2, marginTop: 2, fontWeight: '700', letterSpacing: 0.4 }}>{label.toUpperCase()}</Text>
           </View>
         ))}
       </View>
@@ -375,7 +384,7 @@ export default function YouScreen() {
           <Pressable onPress={() => router.push('/achievements')} className="bg-white rounded-2xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 2, padding: 12, gap: 12 }}>
             <AchievementBadge badge={nextBadge} tile={44} />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3 }}>NEXT UP</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3 }}>NEXT UP</Text>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.navy, marginTop: 1 }}>{nextBadge.title}</Text>
               <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{nextBadge.description} · {Math.min(nextBadge.value, nextBadge.target)}/{nextBadge.target}</Text>
             </View>
@@ -458,7 +467,7 @@ export default function YouScreen() {
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>Travel anniversaries</Text>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>“On this day” memories of where you've been</Text>
             </View>
-            <Switch value={notifOn} onValueChange={onToggleNotif} trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.coral }} thumbColor="#fff" />
+            <Switch accessibilityLabel="Travel anniversaries" value={notifOn} onValueChange={onToggleNotif} trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.coral }} thumbColor="#fff" />
           </View>
           <View className="flex-row items-center" style={{ gap: 12, paddingVertical: 14, borderTopWidth: 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
             <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(245,166,35,0.14)' }}>
@@ -468,7 +477,7 @@ export default function YouScreen() {
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>Trip discovery reminders</Text>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>After a trip, a nudge to log what you found</Text>
             </View>
-            <Switch value={postTripOn} onValueChange={onTogglePostTrip} trackColor={{ false: 'rgba(20,33,61,0.12)', true: '#F5A623' }} thumbColor="#fff" />
+            <Switch accessibilityLabel="Trip discovery reminders" value={postTripOn} onValueChange={onTogglePostTrip} trackColor={{ false: 'rgba(20,33,61,0.12)', true: '#F5A623' }} thumbColor="#fff" />
           </View>
           <View className="flex-row items-center" style={{ gap: 12, paddingVertical: 14, borderTopWidth: 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
             <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(155,124,255,0.14)' }}>
@@ -478,7 +487,7 @@ export default function YouScreen() {
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>From your circle</Text>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>When friends log trips & recommendations</Text>
             </View>
-            <Switch value={circleNotifOn} onValueChange={onToggleCircleNotif} trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.lavender }} thumbColor="#fff" />
+            <Switch accessibilityLabel="Updates from your circle" value={circleNotifOn} onValueChange={onToggleCircleNotif} trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.lavender }} thumbColor="#fff" />
           </View>
           <View className="flex-row items-center" style={{ gap: 12, paddingVertical: 14, borderTopWidth: 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
             <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(36,209,195,0.14)' }}>
@@ -488,7 +497,7 @@ export default function YouScreen() {
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>Trip crew updates</Text>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>When crew edit a shared itinerary</Text>
             </View>
-            <Switch value={crewNotifOn} onValueChange={onToggleCrewNotif} trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.aqua }} thumbColor="#fff" />
+            <Switch accessibilityLabel="Trip crew updates" value={crewNotifOn} onValueChange={onToggleCrewNotif} trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.aqua }} thumbColor="#fff" />
           </View>
         </View>
       </View>

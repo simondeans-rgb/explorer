@@ -103,7 +103,7 @@ function Superlative({ code, icon: Icon, label, value, width }: { code: string; 
       <DestinationImage code={code} scrim style={{ height: 112, borderRadius: 18, padding: 12, justifyContent: 'flex-end' }}>
         <View className="flex-row items-center" style={{ gap: 5, position: 'absolute', top: 11, left: 12, right: 12 }}>
           <Icon size={12} color="#fff" />
-          <Text numberOfLines={1} className="text-white" style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.6, opacity: 0.95 }}>{label.toUpperCase()}</Text>
+          <Text numberOfLines={1} className="text-white" style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 0.6, opacity: 0.95 }}>{label.toUpperCase()}</Text>
         </View>
         <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 16 }}>{flagEmoji(code)} {countryName(code)}</Text>
         <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, opacity: 0.95, marginTop: 1 }}>{value}</Text>

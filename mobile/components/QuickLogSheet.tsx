@@ -9,6 +9,7 @@ import { flagEmoji } from '../src/lib/flags';
 import { RECOMMENDATION_VERDICTS, VERDICT_META, type RecommendationVerdict } from '../src/types';
 import { useData } from '../src/store/data';
 import { useToast } from '../src/store/toast';
+import { track } from '../src/lib/analytics';
 
 // The Quick Log — capture first, enrich later. One place + one verdict, saved
 // the moment the verdict is tapped. Everything else (name refinement, category,
@@ -46,7 +47,7 @@ const VERDICT_STYLE: Record<RecommendationVerdict, { tint: string; icon: Compone
   avoid: { tint: COLORS.danger, icon: ThumbsDown },
 };
 
-export function QuickLogSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+export function QuickLogSheet({ visible, onClose, onExpand }: { visible: boolean; onClose: () => void; onExpand?: () => void }) {
   const { addDiscovery, discoveries } = useData();
   const { toast } = useToast();
   const [where, setWhere] = useState('');
@@ -94,6 +95,7 @@ export function QuickLogSheet({ visible, onClose }: { visible: boolean; onClose:
     setSaving(verdict);
     try {
       await addDiscovery({ name, category: 'experience', verdict, countryCode, city });
+      track('verdict_logged', { verdict, located: Boolean(countryCode) });
       const count = verdict === 'hidden-gem'
         ? discoveries.filter((d) => d.verdict === 'hidden-gem').length + 1
         : discoveries.length + 1;
@@ -165,7 +167,7 @@ export function QuickLogSheet({ visible, onClose }: { visible: boolean; onClose:
               const Icon = s.icon;
               const busy = saving === v;
               return (
-                <Pressable key={v} onPress={() => log(v)} disabled={!!saving} className="flex-row items-center bg-white rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 13, gap: 12, borderWidth: 1.5, borderColor: s.tint + '33', opacity: saving && !busy ? 0.5 : 1 }}>
+                <Pressable key={v} accessibilityRole="button" accessibilityLabel={`${VERDICT_META[v].label} — ${VERDICT_META[v].hint}`} onPress={() => log(v)} disabled={!!saving} className="flex-row items-center bg-white rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 13, gap: 12, borderWidth: 1.5, borderColor: s.tint + '33', opacity: saving && !busy ? 0.5 : 1 }}>
                   <View className="rounded-full items-center justify-center" style={{ height: 38, width: 38, backgroundColor: s.tint + '1A' }}>
                     {busy ? <ActivityIndicator size="small" color={s.tint} /> : <Icon size={19} color={s.tint} />}
                   </View>
@@ -182,6 +184,12 @@ export function QuickLogSheet({ visible, onClose }: { visible: boolean; onClose:
             <Users size={13} color={COLORS.ink3} />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>Your verdict will be visible to your Circle</Text>
           </View>
+
+          {onExpand ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Add full details — photo, category and notes" onPress={onExpand} hitSlop={8} style={{ alignItems: 'center', paddingVertical: 4 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.coral }}>Add full details instead — photo, category & notes</Text>
+            </Pressable>
+          ) : null}
         </View>
       )}
     </SheetShell>

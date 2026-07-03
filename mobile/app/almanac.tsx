@@ -316,7 +316,7 @@ function Stat({ value, label, icon: Icon }: { value: number; label: string; icon
         </View>
       ) : null}
       <Text style={{ fontFamily: 'Fraunces', fontSize: 24, color: COLORS.navy }}>{value}</Text>
-      <Text numberOfLines={2} style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '600', letterSpacing: 0.3, color: COLORS.ink3, marginTop: 3, textAlign: 'center' }}>{label.toUpperCase()}</Text>
+      <Text numberOfLines={2} style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '600', letterSpacing: 0.3, color: COLORS.ink3, marginTop: 3, textAlign: 'center' }}>{label.toUpperCase()}</Text>
     </View>
   );
 }

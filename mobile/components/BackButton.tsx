@@ -7,6 +7,8 @@ import { SHADOW } from '../src/lib/theme';
 export function BackButton({ onPress, style }: { onPress: () => void; style?: StyleProp<ViewStyle> }) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Back"
       onPress={onPress}
       hitSlop={12}
       className="h-10 w-10 rounded-full items-center justify-center"

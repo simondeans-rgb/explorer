@@ -114,7 +114,7 @@ export function ExplorerLevelCard({
       <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 }}>
         <Medal level={level.level} />
         <View style={{ flex: 1, marginLeft: 10 }}>
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10.5, fontWeight: '800', letterSpacing: 1, color: COLORS.coral }}>EXPLORER LEVEL</Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.coral }}>EXPLORER LEVEL</Text>
           <Text numberOfLines={1} style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, marginTop: 1 }}>{level.title}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 7 }}>
             <Chip Icon={Globe2} color={COLORS.aqua} value={`${stats.countriesDiscovered} countries`} />

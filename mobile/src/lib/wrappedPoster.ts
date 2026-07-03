@@ -25,6 +25,8 @@ export interface WrappedPosterInput {
   topCountryName?: string;
   topCountryCode?: string;
   flagCodes: string[];
+  /** Scope the poster to a year ("SIMON'S 2026, WRAPPED") instead of lifetime. */
+  year?: number;
 }
 
 function statCell(n: number, label: string): string {
@@ -61,7 +63,7 @@ export function buildWrappedPosterHtml(input: WrappedPosterInput): string {
     .footer { position: absolute; left: 0; right: 0; bottom: 46px; font-size: 22px; opacity: .72; }
   </style></head><body><div class="page">
     <div class="brand">worldly</div>
-    <div class="eyebrow">${esc(first.toUpperCase())}&#8217;S WORLD, WRAPPED</div>
+    <div class="eyebrow">${esc(first.toUpperCase())}&#8217;S ${input.year ?? 'WORLD,'} WRAPPED</div>
     <div class="big">${input.countries}</div>
     <div class="bigsub">${input.countries === 1 ? 'country' : 'countries'} explored</div>
     <div class="grid">

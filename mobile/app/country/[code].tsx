@@ -106,7 +106,7 @@ function TempChart({ temps, tempUnit }: { temps: number[]; tempUnit: TempUnit })
           const h = 10 + Math.round(((t - min) / span) * 52);
           return (
             <View key={i} style={{ flex: 1, alignItems: 'center' }}>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 8.5, fontWeight: '700', color: COLORS.ink2, marginBottom: 3 }}>{convertCelsius(t, tempUnit)}°</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.ink2, marginBottom: 3 }}>{convertCelsius(t, tempUnit)}°</Text>
               <View style={{ width: '100%', height: h, borderRadius: 4, backgroundColor: t >= 24 ? COLORS.coral : t >= 12 ? COLORS.sunburst : COLORS.aqua }} />
             </View>
           );
@@ -114,7 +114,7 @@ function TempChart({ temps, tempUnit }: { temps: number[]; tempUnit: TempUnit })
       </View>
       <View className="flex-row" style={{ marginTop: 6, gap: 4 }}>
         {MONTHS.map((m, i) => (
-          <Text key={i} style={{ flex: 1, textAlign: 'center', fontFamily: 'PlusJakarta', fontSize: 9, color: COLORS.ink3 }}>{m}</Text>
+          <Text key={i} style={{ flex: 1, textAlign: 'center', fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3 }}>{m}</Text>
         ))}
       </View>
     </View>

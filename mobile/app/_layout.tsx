@@ -34,10 +34,13 @@ import { AddTripSheet } from '../components/AddTripSheet';
 import { AddPhotoSheet } from '../components/AddPhotoSheet';
 import { AddTripPlanSheet } from '../components/AddTripPlanSheet';
 import { AuthGate } from '../components/AuthGate';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { initSentry, wrapWithSentry } from '../src/lib/sentry';
+import { track, identify } from '../src/lib/analytics';
 
 SplashScreen.preventAutoHideAsync();
 initSentry();
+track('app_opened');
 
 function RootLayout() {
   const [loaded] = useFonts({
@@ -56,7 +59,9 @@ function RootLayout() {
               <ToastProvider>
                 <CelebrationProvider>
                   <ConfirmProvider>
-                    <RootContent fontsLoaded={loaded} />
+                    <ErrorBoundary>
+                      <RootContent fontsLoaded={loaded} />
+                    </ErrorBoundary>
                   </ConfirmProvider>
                 </CelebrationProvider>
               </ToastProvider>
@@ -86,6 +91,11 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
   useEffect(() => {
     if (appReady) SplashScreen.hideAsync();
   }, [appReady]);
+
+  // Tie analytics to the signed-in account (uid only) once per session.
+  useEffect(() => {
+    if (user?.uid) identify(user.uid);
+  }, [user?.uid]);
 
   if (!appReady) return null;
 
@@ -121,9 +131,10 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
         onPick={(kind) => {
           setMenuOpen(false);
           setSheet(kind);
+          track('fab_action', { kind });
         }}
       />
-      <QuickLogSheet visible={sheet === 'quicklog'} onClose={() => setSheet(null)} />
+      <QuickLogSheet visible={sheet === 'quicklog'} onClose={() => setSheet(null)} onExpand={() => setSheet('discovery')} />
       <AddPlaceSheet visible={sheet === 'place'} onClose={() => setSheet(null)} />
       <AddDiscoverySheet visible={sheet === 'discovery'} onClose={() => setSheet(null)} />
       <AddTripSheet visible={sheet === 'journey'} onClose={() => setSheet(null)} />

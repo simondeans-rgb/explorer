@@ -31,6 +31,8 @@ export function SheetShell({
           <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 20, paddingTop: 18, paddingBottom: 8 }}>
             <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy }}>{title}</Text>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close"
               onPress={onClose}
               hitSlop={8}
               className="h-9 w-9 rounded-full items-center justify-center"

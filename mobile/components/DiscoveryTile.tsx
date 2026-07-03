@@ -60,7 +60,7 @@ export const DiscoveryTile = memo(function DiscoveryTile({ discovery: d, width, 
           </View>
           {d.verdict ? (
             <View className="rounded-full" style={{ position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(255,255,255,0.94)', paddingHorizontal: 9, paddingVertical: 4 }}>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '800', color: VERDICT_COLOR[d.verdict] }}>{VERDICT_META[d.verdict].label}</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', color: VERDICT_COLOR[d.verdict] }}>{VERDICT_META[d.verdict].label}</Text>
             </View>
           ) : null}
 
