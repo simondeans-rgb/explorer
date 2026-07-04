@@ -1,18 +1,17 @@
 import { Modal, View, Text, Pressable } from 'react-native';
-import { MapPin, Plane, Camera, CalendarDays, Gem } from 'lucide-react-native';
+import { MapPin, Plane, Camera, Gem } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { COLORS } from '../src/lib/theme';
 
-export type ActionKind = 'quicklog' | 'place' | 'discovery' | 'journey' | 'photo' | 'trip';
+export type ActionKind = 'quicklog' | 'place' | 'discovery' | 'journey' | 'photo' | 'trip' | 'tripentry';
 
 // Kept tight on purpose: the full discovery editor isn't a separate menu item —
-// it's reached from Quick Log ("Add full details") and from country pages, so
-// the menu offers one clear way to do each thing.
+// it's reached from Quick Log ("Add full details") and from country pages —
+// and past + future trips share one "Add a trip" entry with a chooser.
 const OPTIONS: { kind: ActionKind; label: string; hint: string; icon: ComponentType<{ size?: number; color?: string }> }[] = [
   { kind: 'place', label: 'Add a place', hint: 'A country or city you’ve been to', icon: MapPin },
-  { kind: 'journey', label: 'Log a journey', hint: 'A trip and how you travelled', icon: Plane },
+  { kind: 'tripentry', label: 'Add a trip', hint: 'One you’ve taken, or one coming up', icon: Plane },
   { kind: 'photo', label: 'Add a photo', hint: 'A memory from your travels', icon: Camera },
-  { kind: 'trip', label: 'Plan a trip', hint: 'Somewhere you’re dreaming of', icon: CalendarDays },
 ];
 
 /** The action sheet the centre nav button opens. */

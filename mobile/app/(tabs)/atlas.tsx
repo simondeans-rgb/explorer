@@ -175,6 +175,7 @@ export default function AtlasScreen() {
     () => (scope === 'all' ? expeditions : expeditions.filter((e) => yearOf(e.startDate, e.createdAt) === scope)),
     [expeditions, scope],
   );
+  const [journeyLimit, setJourneyLimit] = useState(40);
   const shownJourneys = useMemo(() => {
     let list = scopedJourneys;
     if (!showDomestic) list = list.filter((e) => new Set(e.countryCodes).size > 1);
@@ -341,7 +342,7 @@ export default function AtlasScreen() {
           ? listPlaces.map((a) => (
               <AtlasCountryCard key={a.code} aggregate={a} discoveries={discCount[a.code] ?? 0} onScorePress={() => setScoreAgg(a)} />
             ))
-          : shownJourneys.map((e) => (
+          : shownJourneys.slice(0, journeyLimit).map((e) => (
               <Pressable
                 key={e.id}
                 onPress={() => router.push(`/journey/${e.id}`)}
@@ -363,6 +364,13 @@ export default function AtlasScreen() {
                 </DestinationImage>
               </Pressable>
             ))}
+        {tab === 'journeys' && shownJourneys.length > journeyLimit ? (
+          <Pressable accessibilityRole="button" onPress={() => setJourneyLimit((n) => n + 40)} className="items-center rounded-2xl bg-white" style={{ marginHorizontal: 20, marginTop: 10, paddingVertical: 12 }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.coral }}>
+              Show more ({shownJourneys.length - journeyLimit} remaining)
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
     </ScrollView>
     <DiscoveryScoreSheet visible={!!scoreAgg} onClose={() => setScoreAgg(null)} aggregate={scoreAgg} />

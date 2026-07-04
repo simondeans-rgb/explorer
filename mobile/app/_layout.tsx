@@ -33,6 +33,7 @@ import { QuickLogSheet } from '../components/QuickLogSheet';
 import { AddTripSheet } from '../components/AddTripSheet';
 import { AddPhotoSheet } from '../components/AddPhotoSheet';
 import { AddTripPlanSheet } from '../components/AddTripPlanSheet';
+import { TripEntryChooser } from '../components/TripEntryChooser';
 import { AuthGate } from '../components/AuthGate';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { initSentry, wrapWithSentry } from '../src/lib/sentry';
@@ -141,6 +142,7 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
       <AddTripSheet visible={sheet === 'journey'} onClose={() => setSheet(null)} />
       <AddPhotoSheet visible={sheet === 'photo'} onClose={() => setSheet(null)} />
       <AddTripPlanSheet visible={sheet === 'trip'} onClose={() => setSheet(null)} />
+      <TripEntryChooser visible={sheet === 'tripentry'} onClose={() => setSheet(null)} onPick={(kind) => setSheet(kind)} />
 
       {/* Sign-in gate sits above the app; onboarding (first run) sits above that. */}
       {needsAuth ? <AuthGate onContinueWithout={() => setGuest(true)} /> : null}

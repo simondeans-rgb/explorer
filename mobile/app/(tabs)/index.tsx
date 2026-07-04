@@ -204,7 +204,7 @@ export default function StoryScreen() {
         </View>
         {captures.length > 0 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
-            {captures.map((c) => (
+            {captures.slice(0, 24).map((c) => (
               <Pressable key={c.id} onLongPress={() => confirmRemoveCapture(c.id)} style={{ width: 168 }}>
                 <View style={{ borderRadius: 22, overflow: 'hidden' }}>
                   <Image source={{ uri: c.dataUrl }} style={{ width: 168, height: TILE_H }} contentFit="cover" transition={200} />

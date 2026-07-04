@@ -163,9 +163,41 @@ interface BadgeCtx {
   discovery: DiscoveryStats;
   journeys: JourneyStats;
   captures: number;
+  /** Lightweight projection of trips for date-driven (cadence) badges. */
+  trips?: { startDate?: string; countryCodes: string[] }[];
 }
 
 const distinctModes = (c: BadgeCtx) => Object.values(c.journeys.byMode).filter((n) => n > 0).length;
+
+// ── Cadence helpers: badges driven by *when* you travel, not just how much ──
+const tripMonth = (d?: string) => (d && /^\d{4}-\d{2}/.test(d) ? Number(d.slice(5, 7)) : undefined);
+/** Most visits to a single country across all trips. */
+const maxCountryRepeats = (c: BadgeCtx) => {
+  const n = new Map<string, number>();
+  for (const t of c.trips ?? []) for (const cc of new Set(t.countryCodes)) n.set(cc, (n.get(cc) ?? 0) + 1);
+  return Math.max(0, ...n.values());
+};
+/** Trips that start in meteorological winter (Dec–Feb). */
+const winterTrips = (c: BadgeCtx) =>
+  (c.trips ?? []).filter((t) => { const m = tripMonth(t.startDate); return m === 12 || m === 1 || m === 2; }).length;
+/** Most trips begun inside one calendar month. */
+const maxTripsInMonth = (c: BadgeCtx) => {
+  const n = new Map<string, number>();
+  for (const t of c.trips ?? []) if (t.startDate && /^\d{4}-\d{2}/.test(t.startDate)) {
+    const k = t.startDate.slice(0, 7);
+    n.set(k, (n.get(k) ?? 0) + 1);
+  }
+  return Math.max(0, ...n.values());
+};
+/** Distinct seasons (spring/summer/autumn/winter) you've set off in. */
+const seasonsTravelled = (c: BadgeCtx) => {
+  const seasons = new Set<number>();
+  for (const t of c.trips ?? []) {
+    const m = tripMonth(t.startDate);
+    if (m) seasons.add(m === 12 || m <= 2 ? 0 : m <= 5 ? 1 : m <= 8 ? 2 : 3);
+  }
+  return seasons.size;
+};
 const sub = (c: BadgeCtx, id: string) => c.discovery.bySubcategory[id] ?? 0;
 
 const BADGE_DEFS: BadgeDef[] = [
@@ -189,6 +221,10 @@ const BADGE_DEFS: BadgeDef[] = [
   { id: 'continental', title: 'Continental Collector', description: 'Reach 4 continents', emoji: '🧭', icon: 'Globe', gradient: ['#24D1C3', '#5B6CFF'], category: 'explorer', value: (c) => c.stats.continentsDiscovered, target: 4 },
   { id: 'local-expert', title: 'Local Expert', description: 'Recommend 25 places', emoji: '⭐', icon: 'Star', gradient: ['#FFD36E', '#FF8E53'], category: 'explorer', value: (c) => c.discovery.recommended, target: 25 },
   { id: 'gem-hunter', title: 'Gem Hunter', description: 'Flag 5 hidden gems', emoji: '💎', icon: 'Gem', gradient: ['#2BD9A8', '#24D1C3'], category: 'explorer', value: (c) => c.discovery.hiddenGems, target: 5 },
+  { id: 'repeat-visitor', title: 'Repeat Visitor', description: 'Return to the same country on 3 trips', emoji: '🔁', icon: 'Repeat', gradient: ['#FF8E53', '#FFB84D'], category: 'explorer', value: maxCountryRepeats, target: 3 },
+  { id: 'winter-wanderer', title: 'Winter Wanderer', description: 'Set off on 3 trips in Dec–Feb', emoji: '❄️', icon: 'Snowflake', gradient: ['#5B6CFF', '#24D1C3'], category: 'explorer', value: winterTrips, target: 3 },
+  { id: 'marathon-month', title: 'Marathon Month', description: 'Start 2 trips in one month', emoji: '⚡', icon: 'Zap', gradient: ['#FF6B9A', '#9B7CFF'], category: 'explorer', value: maxTripsInMonth, target: 2 },
+  { id: 'four-seasons', title: 'Four Seasons', description: 'Travel in all four seasons', emoji: '🍂', icon: 'Leaf', gradient: ['#2BD9A8', '#FFB84D'], category: 'explorer', value: seasonsTravelled, target: 4 },
   { id: 'society', title: 'Society of Discovery', description: 'Earn every other achievement', emoji: '🏆', icon: 'Award', gradient: ['#FFB84D', '#FF6B9A'], category: 'explorer', value: () => 0, target: 1, meta: 'society' },
 
   // ── More ways to earn ──
