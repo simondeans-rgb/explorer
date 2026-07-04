@@ -30,6 +30,7 @@ import {
   type RecommendationVerdict,
 } from '../src/types';
 import { useData } from '../src/store/data';
+import { TripPickerField } from './TripPickerField';
 import { useToast } from '../src/store/toast';
 
 const CATEGORY_ICON: Record<DiscoveryCategory, ComponentType<{ size?: number; color?: string }>> = {
@@ -302,20 +303,11 @@ export function AddDiscoverySheet({
           </>
         ) : null}
 
-        {/* expedition — only when the user has trips/expeditions to attach to */}
+        {/* trip — only when the user has trips to attach to */}
         {expeditions.length > 0 ? (
           <>
-            <SectionLabel>EXPEDITION (OPTIONAL)</SectionLabel>
-            <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 8, gap: 8 }}>
-              {expeditions.map((e) => (
-                <Chip
-                  key={e.id}
-                  label={e.title}
-                  active={expeditionId === e.id}
-                  onPress={() => setExpeditionId(expeditionId === e.id ? '' : e.id)}
-                />
-              ))}
-            </View>
+            <SectionLabel>TRIP (OPTIONAL)</SectionLabel>
+            <TripPickerField expeditions={expeditions} selectedId={expeditionId} onSelect={setExpeditionId} />
           </>
         ) : null}
 
