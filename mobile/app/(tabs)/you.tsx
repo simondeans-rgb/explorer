@@ -39,6 +39,9 @@ const PRIVACY_URL = 'https://stickynotes-sand.vercel.app/privacy';
 const TERMS_URL = 'https://stickynotes-sand.vercel.app/terms';
 const SUPPORT_EMAIL = 'worldly@simondeans.com';
 
+// Badges driven by logging discoveries — the pool for the Discoveries nudge card.
+const DISCOVERY_BADGES = new Set(['foodie', 'culture-vulture', 'naturalist', 'local-expert', 'gem-hunter', 'coffee-trail', 'festival-fan', 'night-owl', 'wildlife-watcher', 'attraction-seeker', 'ancient-explorer', 'skyline-chaser', 'beach-bum', 'pilgrim']);
+
 export default function YouScreen() {
   const { stats, discoveryStats, journeyStats, level, badges, aggregates } = useWorldly();
 
@@ -235,10 +238,8 @@ export default function YouScreen() {
   const nextBadge = [...badges]
     .filter((b) => !b.earned && !(showGems && b.id === 'gem-hunter') && b.id !== nextDiscovery?.id)
     .sort((a, b) => b.progress - a.progress)[0];
-  // The closest discovery-driven achievement, for a nudge by the Discoveries stat.
-  const DISCOVERY_BADGES = new Set(['foodie', 'culture-vulture', 'naturalist', 'local-expert', 'gem-hunter', 'coffee-trail', 'festival-fan', 'night-owl', 'wildlife-watcher', 'attraction-seeker', 'ancient-explorer', 'skyline-chaser', 'beach-bum', 'pilgrim']);
 
-  const displayName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'Alex');
+  const displayName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'Explorer');
   const initial = displayName.charAt(0).toUpperCase();
 
   const LOCAL_AVATAR_KEY = 'worldly:avatar:local';
