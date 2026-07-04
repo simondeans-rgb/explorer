@@ -7,6 +7,7 @@ import { Trash2, Plus, Check, Search, Plane, TrainFront, Ship, Car, Anchor, Imag
 import { Image } from 'expo-image';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
 import { BackButton } from '../../components/BackButton';
+import { KeyboardDoneBar } from '../../components/KeyboardDoneBar';
 import type { ComponentType } from 'react';
 import { DestinationImage } from '../../components/DestinationImage';
 import { JourneyGlobe } from '../../components/JourneyGlobe';
@@ -299,7 +300,7 @@ export default function JourneyScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag">
         {/* Hero */}
         <DestinationImage code={codes[0] ?? 'WW'} scrim style={{ position: 'relative', paddingTop: 60, paddingBottom: 46, minHeight: 180, justifyContent: 'flex-end' }}>
           <BackButton onPress={goBack} style={{ position: 'absolute', top: 60, left: 20, zIndex: 20 }} />
@@ -529,6 +530,7 @@ export default function JourneyScreen() {
       </ScrollView>
 
       <AddPhotoSheet visible={photoOpen} onClose={() => setPhotoOpen(false)} initialCountryCode={codes[0]} initialExpeditionId={expedition.id} />
+      <KeyboardDoneBar />
     </View>
   );
 }

@@ -1,10 +1,13 @@
 import type { ReactNode } from 'react';
-import { Modal, View, Text, Pressable } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, View, Text, Pressable } from 'react-native';
 import { X } from 'lucide-react-native';
 import { COLORS } from '../src/lib/theme';
+import { KeyboardDoneBar } from './KeyboardDoneBar';
 
 /** The shared bottom-sheet chrome for the Add-* flows: dim scrim, rounded
- *  top sheet, title + close button. Children supply the form body. */
+ *  top sheet, title + close button. Children supply the form body.
+ *  The sheet rides above the keyboard (KeyboardAvoidingView on iOS; Android's
+ *  window resizes itself) and shows a floating Done pill to dismiss it. */
 export function SheetShell({
   visible,
   title,
@@ -18,7 +21,10 @@ export function SheetShell({
 }) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}
+      >
         <View
           style={{
             backgroundColor: COLORS.warmwhite,
@@ -43,7 +49,8 @@ export function SheetShell({
           </View>
           {children}
         </View>
-      </View>
+        <KeyboardDoneBar />
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

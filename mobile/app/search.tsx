@@ -71,7 +71,7 @@ export default function SearchScreen() {
         </View>
       </View>
 
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }} automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag">
         {nothing ? (
           <View style={{ alignItems: 'center', marginTop: 60, paddingHorizontal: 40 }}>
             <Text style={{ fontSize: 40 }}>🔍</Text>
