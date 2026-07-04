@@ -5,7 +5,7 @@ import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck, Ruler, Thermometer, Gem } from 'lucide-react-native';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck, Ruler, Thermometer } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
@@ -228,7 +228,12 @@ export default function YouScreen() {
   }
   const earned = badges.filter((b) => b.earned).length;
   // The locked achievement closest to completion — shown as a "next up" hook.
-  const nextBadge = [...badges].filter((b) => !b.earned).sort((a, b) => b.progress - a.progress)[0];
+  const gemBadge = badges.find((b) => b.id === 'gem-hunter');
+  const showGems = discoveryStats.total > 0 && !!gemBadge;
+  // Closest unearned badge — excluding Gem Hunter when its own card is showing.
+  const nextBadge = [...badges]
+    .filter((b) => !b.earned && !(showGems && b.id === 'gem-hunter'))
+    .sort((a, b) => b.progress - a.progress)[0];
   // The closest discovery-driven achievement, for a nudge by the Discoveries stat.
   const DISCOVERY_BADGES = new Set(['foodie', 'culture-vulture', 'naturalist', 'local-expert', 'gem-hunter', 'coffee-trail', 'festival-fan', 'night-owl', 'wildlife-watcher', 'attraction-seeker', 'ancient-explorer', 'skyline-chaser', 'beach-bum', 'pilgrim']);
   const nextDiscovery = [...badges].filter((b) => !b.earned && DISCOVERY_BADGES.has(b.id)).sort((a, b) => b.progress - a.progress)[0];
@@ -316,19 +321,21 @@ export default function YouScreen() {
         </Pressable>
       ) : null}
 
-      {/* Hidden Gems — the collection mechanic, surfaced prominently. */}
-      {discoveryStats.total > 0 ? (
-        <Pressable onPress={() => router.push('/achievements')} className="flex-row items-center rounded-2xl" style={{ marginHorizontal: 20, marginTop: 10, paddingHorizontal: 14, paddingVertical: 12, gap: 12, backgroundColor: 'rgba(245,166,35,0.10)' }}>
-          <View className="rounded-full items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(245,166,35,0.18)' }}>
-            <Gem size={20} color="#F5A623" />
-          </View>
+      {/* Hidden Gems — the collection mechanic, in the same tile-card format
+          as the NEXT UP achievement below so progress reads one way everywhere. */}
+      {showGems && gemBadge ? (
+        <Pressable onPress={() => router.push('/achievements')} className="bg-white rounded-2xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 10, padding: 12, gap: 12 }}>
+          <AchievementBadge badge={gemBadge} tile={44} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy }}>{discoveryStats.hiddenGems} hidden gem{discoveryStats.hiddenGems === 1 ? '' : 's'} found</Text>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>
-              {discoveryStats.hiddenGems >= 5 ? 'Gem Hunter unlocked ✦' : `${5 - discoveryStats.hiddenGems} more to unlock Gem Hunter`}
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: '#F5A623' }}>HIDDEN GEMS</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.navy, marginTop: 1 }}>
+              {discoveryStats.hiddenGems} hidden gem{discoveryStats.hiddenGems === 1 ? '' : 's'} found
+            </Text>
+            <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>
+              {gemBadge.earned ? 'Gem Hunter unlocked ✦' : `${gemBadge.description} · ${Math.min(gemBadge.value, gemBadge.target)}/${gemBadge.target}`}
             </Text>
           </View>
-          <ChevronRight size={18} color={COLORS.ink3} />
+          <ChevronRight size={16} color={COLORS.ink3} />
         </Pressable>
       ) : null}
 
