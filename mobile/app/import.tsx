@@ -318,7 +318,7 @@ export default function ImportScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 112 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 112 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag">
         <PageHero eyebrow="Bring your history in" title="Import travels" subtitle="Pull in the places you’ve already been — from your flights, other travel apps, or your photos." gradient={GRADIENTS.atlas} imageCode="WW" onBack={goBack} />
 
         {/* Flight history CSV — Flighty, App in the Air, MyFlightradar24… */}
