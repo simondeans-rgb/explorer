@@ -23,6 +23,7 @@ import {
   type RecommendationVerdict,
 } from '../../src/types';
 import { useData } from '../../src/store/data';
+import { TripPickerField } from '../../components/TripPickerField';
 import { useToast } from '../../src/store/toast';
 
 export default function DiscoveryScreen() {
@@ -240,20 +241,11 @@ export default function DiscoveryScreen() {
           </>
         ) : null}
 
-        {/* expedition — only when the user has expeditions to attach to */}
+        {/* trip — only when the user has trips to attach to */}
         {expeditions.length > 0 ? (
           <>
-            <Text style={LBL}>EXPEDITION</Text>
-            <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 8, gap: 8 }}>
-              {expeditions.map((e) => {
-                const active = expeditionId === e.id;
-                return (
-                  <Pressable key={e.id} onPress={() => setExpeditionId(active ? '' : e.id)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navy : '#fff' }}>
-                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{e.title}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            <Text style={LBL}>TRIP</Text>
+            <TripPickerField expeditions={expeditions} selectedId={expeditionId} onSelect={setExpeditionId} />
           </>
         ) : null}
 

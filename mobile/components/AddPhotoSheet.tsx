@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
-import { Camera, ImagePlus, Check, Search, X, MapPin, Route } from 'lucide-react-native';
+import { Camera, ImagePlus, Check, Search, X, MapPin } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
@@ -11,6 +11,7 @@ import { useToast } from '../src/store/toast';
 import { pickPhotoWithMeta } from '../src/lib/photo';
 import { countryAt } from '../src/lib/geoLookup';
 import { matchExpedition, expeditionLabel } from '../src/lib/tripMatch';
+import { TripPickerField } from './TripPickerField';
 import { track } from '../src/lib/analytics';
 
 export function AddPhotoSheet({
@@ -38,7 +39,6 @@ export function AddPhotoSheet({
   const [detectedCode, setDetectedCode] = useState<string | undefined>();
   // Trip link: undefined = untouched (suggestion applies), '' = explicitly none.
   const [expId, setExpId] = useState<string | undefined>();
-  const [showTripPicker, setShowTripPicker] = useState(false);
 
   useEffect(() => {
     if (visible && initialCountryCode) setCode(initialCountryCode);
@@ -59,12 +59,6 @@ export function AddPhotoSheet({
   const selectedExpId = expId === undefined ? suggested?.id : expId || undefined;
   const selectedExp = selectedExpId ? expeditions.find((e) => e.id === selectedExpId) : undefined;
 
-  // Recent trips for the manual picker, current suggestion first.
-  const tripOptions = useMemo(() => {
-    const sorted = [...expeditions].sort((a, b) => (b.startDate ?? '').localeCompare(a.startDate ?? ''));
-    return sorted.slice(0, 12);
-  }, [expeditions]);
-
   function reset() {
     setPhoto(null);
     setCaption('');
@@ -75,7 +69,6 @@ export function AddPhotoSheet({
     setTakenAt(undefined);
     setDetectedCode(undefined);
     setExpId(undefined);
-    setShowTripPicker(false);
   }
   function close() {
     reset();
@@ -164,64 +157,17 @@ export function AddPhotoSheet({
         </View>
 
         {/* trip link — pre-filled from the photo's date + place */}
-        {photo && (suggested || tripOptions.length > 0) ? (
+        {photo && expeditions.length > 0 ? (
           <>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 1, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 16 }}>
               TRIP
             </Text>
-            <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, marginTop: 8, overflow: 'hidden' }}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={selectedExp ? `Stored with ${expeditionLabel(selectedExp)} — tap to change` : 'Choose a trip'}
-                onPress={() => setShowTripPicker((v) => !v)}
-                className="flex-row items-center"
-                style={{ paddingHorizontal: 14, paddingVertical: 13, gap: 10 }}
-              >
-                <View className="rounded-xl items-center justify-center" style={{ height: 34, width: 34, backgroundColor: 'rgba(255,107,154,0.10)' }}>
-                  <Route size={17} color={COLORS.coral} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  {selectedExp ? (
-                    <>
-                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>{expeditionLabel(selectedExp)}</Text>
-                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>
-                        {expId === undefined && suggested?.id === selectedExp.id ? 'Matched from the photo — tap to change' : 'Tap to change'}
-                      </Text>
-                    </>
-                  ) : (
-                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink3 }}>Not stored with a trip — tap to choose</Text>
-                  )}
-                </View>
-                {selectedExp ? <Check size={18} color={COLORS.coral} /> : null}
-              </Pressable>
-
-              {showTripPicker ? (
-                <View style={{ borderTopWidth: 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => { setExpId(''); setShowTripPicker(false); }}
-                    className="flex-row items-center"
-                    style={{ paddingHorizontal: 14, paddingVertical: 11, gap: 10 }}
-                  >
-                    <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink2 }}>No trip</Text>
-                    {selectedExpId === undefined && expId === '' ? <Check size={16} color={COLORS.coral} /> : null}
-                  </Pressable>
-                  {tripOptions.map((e) => (
-                    <Pressable
-                      key={e.id}
-                      accessibilityRole="button"
-                      onPress={() => { setExpId(e.id); setShowTripPicker(false); }}
-                      className="flex-row items-center"
-                      style={{ paddingHorizontal: 14, paddingVertical: 11, gap: 10, backgroundColor: selectedExpId === e.id ? 'rgba(255,107,154,0.08)' : 'transparent' }}
-                    >
-                      <Text style={{ fontSize: 18 }}>{e.countryCodes[0] ? flagEmoji(e.countryCodes[0]) : '🌍'}</Text>
-                      <Text numberOfLines={1} style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.navy }}>{expeditionLabel(e)}</Text>
-                      {selectedExpId === e.id ? <Check size={16} color={COLORS.coral} /> : null}
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
-            </View>
+            <TripPickerField
+              expeditions={expeditions}
+              selectedId={selectedExpId}
+              onSelect={setExpId}
+              collapsedHint={expId === undefined && suggested && suggested.id === selectedExpId ? 'Matched from the photo — tap to change' : undefined}
+            />
           </>
         ) : null}
 
