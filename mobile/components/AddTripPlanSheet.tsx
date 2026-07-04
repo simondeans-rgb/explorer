@@ -2,15 +2,16 @@ import { useMemo, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { Check, Search, CalendarDays, X } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
+import { DateField } from './DateField';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES } from '../src/data/countries';
 import { useData } from '../src/store/data';
 import { useToast } from '../src/store/toast';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const thisYear = new Date().getFullYear();
-const YEARS = [thisYear, thisYear + 1, thisYear + 2];
+/** Pad a partial pick ('2026' / '2026-07') to a full ISO date — trip
+ *  countdowns and day numbering assume a concrete start. */
+const fullISO = (v: string) => (v.length === 4 ? `${v}-01-01` : v.length === 7 ? `${v}-01` : v);
 
 export function AddTripPlanSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { addTrip } = useData();
@@ -18,8 +19,8 @@ export function AddTripPlanSheet({ visible, onClose }: { visible: boolean; onClo
   const [title, setTitle] = useState('');
   const [query, setQuery] = useState('');
   const [code, setCode] = useState('');
-  const [year, setYear] = useState(thisYear);
-  const [month, setMonth] = useState(new Date().getMonth());
+  const [start, setStart] = useState('');
+  const [end, setEnd] = useState('');
   const [note, setNote] = useState('');
 
   const results = useMemo(() => {
@@ -32,8 +33,8 @@ export function AddTripPlanSheet({ visible, onClose }: { visible: boolean; onClo
     setTitle('');
     setQuery('');
     setCode('');
-    setYear(thisYear);
-    setMonth(new Date().getMonth());
+    setStart('');
+    setEnd('');
     setNote('');
   }
   function close() {
@@ -41,14 +42,13 @@ export function AddTripPlanSheet({ visible, onClose }: { visible: boolean; onClo
     onClose();
   }
   function save() {
-    if (!code || !title.trim()) return;
-    const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-    addTrip({ title, countryCode: code, startDate, note });
+    if (!ready) return;
+    addTrip({ title, countryCode: code, startDate: fullISO(start), endDate: end ? fullISO(end) : undefined, note });
     toast.success('Trip planned');
     close();
   }
 
-  const ready = code && title.trim().length > 0;
+  const ready = Boolean(code && title.trim().length > 0 && start);
 
   return (
     <SheetShell visible={visible} title="Plan a trip" onClose={close}>
@@ -96,25 +96,9 @@ export function AddTripPlanSheet({ visible, onClose }: { visible: boolean; onClo
 
         {/* when */}
         <Text style={LBL}>WHEN</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 6, gap: 8 }}>
-          {YEARS.map((y) => {
-            const active = year === y;
-            return (
-              <Pressable key={y} onPress={() => setYear(y)} className="rounded-full" style={{ paddingHorizontal: 16, paddingVertical: 9, backgroundColor: active ? COLORS.coral : '#fff' }}>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink2 }}>{y}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-        <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 4, gap: 6 }}>
-          {MONTHS.map((m, i) => {
-            const active = month === i;
-            return (
-              <Pressable key={m} onPress={() => setMonth(i)} className="rounded-full" style={{ paddingHorizontal: 12, paddingVertical: 7, backgroundColor: active ? COLORS.navy : '#fff' }}>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{m}</Text>
-              </Pressable>
-            );
-          })}
+        <View style={{ paddingHorizontal: 20, marginTop: 8, gap: 8 }}>
+          <DateField value={start} onChange={setStart} label="Start date" allowPartial />
+          <DateField value={end} onChange={setEnd} label="End date (optional)" allowPartial />
         </View>
 
         {/* note */}

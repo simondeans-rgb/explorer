@@ -16,7 +16,6 @@ import { AirportField } from '../../components/AirportField';
 import { isEndpointResolved, bestAirportMatch } from '../../src/lib/airportSearch';
 import { lookupFlight, normaliseFlightNumber, flightLookupConfigured } from '../../src/lib/flightLookup';
 import { CircleAlert } from 'lucide-react-native';
-import { Dropdown, type DropdownOption } from '../../components/Dropdown';
 import { DateField } from '../../components/DateField';
 import { FlightSummaryCard } from '../../components/FlightSummaryCard';
 import { journeyLegSegments, resolveEndpoint } from '../../src/lib/journeyGeo';
@@ -32,26 +31,7 @@ import { useToast } from '../../src/store/toast';
 let idc = 0;
 const newId = () => `j_${Date.now().toString(36)}_${idc++}`;
 
-const thisYear = new Date().getFullYear();
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const YEAR_OPTS: DropdownOption[] = Array.from({ length: 96 }, (_, i) => ({ label: String(thisYear - i), value: thisYear - i }));
-const MONTH_OPTS: DropdownOption[] = MONTHS.map((m, i) => ({ label: m, value: i }));
-const DAY_OPTS: DropdownOption[] = Array.from({ length: 31 }, (_, i) => ({ label: String(i + 1), value: i + 1 }));
 
-/** Build an ISO date from optional year / month (0-based) / day parts. */
-function isoFrom(year: number | null, month: number | null, day: number | null): string | undefined {
-  if (!year) return undefined;
-  if (month == null) return `${year}`;
-  const mm = String(month + 1).padStart(2, '0');
-  if (!day) return `${year}-${mm}`;
-  return `${year}-${mm}-${String(day).padStart(2, '0')}`;
-}
-/** Split an ISO date into year / month (0-based) / day parts. */
-function partsOf(iso?: string): { y: number | null; m: number | null; d: number | null } {
-  if (!iso) return { y: null, m: null, d: null };
-  const [y, m, d] = iso.split('-').map(Number);
-  return { y: y || null, m: m ? m - 1 : null, d: d || null };
-}
 
 const MODE_ICON: Record<JourneyMode, ComponentType<{ size?: number; color?: string }>> = {
   flight: Plane,
@@ -131,16 +111,9 @@ export default function JourneyScreen() {
   const expedition = expeditions.find((e) => e.id === id);
 
   const [title, setTitle] = useState('');
-  // Trip dates as year/month/day parts so they show readable month-name pickers
-  // instead of a raw "YYYY-MM-DD" text field; the ISO string is derived for save.
-  const [sY, setSY] = useState<number | null>(null);
-  const [sM, setSM] = useState<number | null>(null);
-  const [sD, setSD] = useState<number | null>(null);
-  const [eY, setEY] = useState<number | null>(null);
-  const [eM, setEM] = useState<number | null>(null);
-  const [eD, setED] = useState<number | null>(null);
-  const startDate = useMemo(() => isoFrom(sY, sM, sD) ?? '', [sY, sM, sD]);
-  const endDate = useMemo(() => isoFrom(eY, eM, eD) ?? '', [eY, eM, eD]);
+  // ISO dates ('YYYY', 'YYYY-MM' or 'YYYY-MM-DD') picked via the calendar field.
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [note, setNote] = useState('');
   const [codes, setCodes] = useState<string[]>([]);
   const [legs, setLegs] = useState<Leg[]>([emptyLeg()]);
@@ -152,10 +125,8 @@ export default function JourneyScreen() {
   useEffect(() => {
     if (expedition && !hydrated) {
       setTitle(expedition.title);
-      const s = partsOf(expedition.startDate);
-      setSY(s.y); setSM(s.m); setSD(s.d);
-      const e = partsOf(expedition.endDate);
-      setEY(e.y); setEM(e.m); setED(e.d);
+      setStartDate(expedition.startDate ?? '');
+      setEndDate(expedition.endDate ?? '');
       setNote(expedition.note ?? '');
       setCodes(expedition.countryCodes ?? []);
       setLegs(expedition.journeys.length ? expedition.journeys.map(legFromJourney) : [emptyLeg()]);
@@ -367,16 +338,12 @@ export default function JourneyScreen() {
 
         {/* dates */}
         <Text style={LBL}>START DATE</Text>
-        <View className="flex-row" style={{ marginHorizontal: 20, marginTop: 8, gap: 8 }}>
-          <Dropdown placeholder="Year" title="Start year" value={sY} options={YEAR_OPTS} onSelect={setSY} flex={1.2} />
-          <Dropdown placeholder="Month" title="Start month" value={sM} options={MONTH_OPTS} onSelect={setSM} flex={1.2} />
-          <Dropdown placeholder="Day" title="Start day" value={sD} options={DAY_OPTS} onSelect={setSD} flex={1} />
+        <View style={{ marginHorizontal: 20, marginTop: 8 }}>
+          <DateField value={startDate} onChange={setStartDate} label="Start date" allowPartial />
         </View>
         <Text style={LBL}>END DATE</Text>
-        <View className="flex-row" style={{ marginHorizontal: 20, marginTop: 8, gap: 8 }}>
-          <Dropdown placeholder="Year" title="End year" value={eY} options={YEAR_OPTS} onSelect={setEY} flex={1.2} />
-          <Dropdown placeholder="Month" title="End month" value={eM} options={MONTH_OPTS} onSelect={setEM} flex={1.2} />
-          <Dropdown placeholder="Day" title="End day" value={eD} options={DAY_OPTS} onSelect={setED} flex={1} />
+        <View style={{ marginHorizontal: 20, marginTop: 8 }}>
+          <DateField value={endDate} onChange={setEndDate} label="End date" allowPartial />
         </View>
 
         {/* countries */}

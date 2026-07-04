@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { Check, Search } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
-import { Dropdown, type DropdownOption } from './Dropdown';
+import { DateField } from './DateField';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES, countryName } from '../src/data/countries';
@@ -12,23 +12,10 @@ import { useToast } from '../src/store/toast';
 import { useConfirm } from '../src/store/confirm';
 
 const REL_OPTIONS = RELATIONSHIPS.filter((r) => r !== 'aspiring');
-const thisYear = new Date().getFullYear();
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 // Reach back ~96 years so birth / long-ago residence years are selectable.
-const YEAR_OPTS: DropdownOption[] = Array.from({ length: 96 }, (_, i) => ({ label: String(thisYear - i), value: thisYear - i }));
-const MONTH_OPTS: DropdownOption[] = MONTHS.map((m, i) => ({ label: m, value: i }));
-const DAY_OPTS: DropdownOption[] = Array.from({ length: 31 }, (_, i) => ({ label: String(i + 1), value: i + 1 }));
 
 type Kind = 'country' | 'city';
 
-/** Build an ISO date from optional year / month (0-based) / day parts. */
-function isoFrom(year: number | null, month: number | null, day: number | null): string | undefined {
-  if (!year) return undefined;
-  if (month == null) return `${year}`;
-  const mm = String(month + 1).padStart(2, '0');
-  if (!day) return `${year}-${mm}`;
-  return day >= 1 && day <= 31 ? `${year}-${mm}-${String(day).padStart(2, '0')}` : `${year}-${mm}`;
-}
 
 export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { addPlace, places, expeditions, recalculateJourneys } = useData();
@@ -40,14 +27,12 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
   const [city, setCity] = useState('');
   const [rels, setRels] = useState<Set<Relationship>>(new Set(['visited']));
 
-  const [year, setYear] = useState<number | null>(null);
-  const [month, setMonth] = useState<number | null>(null);
-  const [day, setDay] = useState<number | null>(null);
+  // ISO dates at whatever precision the user picked ('YYYY[-MM[-DD]]').
+  const [when, setWhen] = useState('');
 
   // Residence end (when Lived/Based).
   const [present, setPresent] = useState(true);
-  const [endYear, setEndYear] = useState<number | null>(null);
-  const [endMonth, setEndMonth] = useState<number | null>(null);
+  const [until, setUntil] = useState('');
 
   const isResidence = rels.has('lived') || rels.has('based');
 
@@ -63,12 +48,9 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
     setCode('');
     setCity('');
     setRels(new Set(['visited']));
-    setYear(null);
-    setMonth(null);
-    setDay(null);
+    setWhen('');
     setPresent(true);
-    setEndYear(null);
-    setEndMonth(null);
+    setUntil('');
   }
   function close() {
     reset();
@@ -76,13 +58,13 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
   }
   function save() {
     if (!ready) return;
-    const firstDate = isoFrom(year, month, day);
+    const firstDate = when || undefined;
     let livedFrom: string | undefined;
     let livedTo: string | undefined;
     let residencePeriods: { from: string; to?: string }[] | undefined;
     if (isResidence && firstDate) {
       livedFrom = firstDate;
-      livedTo = present ? undefined : isoFrom(endYear, endMonth, null);
+      livedTo = present ? undefined : until || undefined;
       residencePeriods = [{ from: firstDate, ...(livedTo ? { to: livedTo } : {}) }];
     }
     addPlace({
@@ -90,7 +72,7 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
       countryCode: code,
       name: kind === 'city' ? city.trim() : undefined,
       relationships: [...rels],
-      firstYear: year ?? undefined,
+      firstYear: when ? Number(when.slice(0, 4)) : undefined,
       firstDate,
       livedFrom,
       livedTo,
@@ -193,10 +175,8 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
         {/* when — optional year / month / day dropdowns */}
         <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
           <Text style={{ ...LBL, paddingHorizontal: 0, marginTop: 0 }}>{isResidence ? 'LIVED FROM' : 'WHEN (OPTIONAL)'}</Text>
-          <View className="flex-row" style={{ gap: 8, marginTop: 8 }}>
-            <Dropdown placeholder="Year" title="Year" value={year} options={YEAR_OPTS} onSelect={setYear} flex={1.2} />
-            <Dropdown placeholder="Month" title="Month" value={month} options={MONTH_OPTS} onSelect={setMonth} flex={1.2} />
-            <Dropdown placeholder="Day" title="Day" value={day} options={DAY_OPTS} onSelect={setDay} flex={1} />
+          <View style={{ marginTop: 8 }}>
+            <DateField value={when} onChange={setWhen} label={isResidence ? 'When you moved there' : 'When you first went'} allowPartial />
           </View>
         </View>
 
@@ -210,9 +190,8 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
               </Pressable>
             </View>
             {!present ? (
-              <View className="flex-row" style={{ gap: 8, paddingHorizontal: 20, marginTop: 8 }}>
-                <Dropdown placeholder="Year" title="Year" value={endYear} options={YEAR_OPTS} onSelect={setEndYear} flex={1.2} />
-                <Dropdown placeholder="Month" title="Month" value={endMonth} options={MONTH_OPTS} onSelect={setEndMonth} flex={1.2} />
+              <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
+                <DateField value={until} onChange={setUntil} label="When you moved away" allowPartial />
               </View>
             ) : null}
           </>
