@@ -1,18 +1,32 @@
 // Worldly palette + gradient stops, shared across native components (used where
 // NativeWind classes can't express a value, e.g. LinearGradient).
 
+import { DynamicColorIOS, Platform } from 'react-native';
+
+/** A colour that follows the system light/dark setting on iOS (resolved
+ *  natively — no re-render needed) and stays light on Android for now.
+ *  Cast to string so every existing call site type-checks unchanged. */
+const dyn = (light: string, dark: string): string =>
+  Platform.OS === 'ios' ? (DynamicColorIOS({ light, dark }) as unknown as string) : light;
+
 export const COLORS = {
-  navy: '#14213D',
+  /** Primary ink: deep navy on light, soft off-white on dark. Use navySolid
+   *  when navy is a SURFACE (with white text on it), not text. */
+  navy: dyn('#14213D', '#E9EDF8'),
+  navySolid: '#14213D',
   coral: '#FF6B9A',
   lavender: '#9B7CFF',
   aqua: '#24D1C3',
   sunburst: '#FFB84D',
   sky: '#4DA6FF',
-  warmwhite: '#FAFAFC',
+  /** Page ground. */
+  warmwhite: dyn('#FAFAFC', '#0D1120'),
   night: '#0E1018',
-  ink: '#14213D',
-  ink2: '#48506B',
-  ink3: '#8A90A6',
+  /** Card / input surface (the inline-style twin of `bg-white dark:bg-card`). */
+  card: dyn('#FFFFFF', '#1A2138'),
+  ink: dyn('#14213D', '#E6E9F2'),
+  ink2: dyn('#48506B', '#AEB5CC'),
+  ink3: dyn('#8A90A6', '#9298B0'),
   white: '#FFFFFF',
   danger: '#F2557D', // brand-aligned destructive (coral-red, not finance red)
 } as const;

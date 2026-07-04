@@ -21,7 +21,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: 
   render() {
     if (!this.state.failed) return this.props.children;
     return (
-      <View style={{ flex: 1, backgroundColor: COLORS.navy, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+      <View style={{ flex: 1, backgroundColor: COLORS.navySolid, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
         <Text style={{ fontFamily: 'Fraunces', fontSize: 28, color: '#fff', textAlign: 'center' }}>
           Well, that wasn’t on the itinerary
         </Text>

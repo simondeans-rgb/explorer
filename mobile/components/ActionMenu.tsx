@@ -46,7 +46,7 @@ export function ActionMenu({
             const Icon = o.icon;
             return (
               <Pressable key={o.kind} accessibilityRole="button" accessibilityLabel={`${o.label} — ${o.hint}`} onPress={() => onPick(o.kind)} className="flex-row items-center" style={{ paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
-                <View className="rounded-2xl items-center justify-center" style={{ height: 46, width: 46, backgroundColor: '#fff' }}>
+                <View className="rounded-2xl items-center justify-center" style={{ height: 46, width: 46, backgroundColor: COLORS.card }}>
                   <Icon size={20} color={COLORS.coral} />
                 </View>
                 <View style={{ flex: 1 }}>

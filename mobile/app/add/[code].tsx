@@ -133,7 +133,7 @@ export default function AddByCodeScreen() {
           ) : null}
           <Pressable
             onPress={() => router.replace('/friends')}
-            className="flex-1 items-center justify-center rounded-full bg-white"
+            className="flex-1 items-center justify-center rounded-full bg-white dark:bg-card"
             style={{ paddingVertical: 14 }}
           >
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.coral }}>

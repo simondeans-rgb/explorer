@@ -118,11 +118,11 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
     <SheetShell visible={visible} title="Add a place" onClose={close}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 8 }}>
         {/* Country / City */}
-        <View className="flex-row bg-white rounded-2xl" style={{ marginHorizontal: 20, marginTop: 4, padding: 5, gap: 5 }}>
+        <View className="flex-row bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, marginTop: 4, padding: 5, gap: 5 }}>
           {(['country', 'city'] as Kind[]).map((k) => {
             const active = kind === k;
             return (
-              <Pressable key={k} onPress={() => setKind(k)} className="items-center justify-center rounded-xl" style={{ flex: 1, paddingVertical: 9, backgroundColor: active ? COLORS.navy : 'transparent' }}>
+              <Pressable key={k} onPress={() => setKind(k)} className="items-center justify-center rounded-xl" style={{ flex: 1, paddingVertical: 9, backgroundColor: active ? COLORS.navySolid : 'transparent' }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontWeight: '700', fontSize: 13, color: active ? '#fff' : COLORS.ink3 }}>{k === 'country' ? 'Country' : 'City'}</Text>
               </Pressable>
             );
@@ -131,14 +131,14 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
 
         {/* City name */}
         {kind === 'city' ? (
-          <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 10 }}>
+          <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 10 }}>
             <TextInput value={city} onChangeText={setCity} placeholder="City name, e.g. Kyoto" placeholderTextColor={COLORS.ink3} style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />
           </View>
         ) : null}
 
         {/* Country search */}
         <Text style={LBL}>{kind === 'city' ? 'WHICH COUNTRY?' : 'COUNTRY'}</Text>
-        <View className="flex-row items-center bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
+        <View className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
           <Search size={18} color={COLORS.ink3} />
           <TextInput value={query} onChangeText={setQuery} placeholder="Search countries" placeholderTextColor={COLORS.ink3} style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />
         </View>
@@ -165,7 +165,7 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
           {REL_OPTIONS.map((r) => {
             const active = rels.has(r);
             return (
-              <Pressable key={r} onPress={() => toggleRel(r)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navy : '#fff' }}>
+              <Pressable key={r} onPress={() => toggleRel(r)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{RELATIONSHIP_META[r].label}</Text>
               </Pressable>
             );
@@ -185,7 +185,7 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
           <>
             <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 20, marginTop: 16 }}>
               <Text style={{ ...LBL, paddingHorizontal: 0, marginTop: 0 }}>LIVED UNTIL</Text>
-              <Pressable onPress={() => setPresent((v) => !v)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: present ? COLORS.navy : '#fff' }}>
+              <Pressable onPress={() => setPresent((v) => !v)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: present ? COLORS.navySolid : '#fff' }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: present ? '#fff' : COLORS.ink2 }}>{present ? 'Still here ✓' : 'Still here'}</Text>
               </Pressable>
             </View>

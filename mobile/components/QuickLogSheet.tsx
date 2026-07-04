@@ -149,7 +149,7 @@ export function QuickLogSheet({ visible, onClose, onExpand }: { visible: boolean
 
           {/* Where */}
           <View style={{ gap: 6 }}>
-            <View className="flex-row items-center bg-white rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 12, gap: 9 }}>
+            <View className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 12, gap: 9 }}>
               <MapPin size={18} color={COLORS.ink3} />
               <TextInput value={where} onChangeText={setWhere} placeholder="Where are you? e.g. a restaurant, café…" placeholderTextColor={COLORS.ink3} style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink }} />
               <Pressable onPress={useLocation} hitSlop={8} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.10)', paddingHorizontal: 10, paddingVertical: 6, gap: 5 }}>
@@ -167,7 +167,7 @@ export function QuickLogSheet({ visible, onClose, onExpand }: { visible: boolean
               const Icon = s.icon;
               const busy = saving === v;
               return (
-                <Pressable key={v} accessibilityRole="button" accessibilityLabel={`${VERDICT_META[v].label} — ${VERDICT_META[v].hint}`} onPress={() => log(v)} disabled={!!saving} className="flex-row items-center bg-white rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 13, gap: 12, borderWidth: 1.5, borderColor: s.tint + '33', opacity: saving && !busy ? 0.5 : 1 }}>
+                <Pressable key={v} accessibilityRole="button" accessibilityLabel={`${VERDICT_META[v].label} — ${VERDICT_META[v].hint}`} onPress={() => log(v)} disabled={!!saving} className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 13, gap: 12, borderWidth: 1.5, borderColor: s.tint + '33', opacity: saving && !busy ? 0.5 : 1 }}>
                   <View className="rounded-full items-center justify-center" style={{ height: 38, width: 38, backgroundColor: s.tint + '1A' }}>
                     {busy ? <ActivityIndicator size="small" color={s.tint} /> : <Icon size={19} color={s.tint} />}
                   </View>

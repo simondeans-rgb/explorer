@@ -389,7 +389,7 @@ export default function ImportScreen() {
 
         {/* List */}
         <Card icon={ListChecks} title="Paste a list" body="One country per line. Add a city as “City, Country”. e.g. Japan / Kyoto, Japan / Brazil.">
-          <View className="bg-white rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(20,33,61,0.08)' }}>
+          <View className="bg-white dark:bg-card rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(20,33,61,0.08)' }}>
             <TextInput
               value={listText}
               onChangeText={setListText}
@@ -450,7 +450,7 @@ export default function ImportScreen() {
 
 function Card({ icon: Icon, title, body, children }: { icon: React.ComponentType<{ size?: number; color?: string }>; title: string; body: string; children: React.ReactNode }) {
   return (
-    <View className="bg-white rounded-3xl" style={{ marginHorizontal: 20, marginTop: 16, padding: 18 }}>
+    <View className="bg-white dark:bg-card rounded-3xl" style={{ marginHorizontal: 20, marginTop: 16, padding: 18 }}>
       <View className="flex-row items-center" style={{ gap: 10, marginBottom: 8 }}>
         <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: COLORS.warmwhite }}>
           <Icon size={20} color={COLORS.coral} />

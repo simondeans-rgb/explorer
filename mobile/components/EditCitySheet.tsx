@@ -59,7 +59,7 @@ export function EditCitySheet({ city, onClose }: { city: Place | null; onClose: 
 
         <View>
           <Text style={LBL}>NOTE</Text>
-          <View className="bg-white rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 12 }}>
+          <View className="bg-white dark:bg-card rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 12 }}>
             <TextInput
               value={note}
               onChangeText={setNote}

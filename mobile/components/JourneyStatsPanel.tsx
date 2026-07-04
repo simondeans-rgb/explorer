@@ -164,7 +164,7 @@ function Segmented({ value, onChange }: { value: Gran; onChange: (g: Gran) => vo
         const active = value === o.id;
         return (
           <Pressable key={o.id} onPress={() => onChange(o.id)} style={{ flex: 1, paddingVertical: 6, borderRadius: 999, backgroundColor: active ? '#fff' : 'transparent', ...(active ? SHADOW.card : null) }}>
-            <Text style={{ textAlign: 'center', fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? COLORS.navy : COLORS.ink3 }}>{o.label}</Text>
+            <Text style={{ textAlign: 'center', fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? COLORS.navySolid : COLORS.ink3 }}>{o.label}</Text>
           </Pressable>
         );
       })}
@@ -252,7 +252,7 @@ function JourneyStatsPanelInner({ expeditions }: { expeditions: Expedition[] }) 
     <View style={{ gap: 12 }}>
       {/* Flights + chart */}
       {flights.total > 0 ? (
-        <View className="bg-white rounded-3xl" style={{ padding: 16, ...SHADOW.card }}>
+        <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 16, ...SHADOW.card }}>
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 0.6, color: COLORS.ink3 }}>FLIGHTS</Text>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 44, color: COLORS.navy, lineHeight: 50 }}>{group(flights.total)}</Text>
           <View className="flex-row" style={{ flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
@@ -290,7 +290,7 @@ function JourneyStatsPanelInner({ expeditions }: { expeditions: Expedition[] }) 
 
       {/* Distance flown + cosmic comparisons */}
       {distanceMi > 0 ? (
-        <View className="bg-white rounded-3xl" style={{ padding: 16, ...SHADOW.card }}>
+        <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 16, ...SHADOW.card }}>
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 0.6, color: COLORS.ink3 }}>DISTANCE FLOWN</Text>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 40, color: COLORS.navy, lineHeight: 46 }}>
             {group(convertMiles(distanceMi, unit))} <Text style={{ fontSize: 20, color: COLORS.ink3 }}>{distanceUnitLabel(unit)}</Text>
@@ -315,7 +315,7 @@ function JourneyStatsPanelInner({ expeditions }: { expeditions: Expedition[] }) 
 
       {/* Trends — time in the air, favourite aircraft & airlines, punctuality */}
       {flights.total > 0 && (stats.timeInAirMin > 0 || stats.topAircraft.length > 0 || stats.topAirlines.length > 0) ? (
-        <View className="bg-white rounded-3xl" style={{ padding: 16, gap: 16, ...SHADOW.card }}>
+        <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 16, gap: 16, ...SHADOW.card }}>
           {stats.timeInAirMin > 0 ? (
             <View>
               <View className="flex-row items-center" style={{ gap: 6 }}>
@@ -361,14 +361,14 @@ function JourneyStatsPanelInner({ expeditions }: { expeditions: Expedition[] }) 
 
       {/* Every other way you've travelled */}
       {otherModes.length > 0 ? (
-        <View className="bg-white rounded-3xl" style={{ padding: 16, ...SHADOW.card }}>
+        <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 16, ...SHADOW.card }}>
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 0.6, color: COLORS.ink3, marginBottom: 12 }}>OTHER JOURNEYS</Text>
           <View className="flex-row" style={{ flexWrap: 'wrap', gap: 10 }}>
             {otherModes.map((m) => {
               const Icon = MODE_ICON[m];
               return (
                 <View key={m} className="flex-row items-center rounded-2xl" style={{ backgroundColor: '#F7F7FB', paddingHorizontal: 14, paddingVertical: 10, gap: 9, minWidth: 104 }}>
-                  <View className="rounded-full items-center justify-center" style={{ height: 32, width: 32, backgroundColor: '#fff', ...SHADOW.card }}>
+                  <View className="rounded-full items-center justify-center" style={{ height: 32, width: 32, backgroundColor: COLORS.card, ...SHADOW.card }}>
                     <Icon size={16} color={COLORS.lavender} />
                   </View>
                   <View>

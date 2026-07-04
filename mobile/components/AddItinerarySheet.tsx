@@ -32,12 +32,12 @@ export function AddItinerarySheet({ tripId, visible, onClose }: { tripId: string
   return (
     <SheetShell visible={visible} title="Add to itinerary" onClose={close}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 8 }}>
-        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 4 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 4 }}>
           <TextInput value={name} onChangeText={setName} placeholder="What do you want to do/see?" placeholderTextColor={COLORS.ink3} style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />
         </View>
 
         <Text style={LBL}>CITY (OPTIONAL)</Text>
-        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
           <TextInput value={city} onChangeText={setCity} placeholder="e.g. Tokyo" placeholderTextColor={COLORS.ink3} style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />
         </View>
 
@@ -46,7 +46,7 @@ export function AddItinerarySheet({ tripId, visible, onClose }: { tripId: string
           {DISCOVERY_CATEGORIES.map((c) => {
             const active = category === c;
             return (
-              <Pressable key={c} onPress={() => { setCategory(active ? undefined : c); setSubcategory(undefined); }} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navy : '#fff' }}>
+              <Pressable key={c} onPress={() => { setCategory(active ? undefined : c); setSubcategory(undefined); }} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{DISCOVERY_CATEGORY_META[c].label}</Text>
               </Pressable>
             );
@@ -60,7 +60,7 @@ export function AddItinerarySheet({ tripId, visible, onClose }: { tripId: string
               {DISCOVERY_SUBCATEGORIES[category].map((s) => {
                 const active = subcategory === s.id;
                 return (
-                  <Pressable key={s.id} onPress={() => setSubcategory(active ? undefined : s.id)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navy : '#fff' }}>
+                  <Pressable key={s.id} onPress={() => setSubcategory(active ? undefined : s.id)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
                     <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{s.label}</Text>
                   </Pressable>
                 );

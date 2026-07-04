@@ -189,7 +189,7 @@ export function ItineraryPlanner({
 
   // The card chrome shared by items + suggestions.
   const Chrome = ({ title, meta, onRemove, sugg }: { title: string; meta: string; onRemove?: () => void; sugg?: boolean }) => (
-    <View className="bg-white rounded-2xl flex-row items-center" style={{ padding: 11, gap: 8, borderWidth: sugg ? 1 : 0, borderColor: 'rgba(155,124,255,0.3)' }}>
+    <View className="bg-white dark:bg-card rounded-2xl flex-row items-center" style={{ padding: 11, gap: 8, borderWidth: sugg ? 1 : 0, borderColor: 'rgba(155,124,255,0.3)' }}>
       <GripVertical size={16} color={COLORS.ink3} />
       <View style={{ flex: 1 }}>
         <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '600', color: COLORS.navy }}>{title}</Text>
@@ -208,7 +208,7 @@ export function ItineraryPlanner({
         {Array.from({ length: dayCount }, (_, i) => i + 1).map((n) => {
           const active = day === n;
           return (
-            <Pressable key={n} onPress={() => setDay(n)} className="rounded-2xl items-center" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navy : '#fff' }}>
+            <Pressable key={n} onPress={() => setDay(n)} className="rounded-2xl items-center" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: active ? 'rgba(255,255,255,0.7)' : COLORS.ink3 }}>DAY {n}</Text>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.navy }}>{dayLabel(n)}</Text>
             </Pressable>
@@ -258,7 +258,7 @@ export function ItineraryPlanner({
       {/* day notes */}
       <View style={{ marginTop: 14 }}>
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 6 }}>NOTES FOR {dayLabel(day).toUpperCase()}</Text>
-        <View className="bg-white rounded-2xl" style={{ paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: 'rgba(20,33,61,0.06)' }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: 'rgba(20,33,61,0.06)' }}>
           <TextInput
             value={noteDraft}
             onChangeText={setNoteDraft}

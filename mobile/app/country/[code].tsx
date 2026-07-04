@@ -162,7 +162,7 @@ function LandmarkRow({
 }) {
   const info = useLandmarkInfo(landmark, true, hint);
   return (
-    <Pressable onPress={onOpen} className="bg-white rounded-2xl flex-row items-center" style={{ padding: 12, gap: 12 }}>
+    <Pressable onPress={onOpen} className="bg-white dark:bg-card rounded-2xl flex-row items-center" style={{ padding: 12, gap: 12 }}>
       <View style={{ height: 60, width: 60, borderRadius: 14, overflow: 'hidden' }}>
         {info?.image ? (
           <Image source={{ uri: info.image }} style={{ height: 60, width: 60 }} contentFit="cover" transition={200} cachePolicy="memory-disk" />
@@ -332,11 +332,11 @@ export default function CountryScreen() {
 
         {/* Quick actions */}
         <View className="flex-row" style={{ paddingHorizontal: 20, marginTop: 14, gap: 10 }}>
-          <Pressable onPress={() => openAddDiscovery()} className="flex-row items-center justify-center bg-white rounded-2xl" style={{ flex: 1, paddingVertical: 13, gap: 7 }}>
+          <Pressable onPress={() => openAddDiscovery()} className="flex-row items-center justify-center bg-white dark:bg-card rounded-2xl" style={{ flex: 1, paddingVertical: 13, gap: 7 }}>
             <Plus size={16} color={COLORS.coral} />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.navy }}>Discovery</Text>
           </Pressable>
-          <Pressable onPress={() => setPhotoOpen(true)} className="flex-row items-center justify-center bg-white rounded-2xl" style={{ flex: 1, paddingVertical: 13, gap: 7 }}>
+          <Pressable onPress={() => setPhotoOpen(true)} className="flex-row items-center justify-center bg-white dark:bg-card rounded-2xl" style={{ flex: 1, paddingVertical: 13, gap: 7 }}>
             <Camera size={16} color={COLORS.coral} />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.navy }}>Photo</Text>
           </Pressable>
@@ -393,7 +393,7 @@ export default function CountryScreen() {
                 </View>
               ) : null}
               {rels.map((r) => (
-                <View key={r} className="rounded-full" style={{ backgroundColor: COLORS.navy, paddingHorizontal: 12, paddingVertical: 7 }}>
+                <View key={r} className="rounded-full" style={{ backgroundColor: COLORS.navySolid, paddingHorizontal: 12, paddingVertical: 7 }}>
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: '#fff' }}>{RELATIONSHIP_META[r].label}</Text>
                 </View>
               ))}
@@ -406,7 +406,7 @@ export default function CountryScreen() {
           <Section title="Cities">
             <View className="flex-row flex-wrap" style={{ gap: 8 }}>
               {cities.map((c) => (
-                <Pressable key={c.id} onPress={() => setEditCity(c)} className="rounded-full bg-white flex-row items-center" style={{ paddingHorizontal: 14, paddingVertical: 8, gap: 6, ...SHADOW.card }}>
+                <Pressable key={c.id} onPress={() => setEditCity(c)} className="rounded-full bg-white dark:bg-card flex-row items-center" style={{ paddingHorizontal: 14, paddingVertical: 8, gap: 6, ...SHADOW.card }}>
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2 }}>{c.name}{c.firstYear ? ` · ${c.firstYear}` : ''}</Text>
                   <Pencil size={12} color={COLORS.ink3} />
                 </Pressable>
@@ -445,7 +445,7 @@ export default function CountryScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={`Open the ${g.city} guide`}
                   onPress={() => router.push(`/guide/${encodeURIComponent(g.key)}`)}
-                  className="bg-white rounded-2xl flex-row items-center"
+                  className="bg-white dark:bg-card rounded-2xl flex-row items-center"
                   style={{ padding: 14, gap: 12 }}
                 >
                   <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(155,109,255,0.12)' }}>
@@ -497,7 +497,7 @@ export default function CountryScreen() {
                   {circleHere.length} {circleHere.length === 1 ? 'person' : 'people'} in your circle {circleHere.length === 1 ? 'has' : 'have'} been to {name}.
                 </Text>
                 {circleHere.map((f) => (
-                  <View key={f.uid} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 14, gap: 12 }}>
+                  <View key={f.uid} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 14, gap: 12 }}>
                     <CircleAvatar name={f.name} />
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{f.name}</Text>
@@ -513,7 +513,7 @@ export default function CountryScreen() {
                 ))}
               </View>
             ) : (
-              <View className="bg-white rounded-3xl" style={{ padding: 16 }}>
+              <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 16 }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, color: COLORS.ink3, textAlign: 'center' }}>
                   None of your circle have been here yet — be the first.
                 </Text>
@@ -530,7 +530,7 @@ export default function CountryScreen() {
                 const key = `${e.countryCodes[0] ?? ''}|${e.startDate?.slice(0, 4) ?? '?'}`;
                 const season = dupJourneyKeys.has(key) ? seasonOf(e.startDate) : '';
                 return (
-                  <View key={e.id} className="bg-white rounded-3xl" style={{ padding: 16 }}>
+                  <View key={e.id} className="bg-white dark:bg-card rounded-3xl" style={{ padding: 16 }}>
                     <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy }}>{season ? `${e.title} · ${season}` : e.title}</Text>
                     <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2 }}>
                       {e.countryCodes.map((c) => flagEmoji(c)).join(' ')}

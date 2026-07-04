@@ -36,7 +36,7 @@ export function DiscoveryScoreSheet({
 
           {/* what earned it */}
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginTop: 18, marginBottom: 8 }}>WHAT EARNED IT</Text>
-          <View className="bg-white rounded-2xl" style={{ overflow: 'hidden' }}>
+          <View className="bg-white dark:bg-card rounded-2xl" style={{ overflow: 'hidden' }}>
             {bd.lines.map((l, i) => (
               <View key={l.label} className="flex-row items-center justify-between" style={{ paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.navy }}>{l.label}</Text>
@@ -54,7 +54,7 @@ export function DiscoveryScoreSheet({
               </View>
               <View style={{ gap: 8 }}>
                 {bd.tips.map((t) => (
-                  <View key={t} className="flex-row items-center bg-white rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 12, gap: 10 }}>
+                  <View key={t} className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 12, gap: 10 }}>
                     <View className="rounded-full items-center justify-center" style={{ height: 22, width: 22, backgroundColor: 'rgba(36,209,195,0.16)' }}>
                       <Plus size={13} color={COLORS.aqua} strokeWidth={2.6} />
                     </View>
@@ -64,7 +64,7 @@ export function DiscoveryScoreSheet({
               </View>
             </>
           ) : (
-            <View className="bg-white rounded-2xl" style={{ padding: 14, marginTop: 18 }}>
+            <View className="bg-white dark:bg-card rounded-2xl" style={{ padding: 14, marginTop: 18 }}>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, color: COLORS.ink2 }}>You've explored this one deeply — nice work. 🎉</Text>
             </View>
           )}

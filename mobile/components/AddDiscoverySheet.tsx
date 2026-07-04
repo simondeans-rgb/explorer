@@ -49,7 +49,7 @@ const SectionLabel = ({ children }: { children: string }) => (
 
 /** A small pill toggle used for the chip groups. */
 const Chip = ({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) => (
-  <Pressable onPress={onPress} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navy : '#fff' }}>
+  <Pressable onPress={onPress} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
     <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{label}</Text>
   </Pressable>
 );
@@ -178,7 +178,7 @@ export function AddDiscoverySheet({
     <SheetShell visible={visible} title="Add a discovery" onClose={close}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 8 }}>
         {/* name */}
-        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 4 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 4 }}>
           <TextInput
             value={name}
             onChangeText={setName}
@@ -199,11 +199,11 @@ export function AddDiscoverySheet({
             </View>
           ) : (
             <View className="flex-row" style={{ gap: 10 }}>
-              <Pressable onPress={() => pick('camera')} disabled={picking} className="flex-row items-center justify-center bg-white rounded-2xl" style={{ flex: 1, paddingVertical: 14, gap: 7 }}>
+              <Pressable onPress={() => pick('camera')} disabled={picking} className="flex-row items-center justify-center bg-white dark:bg-card rounded-2xl" style={{ flex: 1, paddingVertical: 14, gap: 7 }}>
                 <Camera size={18} color={COLORS.coral} />
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.navy }}>Photo</Text>
               </Pressable>
-              <Pressable onPress={() => pick('library')} disabled={picking} className="flex-row items-center justify-center bg-white rounded-2xl" style={{ flex: 1, paddingVertical: 14, gap: 7 }}>
+              <Pressable onPress={() => pick('library')} disabled={picking} className="flex-row items-center justify-center bg-white dark:bg-card rounded-2xl" style={{ flex: 1, paddingVertical: 14, gap: 7 }}>
                 <ImagePlus size={18} color={COLORS.coral} />
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.navy }}>Library</Text>
               </Pressable>
@@ -222,7 +222,7 @@ export function AddDiscoverySheet({
                 key={c}
                 onPress={() => chooseCategory(c)}
                 className="flex-row items-center rounded-full"
-                style={{ paddingHorizontal: 14, paddingVertical: 9, gap: 6, backgroundColor: active ? COLORS.navy : '#fff' }}
+                style={{ paddingHorizontal: 14, paddingVertical: 9, gap: 6, backgroundColor: active ? COLORS.navySolid : '#fff' }}
               >
                 <Icon size={14} color={active ? '#fff' : COLORS.coral} />
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>
@@ -248,7 +248,7 @@ export function AddDiscoverySheet({
 
         {/* country */}
         <SectionLabel>COUNTRY (OPTIONAL)</SectionLabel>
-        <View className="flex-row items-center bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
+        <View className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
           <Search size={18} color={COLORS.ink3} />
           <TextInput
             value={query}
@@ -281,7 +281,7 @@ export function AddDiscoverySheet({
 
         {/* city */}
         <SectionLabel>CITY (OPTIONAL)</SectionLabel>
-        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
           <TextInput
             value={city}
             onChangeText={setCity}
@@ -333,7 +333,7 @@ export function AddDiscoverySheet({
 
         {/* note */}
         <SectionLabel>A DETAIL WORTH REMEMBERING (OPTIONAL)</SectionLabel>
-        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
           <TextInput
             value={note}
             onChangeText={setNote}

@@ -45,13 +45,13 @@ export default function AchievementsScreen() {
           <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 30, textAlign: 'center', marginTop: 2 }}>Achievements</Text>
           <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.95, textAlign: 'center', marginTop: 4 }}>{earned} of {badges.length} earned</Text>
           <View style={{ height: 8, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.28)', marginTop: 12, overflow: 'hidden' }}>
-            <View style={{ width: `${Math.max(pct * 100, 3)}%`, height: 8, borderRadius: 5, backgroundColor: '#fff' }} />
+            <View style={{ width: `${Math.max(pct * 100, 3)}%`, height: 8, borderRadius: 5, backgroundColor: COLORS.card }} />
           </View>
         </LinearGradient>
 
         {/* Next up */}
         {nextUp ? (
-          <Pressable onPress={() => open(nextUp)} className="bg-white rounded-3xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 16, padding: 14, gap: 14 }}>
+          <Pressable onPress={() => open(nextUp)} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 16, padding: 14, gap: 14 }}>
             <AchievementBadge badge={nextUp} tile={52} />
             <View style={{ flex: 1 }}>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.coral }}>NEXT UP</Text>
@@ -64,11 +64,11 @@ export default function AchievementsScreen() {
         ) : null}
 
         {/* Filter */}
-        <View className="flex-row bg-white rounded-2xl" style={{ marginHorizontal: 20, marginTop: 14, padding: 5, gap: 5 }}>
+        <View className="flex-row bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, marginTop: 14, padding: 5, gap: 5 }}>
           {([['all', 'All'], ['earned', 'Earned'], ['locked', 'Locked']] as [Filter, string][]).map(([id, label]) => {
             const active = filter === id;
             return (
-              <Pressable key={id} onPress={() => setFilter(id)} className="items-center justify-center rounded-xl" style={{ flex: 1, paddingVertical: 9, backgroundColor: active ? COLORS.navy : 'transparent' }}>
+              <Pressable key={id} onPress={() => setFilter(id)} className="items-center justify-center rounded-xl" style={{ flex: 1, paddingVertical: 9, backgroundColor: active ? COLORS.navySolid : 'transparent' }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontWeight: '700', fontSize: 13, color: active ? '#fff' : COLORS.ink3 }}>{label}</Text>
               </Pressable>
             );
@@ -101,7 +101,7 @@ export default function AchievementsScreen() {
       {/* Detail overlay */}
       {selected ? (
         <Pressable onPress={() => setSelected(null)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(14,16,24,0.5)', alignItems: 'center', justifyContent: 'center', padding: 30 }}>
-          <Pressable onPress={() => {}} className="bg-white rounded-3xl items-center" style={{ width: '100%', maxWidth: 340, paddingVertical: 28, paddingHorizontal: 24 }}>
+          <Pressable onPress={() => {}} className="bg-white dark:bg-card rounded-3xl items-center" style={{ width: '100%', maxWidth: 340, paddingVertical: 28, paddingHorizontal: 24 }}>
             <Pressable onPress={() => setSelected(null)} hitSlop={10} style={{ position: 'absolute', top: 14, right: 14 }}>
               <X size={20} color={COLORS.ink3} />
             </Pressable>

@@ -40,7 +40,7 @@ export default function ScanScreen() {
 
   if (!perm.granted) {
     return (
-      <View style={{ flex: 1, backgroundColor: COLORS.navy, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+      <View style={{ flex: 1, backgroundColor: COLORS.navySolid, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
         <BackButton onPress={() => router.back()} style={{ position: 'absolute', top: 60, left: 20 }} />
         <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: '#fff', textAlign: 'center' }}>Scan a friend's QR</Text>
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: 'rgba(255,255,255,0.8)', textAlign: 'center', marginTop: 8, lineHeight: 20 }}>

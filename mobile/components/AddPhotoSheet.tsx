@@ -131,11 +131,11 @@ export function AddPhotoSheet({
             </View>
           ) : (
             <View className="flex-row" style={{ gap: 10 }}>
-              <Pressable accessibilityRole="button" accessibilityLabel="Take photo" onPress={() => pick('camera')} disabled={picking} className="items-center justify-center bg-white rounded-2xl" style={{ flex: 1, paddingVertical: 26, gap: 8 }}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Take photo" onPress={() => pick('camera')} disabled={picking} className="items-center justify-center bg-white dark:bg-card rounded-2xl" style={{ flex: 1, paddingVertical: 26, gap: 8 }}>
                 <Camera size={26} color={COLORS.coral} />
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.navy }}>Take photo</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" accessibilityLabel="Choose from library" onPress={() => pick('library')} disabled={picking} className="items-center justify-center bg-white rounded-2xl" style={{ flex: 1, paddingVertical: 26, gap: 8 }}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Choose from library" onPress={() => pick('library')} disabled={picking} className="items-center justify-center bg-white dark:bg-card rounded-2xl" style={{ flex: 1, paddingVertical: 26, gap: 8 }}>
                 <ImagePlus size={26} color={COLORS.coral} />
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.navy }}>Library</Text>
               </Pressable>
@@ -175,7 +175,7 @@ export function AddPhotoSheet({
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 1, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 16 }}>
           CAPTION (OPTIONAL)
         </Text>
-        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
           <TextInput
             value={caption}
             onChangeText={setCaption}
@@ -189,7 +189,7 @@ export function AddPhotoSheet({
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 1, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 16 }}>
           {detectedCode ? 'WHERE (FROM THE PHOTO — TAP TO CHANGE)' : 'WHERE (OPTIONAL)'}
         </Text>
-        <View className="flex-row items-center bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
+        <View className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
           <Search size={18} color={COLORS.ink3} />
           <TextInput
             value={query}

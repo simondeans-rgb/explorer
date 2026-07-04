@@ -114,14 +114,14 @@ export function DateField({
 
   return (
     <>
-      <Pressable accessibilityRole="button" accessibilityLabel={pretty(value) ? `Date: ${pretty(value)}` : (label ?? 'Select date')} onPress={openCal} className="bg-white rounded-2xl flex-row items-center" style={{ paddingHorizontal: 14, paddingVertical: 12, gap: 9, ...SHADOW.card }}>
+      <Pressable accessibilityRole="button" accessibilityLabel={pretty(value) ? `Date: ${pretty(value)}` : (label ?? 'Select date')} onPress={openCal} className="bg-white dark:bg-card rounded-2xl flex-row items-center" style={{ paddingHorizontal: 14, paddingVertical: 12, gap: 9, ...SHADOW.card }}>
         <CalendarIcon size={17} color={COLORS.ink3} />
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '600', color: pretty(value) ? COLORS.ink : COLORS.ink3, flex: 1 }}>{fieldLabel}</Text>
       </Pressable>
 
       <Modal visible={open} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setOpen(false)}>
         <Pressable onPress={() => setOpen(false)} style={{ flex: 1, backgroundColor: 'rgba(14,16,24,0.45)', alignItems: 'center', justifyContent: 'center', padding: 26 }}>
-          <Pressable onPress={() => {}} className="bg-white" style={{ width: '100%', maxWidth: 340, borderRadius: 24, overflow: 'hidden', padding: 14, ...SHADOW.float }}>
+          <Pressable onPress={() => {}} className="bg-white dark:bg-card" style={{ width: '100%', maxWidth: 340, borderRadius: 24, overflow: 'hidden', padding: 14, ...SHADOW.float }}>
             {/* header — tap the title to zoom out to months, then years */}
             <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 4, paddingBottom: 8 }}>
               <Pressable accessibilityRole="button" accessibilityLabel="Previous" onPress={() => shift(-1)} hitSlop={10} className="rounded-xl items-center justify-center" style={{ height: 34, width: 34, backgroundColor: COLORS.warmwhite }}>
@@ -150,7 +150,7 @@ export function DateField({
                     const isSel = !!sel && sel.y === y;
                     return (
                       <Pressable key={y} onPress={() => { setViewY(y); setMode('months'); }} style={{ width: '25%', alignItems: 'center', paddingVertical: 6 }}>
-                        <View className="items-center justify-center rounded-xl" style={{ height: 40, minWidth: 62, paddingHorizontal: 6, backgroundColor: isSel ? COLORS.navy : y === now.getFullYear() ? COLORS.warmwhite : 'transparent' }}>
+                        <View className="items-center justify-center rounded-xl" style={{ height: 40, minWidth: 62, paddingHorizontal: 6, backgroundColor: isSel ? COLORS.navySolid : y === now.getFullYear() ? COLORS.warmwhite : 'transparent' }}>
                           <Text style={[cellTxt, { color: isSel ? '#fff' : COLORS.navy }]}>{y}</Text>
                         </View>
                       </Pressable>
@@ -170,7 +170,7 @@ export function DateField({
                     const isSel = !!sel && sel.y === viewY && sel.m === i;
                     return (
                       <Pressable key={m} onPress={() => { setViewM(i); setMode('days'); }} style={{ width: '33.33%', alignItems: 'center', paddingVertical: 6 }}>
-                        <View className="items-center justify-center rounded-xl" style={{ height: 40, minWidth: 84, paddingHorizontal: 6, backgroundColor: isSel ? COLORS.navy : 'transparent' }}>
+                        <View className="items-center justify-center rounded-xl" style={{ height: 40, minWidth: 84, paddingHorizontal: 6, backgroundColor: isSel ? COLORS.navySolid : 'transparent' }}>
                           <Text style={[cellTxt, { color: isSel ? '#fff' : COLORS.navy }]}>{m.slice(0, 3)}</Text>
                         </View>
                       </Pressable>
@@ -198,8 +198,8 @@ export function DateField({
                     const isToday = c.inMonth && c.y === now.getFullYear() && c.m === now.getMonth() && c.d === now.getDate();
                     return (
                       <Pressable key={i} onPress={() => pick(c.y, c.m, c.d)} style={{ width: `${100 / 7}%`, alignItems: 'center', paddingVertical: 3 }}>
-                        <View className="items-center justify-center rounded-xl" style={{ height: 38, width: 38, backgroundColor: isSel ? COLORS.navy : 'transparent', borderWidth: isToday && !isSel ? 1.5 : 0, borderColor: 'rgba(30,107,255,0.4)' }}>
-                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: isSel ? '800' : '500', color: isSel ? '#fff' : c.inMonth ? COLORS.navy : COLORS.ink3 }}>{c.d}</Text>
+                        <View className="items-center justify-center rounded-xl" style={{ height: 38, width: 38, backgroundColor: isSel ? COLORS.navySolid : 'transparent', borderWidth: isToday && !isSel ? 1.5 : 0, borderColor: 'rgba(30,107,255,0.4)' }}>
+                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: isSel ? '800' : '500', color: isSel ? '#fff' : c.inMonth ? COLORS.navySolid : COLORS.ink3 }}>{c.d}</Text>
                         </View>
                       </Pressable>
                     );

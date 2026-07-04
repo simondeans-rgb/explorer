@@ -40,7 +40,7 @@ export function KeyboardDoneBar() {
         position: 'absolute',
         right: 14,
         bottom: (Platform.OS === 'ios' ? kbHeight : 0) + 12,
-        backgroundColor: COLORS.navy,
+        backgroundColor: COLORS.navySolid,
         paddingHorizontal: 14,
         paddingVertical: 9,
         gap: 5,
