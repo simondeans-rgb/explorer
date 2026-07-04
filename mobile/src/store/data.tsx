@@ -144,6 +144,8 @@ interface DataApi extends DataShape {
     countryCode?: string;
     city?: string;
     caption?: string;
+    expeditionId?: string;
+    takenAt?: number;
   }) => Promise<void>;
   removeCapture: (id: string) => void;
   addTrip: (input: {
@@ -305,6 +307,7 @@ function captureFromDoc(id: string, d: DocumentData): Capture {
     expeditionId: d.expeditionId || undefined,
     discoveryId: d.discoveryId || undefined,
     caption: d.caption || undefined,
+    takenAt: typeof d.takenAt === 'number' ? d.takenAt : undefined,
     createdAt: millis(d.createdAt),
   };
 }
@@ -802,9 +805,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
             dataUrl: url,
             countryCode: input.countryCode || null,
             city: input.city?.trim() || null,
-            expeditionId: null,
+            expeditionId: input.expeditionId || null,
             discoveryId: null,
             caption: input.caption?.trim() || null,
+            takenAt: input.takenAt ?? null,
             storagePath,
             createdAt: serverTimestamp(),
           }).catch(logWriteError);
@@ -815,7 +819,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
             dataUrl: input.dataUrl,
             countryCode: input.countryCode,
             city: input.city?.trim() || undefined,
+            expeditionId: input.expeditionId || undefined,
             caption: input.caption?.trim() || undefined,
+            takenAt: input.takenAt,
             createdAt: Date.now(),
           };
           const cur = localRef.current;

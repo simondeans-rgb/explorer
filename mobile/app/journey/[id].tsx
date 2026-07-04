@@ -3,7 +3,9 @@ import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator } from 
 import Svg, { Path } from 'react-native-svg';
 import { useConfirm } from '../../src/store/confirm';
 import { useLocalSearchParams } from 'expo-router';
-import { Trash2, Plus, Check, Search, Plane, TrainFront, Ship, Car, Anchor } from 'lucide-react-native';
+import { Trash2, Plus, Check, Search, Plane, TrainFront, Ship, Car, Anchor, ImagePlus } from 'lucide-react-native';
+import { Image } from 'expo-image';
+import { AddPhotoSheet } from '../../components/AddPhotoSheet';
 import { BackButton } from '../../components/BackButton';
 import type { ComponentType } from 'react';
 import { DestinationImage } from '../../components/DestinationImage';
@@ -120,10 +122,11 @@ const LBL = { fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700' as cons
 
 export default function JourneyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { expeditions, updateExpedition, removeExpedition } = useData();
+  const { expeditions, updateExpedition, removeExpedition, captures } = useData();
   const { toast } = useToast();
   const { unit } = useUnits();
   const confirm = useConfirm();
+  const [photoOpen, setPhotoOpen] = useState(false);
   const expedition = expeditions.find((e) => e.id === id);
 
   const [title, setTitle] = useState('');
@@ -319,6 +322,42 @@ export default function JourneyScreen() {
           </View>
         ) : null}
 
+        {/* memories — photos stored with this trip */}
+        {(() => {
+          const tripPhotos = captures
+            .filter((c) => c.expeditionId === expedition.id)
+            .sort((a, b) => (a.takenAt ?? a.createdAt) - (b.takenAt ?? b.createdAt));
+          return (
+            <>
+              <View className="flex-row items-center" style={{ paddingHorizontal: 20, marginTop: 18 }}>
+                <Text style={[LBL, { paddingHorizontal: 0, marginTop: 0, flex: 1 }]}>
+                  {tripPhotos.length > 0 ? `MEMORIES (${tripPhotos.length})` : 'MEMORIES'}
+                </Text>
+                <Pressable accessibilityRole="button" accessibilityLabel="Add a photo to this trip" onPress={() => setPhotoOpen(true)} hitSlop={8} className="flex-row items-center" style={{ gap: 5 }}>
+                  <ImagePlus size={14} color={COLORS.coral} />
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>Add photo</Text>
+                </Pressable>
+              </View>
+              {tripPhotos.length > 0 ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 10, marginTop: 8 }}>
+                  {tripPhotos.map((c) => (
+                    <View key={c.id} style={{ width: 132 }}>
+                      <Image source={{ uri: c.dataUrl }} style={{ width: 132, height: 132, borderRadius: 16 }} contentFit="cover" transition={150} />
+                      {c.caption ? (
+                        <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginTop: 4 }}>{c.caption}</Text>
+                      ) : null}
+                    </View>
+                  ))}
+                </ScrollView>
+              ) : (
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 8 }}>
+                  Photos you add from this trip's dates or places will appear here.
+                </Text>
+              )}
+            </>
+          );
+        })()}
+
         {/* title */}
         <Text style={LBL}>TITLE</Text>
         <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
@@ -488,6 +527,8 @@ export default function JourneyScreen() {
           )}
         </Pressable>
       </ScrollView>
+
+      <AddPhotoSheet visible={photoOpen} onClose={() => setPhotoOpen(false)} initialCountryCode={codes[0]} initialExpeditionId={expedition.id} />
     </View>
   );
 }

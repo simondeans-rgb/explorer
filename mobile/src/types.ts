@@ -413,6 +413,8 @@ export interface Capture {
   expeditionId?: string;
   discoveryId?: string;
   caption?: string;
+  /** When the photo was taken (EXIF), ms epoch — createdAt is when it was saved. */
+  takenAt?: number;
   createdAt: number;
 }
 

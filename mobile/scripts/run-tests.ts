@@ -8,6 +8,8 @@ import { parseCheckins } from '../src/lib/checkinsImport';
 import { parsePolarsteps } from '../src/lib/polarstepsImport';
 import { parseTripit } from '../src/lib/tripitImport';
 import { parseCountryList, matchCountry, scanCountries } from '../src/lib/listImport';
+import { matchExpedition, expeditionLabel } from '../src/lib/tripMatch';
+import type { Expedition } from '../src/types';
 
 let passed = 0;
 function test(name: string, fn: () => void) {
@@ -138,6 +140,41 @@ test('country list: names, aliases, city pairs', () => {
 test('scanCountries: word-boundary match, no false hits', () => {
   assert.deepEqual(scanCountries('Flight to Tokyo, Japan '), ['JP']);
   assert.deepEqual(scanCountries('Meeting Mr Chadwick at noon'), []);
+});
+
+// ---- Photo → trip matching -------------------------------------------------
+
+const exp = (id: string, title: string, codes: string[], start: string, end?: string): Expedition => ({
+  id, userId: 'me', title, countryCodes: codes, startDate: start, endDate: end,
+  journeys: [], createdAt: 0, updatedAt: 0,
+});
+
+test('tripMatch: photo taken during a trip wins over country-only', () => {
+  const trips = [
+    exp('a', 'Spain', ['ES'], '2025-06-01', '2025-06-10'),
+    exp('b', 'Spain again', ['ES'], '2025-09-01', '2025-09-05'),
+  ];
+  const during = new Date(2025, 5, 4).getTime(); // 4 Jun 2025
+  assert.equal(matchExpedition(trips, { countryCode: 'ES', takenAt: during })?.id, 'a');
+});
+
+test('tripMatch: grace window catches the flight home; no match ⇒ undefined', () => {
+  const trips = [exp('a', 'Japan', ['JP'], '2024-03-10', '2024-03-20')];
+  const dayAfter = new Date(2024, 2, 21).getTime();
+  assert.equal(matchExpedition(trips, { takenAt: dayAfter })?.id, 'a');
+  const monthsLater = new Date(2024, 7, 1).getTime();
+  assert.equal(matchExpedition(trips, { takenAt: monthsLater, countryCode: 'FR' }), undefined);
+});
+
+test('tripMatch: country + same year fallback when the date misses the range', () => {
+  const trips = [exp('a', 'Spain', ['ES'], '2025-06-01', '2025-06-10')];
+  const sameYear = new Date(2025, 10, 2).getTime();
+  assert.equal(matchExpedition(trips, { countryCode: 'ES', takenAt: sameYear })?.id, 'a');
+});
+
+test('expeditionLabel: adds month + year unless the title already has it', () => {
+  assert.equal(expeditionLabel(exp('a', 'Spain', ['ES'], '2021-11-06')), 'Spain · Nov 2021');
+  assert.equal(expeditionLabel(exp('a', 'Spain 2021', ['ES'], '2021-11-06')), 'Spain 2021');
 });
 
 console.log(`✓ all ${passed} tests passed`);
