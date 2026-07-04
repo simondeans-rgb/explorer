@@ -75,7 +75,7 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
         </Text>
 
         {mode === 'up' ? (
-          <View className="bg-white rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 12, marginBottom: 10 }}>
+          <View className="bg-white dark:bg-card rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 12, marginBottom: 10 }}>
             <TextInput
               value={name}
               onChangeText={setName}
@@ -87,7 +87,7 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
           </View>
         ) : null}
 
-        <View className="bg-white rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 12, marginBottom: 10 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 12, marginBottom: 10 }}>
           <TextInput
             value={email}
             onChangeText={setEmail}
@@ -100,7 +100,7 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
           />
         </View>
 
-        <View className="bg-white rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 12 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 12 }}>
           <TextInput
             value={password}
             onChangeText={setPassword}

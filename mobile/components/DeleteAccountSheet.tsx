@@ -52,7 +52,7 @@ export function DeleteAccountSheet({ visible, onClose }: { visible: boolean; onC
         </View>
 
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 16, marginBottom: 8 }}>Confirm your password to continue.</Text>
-        <View className="bg-white rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 12 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 12 }}>
           <TextInput
             value={password}
             onChangeText={setPassword}

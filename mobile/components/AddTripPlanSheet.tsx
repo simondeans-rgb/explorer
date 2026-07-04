@@ -54,7 +54,7 @@ export function AddTripPlanSheet({ visible, onClose }: { visible: boolean; onClo
     <SheetShell visible={visible} title="Plan a trip" onClose={close}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 8 }}>
         {/* title */}
-        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 4 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 4 }}>
           <TextInput
             value={title}
             onChangeText={setTitle}
@@ -66,7 +66,7 @@ export function AddTripPlanSheet({ visible, onClose }: { visible: boolean; onClo
 
         {/* destination */}
         <Text style={LBL}>WHERE TO?</Text>
-        <View className="flex-row items-center bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
+        <View className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
           <Search size={18} color={COLORS.ink3} />
           <TextInput
             value={query}
@@ -103,7 +103,7 @@ export function AddTripPlanSheet({ visible, onClose }: { visible: boolean; onClo
 
         {/* note */}
         <Text style={LBL}>A NOTE (OPTIONAL)</Text>
-        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
           <TextInput
             value={note}
             onChangeText={setNote}

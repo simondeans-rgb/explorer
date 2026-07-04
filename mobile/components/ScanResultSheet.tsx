@@ -88,7 +88,7 @@ export function ScanResultSheet({
             <Pressable
               key={r.countryCode}
               onPress={() => toggle(r.countryCode)}
-              className="flex-row items-center bg-white rounded-2xl"
+              className="flex-row items-center bg-white dark:bg-card rounded-2xl"
               style={{ padding: 12, marginBottom: 8, gap: 12 }}
             >
               <Text style={{ fontSize: 24 }}>{flagEmoji(r.countryCode)}</Text>

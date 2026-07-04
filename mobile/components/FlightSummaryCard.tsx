@@ -81,7 +81,7 @@ export function FlightSummaryCard(p: FlightSummaryProps) {
   if (!hasRoute && !p.departTime && !dist) return null;
 
   return (
-    <View className="rounded-3xl" style={{ backgroundColor: '#fff', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(30,107,255,0.14)' }}>
+    <View className="rounded-3xl" style={{ backgroundColor: COLORS.card, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(30,107,255,0.14)' }}>
       {/* header */}
       <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 16, paddingTop: 13 }}>
         <View className="flex-row items-center" style={{ gap: 8, flexShrink: 1 }}>

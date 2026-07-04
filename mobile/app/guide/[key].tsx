@@ -86,7 +86,7 @@ export default function GuideScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`${d.name}${d.verdict ? `, ${VERDICT_META[d.verdict].label}` : ''}, by ${by}`}
                 onPress={() => (mine ? router.push(`/discovery/${d.id}`) : undefined)}
-                className="bg-white rounded-2xl"
+                className="bg-white dark:bg-card rounded-2xl"
                 style={{ padding: 14 }}
               >
                 <View className="flex-row items-center" style={{ gap: 12 }}>

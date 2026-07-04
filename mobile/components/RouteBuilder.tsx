@@ -39,7 +39,7 @@ export function RouteBuilder({ onAdd }: { onAdd: (legs: { mode: JourneyMode; fro
   }
 
   return (
-    <View className="bg-white rounded-3xl" style={{ marginHorizontal: 20, marginTop: 10, padding: 14, gap: 10 }}>
+    <View className="bg-white dark:bg-card rounded-3xl" style={{ marginHorizontal: 20, marginTop: 10, padding: 14, gap: 10 }}>
       <Text style={{ fontFamily: 'Fraunces', fontSize: 15, color: COLORS.navy }}>Build a route</Text>
 
       {/* mode */}
@@ -48,7 +48,7 @@ export function RouteBuilder({ onAdd }: { onAdd: (legs: { mode: JourneyMode; fro
           const active = mode === m;
           const Icon = MODE_ICON[m];
           return (
-            <Pressable key={m} onPress={() => setMode(m)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 11, paddingVertical: 7, gap: 5, backgroundColor: active ? COLORS.navy : COLORS.warmwhite }}>
+            <Pressable key={m} onPress={() => setMode(m)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 11, paddingVertical: 7, gap: 5, backgroundColor: active ? COLORS.navySolid : COLORS.warmwhite }}>
               <Icon size={13} color={active ? '#fff' : COLORS.coral} />
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{JOURNEY_MODE_META[m].label}</Text>
             </Pressable>

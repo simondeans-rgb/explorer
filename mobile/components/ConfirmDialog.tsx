@@ -26,7 +26,7 @@ export function ConfirmDialog({
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onCancel}>
       <Pressable onPress={onCancel} style={{ flex: 1, backgroundColor: 'rgba(14,16,24,0.5)', alignItems: 'center', justifyContent: 'center', padding: 30 }}>
         <Pressable onPress={() => {}} style={{ width: '100%', maxWidth: 360 }}>
-          <View className="bg-white" style={{ borderRadius: 28, padding: 22, ...SHADOW.float }}>
+          <View className="bg-white dark:bg-card" style={{ borderRadius: 28, padding: 22, ...SHADOW.float }}>
             <Text style={{ fontFamily: 'Fraunces', fontSize: 21, color: COLORS.navy }}>{title}</Text>
             {message ? (
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink2, marginTop: 8, lineHeight: 20 }}>{message}</Text>

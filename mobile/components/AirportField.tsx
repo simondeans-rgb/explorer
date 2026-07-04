@@ -56,7 +56,7 @@ export function AirportField({
   return (
     <View style={{ flex: 1 }}>
       <View
-        className="bg-white rounded-2xl flex-row items-center"
+        className="bg-white dark:bg-card rounded-2xl flex-row items-center"
         style={{ paddingHorizontal: 12, paddingVertical: 10, gap: 8, borderWidth: showFlag && !resolved ? 1 : 0, borderColor: '#F4B740' }}
       >
         <TextInput
@@ -89,7 +89,7 @@ export function AirportField({
       ) : null}
 
       {suggestions.length > 0 ? (
-        <View className="bg-white rounded-2xl" style={{ marginTop: 6, paddingVertical: 2, ...({ shadowColor: '#14213D', shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3 }) }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ marginTop: 6, paddingVertical: 2, ...({ shadowColor: '#14213D', shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3 }) }}>
           {suggestions.map((m, i) => (
             <Pressable
               key={`${m.iata}-${i}`}

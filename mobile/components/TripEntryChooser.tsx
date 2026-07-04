@@ -28,7 +28,7 @@ export function TripEntryChooser({
             accessibilityRole="button"
             accessibilityLabel={`${r.title} — ${r.hint}`}
             onPress={() => onPick(r.kind)}
-            className="bg-white rounded-2xl flex-row items-center"
+            className="bg-white dark:bg-card rounded-2xl flex-row items-center"
             style={{ padding: 16, gap: 14 }}
           >
             <View className="rounded-2xl items-center justify-center" style={{ height: 46, width: 46, backgroundColor: r.tint + '14' }}>

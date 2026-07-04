@@ -130,7 +130,7 @@ export function Celebration({ item, onDismiss }: { item: CelebrationItem; onDism
             {item.subtitle ? (
               <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95, marginTop: 6, textAlign: 'center' }}>{item.subtitle}</Text>
             ) : null}
-            <View className="rounded-full bg-white" style={{ marginTop: 22, paddingHorizontal: 26, paddingVertical: 11 }}>
+            <View className="rounded-full bg-white dark:bg-card" style={{ marginTop: 22, paddingHorizontal: 26, paddingVertical: 11 }}>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.coral }}>Nice!</Text>
             </View>
           </LinearGradient>

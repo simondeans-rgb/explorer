@@ -81,7 +81,7 @@ function CirclePreview() {
       <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, textAlign: 'center', marginBottom: 4, paddingHorizontal: 16 }}>PREVIEW · HOW YOUR CIRCLE WILL LOOK</Text>
       <Text style={{ fontFamily: 'Fraunces', fontSize: 12, fontStyle: 'italic', color: COLORS.ink3, textAlign: 'center', marginBottom: 10, paddingHorizontal: 24 }}>Invite friends to see their real activity.</Text>
       <View style={{ gap: 10, opacity: 0.92 }}>
-        <View className="bg-white rounded-3xl" style={{ padding: 14 }}>
+        <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14 }}>
           <View className="flex-row items-center" style={{ gap: 10 }}>
             <Avatar name="Maya" size={38} />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.navy }}><Text style={{ fontWeight: '700' }}>Maya</Text> recently visited</Text>
@@ -95,7 +95,7 @@ function CirclePreview() {
             ))}
           </View>
         </View>
-        <View className="bg-white rounded-3xl" style={{ padding: 14 }}>
+        <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14 }}>
           <View className="flex-row items-center" style={{ gap: 8 }}>
             <View className="rounded-full items-center justify-center" style={{ height: 28, width: 28, backgroundColor: 'rgba(255,184,77,0.18)' }}>
               <Gem size={15} color="#C2871A" />
@@ -105,7 +105,7 @@ function CirclePreview() {
           <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy, marginTop: 8 }}>Sintra, Portugal</Text>
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 1 }}>4 people in your circle say it's worth the trip</Text>
         </View>
-        <View className="bg-white rounded-3xl" style={{ padding: 14 }}>
+        <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14 }}>
           <View className="flex-row items-center" style={{ gap: 8 }}>
             <Sparkles size={15} color={COLORS.lavender} />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '700', color: COLORS.lavender }}>On their wishlists</Text>
@@ -265,7 +265,7 @@ export default function CircleScreen() {
           {/* Why your circle matters */}
           <View className="rounded-3xl" style={{ marginTop: 16, overflow: 'hidden' }}>
             <LinearGradient colors={['rgba(155,124,255,0.16)', 'rgba(36,209,195,0.13)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 16, flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-              <View className="rounded-2xl items-center justify-center" style={{ height: 44, width: 44, backgroundColor: '#fff' }}>
+              <View className="rounded-2xl items-center justify-center" style={{ height: 44, width: 44, backgroundColor: COLORS.card }}>
                 <HeartHandshake size={22} color={COLORS.lavender} />
               </View>
               <Text style={{ flex: 1, fontFamily: 'Fraunces', fontSize: 15, color: COLORS.navy, lineHeight: 21 }}>
@@ -337,7 +337,7 @@ export default function CircleScreen() {
           <SectionTitle hint="Your circle, ranked by Explorer XP">Circle leaderboard</SectionTitle>
           <View style={{ gap: 8 }}>
             {leaderboard.map((m, i) => (
-              <View key={m.uid} className="bg-white rounded-2xl flex-row items-center" style={{ padding: 12, gap: 12, ...SHADOW.card }}>
+              <View key={m.uid} className="bg-white dark:bg-card rounded-2xl flex-row items-center" style={{ padding: 12, gap: 12, ...SHADOW.card }}>
                 <Text style={{ width: 18, textAlign: 'center', fontFamily: 'Fraunces', fontSize: 16, color: i === 0 ? COLORS.coral : COLORS.ink3 }}>{i + 1}</Text>
                 <Avatar name={m.name} size={40} />
                 <View style={{ flex: 1 }}>
@@ -374,7 +374,7 @@ export default function CircleScreen() {
           ) : null}
 
           {!hasContent ? (
-            <View className="bg-white rounded-3xl" style={{ padding: 18, marginTop: 18 }}>
+            <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 18, marginTop: 18 }}>
               <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy }}>Your circle is quiet… for now</Text>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, color: COLORS.ink3, marginTop: 6, lineHeight: 19 }}>
                 As the people you've connected with log their trips, discoveries and wishlists, their recommendations will appear here.
@@ -400,7 +400,7 @@ export default function CircleScreen() {
                       <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700' }}>On your wishlist</Text>
                     </View>
                   ) : (
-                    <Pressable onPress={() => addToWishlist(mostVisited.countryCode, mostVisited.name)} className="flex-row items-center justify-center rounded-full bg-white" style={{ flex: 1, paddingVertical: 11, gap: 6 }}>
+                    <Pressable onPress={() => addToWishlist(mostVisited.countryCode, mostVisited.name)} className="flex-row items-center justify-center rounded-full bg-white dark:bg-card" style={{ flex: 1, paddingVertical: 11, gap: 6 }}>
                       <Plus size={16} color={COLORS.coral} strokeWidth={2.6} />
                       <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.coral }}>Add to wishlist</Text>
                     </Pressable>
@@ -421,7 +421,7 @@ export default function CircleScreen() {
                 const Icon = s.Icon;
                 const place = [r.city, r.countryCode ? countryName(r.countryCode) : null].filter(Boolean).join(', ');
                 return (
-                  <Pressable key={r.key} onPress={() => setRec(r)} className="bg-white rounded-3xl" style={{ padding: 14 }}>
+                  <Pressable key={r.key} onPress={() => setRec(r)} className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14 }}>
                     <View className="flex-row items-center" style={{ gap: 8 }}>
                       <View className="rounded-full items-center justify-center" style={{ height: 26, width: 26, backgroundColor: s.tint }}>
                         <Icon size={14} color={s.color} />
@@ -447,7 +447,7 @@ export default function CircleScreen() {
               <SectionTitle hint="Tap a place for their notes & tips">Recently visited</SectionTitle>
               <View style={{ gap: 10 }}>
                 {recents.slice(0, 6).map((f) => (
-                  <View key={f.uid} className="bg-white rounded-3xl" style={{ padding: 14 }}>
+                  <View key={f.uid} className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14 }}>
                     <View className="flex-row items-center" style={{ gap: 10 }}>
                       <Avatar name={f.name} size={38} />
                       <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.navy }}><Text style={{ fontWeight: '700' }}>{f.name}</Text> recently visited</Text>
@@ -472,7 +472,7 @@ export default function CircleScreen() {
               <SectionTitle hint="Places your circle is dreaming of — plan a trip together?">On their wishlists</SectionTitle>
               <View style={{ gap: 10 }}>
                 {wishes.slice(0, 6).map((f) => (
-                  <View key={f.uid} className="bg-white rounded-3xl" style={{ padding: 14 }}>
+                  <View key={f.uid} className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14 }}>
                     <View className="flex-row items-center" style={{ gap: 8 }}>
                       <Sparkles size={15} color={COLORS.lavender} />
                       <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.navy }}><Text style={{ fontWeight: '700' }}>{f.name}</Text> wants to visit</Text>
@@ -501,7 +501,7 @@ export default function CircleScreen() {
                   const sharedMode = c.shared.length > 0;
                   const tastes = sharedMode ? c.shared : c.diverge;
                   return (
-                    <View key={c.uid} className="bg-white rounded-3xl" style={{ padding: 14 }}>
+                    <View key={c.uid} className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14 }}>
                       <View className="flex-row items-center" style={{ gap: 12 }}>
                         <Avatar name={c.name} size={40} />
                         <View style={{ flex: 1 }}>

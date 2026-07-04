@@ -93,7 +93,7 @@ const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s.trim());
 
 function Field({ value, onChange, placeholder, flex }: { value: string; onChange: (t: string) => void; placeholder: string; flex?: boolean }) {
   return (
-    <View className="bg-white rounded-2xl" style={[{ paddingHorizontal: 12, paddingVertical: 10 }, flex ? { flex: 1 } : null]}>
+    <View className="bg-white dark:bg-card rounded-2xl" style={[{ paddingHorizontal: 12, paddingVertical: 10 }, flex ? { flex: 1 } : null]}>
       <TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={COLORS.ink3} style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink }} />
     </View>
   );
@@ -332,7 +332,7 @@ export default function JourneyScreen() {
 
         {/* title */}
         <Text style={LBL}>TITLE</Text>
-        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
           <TextInput value={title} onChangeText={setTitle} placeholder="e.g. Japan · 2026" placeholderTextColor={COLORS.ink3} style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />
         </View>
 
@@ -351,7 +351,7 @@ export default function JourneyScreen() {
         {codes.length > 0 ? (
           <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 8, gap: 8 }}>
             {codes.map((c) => (
-              <Pressable key={c} onPress={() => setCodes((prev) => prev.filter((x) => x !== c))} className="flex-row items-center rounded-full" style={{ backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 7, gap: 6 }}>
+              <Pressable key={c} onPress={() => setCodes((prev) => prev.filter((x) => x !== c))} className="flex-row items-center rounded-full" style={{ backgroundColor: COLORS.card, paddingHorizontal: 12, paddingVertical: 7, gap: 6 }}>
                 <Text style={{ fontSize: 15 }}>{flagEmoji(c)}</Text>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.navy }}>{countryName(c)}</Text>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink3 }}>×</Text>
@@ -359,7 +359,7 @@ export default function JourneyScreen() {
             ))}
           </View>
         ) : null}
-        <View className="flex-row items-center bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
+        <View className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
           <Search size={18} color={COLORS.ink3} />
           <TextInput value={query} onChangeText={setQuery} placeholder="Add a country" placeholderTextColor={COLORS.ink3} style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />
         </View>
@@ -406,7 +406,7 @@ export default function JourneyScreen() {
               <View key={`${u.legId}-${u.field}-${i}`} className="flex-row items-center" style={{ gap: 8 }}>
                 <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.navy, flex: 1 }}>“{u.value}”</Text>
                 {u.suggestion ? (
-                  <Pressable onPress={() => patchLeg(u.legId, { [u.field]: u.suggestion!.label } as Partial<Leg>)} className="rounded-full" style={{ backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: '#F4D58D' }}>
+                  <Pressable onPress={() => patchLeg(u.legId, { [u.field]: u.suggestion!.label } as Partial<Leg>)} className="rounded-full" style={{ backgroundColor: COLORS.card, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: '#F4D58D' }}>
                     <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: '#9A6A1E' }}>Use {u.suggestion.iata}</Text>
                   </Pressable>
                 ) : (
@@ -419,7 +419,7 @@ export default function JourneyScreen() {
         {legs.map((leg, i) => {
           const meta = JOURNEY_MODE_META[leg.mode];
           return (
-            <View key={leg.id} className="bg-white rounded-3xl" style={{ marginHorizontal: 20, marginTop: 10, padding: 14, gap: 10 }}>
+            <View key={leg.id} className="bg-white dark:bg-card rounded-3xl" style={{ marginHorizontal: 20, marginTop: 10, padding: 14, gap: 10 }}>
               <View className="flex-row items-center justify-between">
                 <Text style={{ fontFamily: 'Fraunces', fontSize: 15, color: COLORS.navy }}>Leg {i + 1}</Text>
                 {legs.length > 1 ? (
@@ -431,7 +431,7 @@ export default function JourneyScreen() {
                   const active = leg.mode === m;
                   const Icon = MODE_ICON[m];
                   return (
-                    <Pressable key={m} onPress={() => patchLeg(leg.id, { mode: m })} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 11, paddingVertical: 7, gap: 5, backgroundColor: active ? COLORS.navy : COLORS.warmwhite }}>
+                    <Pressable key={m} onPress={() => patchLeg(leg.id, { mode: m })} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 11, paddingVertical: 7, gap: 5, backgroundColor: active ? COLORS.navySolid : COLORS.warmwhite }}>
                       <Icon size={13} color={active ? '#fff' : COLORS.coral} />
                       <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{JOURNEY_MODE_META[m].label}</Text>
                     </Pressable>
@@ -482,7 +482,7 @@ export default function JourneyScreen() {
 
         {/* note */}
         <Text style={LBL}>NOTE</Text>
-        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
           <TextInput value={note} onChangeText={setNote} placeholder="A note for this journey" placeholderTextColor={COLORS.ink3} multiline style={{ fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink, minHeight: 44 }} />
         </View>
 

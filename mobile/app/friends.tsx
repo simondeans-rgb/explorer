@@ -126,7 +126,7 @@ export default function FriendsScreen() {
 
       {/* Your code */}
       <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
-        <LinearGradient colors={['#22335A', COLORS.navy]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 24, padding: 20 }}>
+        <LinearGradient colors={['#22335A', '#14213D']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 24, padding: 20 }}>
           <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1.5, opacity: 0.85 }}>YOUR SHARE CODE</Text>
           <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 36, marginTop: 4, letterSpacing: 2 }}>
             {profile ? profile.code : '· · · · · ·'}
@@ -136,7 +136,7 @@ export default function FriendsScreen() {
               {copied ? <Check size={16} color="#fff" /> : <Copy size={16} color="#fff" />}
               <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700' }}>{copied ? 'Copied' : 'Copy'}</Text>
             </Pressable>
-            <Pressable onPress={shareCode} disabled={!profile} className="flex-row items-center justify-center rounded-full bg-white" style={{ flex: 1, paddingVertical: 11, gap: 6 }}>
+            <Pressable onPress={shareCode} disabled={!profile} className="flex-row items-center justify-center rounded-full bg-white dark:bg-card" style={{ flex: 1, paddingVertical: 11, gap: 6 }}>
               <Share2 size={16} color={COLORS.coral} />
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.coral }}>Share</Text>
             </Pressable>
@@ -147,8 +147,8 @@ export default function FriendsScreen() {
       {/* Invite — QR + message / WhatsApp */}
       {profile ? (
         <View style={{ paddingHorizontal: 20, marginTop: 14 }}>
-          <View className="bg-white rounded-3xl items-center" style={{ padding: 20, ...SHADOW.card }}>
-            <View style={{ padding: 14, backgroundColor: '#fff', borderRadius: 18, borderWidth: 1, borderColor: 'rgba(20,33,61,0.06)' }}>
+          <View className="bg-white dark:bg-card rounded-3xl items-center" style={{ padding: 20, ...SHADOW.card }}>
+            <View style={{ padding: 14, backgroundColor: COLORS.card, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(20,33,61,0.06)' }}>
               <QRCode value={inviteLink} size={148} color={COLORS.navy} backgroundColor="#fff" />
             </View>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 12, textAlign: 'center' }}>Scan to add me on Worldly</Text>
@@ -172,13 +172,13 @@ export default function FriendsScreen() {
       {profile && (HAS_CAMERA || HAS_CONTACTS) ? (
         <View className="flex-row" style={{ paddingHorizontal: 20, marginTop: 12, gap: 10 }}>
           {HAS_CAMERA ? (
-            <Pressable onPress={() => router.push('/scan')} className="flex-1 flex-row items-center justify-center bg-white rounded-2xl" style={{ paddingVertical: 13, gap: 7, ...SHADOW.card }}>
+            <Pressable onPress={() => router.push('/scan')} className="flex-1 flex-row items-center justify-center bg-white dark:bg-card rounded-2xl" style={{ paddingVertical: 13, gap: 7, ...SHADOW.card }}>
               <QrCode size={18} color={COLORS.navy} />
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.navy }}>Scan a code</Text>
             </Pressable>
           ) : null}
           {HAS_CONTACTS ? (
-            <Pressable onPress={() => router.push('/invite-contacts')} className="flex-1 flex-row items-center justify-center bg-white rounded-2xl" style={{ paddingVertical: 13, gap: 7, ...SHADOW.card }}>
+            <Pressable onPress={() => router.push('/invite-contacts')} className="flex-1 flex-row items-center justify-center bg-white dark:bg-card rounded-2xl" style={{ paddingVertical: 13, gap: 7, ...SHADOW.card }}>
               <Users size={18} color={COLORS.navy} />
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.navy }}>From contacts</Text>
             </Pressable>
@@ -190,7 +190,7 @@ export default function FriendsScreen() {
       <View style={{ paddingHorizontal: 20, marginTop: 18 }}>
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 1, color: COLORS.ink3, marginBottom: 8 }}>ADD A FRIEND BY CODE</Text>
         <View className="flex-row" style={{ gap: 10 }}>
-          <View className="flex-row items-center bg-white rounded-2xl" style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 11 }}>
+          <View className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 11 }}>
             <TextInput
               value={code}
               onChangeText={(t) => setCode(t.toUpperCase())}
@@ -219,7 +219,7 @@ export default function FriendsScreen() {
               const other = c.members.find((m) => m !== user.uid) ?? '';
               const name = c.names[other] || 'Member';
               return (
-                <View key={c.id} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 14, gap: 12 }}>
+                <View key={c.id} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 14, gap: 12 }}>
                   <Avatar name={name} />
                   <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{name}</Text>
                   <Pressable onPress={() => removeConnection(c.id)} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
@@ -249,7 +249,7 @@ export default function FriendsScreen() {
           {friends.map((f) => {
             const codes = countriesByFriend.get(f.uid) ?? [];
             return (
-              <View key={f.uid} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 14, gap: 12 }}>
+              <View key={f.uid} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 14, gap: 12 }}>
                 <Avatar name={f.name} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{f.name}</Text>
@@ -267,7 +267,7 @@ export default function FriendsScreen() {
             const other = c.members.find((m) => m !== user.uid) ?? '';
             const name = c.names[other] || 'Member';
             return (
-              <View key={c.id} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 14, gap: 12, opacity: 0.7 }}>
+              <View key={c.id} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 14, gap: 12, opacity: 0.7 }}>
                 <Avatar name={name} />
                 <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{name}</Text>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>Requested</Text>

@@ -86,7 +86,7 @@ export function SocialAuthButtons({
         onPress={() => run('google', signInWithGoogle)}
         disabled={busy !== null}
         className="flex-row items-center justify-center rounded-2xl"
-        style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: 'rgba(20,33,61,0.14)', paddingVertical: 14, gap: 10, opacity: busy ? 0.7 : 1 }}
+        style={{ backgroundColor: COLORS.card, borderWidth: 1, borderColor: 'rgba(20,33,61,0.14)', paddingVertical: 14, gap: 10, opacity: busy ? 0.7 : 1 }}
       >
         {busy === 'google' ? (
           <ActivityIndicator color={COLORS.ink2} />

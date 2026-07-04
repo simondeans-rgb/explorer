@@ -144,7 +144,7 @@ export default function DiscoveryScreen() {
         </DestinationImage>
 
         {/* name */}
-        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 14 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 14 }}>
           <TextInput value={name} onChangeText={setName} placeholder="Name" placeholderTextColor={COLORS.ink3} style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />
         </View>
 
@@ -159,11 +159,11 @@ export default function DiscoveryScreen() {
             </View>
           ) : (
             <View className="flex-row" style={{ gap: 10 }}>
-              <Pressable onPress={() => pick('camera')} disabled={picking} className="flex-row items-center justify-center bg-white rounded-2xl" style={{ flex: 1, paddingVertical: 14, gap: 7 }}>
+              <Pressable onPress={() => pick('camera')} disabled={picking} className="flex-row items-center justify-center bg-white dark:bg-card rounded-2xl" style={{ flex: 1, paddingVertical: 14, gap: 7 }}>
                 <Camera size={18} color={COLORS.coral} />
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.navy }}>Photo</Text>
               </Pressable>
-              <Pressable onPress={() => pick('library')} disabled={picking} className="flex-row items-center justify-center bg-white rounded-2xl" style={{ flex: 1, paddingVertical: 14, gap: 7 }}>
+              <Pressable onPress={() => pick('library')} disabled={picking} className="flex-row items-center justify-center bg-white dark:bg-card rounded-2xl" style={{ flex: 1, paddingVertical: 14, gap: 7 }}>
                 <ImagePlus size={18} color={COLORS.coral} />
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.navy }}>Library</Text>
               </Pressable>
@@ -177,7 +177,7 @@ export default function DiscoveryScreen() {
           {DISCOVERY_CATEGORIES.map((c) => {
             const active = category === c;
             return (
-              <Pressable key={c} onPress={() => { setCategory(c); setSubcategory(undefined); }} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navy : '#fff' }}>
+              <Pressable key={c} onPress={() => { setCategory(c); setSubcategory(undefined); }} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{DISCOVERY_CATEGORY_META[c].label}</Text>
               </Pressable>
             );
@@ -190,7 +190,7 @@ export default function DiscoveryScreen() {
           {subcategories.map((s) => {
             const active = subcategory === s.id;
             return (
-              <Pressable key={s.id} onPress={() => setSubcategory(active ? undefined : s.id)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navy : '#fff' }}>
+              <Pressable key={s.id} onPress={() => setSubcategory(active ? undefined : s.id)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{s.label}</Text>
               </Pressable>
             );
@@ -199,13 +199,13 @@ export default function DiscoveryScreen() {
 
         {/* city */}
         <Text style={LBL}>CITY</Text>
-        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
           <TextInput value={city} onChangeText={setCity} placeholder="City" placeholderTextColor={COLORS.ink3} style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />
         </View>
 
         {/* country */}
         <Text style={LBL}>COUNTRY</Text>
-        <View className="flex-row items-center bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
+        <View className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
           <Search size={18} color={COLORS.ink3} />
           <TextInput value={query} onChangeText={setQuery} placeholder={code ? `${flagEmoji(code)} ${countryName(code)}` : 'Search countries'} placeholderTextColor={code ? COLORS.ink2 : COLORS.ink3} style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />
         </View>
@@ -232,7 +232,7 @@ export default function DiscoveryScreen() {
               {landmarks.map((l) => {
                 const active = landmark === l;
                 return (
-                  <Pressable key={l} onPress={() => setLandmark(active ? '' : l)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navy : '#fff' }}>
+                  <Pressable key={l} onPress={() => setLandmark(active ? '' : l)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
                     <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{l}</Text>
                   </Pressable>
                 );
@@ -264,7 +264,7 @@ export default function DiscoveryScreen() {
 
         {/* note */}
         <Text style={LBL}>NOTE</Text>
-        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
           <TextInput value={note} onChangeText={setNote} placeholder="A line to remember it by" placeholderTextColor={COLORS.ink3} multiline style={{ fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink, minHeight: 48 }} />
         </View>
 

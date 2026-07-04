@@ -209,7 +209,7 @@ export function ResolveFlightsSheet({
                   </Text>
                 </View>
 
-                <Pressable onPress={fetchAll} disabled={busy} className="flex-row items-center justify-center rounded-2xl" style={{ paddingVertical: 12, gap: 8, backgroundColor: COLORS.navy, opacity: busy ? 0.5 : 1 }}>
+                <Pressable onPress={fetchAll} disabled={busy} className="flex-row items-center justify-center rounded-2xl" style={{ paddingVertical: 12, gap: 8, backgroundColor: COLORS.navySolid, opacity: busy ? 0.5 : 1 }}>
                   {fetchingAll ? <ActivityIndicator size="small" color="#fff" /> : <Download size={16} color="#fff" />}
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: '#fff' }}>
                     {fetchingAll ? (progress ? `Fetching ${progress.done}/${progress.total}…` : 'Fetching…') : 'Fetch all details'}
@@ -217,7 +217,7 @@ export function ResolveFlightsSheet({
                 </Pressable>
 
                 {enrichable.map((c) => (
-                  <View key={`${c.expId}:${c.legId}`} className="bg-white rounded-2xl" style={{ padding: 14, gap: 10, borderWidth: 1, borderColor: 'rgba(20,33,61,0.06)' }}>
+                  <View key={`${c.expId}:${c.legId}`} className="bg-white dark:bg-card rounded-2xl" style={{ padding: 14, gap: 10, borderWidth: 1, borderColor: 'rgba(20,33,61,0.06)' }}>
                     <View className="flex-row items-center" style={{ gap: 8 }}>
                       <View className="rounded-xl items-center justify-center" style={{ height: 30, width: 30, backgroundColor: COLORS.warmwhite }}>
                         <Plane size={15} color={COLORS.ink2} />
@@ -256,7 +256,7 @@ export function ResolveFlightsSheet({
                 </View>
 
                 {unresolved.some((u) => !!bestAirportMatch(u.value)) ? (
-                  <Pressable onPress={fixAll} className="flex-row items-center justify-center rounded-2xl" style={{ paddingVertical: 12, gap: 8, backgroundColor: COLORS.navy }}>
+                  <Pressable onPress={fixAll} className="flex-row items-center justify-center rounded-2xl" style={{ paddingVertical: 12, gap: 8, backgroundColor: COLORS.navySolid }}>
                     <Wand2 size={16} color="#fff" />
                     <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: '#fff' }}>Use all suggested matches</Text>
                   </Pressable>
@@ -266,7 +266,7 @@ export function ResolveFlightsSheet({
                   const k = keyOf(u);
                   const best = bestAirportMatch(u.value);
                   return (
-                    <View key={k} className="bg-white rounded-2xl" style={{ padding: 14, gap: 10, borderWidth: 1, borderColor: 'rgba(20,33,61,0.06)' }}>
+                    <View key={k} className="bg-white dark:bg-card rounded-2xl" style={{ padding: 14, gap: 10, borderWidth: 1, borderColor: 'rgba(20,33,61,0.06)' }}>
                       <View>
                         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: COLORS.ink3 }}>{u.title.toUpperCase()} · {u.field === 'from' ? 'FROM' : 'TO'}</Text>
                         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy, marginTop: 1 }}>“{u.value}”</Text>

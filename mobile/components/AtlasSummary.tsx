@@ -105,7 +105,7 @@ export const AtlasSummary = memo(function AtlasSummary({
       : `You’ve explored ${nCountries} ${nCountries === 1 ? 'country' : 'countries'} across ${nConts} ${nConts === 1 ? 'continent' : 'continents'} — that’s ${pctLabel}% of the world.`;
 
   return (
-    <View className="bg-white rounded-3xl" style={{ marginTop: 14, padding: 18, ...SHADOW.card }}>
+    <View className="bg-white dark:bg-card rounded-3xl" style={{ marginTop: 14, padding: 18, ...SHADOW.card }}>
       <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy }}>Your world</Text>
       <Text style={{ fontFamily: 'Fraunces', fontSize: 13.5, fontStyle: 'italic', color: COLORS.ink2, marginTop: 3, marginBottom: 14, lineHeight: 19 }}>{narrative}</Text>
 
@@ -132,7 +132,7 @@ export const AtlasSummary = memo(function AtlasSummary({
           const color = CONTINENT_COLOR[c] ?? COLORS.coral;
           return (
             <View key={c} className="flex-row items-center" style={{ gap: 10 }}>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '600', color: on ? COLORS.navy : COLORS.ink2, width: 96 }}>{c}</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '600', color: on ? COLORS.navySolid : COLORS.ink2, width: 96 }}>{c}</Text>
               <ContinentBar pct={total ? got / total : 0} color={color} on={on} index={i} />
               <View className="rounded-full items-center justify-center" style={{ minWidth: 44, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: on ? `${color}22` : 'rgba(255,107,154,0.10)' }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: on ? color : COLORS.coral }}>{got}/{total}</Text>

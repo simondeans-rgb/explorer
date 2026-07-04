@@ -1,6 +1,7 @@
 /** Worldly design tokens, ported to NativeWind. Mirrors the web tailwind config
  *  so the same palette and type system carry across web + mobile. */
 module.exports = {
+  darkMode: 'media',
   content: [
     './app/**/*.{js,ts,jsx,tsx}',
     './src/**/*.{js,ts,jsx,tsx}',
@@ -15,6 +16,7 @@ module.exports = {
         script: ['Caveat'],
       },
       colors: {
+        card: '#1A2138',
         navy: '#14213D',
         aqua: '#24D1C3',
         coral: '#FF6B9A',

@@ -27,7 +27,7 @@ export function Button({
   full?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
-  const fg = variant === 'secondary' ? COLORS.navy : variant === 'ghost' ? COLORS.ink2 : '#fff';
+  const fg = variant === 'secondary' ? COLORS.navySolid : variant === 'ghost' ? COLORS.ink2 : '#fff';
   const base: ViewStyle = {
     borderRadius: RADIUS.pill,
     paddingVertical: 14,

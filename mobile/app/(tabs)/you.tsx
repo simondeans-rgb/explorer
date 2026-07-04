@@ -315,7 +315,7 @@ export default function YouScreen() {
         ))}
       </View>
       {nextDiscovery ? (
-        <Pressable onPress={() => router.push('/achievements')} className="bg-white rounded-2xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 10, padding: 12, gap: 12 }}>
+        <Pressable onPress={() => router.push('/achievements')} className="bg-white dark:bg-card rounded-2xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 10, padding: 12, gap: 12 }}>
           <AchievementBadge badge={nextDiscovery} tile={44} />
           <View style={{ flex: 1 }}>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.coral }}>DISCOVERIES</Text>
@@ -333,7 +333,7 @@ export default function YouScreen() {
       {/* Hidden Gems — the collection mechanic, in the same tile-card format
           as the NEXT UP achievement below so progress reads one way everywhere. */}
       {showGems && gemBadge ? (
-        <Pressable onPress={() => router.push('/achievements')} className="bg-white rounded-2xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 10, padding: 12, gap: 12 }}>
+        <Pressable onPress={() => router.push('/achievements')} className="bg-white dark:bg-card rounded-2xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 10, padding: 12, gap: 12 }}>
           <AchievementBadge badge={gemBadge} tile={44} />
           <View style={{ flex: 1 }}>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: '#F5A623' }}>HIDDEN GEMS</Text>
@@ -397,7 +397,7 @@ export default function YouScreen() {
             ))}
         </ScrollView>
         {nextBadge ? (
-          <Pressable onPress={() => router.push('/achievements')} className="bg-white rounded-2xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 2, padding: 12, gap: 12 }}>
+          <Pressable onPress={() => router.push('/achievements')} className="bg-white dark:bg-card rounded-2xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 2, padding: 12, gap: 12 }}>
             <AchievementBadge badge={nextBadge} tile={44} />
             <View style={{ flex: 1 }}>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3 }}>NEXT UP</Text>
@@ -411,7 +411,7 @@ export default function YouScreen() {
 
       {/* Import */}
       <View style={{ paddingHorizontal: 20, marginTop: 12, gap: 10 }}>
-        <Pressable onPress={() => router.push('/import')} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
+        <Pressable onPress={() => router.push('/import')} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
           <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: 'rgba(36,209,195,0.14)' }}>
             <Download size={20} color={COLORS.aqua} />
           </View>
@@ -426,7 +426,7 @@ export default function YouScreen() {
       {/* Cloud sync */}
       <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
         {!configured ? (
-          <View className="bg-white rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
+          <View className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
             <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: COLORS.warmwhite }}>
               <CloudOff size={20} color={COLORS.ink3} />
             </View>
@@ -436,7 +436,7 @@ export default function YouScreen() {
             </View>
           </View>
         ) : user ? (
-          <View className="bg-white rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
+          <View className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
             <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: 'rgba(36,209,195,0.14)' }}>
               <Cloud size={20} color={COLORS.aqua} />
             </View>
@@ -474,7 +474,7 @@ export default function YouScreen() {
       {/* Notifications */}
       <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>NOTIFICATIONS</Text>
-        <View className="bg-white rounded-3xl" style={{ paddingHorizontal: 16 }}>
+        <View className="bg-white dark:bg-card rounded-3xl" style={{ paddingHorizontal: 16 }}>
           <View className="flex-row items-center" style={{ gap: 12, paddingVertical: 14 }}>
             <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(255,107,154,0.12)' }}>
               <BellRing size={19} color={COLORS.coral} />
@@ -521,7 +521,7 @@ export default function YouScreen() {
       {/* Units — miles or kilometres, applied across the app */}
       <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>UNITS</Text>
-        <View className="bg-white rounded-3xl" style={{ padding: 14 }}>
+        <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14 }}>
           <View className="flex-row items-center" style={{ gap: 12 }}>
             <View className="rounded-2xl items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
               <Ruler size={18} color={COLORS.ink2} />
@@ -535,7 +535,7 @@ export default function YouScreen() {
             {([['mi', 'Miles (mi)'], ['km', 'Kilometres (km)']] as [DistanceUnit, string][]).map(([id, label]) => {
               const active = unit === id;
               return (
-                <Pressable key={id} onPress={() => setUnit(id)} style={{ flex: 1, paddingVertical: 8, borderRadius: 999, backgroundColor: active ? COLORS.navy : 'transparent' }}>
+                <Pressable key={id} onPress={() => setUnit(id)} style={{ flex: 1, paddingVertical: 8, borderRadius: 999, backgroundColor: active ? COLORS.navySolid : 'transparent' }}>
                   <Text style={{ textAlign: 'center', fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{label}</Text>
                 </Pressable>
               );
@@ -555,7 +555,7 @@ export default function YouScreen() {
             {([['c', 'Celsius (°C)'], ['f', 'Fahrenheit (°F)']] as [TempUnit, string][]).map(([id, label]) => {
               const active = tempUnit === id;
               return (
-                <Pressable key={id} onPress={() => setTempUnit(id)} style={{ flex: 1, paddingVertical: 8, borderRadius: 999, backgroundColor: active ? COLORS.navy : 'transparent' }}>
+                <Pressable key={id} onPress={() => setTempUnit(id)} style={{ flex: 1, paddingVertical: 8, borderRadius: 999, backgroundColor: active ? COLORS.navySolid : 'transparent' }}>
                   <Text style={{ textAlign: 'center', fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{label}</Text>
                 </Pressable>
               );
@@ -568,7 +568,7 @@ export default function YouScreen() {
       {expeditions.length > 0 ? (
         <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>FLIGHTS</Text>
-          <View className="bg-white rounded-3xl" style={{ overflow: 'hidden' }}>
+          <View className="bg-white dark:bg-card rounded-3xl" style={{ overflow: 'hidden' }}>
             <Pressable onPress={() => setResolveOpen(true)} className="flex-row items-center" style={{ paddingHorizontal: 16, paddingVertical: 14, gap: 12 }}>
               <View className="rounded-2xl items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
                 <Plane size={18} color={COLORS.ink2} />
@@ -601,7 +601,7 @@ export default function YouScreen() {
       {/* Legal & support */}
       <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>LEGAL & SUPPORT</Text>
-        <View className="bg-white rounded-3xl" style={{ overflow: 'hidden' }}>
+        <View className="bg-white dark:bg-card rounded-3xl" style={{ overflow: 'hidden' }}>
           {[
             { icon: ShieldCheck, label: 'Privacy Policy', onPress: () => Linking.openURL(PRIVACY_URL) },
             { icon: FileText, label: 'Terms of Service', onPress: () => Linking.openURL(TERMS_URL) },

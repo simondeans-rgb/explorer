@@ -42,7 +42,7 @@ export function TripPickerField({
   }
 
   return (
-    <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, marginTop: 8, overflow: 'hidden' }}>
+    <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, marginTop: 8, overflow: 'hidden' }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={selected ? `Trip: ${expeditionLabel(selected)} — tap to change` : 'Choose a trip'}

@@ -105,7 +105,7 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
             </View>
 
             {/* Form card */}
-            <View className="rounded-3xl" style={{ backgroundColor: '#fff', padding: 18, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } }}>
+            <View className="rounded-3xl" style={{ backgroundColor: COLORS.card, padding: 18, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } }}>
               {mode === 'up' ? (
                 <Field>
                   <TextInput

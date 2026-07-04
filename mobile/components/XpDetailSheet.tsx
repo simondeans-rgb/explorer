@@ -30,7 +30,7 @@ export function XpDetailSheet({
     <SheetShell visible={visible} title="Explorer Level" onClose={onClose}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 14 }}>
         {/* hero */}
-        <View className="bg-white rounded-3xl" style={{ padding: 18 }}>
+        <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 18 }}>
           <View className="flex-row items-center" style={{ gap: 14 }}>
             <View className="rounded-2xl items-center justify-center" style={{ height: 60, width: 60, backgroundColor: 'rgba(255,107,154,0.12)' }}>
               <Text style={{ fontFamily: 'Fraunces', fontSize: 27, color: COLORS.coral }}>{level.level}</Text>
@@ -51,7 +51,7 @@ export function XpDetailSheet({
 
         {/* how you earn XP */}
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginTop: 18, marginBottom: 8 }}>HOW YOU EARN XP</Text>
-        <View className="bg-white rounded-2xl" style={{ overflow: 'hidden' }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ overflow: 'hidden' }}>
           {lines.map((l, i) => (
             <View key={l.label} className="flex-row items-center justify-between" style={{ paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
               <View style={{ flex: 1 }}>

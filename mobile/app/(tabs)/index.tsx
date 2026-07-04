@@ -113,7 +113,7 @@ export default function StoryScreen() {
             accessibilityLabel="Back up your world — sign in to sync your places"
             onPress={() => router.push('/you')}
             className="flex-row items-center rounded-3xl"
-            style={{ marginHorizontal: 20, marginTop: 16, padding: 16, gap: 13, backgroundColor: COLORS.navy }}
+            style={{ marginHorizontal: 20, marginTop: 16, padding: 16, gap: 13, backgroundColor: COLORS.navySolid }}
           >
             <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: 'rgba(255,255,255,0.14)' }}>
               <CloudUpload size={20} color="#fff" />
@@ -221,7 +221,7 @@ export default function StoryScreen() {
             ))}
           </ScrollView>
         ) : (
-          <Pressable onPress={() => setPhotoOpen(true)} className="bg-white rounded-3xl flex-row" style={{ marginHorizontal: 20, marginTop: 12, overflow: 'hidden', height: TILE_H }}>
+          <Pressable onPress={() => setPhotoOpen(true)} className="bg-white dark:bg-card rounded-3xl flex-row" style={{ marginHorizontal: 20, marginTop: 12, overflow: 'hidden', height: TILE_H }}>
             <Image source={{ uri: MEMORIES_IMG }} style={{ width: '42%', height: TILE_H }} contentFit="cover" transition={300} cachePolicy="memory-disk" />
             <View style={{ flex: 1, padding: 16, justifyContent: 'center' }}>
               <Text style={{ fontFamily: 'Fraunces', fontSize: 19, color: COLORS.navy }}>Keep your memories</Text>
@@ -248,7 +248,7 @@ export default function StoryScreen() {
             {storyItems.map((item) => {
               const place = [item.city, item.countryCode ? countryName(item.countryCode) : null].filter(Boolean).join(', ');
               return (
-                <Pressable key={item.key} onPress={() => openCircleItem(item)} className="bg-white rounded-3xl flex-row items-center" style={{ padding: 12, gap: 12 }}>
+                <Pressable key={item.key} onPress={() => openCircleItem(item)} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 12, gap: 12 }}>
                   <View style={{ height: 60, width: 60, borderRadius: 14, overflow: 'hidden' }}>
                     <DestinationImage code={item.countryCode ?? 'WW'} style={{ height: 60, width: 60 }} />
                   </View>
@@ -269,7 +269,7 @@ export default function StoryScreen() {
       ) : (
         <View style={{ marginTop: 24, paddingHorizontal: 20 }}>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, marginBottom: 12 }}>Your circle</Text>
-          <Pressable onPress={() => router.push('/circle')} className="bg-white rounded-3xl flex-row" style={{ overflow: 'hidden', height: TILE_H }}>
+          <Pressable onPress={() => router.push('/circle')} className="bg-white dark:bg-card rounded-3xl flex-row" style={{ overflow: 'hidden', height: TILE_H }}>
             <Image source={{ uri: CIRCLE_IMG }} style={{ width: '42%', height: TILE_H }} contentFit="cover" transition={300} cachePolicy="memory-disk" />
             <View style={{ flex: 1, padding: 16, justifyContent: 'center' }}>
               <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy }}>Travel better together</Text>
@@ -300,7 +300,7 @@ export default function StoryScreen() {
           ) : null}
         </View>
         {discovered.length === 0 ? (
-          <Pressable onPress={() => setAddOpen(true)} className="bg-white rounded-3xl items-center" style={{ marginHorizontal: 20, marginTop: 12, paddingVertical: 28, paddingHorizontal: 20 }}>
+          <Pressable onPress={() => setAddOpen(true)} className="bg-white dark:bg-card rounded-3xl items-center" style={{ marginHorizontal: 20, marginTop: 12, paddingVertical: 28, paddingHorizontal: 20 }}>
             <Text style={{ fontSize: 40 }}>🌍</Text>
             <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy, marginTop: 8 }}>Start your map</Text>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 4, textAlign: 'center' }}>

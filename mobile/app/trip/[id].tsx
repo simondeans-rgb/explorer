@@ -289,7 +289,7 @@ export default function TripScreen() {
                 ) : null}
               </View>
 
-              <View className="bg-white rounded-3xl" style={{ padding: 14, gap: 12 }}>
+              <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14, gap: 12 }}>
                 {trip.memberIds.map((m) => {
                   const owner = m === trip.userId;
                   const label = nameOf(m);
@@ -315,7 +315,7 @@ export default function TripScreen() {
               </View>
 
               {crewOpen && isOwner ? (
-                <View className="bg-white rounded-3xl" style={{ marginTop: 10, padding: 8 }}>
+                <View className="bg-white dark:bg-card rounded-3xl" style={{ marginTop: 10, padding: 8 }}>
                   {available.map((f) => (
                     <Pressable key={f.uid} onPress={() => { addTripCollaborator(trip.id, { uid: user.uid, name: myName }, { uid: f.uid, name: f.name }); setCrewOpen(false); }} className="flex-row items-center" style={{ paddingHorizontal: 8, paddingVertical: 10, gap: 10 }}>
                       <View className="rounded-full items-center justify-center" style={{ height: 30, width: 30, backgroundColor: 'rgba(255,107,154,0.14)' }}>
@@ -341,7 +341,7 @@ export default function TripScreen() {
         {/* Travel log — auto-add the places you visit (foreground check-in) */}
         <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, marginBottom: 12 }}>Travel log</Text>
-          <View className="bg-white rounded-3xl" style={{ padding: 16, gap: 12 }}>
+          <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 16, gap: 12 }}>
             <View className="flex-row items-center" style={{ gap: 12 }}>
               <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(36,209,195,0.14)' }}>
                 <Navigation size={19} color={COLORS.aqua} />

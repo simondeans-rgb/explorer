@@ -82,13 +82,13 @@ export default function InviteContactsScreen() {
           </View>
         ) : (
           <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
-            <View className="flex-row items-center bg-white rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 11, gap: 8, ...SHADOW.card }}>
+            <View className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 11, gap: 8, ...SHADOW.card }}>
               <Search size={18} color={COLORS.ink3} />
               <TextInput value={q} onChangeText={setQ} placeholder="Search contacts" placeholderTextColor={COLORS.ink3} style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink }} />
             </View>
             <View style={{ marginTop: 12, gap: 8 }}>
               {shown.map((c) => (
-                <View key={c.id} className="bg-white rounded-2xl flex-row items-center" style={{ padding: 12, gap: 10, ...SHADOW.card }}>
+                <View key={c.id} className="bg-white dark:bg-card rounded-2xl flex-row items-center" style={{ padding: 12, gap: 10, ...SHADOW.card }}>
                   <View className="rounded-full items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(155,124,255,0.16)' }}>
                     <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.lavender }}>{c.name.charAt(0).toUpperCase()}</Text>
                   </View>

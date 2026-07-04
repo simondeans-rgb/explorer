@@ -67,7 +67,7 @@ export function LandmarkDetailSheet({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(14,16,24,0.5)' }}>
         <Pressable style={{ flex: 1 }} onPress={onClose} />
-        <View className="bg-white" style={{ borderTopLeftRadius: 30, borderTopRightRadius: 30, overflow: 'hidden', maxHeight: '88%' }}>
+        <View className="bg-white dark:bg-card" style={{ borderTopLeftRadius: 30, borderTopRightRadius: 30, overflow: 'hidden', maxHeight: '88%' }}>
           {/* Hero */}
           <View style={{ height: 230 }}>
             <DestinationImage code={countryCode ?? 'WW'} scrim={!heroUri} style={StyleSheet.absoluteFill}>
@@ -131,7 +131,7 @@ export function LandmarkDetailSheet({
                 </View>
                 <View style={{ gap: 12 }}>
                   {friends.map((f, i) => (
-                    <View key={`${f.name}-${i}`} className="bg-white rounded-2xl" style={{ padding: 13, backgroundColor: 'rgba(155,124,255,0.07)' }}>
+                    <View key={`${f.name}-${i}`} className="bg-white dark:bg-card rounded-2xl" style={{ padding: 13, backgroundColor: 'rgba(155,124,255,0.07)' }}>
                       <View className="flex-row items-center" style={{ gap: 10 }}>
                         <View className="rounded-full items-center justify-center" style={{ height: 32, width: 32, backgroundColor: 'rgba(155,124,255,0.18)' }}>
                           <Text style={{ fontFamily: 'Fraunces', fontSize: 14, color: COLORS.lavender }}>{f.name.charAt(0).toUpperCase()}</Text>

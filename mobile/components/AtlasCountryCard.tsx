@@ -70,7 +70,7 @@ export const AtlasCountryCard = memo(function AtlasCountryCard({ aggregate: a, d
   }
 
   return (
-    <Pressable onPress={() => router.push(`/country/${a.code}`)} className="bg-white rounded-3xl" style={{ overflow: 'hidden' }}>
+    <Pressable onPress={() => router.push(`/country/${a.code}`)} className="bg-white dark:bg-card rounded-3xl" style={{ overflow: 'hidden' }}>
       <DestinationImage code={a.code} scrim style={{ height: 148, padding: 14, justifyContent: 'flex-end' }}>
         <Text style={{ fontSize: 30, position: 'absolute', top: 12, left: 14 }}>{flagEmoji(a.code)}</Text>
         {a.discoveryScore > 0 ? (

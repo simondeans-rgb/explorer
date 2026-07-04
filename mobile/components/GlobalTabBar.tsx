@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, usePathname } from 'expo-router';
 import { Plus } from 'lucide-react-native';
 import { useEffect, type ComponentType } from 'react';
+import { useColorScheme } from 'react-native';
 import { COLORS, SECTION } from '../src/lib/theme';
 import { track } from '../src/lib/analytics';
 
@@ -52,6 +53,7 @@ const HIDDEN = new Set(['/wrapped', '/search']);
  *  right within easy thumb reach. */
 export function GlobalTabBar({ onFab }: { onFab: () => void }) {
   const pathname = usePathname();
+  const darkUI = useColorScheme() === 'dark';
 
   // This bar renders on every screen, so it's the one cheap place to observe
   // navigation for analytics without touching each route.
@@ -99,7 +101,7 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
           borderRadius: 33,
           overflow: 'hidden',
           borderWidth: StyleSheet.hairlineWidth,
-          borderColor: 'rgba(255,255,255,0.7)',
+          borderColor: darkUI ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.7)',
           shadowColor: '#0E1018',
           shadowOpacity: 0.16,
           shadowRadius: 20,
@@ -113,8 +115,8 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
           <>
             {/* Liquid-glass fallback: a strong translucent frost so the content
                 behind reads through, with a specular sheen top and bottom. */}
-            <BlurView intensity={94} tint="light" style={StyleSheet.absoluteFill} />
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.22)' }]} />
+            <BlurView intensity={94} tint={darkUI ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: darkUI ? 'rgba(16,22,40,0.35)' : 'rgba(255,255,255,0.22)' }]} />
             <LinearGradient
               colors={['rgba(255,255,255,0.6)', 'rgba(255,255,255,0)']}
               style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 30 }}

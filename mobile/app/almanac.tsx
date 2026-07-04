@@ -159,7 +159,7 @@ export default function AlmanacScreen() {
             {/* figures */}
             <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 16, gap: 10 }}>
               {figures.map(([label, value, Icon]) => (
-                <View key={label} className="bg-white rounded-3xl" style={{ flexBasis: '47%', flexGrow: 1, paddingHorizontal: 16, paddingVertical: 16 }}>
+                <View key={label} className="bg-white dark:bg-card rounded-3xl" style={{ flexBasis: '47%', flexGrow: 1, paddingHorizontal: 16, paddingVertical: 16 }}>
                   <View className="rounded-xl items-center justify-center" style={{ height: 30, width: 30, backgroundColor: 'rgba(255,107,154,0.12)', marginBottom: 8 }}>
                     <Icon size={16} color={COLORS.coral} />
                   </View>
@@ -219,7 +219,7 @@ export default function AlmanacScreen() {
                 {CONTINENTS.filter((c) => byContinent.has(c)).map((c) => {
                   const list = byContinent.get(c) ?? [];
                   return (
-                    <View key={c} className="bg-white rounded-2xl" style={{ padding: 16 }}>
+                    <View key={c} className="bg-white dark:bg-card rounded-2xl" style={{ padding: 16 }}>
                       <View className="flex-row items-center justify-between" style={{ marginBottom: 10 }}>
                         <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy }}>{c}</Text>
                         <View className="rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 10, paddingVertical: 3 }}>
@@ -241,7 +241,7 @@ export default function AlmanacScreen() {
               <Section title="Recognitions">
                 <View style={{ gap: 8 }}>
                   {earned.map((r) => (
-                    <View key={r.id} className="bg-white rounded-2xl flex-row items-center" style={{ padding: 14, gap: 12 }}>
+                    <View key={r.id} className="bg-white dark:bg-card rounded-2xl flex-row items-center" style={{ padding: 14, gap: 12 }}>
                       <Text style={{ fontSize: 22 }}>{r.symbol}</Text>
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.navy }}>{r.title}</Text>
@@ -288,7 +288,7 @@ export default function AlmanacScreen() {
 
 function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} className="rounded-full" style={{ paddingHorizontal: 16, paddingVertical: 9, backgroundColor: active ? COLORS.navy : '#fff' }}>
+    <Pressable onPress={onPress} className="rounded-full" style={{ paddingHorizontal: 16, paddingVertical: 9, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
       <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink2 }}>{label}</Text>
     </Pressable>
   );
@@ -309,7 +309,7 @@ function Grid({ children }: { children: React.ReactNode }) {
 
 function Stat({ value, label, icon: Icon }: { value: number; label: string; icon?: IconCmp }) {
   return (
-    <View className="bg-white rounded-2xl items-center" style={{ flexBasis: '30%', flexGrow: 1, paddingVertical: 14, paddingHorizontal: 6 }}>
+    <View className="bg-white dark:bg-card rounded-2xl items-center" style={{ flexBasis: '30%', flexGrow: 1, paddingVertical: 14, paddingHorizontal: 6 }}>
       {Icon ? (
         <View className="rounded-xl items-center justify-center" style={{ height: 28, width: 28, backgroundColor: 'rgba(255,107,154,0.12)', marginBottom: 6 }}>
           <Icon size={14} color={COLORS.coral} />
@@ -325,7 +325,7 @@ function Chips({ items }: { items: { key: string; code?: string; text: string }[
   return (
     <View className="flex-row flex-wrap" style={{ gap: 8 }}>
       {items.map((it) => (
-        <View key={it.key} className="bg-white rounded-full flex-row items-center" style={{ paddingHorizontal: 12, paddingVertical: 7, gap: 6 }}>
+        <View key={it.key} className="bg-white dark:bg-card rounded-full flex-row items-center" style={{ paddingHorizontal: 12, paddingVertical: 7, gap: 6 }}>
           {it.code ? <Text style={{ fontSize: 14 }}>{flagEmoji(it.code)}</Text> : null}
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2 }}>{it.text}</Text>
         </View>

@@ -53,7 +53,7 @@ function ScopeChips({ scope, years, onChange }: { scope: Scope; years: number[];
       {(['all', ...years] as Scope[]).map((s) => {
         const active = scope === s;
         return (
-          <Pressable key={String(s)} onPress={() => onChange(s)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: active ? COLORS.navy : '#fff' }}>
+          <Pressable key={String(s)} onPress={() => onChange(s)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{s === 'all' ? 'All time' : s}</Text>
           </Pressable>
         );
@@ -190,11 +190,11 @@ export default function AtlasScreen() {
       <PageHero title="Your Atlas" subtitle="The world you've explored" gradient={GRADIENTS.atlas} imageCodes={HERO_CODES.atlas} motion minHeight={HERO_HEIGHT} />
 
       {/* segmented control */}
-      <View className="flex-row bg-white rounded-2xl" style={{ marginHorizontal: 20, marginTop: 6, padding: 5, gap: 5 }}>
+      <View className="flex-row bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, marginTop: 6, padding: 5, gap: 5 }}>
         {([['places', 'Places', Globe2], ['journeys', 'Journeys', MapPinned]] as const).map(([id, label, Icon]) => {
           const active = tab === id;
           return (
-            <Pressable key={id} onPress={() => { setTab(id); setScope('all'); }} className="flex-row items-center justify-center rounded-xl" style={{ flex: 1, paddingVertical: 10, gap: 6, backgroundColor: active ? COLORS.navy : 'transparent' }}>
+            <Pressable key={id} onPress={() => { setTab(id); setScope('all'); }} className="flex-row items-center justify-center rounded-xl" style={{ flex: 1, paddingVertical: 10, gap: 6, backgroundColor: active ? COLORS.navySolid : 'transparent' }}>
               <Icon size={15} color={active ? '#fff' : COLORS.ink3} />
               <Text style={{ fontFamily: 'PlusJakarta', fontWeight: '700', fontSize: 13, color: active ? '#fff' : COLORS.ink3 }}>{label}</Text>
             </Pressable>
@@ -265,7 +265,7 @@ export default function AtlasScreen() {
       <View style={{ paddingHorizontal: 20, marginTop: 14, gap: 10 }}>
         {tab === 'places' && shownPlaces.length === 0 ? (
           <View className="rounded-3xl items-center" style={{ paddingVertical: 32, paddingHorizontal: 22, backgroundColor: 'rgba(124,107,255,0.08)' }}>
-            <View className="rounded-full items-center justify-center" style={{ height: 60, width: 60, backgroundColor: '#fff', ...SHADOW.card }}>
+            <View className="rounded-full items-center justify-center" style={{ height: 60, width: 60, backgroundColor: COLORS.card, ...SHADOW.card }}>
               <Globe2 size={26} color={COLORS.lavender} />
             </View>
             <Text style={{ fontFamily: 'Fraunces', fontSize: 19, color: COLORS.navy, marginTop: 12 }}>{scope === 'all' ? 'Start your atlas' : `Nothing from ${scope}`}</Text>
@@ -276,7 +276,7 @@ export default function AtlasScreen() {
         ) : null}
         {tab === 'journeys' && scopedJourneys.length === 0 ? (
           <View className="rounded-3xl items-center" style={{ paddingVertical: 32, paddingHorizontal: 22, backgroundColor: 'rgba(36,209,195,0.09)' }}>
-            <View className="rounded-full items-center justify-center" style={{ height: 60, width: 60, backgroundColor: '#fff', ...SHADOW.card }}>
+            <View className="rounded-full items-center justify-center" style={{ height: 60, width: 60, backgroundColor: COLORS.card, ...SHADOW.card }}>
               <MapPinned size={26} color={COLORS.aqua} />
             </View>
             <Text style={{ fontFamily: 'Fraunces', fontSize: 19, color: COLORS.navy, marginTop: 12 }}>{scope === 'all' ? 'Map your first journey' : `Nothing from ${scope}`}</Text>
@@ -293,7 +293,7 @@ export default function AtlasScreen() {
               {MODE_FILTERS.map(({ key, label, Icon }) => {
                 const active = journeyMode === key;
                 return (
-                  <Pressable key={key} onPress={() => setJourneyMode(key)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 7, gap: 5, backgroundColor: active ? COLORS.navy : '#fff' }}>
+                  <Pressable key={key} onPress={() => setJourneyMode(key)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 7, gap: 5, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
                     {Icon ? <Icon size={13} color={active ? '#fff' : COLORS.ink3} /> : null}
                     <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{label}</Text>
                   </Pressable>
@@ -313,7 +313,7 @@ export default function AtlasScreen() {
         {/* search + sort (Places) */}
         {tab === 'places' && shownPlaces.length > 0 ? (
           <>
-            <View className="flex-row items-center bg-white rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 10, gap: 8 }}>
+            <View className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ paddingHorizontal: 14, paddingVertical: 10, gap: 8 }}>
               <Search size={18} color={COLORS.ink3} />
               <TextInput value={query} onChangeText={setQuery} placeholder="Search your countries & cities" placeholderTextColor={COLORS.ink3} style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink }} />
               {query ? (
@@ -326,7 +326,7 @@ export default function AtlasScreen() {
               {([['az', 'A–Z'], ['found', 'Most found'], ['recent', 'Recent']] as [SortBy, string][]).map(([id, label]) => {
                 const active = sortBy === id;
                 return (
-                  <Pressable key={id} onPress={() => setSortBy(id)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: active ? COLORS.navy : '#fff' }}>
+                  <Pressable key={id} onPress={() => setSortBy(id)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
                     <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{label}</Text>
                   </Pressable>
                 );
@@ -346,7 +346,7 @@ export default function AtlasScreen() {
               <Pressable
                 key={e.id}
                 onPress={() => router.push(`/journey/${e.id}`)}
-                className="bg-white rounded-3xl"
+                className="bg-white dark:bg-card rounded-3xl"
                 style={{ overflow: 'hidden' }}
               >
                 <DestinationImage code={e.countryCodes[0] ?? 'WW'} scrim style={{ height: 132, padding: 14, justifyContent: 'flex-end' }}>
@@ -365,7 +365,7 @@ export default function AtlasScreen() {
               </Pressable>
             ))}
         {tab === 'journeys' && shownJourneys.length > journeyLimit ? (
-          <Pressable accessibilityRole="button" onPress={() => setJourneyLimit((n) => n + 40)} className="items-center rounded-2xl bg-white" style={{ marginHorizontal: 20, marginTop: 10, paddingVertical: 12 }}>
+          <Pressable accessibilityRole="button" onPress={() => setJourneyLimit((n) => n + 40)} className="items-center rounded-2xl bg-white dark:bg-card" style={{ marginHorizontal: 20, marginTop: 10, paddingVertical: 12 }}>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.coral }}>
               Show more ({shownJourneys.length - journeyLimit} remaining)
             </Text>

@@ -179,7 +179,7 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
     <SheetShell visible={visible} title="Log a journey" onClose={close}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 8 }}>
         {/* title */}
-        <View className="bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 4 }}>
+        <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 4 }}>
           <TextInput value={title} onChangeText={setTitle} placeholder="Name this trip, e.g. Japan in spring" placeholderTextColor={COLORS.ink3} style={inputStyle} />
         </View>
 
@@ -188,14 +188,14 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
         {codes.size > 0 ? (
           <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 8, gap: 6 }}>
             {[...codes].map((c) => (
-              <Pressable key={c} onPress={() => toggle(c)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 12, paddingVertical: 6, gap: 5, backgroundColor: COLORS.navy }}>
+              <Pressable key={c} onPress={() => toggle(c)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 12, paddingVertical: 6, gap: 5, backgroundColor: COLORS.navySolid }}>
                 <Text style={{ fontSize: 14 }}>{flagEmoji(c)}</Text>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '600', color: '#fff' }}>{c}</Text>
               </Pressable>
             ))}
           </View>
         ) : null}
-        <View className="flex-row items-center bg-white rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
+        <View className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
           <Search size={18} color={COLORS.ink3} />
           <TextInput value={query} onChangeText={setQuery} placeholder="Search countries" placeholderTextColor={COLORS.ink3} style={{ flex: 1, ...inputStyle }} />
         </View>
@@ -219,7 +219,7 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
         {legs.map((leg, i) => {
           const meta = JOURNEY_MODE_META[leg.mode];
           return (
-            <View key={leg.id} className="bg-white rounded-3xl" style={{ marginHorizontal: 20, marginTop: 10, padding: 14, gap: 10 }}>
+            <View key={leg.id} className="bg-white dark:bg-card rounded-3xl" style={{ marginHorizontal: 20, marginTop: 10, padding: 14, gap: 10 }}>
               <View className="flex-row items-center justify-between">
                 <Text style={{ fontFamily: 'Fraunces', fontSize: 15, color: COLORS.navy }}>Leg {i + 1}</Text>
                 {legs.length > 1 ? (
@@ -235,7 +235,7 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
                   const active = leg.mode === m;
                   const Icon = MODE_ICON[m];
                   return (
-                    <Pressable key={m} onPress={() => patchLeg(leg.id, { mode: m })} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 11, paddingVertical: 7, gap: 5, backgroundColor: active ? COLORS.navy : COLORS.warmwhite }}>
+                    <Pressable key={m} onPress={() => patchLeg(leg.id, { mode: m })} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 11, paddingVertical: 7, gap: 5, backgroundColor: active ? COLORS.navySolid : COLORS.warmwhite }}>
                       <Icon size={13} color={active ? '#fff' : COLORS.coral} />
                       <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{JOURNEY_MODE_META[m].label}</Text>
                     </Pressable>
@@ -305,7 +305,7 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
             <Plus size={16} color={COLORS.coral} />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.coral }}>Add leg</Text>
           </Pressable>
-          <Pressable onPress={() => setShowRoute((v) => !v)} className="items-center justify-center rounded-2xl" style={{ paddingHorizontal: 16, backgroundColor: showRoute ? COLORS.navy : COLORS.warmwhite }}>
+          <Pressable onPress={() => setShowRoute((v) => !v)} className="items-center justify-center rounded-2xl" style={{ paddingHorizontal: 16, backgroundColor: showRoute ? COLORS.navySolid : COLORS.warmwhite }}>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: showRoute ? '#fff' : COLORS.ink2 }}>Multi-stop</Text>
           </Pressable>
         </View>

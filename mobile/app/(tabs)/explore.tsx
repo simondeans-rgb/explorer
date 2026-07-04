@@ -246,11 +246,11 @@ export default function ExploreScreen() {
         <PageHero title="Discover" subtitle={tab === 'browse' ? 'Find your next adventure' : 'Your saved places'} gradient={GRADIENTS.explore} imageCodes={HERO_CODES.explore} motion minHeight={HERO_HEIGHT} />
 
         {/* segmented control */}
-        <View className="flex-row bg-white rounded-2xl" style={{ marginHorizontal: 20, marginTop: 6, padding: 5, gap: 5 }}>
+        <View className="flex-row bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, marginTop: 6, padding: 5, gap: 5 }}>
           {([['browse', 'Browse', Compass], ['discoveries', 'My Places', MapPin]] as const).map(([id, label, Icon]) => {
             const active = tab === id;
             return (
-              <Pressable key={id} onPress={() => setTab(id)} className="flex-row items-center justify-center rounded-xl" style={{ flex: 1, paddingVertical: 10, gap: 6, backgroundColor: active ? COLORS.navy : 'transparent' }}>
+              <Pressable key={id} onPress={() => setTab(id)} className="flex-row items-center justify-center rounded-xl" style={{ flex: 1, paddingVertical: 10, gap: 6, backgroundColor: active ? COLORS.navySolid : 'transparent' }}>
                 <Icon size={15} color={active ? '#fff' : COLORS.ink3} />
                 <Text style={{ fontFamily: 'PlusJakarta', fontWeight: '700', fontSize: 13, color: active ? '#fff' : COLORS.ink3 }}>{label}</Text>
               </Pressable>
@@ -261,7 +261,7 @@ export default function ExploreScreen() {
         {tab === 'browse' ? (
           <>
             {/* search */}
-            <View className="flex-row items-center bg-white rounded-2xl" style={{ marginHorizontal: 20, marginTop: 12, paddingHorizontal: 14, paddingVertical: 11, gap: 8 }}>
+            <View className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, marginTop: 12, paddingHorizontal: 14, paddingVertical: 11, gap: 8 }}>
               <Search size={18} color={COLORS.ink3} />
               <TextInput value={query} onChangeText={setQuery} placeholder="Search every country" placeholderTextColor={COLORS.ink3} style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />
               {query ? (
@@ -306,7 +306,7 @@ export default function ExploreScreen() {
                           accessibilityRole="button"
                           accessibilityLabel={`${g.city} guide — ${g.entries.length} places`}
                           onPress={() => router.push(`/guide/${encodeURIComponent(g.key)}`)}
-                          className="bg-white rounded-3xl"
+                          className="bg-white dark:bg-card rounded-3xl"
                           style={{ width: 168, padding: 14 }}
                         >
                           <Text style={{ fontSize: 26 }}>{flagEmoji(g.countryCode)}</Text>
@@ -390,7 +390,7 @@ export default function ExploreScreen() {
                     const count = c === 'all' ? discoveryStats.total : discoveryStats.byCategory[c];
                     const tint = c === 'all' ? COLORS.lavender : DISCOVERY_CATEGORY_COLOR[c];
                     return (
-                      <Pressable key={c} onPress={() => setDiscCat(c)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 8, gap: 6, backgroundColor: active ? COLORS.navy : '#fff' }}>
+                      <Pressable key={c} onPress={() => setDiscCat(c)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 8, gap: 6, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
                         <Icon size={14} color={active ? '#fff' : tint} />
                         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink2 }}>{label}</Text>
                         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? 'rgba(255,255,255,0.7)' : COLORS.ink3 }}>{count}</Text>
@@ -405,7 +405,7 @@ export default function ExploreScreen() {
                     {[{ code: 'all', count: discoveryStats.total }, ...discCountries].map(({ code, count }) => {
                       const active = discCountry === code;
                       return (
-                        <Pressable key={code} onPress={() => setDiscCountry(code)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 8, gap: 6, backgroundColor: active ? COLORS.navy : '#fff' }}>
+                        <Pressable key={code} onPress={() => setDiscCountry(code)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 8, gap: 6, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
                           <Text style={{ fontSize: 13 }}>{code === 'all' ? '🌍' : flagEmoji(code)}</Text>
                           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink2 }}>{code === 'all' ? 'All countries' : countryName(code)}</Text>
                           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? 'rgba(255,255,255,0.8)' : COLORS.ink3 }}>{count}</Text>

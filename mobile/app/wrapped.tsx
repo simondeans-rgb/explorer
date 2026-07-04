@@ -201,7 +201,7 @@ export default function WrappedScreen() {
           <WorldlyIcon height={58} />
           <Text style={[S.bigTitle, { marginTop: 16 }]}>The world is waiting</Text>
           <Text style={S.sub}>Where will your next story take you?</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Share my Worldly" onPress={share} disabled={sharing} className="flex-row items-center rounded-full bg-white" style={{ marginTop: 26, paddingHorizontal: 24, paddingVertical: 14, gap: 8, opacity: sharing ? 0.6 : 1 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Share my Worldly" onPress={share} disabled={sharing} className="flex-row items-center rounded-full bg-white dark:bg-card" style={{ marginTop: 26, paddingHorizontal: 24, paddingVertical: 14, gap: 8, opacity: sharing ? 0.6 : 1 }}>
             <Share2 size={18} color={COLORS.coral} />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.coral }}>{sharing ? 'Preparing…' : 'Share my Worldly'}</Text>
           </Pressable>
@@ -222,7 +222,7 @@ export default function WrappedScreen() {
             onPress={() => setScopeChoice(key)}
             style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: scope === key ? '#fff' : 'transparent' }}
           >
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '700', color: scope === key ? COLORS.navy : 'rgba(255,255,255,0.85)' }}>{label}</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '700', color: scope === key ? COLORS.navySolid : 'rgba(255,255,255,0.85)' }}>{label}</Text>
           </Pressable>
         ))}
       </View>
