@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject, memo } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Compass, ArrowRight } from 'lucide-react-native';
@@ -62,7 +62,7 @@ function shortLonDelta(from: number, to: number): number {
  *  in any direction, pinch to zoom; it gently auto-spins when idle and snaps back
  *  to a north-up framing of the region whenever the filter changes. Pure JS + SVG
  *  — no native module, so it ships over the air. */
-export function JourneyGlobe({
+function JourneyGlobeInner({
   segments,
   maxSize,
   resetKey,
@@ -394,3 +394,7 @@ export function JourneyGlobe({
     </View>
   );
 }
+
+/** Heavy SVG — memoised so parent re-renders (frequent, via the global data
+ *  context) don't redraw every path unless the inputs actually changed. */
+export const JourneyGlobe = memo(JourneyGlobeInner);

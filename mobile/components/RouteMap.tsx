@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, memo } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Compass, ArrowRight } from 'lucide-react-native';
@@ -67,7 +67,7 @@ function RouteLine({
 
 /** An Equal-Earth world map with great-circle flight routes that draw on one
  *  by one in date order, over the dark luminous hero theme. */
-export function RouteMap({ segments }: { segments: Segment[] }) {
+function RouteMapInner({ segments }: { segments: Segment[] }) {
   const { countryPaths, routes, dots } = useMemo(() => {
     // Frame the map to the flight network (reframes per year as scope changes).
     const pts: [number, number][] = [];
@@ -183,3 +183,7 @@ export function RouteMap({ segments }: { segments: Segment[] }) {
     </View>
   );
 }
+
+/** Heavy SVG — memoised so parent re-renders (frequent, via the global data
+ *  context) don't redraw every path unless the inputs actually changed. */
+export const RouteMap = memo(RouteMapInner);

@@ -7,6 +7,7 @@ import {
   Moon, Star, Award, Map, TrainFront, Ship, Car, Bird, Ticket, Telescope, Umbrella,
   Church, Home, House, Camera, BookOpen, Heart, Lock,
   type LucideIcon,
+  Repeat, Snowflake, Zap, Leaf,
 } from 'lucide-react-native';
 import { COLORS } from '../src/lib/theme';
 import type { Badge } from '../src/lib/explorer';
@@ -15,7 +16,7 @@ const ICONS: Record<string, LucideIcon> = {
   Footprints, Compass, Globe2, Globe, Waves, Building2, Building, UtensilsCrossed,
   Landmark, Mountain, Plane, Images, Image: ImageIcon, Gem, Coffee, PartyPopper,
   Moon, Star, Award, Map, TrainFront, Ship, Car, Bird, Ticket, Telescope, Umbrella,
-  Church, Home, House, Camera, BookOpen, Heart,
+  Church, Home, House, Camera, BookOpen, Heart, Repeat, Snowflake, Zap, Leaf,
 };
 
 /** A thin progress ring drawn around a locked tile. */

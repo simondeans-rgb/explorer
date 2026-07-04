@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, memo } from 'react';
 import { View, ScrollView } from 'react-native';
 import Svg, { Path, Rect, Defs, RadialGradient, Stop, G } from 'react-native-svg';
 import Animated, {
@@ -62,7 +62,7 @@ function GlowCountry({
 /** An Equal-Earth world map drawn with react-native-svg. Discovered countries
  *  glow coral on a deep navy ocean and light up west→east on open; wish-list
  *  countries lavender, the rest a muted navy land. Tap a country to open it. */
-export function WorldMap({
+function WorldMapInner({
   visited,
   wishlist,
   onPressCountry,
@@ -154,3 +154,7 @@ export function WorldMap({
     </View>
   );
 }
+
+/** Heavy SVG — memoised so parent re-renders (frequent, via the global data
+ *  context) don't redraw every path unless the inputs actually changed. */
+export const WorldMap = memo(WorldMapInner);

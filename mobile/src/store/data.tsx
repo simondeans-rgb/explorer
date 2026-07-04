@@ -1145,5 +1145,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
     })();
   }, [loaded, data.expeditions, api]);
 
+  // Legacy photo migration: early captures stored the JPEG inline in the
+  // document, which makes every snapshot heavy and expensive. When signed in
+  // with Storage available, quietly move a few per launch to real image
+  // storage and relink the doc — Firestore then streams a URL, not megabytes.
+  const migratedRef = useRef(false);
+  useEffect(() => {
+    if (migratedRef.current || !cloud || !db || !storage || !uid) return;
+    const legacy = data.captures.filter((c) => c.dataUrl.startsWith('data:')).slice(0, 10);
+    if (legacy.length === 0) return;
+    migratedRef.current = true; // one batch per launch, even if it partially fails
+    const timeout = <T,>(pr: Promise<T>, ms = 15000): Promise<T> =>
+      Promise.race([pr, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+    (async () => {
+      for (const c of legacy) {
+        try {
+          const path = `users/${uid}/captures/${c.id}.jpg`;
+          const r = ref(storage, path);
+          await timeout(uploadString(r, c.dataUrl, 'data_url', {
+            contentType: 'image/jpeg',
+            cacheControl: 'public, max-age=31536000, immutable',
+          }));
+          const url = await timeout(getDownloadURL(r));
+          await updateDoc(doc(db, 'captures', c.id), { dataUrl: url, storagePath: path });
+        } catch (e) {
+          reportError(e, { where: 'capture-migration' });
+          return; // stop the batch on failure; retry next launch
+        }
+      }
+    })();
+  }, [cloud, uid, data.captures]);
+
   return <DataContext.Provider value={api}>{children}</DataContext.Provider>;
 }

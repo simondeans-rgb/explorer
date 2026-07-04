@@ -22,6 +22,7 @@ export function useWorldly() {
       discovery: discoveryStats,
       journeys: journeyStats,
       captures: captures.length,
+      trips: expeditions.map((e) => ({ startDate: e.startDate, countryCodes: e.countryCodes })),
     });
     return {
       places,

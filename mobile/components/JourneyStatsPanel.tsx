@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, memo } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import Svg, { Rect, Line, Polyline, Circle, Text as SvgText } from 'react-native-svg';
 import { Plane, TrainFront, Ship, Car, Anchor, Globe2, Moon, ArrowRight, Clock, Timer } from 'lucide-react-native';
@@ -217,7 +217,7 @@ function PunctRow({ p, label }: { p: { airline: string; avgDelayMin: number; onT
 /** The Flighty-style stats block shown under the Journeys globe: flight counts,
  *  a per-year/month/weekday chart, distance flown with cosmic comparisons, the
  *  longest/shortest flight, and a tally of every other way you've travelled. */
-export function JourneyStatsPanel({ expeditions }: { expeditions: Expedition[] }) {
+function JourneyStatsPanelInner({ expeditions }: { expeditions: Expedition[] }) {
   const stats: TravelStats = useMemo(() => computeTravelStats(expeditions), [expeditions]);
   const { unit } = useUnits();
   const [gran, setGran] = useState<Gran>(stats.yearsCovered.length > 1 ? 'year' : 'month');
@@ -384,3 +384,7 @@ export function JourneyStatsPanel({ expeditions }: { expeditions: Expedition[] }
     </View>
   );
 }
+
+/** Heavy SVG — memoised so parent re-renders (frequent, via the global data
+ *  context) don't redraw every path unless the inputs actually changed. */
+export const JourneyStatsPanel = memo(JourneyStatsPanelInner);
