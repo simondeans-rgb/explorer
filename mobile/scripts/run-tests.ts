@@ -9,6 +9,8 @@ import { parsePolarsteps } from '../src/lib/polarstepsImport';
 import { parseTripit } from '../src/lib/tripitImport';
 import { parseCountryList, matchCountry, scanCountries } from '../src/lib/listImport';
 import { matchExpedition, expeditionLabel } from '../src/lib/tripMatch';
+import { buildCityGuides, guideKey } from '../src/lib/cityGuides';
+import type { Discovery } from '../src/types';
 import type { Expedition } from '../src/types';
 
 let passed = 0;
@@ -175,6 +177,41 @@ test('tripMatch: country + same year fallback when the date misses the range', (
 test('expeditionLabel: adds month + year unless the title already has it', () => {
   assert.equal(expeditionLabel(exp('a', 'Spain', ['ES'], '2021-11-06')), 'Spain · Nov 2021');
   assert.equal(expeditionLabel(exp('a', 'Spain 2021', ['ES'], '2021-11-06')), 'Spain 2021');
+});
+
+// ---- City guides -------------------------------------------------------------
+
+let dseq = 0;
+const disc = (name: string, city: string, cc: string, verdict?: Discovery['verdict'], userId = 'me'): Discovery => ({
+  id: `d${dseq++}`, userId, name, category: 'food', city, countryCode: cc, verdict,
+  createdAt: dseq, updatedAt: dseq,
+});
+
+test('cityGuides: groups by city, ranks gems first, dedupes same-person repeats', () => {
+  const mine = [
+    disc('Cafe A', 'Lisbon', 'PT', 'worth-visiting'),
+    disc('Bar B', 'Lisbon', 'PT', 'hidden-gem'),
+    disc('Bar B', 'Lisbon', 'PT', 'hidden-gem'), // duplicate from same person
+    disc('No City', '', 'PT', 'recommend'), // no city → no guide
+  ];
+  const friendD = [disc('Tasca C', 'lisbon', 'PT', 'recommend', 'f1')];
+  const guides = buildCityGuides(mine, friendD, [{ uid: 'f1', name: 'Anna Smith' }]);
+  assert.equal(guides.length, 1);
+  const g = guides[0];
+  assert.equal(g.key, guideKey('PT', 'Lisbon'));
+  assert.equal(g.entries.length, 3);
+  assert.equal(g.entries[0].discovery.name, 'Bar B'); // gem outranks recommend
+  assert.equal(g.gems, 1);
+  assert.deepEqual(g.contributors.sort(), ['Anna', 'You']);
+});
+
+test('cityGuides: richer guides sort first', () => {
+  const mine = [
+    disc('P1', 'Porto', 'PT'), disc('P2', 'Porto', 'PT'),
+    disc('T1', 'Tokyo', 'JP'),
+  ];
+  const guides = buildCityGuides(mine, [], []);
+  assert.equal(guides[0].city, 'Porto');
 });
 
 console.log(`✓ all ${passed} tests passed`);

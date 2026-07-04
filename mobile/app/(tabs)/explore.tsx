@@ -28,6 +28,9 @@ import { DestinationImage } from '../../components/DestinationImage';
 import { DiscoveryFan } from '../../components/DiscoveryFan';
 import { COLORS, GRADIENTS, DISCOVERY_CATEGORY_COLOR, HERO_HEIGHT } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
+import { buildCityGuides } from '../../src/lib/cityGuides';
+import { useAuth } from '../../src/store/auth';
+import { useFriends } from '../../src/hooks/useFriends';
 import { countryName, COUNTRIES } from '../../src/data/countries';
 import { CONTINENTS, DISCOVERY_CATEGORIES, type Continent, type DiscoveryCategory } from '../../src/types';
 import { COUNTRY_FACTS, type CountryFacts } from '../../src/data/countryFacts';
@@ -140,6 +143,13 @@ export default function ExploreScreen() {
   // renders — lets the memoised CountryCards skip re-rendering on every toggle.
   const wishlistRef = useRef(wishlist);
   wishlistRef.current = wishlist;
+  const { user } = useAuth();
+  const { friends, friendsData } = useFriends(user?.uid, user?.displayName?.split(' ')[0] || 'You');
+  const guides = useMemo(
+    () => buildCityGuides(discoveries, friendsData.discoveries, friends).slice(0, 10),
+    [discoveries, friendsData.discoveries, friends],
+  );
+
   const toggleWishlist = useCallback(
     (code: string) => {
       const existing = wishlistRef.current.get(code);
@@ -280,6 +290,38 @@ export default function ExploreScreen() {
                     <Superlative key={f.key} code={f.code} icon={f.icon} label={f.label} value={f.value} width={gridW} />
                   ))}
                 </View>
+
+                {/* trusted city guides — verdicts from you + your circle */}
+                {guides.length > 0 ? (
+                  <>
+                    <Text style={H}>GUIDES FROM YOUR WORLD</Text>
+                    <FlatList
+                      horizontal
+                      data={guides}
+                      keyExtractor={(g) => g.key}
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+                      renderItem={({ item: g }) => (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`${g.city} guide — ${g.entries.length} places`}
+                          onPress={() => router.push(`/guide/${encodeURIComponent(g.key)}`)}
+                          className="bg-white rounded-3xl"
+                          style={{ width: 168, padding: 14 }}
+                        >
+                          <Text style={{ fontSize: 26 }}>{flagEmoji(g.countryCode)}</Text>
+                          <Text numberOfLines={1} style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy, marginTop: 8 }}>{g.city}</Text>
+                          <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2 }}>
+                            {g.entries.length} place{g.entries.length === 1 ? '' : 's'}{g.gems ? ` · ${g.gems} gem${g.gems === 1 ? '' : 's'}` : ''}
+                          </Text>
+                          <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.coral, marginTop: 6 }}>
+                            {g.contributors.length === 1 && g.contributors[0] === 'You' ? 'Your picks' : `From ${g.contributors.slice(0, 2).join(' & ')}${g.contributors.length > 2 ? ' +' : ''}`}
+                          </Text>
+                        </Pressable>
+                      )}
+                    />
+                  </>
+                ) : null}
 
                 {/* wishlist */}
                 {wishlist.size > 0 ? (

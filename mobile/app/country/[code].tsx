@@ -12,6 +12,7 @@ import {
   Users,
   Maximize2,
   ChevronRight,
+  BookOpen,
   Pencil,
 } from 'lucide-react-native';
 import type { ComponentType } from 'react';
@@ -25,6 +26,7 @@ import { EditCitySheet } from '../../components/EditCitySheet';
 import { LandmarkDetailSheet, type LandmarkPerson } from '../../components/LandmarkDetailSheet';
 import { COLORS, SHADOW } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
+import { buildCityGuides, guidesForCountry } from '../../src/lib/cityGuides';
 import { countryName, continentOf } from '../../src/data/countries';
 import { countryFacts } from '../../src/data/countryFacts';
 import { landmarkCity } from '../../src/data/landmarkCities';
@@ -240,6 +242,12 @@ export default function CountryScreen() {
         .sort((a, b) => (VERDICT_ORDER[a.verdict ?? '_none'] ?? 3) - (VERDICT_ORDER[b.verdict ?? '_none'] ?? 3)),
     [discoveries, code],
   );
+
+  // Trusted city guides available for this country (yours + your circle's).
+  const countryGuides = useMemo(
+    () => guidesForCountry(buildCityGuides(discoveries, friendsData.discoveries, friends), code),
+    [discoveries, friendsData.discoveries, friends, code],
+  );
   const myJourneys = useMemo(() => {
     const list = expeditions.filter((e) => e.countryCodes.includes(code));
     // Home-country cards shouldn't list trips that merely start/return home —
@@ -428,6 +436,34 @@ export default function CountryScreen() {
         ) : null}
 
         {/* Discoveries — best first */}
+        {countryGuides.length > 0 ? (
+          <Section title="City guides">
+            <View style={{ gap: 10 }}>
+              {countryGuides.map((g) => (
+                <Pressable
+                  key={g.key}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open the ${g.city} guide`}
+                  onPress={() => router.push(`/guide/${encodeURIComponent(g.key)}`)}
+                  className="bg-white rounded-2xl flex-row items-center"
+                  style={{ padding: 14, gap: 12 }}
+                >
+                  <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(155,109,255,0.12)' }}>
+                    <BookOpen size={19} color="#9B6DFF" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>{g.city}</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>
+                      {g.entries.length} place{g.entries.length === 1 ? '' : 's'}{g.gems ? ` · ${g.gems} hidden gem${g.gems === 1 ? '' : 's'}` : ''} · {g.contributors.join(', ')}
+                    </Text>
+                  </View>
+                  <ChevronRight size={17} color={COLORS.ink3} />
+                </Pressable>
+              ))}
+            </View>
+          </Section>
+        ) : null}
+
         {myDiscoveries.length > 0 ? (
           <Section title={`Discoveries (${myDiscoveries.length})`}>
             <View style={{ gap: 10 }}>
