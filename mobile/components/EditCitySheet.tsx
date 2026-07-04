@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable } from 'react-native';
 import { Trash2 } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
-import { Dropdown, type DropdownOption } from './Dropdown';
+import { DateField } from './DateField';
 import { Button } from './Button';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
@@ -11,8 +11,6 @@ import type { Place } from '../src/types';
 import { useData } from '../src/store/data';
 import { useToast } from '../src/store/toast';
 
-const thisYear = new Date().getFullYear();
-const YEAR_OPTS: DropdownOption[] = Array.from({ length: 96 }, (_, i) => ({ label: String(thisYear - i), value: thisYear - i }));
 
 const LBL = { fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700' as const, letterSpacing: 1, color: COLORS.ink3, marginBottom: 7 };
 
@@ -20,7 +18,7 @@ const LBL = { fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700' as cons
 export function EditCitySheet({ city, onClose }: { city: Place | null; onClose: () => void }) {
   const { updatePlace, removePlace } = useData();
   const { toast } = useToast();
-  const [year, setYear] = useState<number | null>(null);
+  const [when, setWhen] = useState('');
   const [note, setNote] = useState('');
   // Inline confirm — a nested Modal (the global confirm dialog) can't present
   // over this sheet's own Modal on iOS, which froze the screen.
@@ -28,14 +26,14 @@ export function EditCitySheet({ city, onClose }: { city: Place | null; onClose: 
 
   useEffect(() => {
     if (!city) return;
-    setYear(city.firstYear ?? (city.firstDate ? Number(city.firstDate.slice(0, 4)) || null : null));
+    setWhen(city.firstDate ?? (city.firstYear ? String(city.firstYear) : ''));
     setNote(city.note ?? '');
     setConfirming(false);
   }, [city]);
 
   async function save() {
     if (!city) return;
-    await updatePlace(city.id, { firstYear: year ?? null, firstDate: year ? String(year) : null, note });
+    await updatePlace(city.id, { firstYear: when ? Number(when.slice(0, 4)) : null, firstDate: when || null, note });
     toast.success('City updated');
     onClose();
   }
@@ -55,8 +53,8 @@ export function EditCitySheet({ city, onClose }: { city: Place | null; onClose: 
         </Text>
 
         <View>
-          <Text style={LBL}>YEAR VISITED</Text>
-          <Dropdown placeholder="Add a year" title="Year visited" value={year} options={YEAR_OPTS} onSelect={setYear} minWidth={140} />
+          <Text style={LBL}>WHEN VISITED</Text>
+          <View style={{ marginTop: 8 }}><DateField value={when} onChange={setWhen} label="When you visited" allowPartial /></View>
         </View>
 
         <View>
