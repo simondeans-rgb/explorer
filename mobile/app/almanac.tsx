@@ -35,6 +35,8 @@ import { useData } from '../src/store/data';
 import { useUnits } from '../src/store/units';
 import { formatDistance, KM_PER_MI } from '../src/lib/units';
 import { buildAlmanacStory, flightSentence } from '../src/lib/almanacStory';
+import { useToast } from '../src/store/toast';
+import { reportError } from '../src/lib/sentry';
 
 type IconCmp = ComponentType<{ size?: number; color?: string }>;
 
@@ -54,6 +56,7 @@ export default function AlmanacScreen() {
   const { captures } = useData();
   const { unit } = useUnits();
   const { user } = useAuth();
+  const { toast } = useToast();
   const firstName = user?.displayName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Explorer');
   const currentYear = new Date().getFullYear();
   const [edition, setEdition] = useState<'lifetime' | number>('lifetime');
@@ -461,9 +464,13 @@ export default function AlmanacScreen() {
           firstName={firstName}
           dialogTitle="Share your Almanac"
           onProgress={setPrintStatus}
-          onDone={() => {
+          onDone={(error) => {
             setPrintJob(null);
             setPrintStatus(null);
+            if (error) {
+              reportError(error, { where: 'almanac-book-print' });
+              toast.error(`Couldn't print your book — ${error.message}`);
+            }
           }}
         />
       ) : null}

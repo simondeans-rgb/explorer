@@ -30,25 +30,29 @@ export function base64ToBytes(b64: string): Uint8Array {
 }
 
 export function bytesToBase64(bytes: Uint8Array): string {
+  // Char-code buffer + fromCharCode in chunks: this runs over ~20MB PDFs on
+  // the JS thread, so it has to be brisk.
+  const codes = new Uint16Array(16384); // 4096 groups of 3 bytes → 4 chars (safely under apply() arg limits)
   const parts: string[] = [];
-  let chunk = '';
+  let ci = 0;
+  const flush = () => {
+    parts.push(String.fromCharCode.apply(null, Array.from(codes.subarray(0, ci))));
+    ci = 0;
+  };
+  const EQ = 61; // '='
   for (let i = 0; i < bytes.length; i += 3) {
     const a = bytes[i];
     const hasB = i + 1 < bytes.length;
     const hasC = i + 2 < bytes.length;
     const b = hasB ? bytes[i + 1] : 0;
     const c = hasC ? bytes[i + 2] : 0;
-    chunk +=
-      B64[a >> 2] +
-      B64[((a & 3) << 4) | (b >> 4)] +
-      (hasB ? B64[((b & 15) << 2) | (c >> 6)] : '=') +
-      (hasC ? B64[c & 63] : '=');
-    if (chunk.length >= 65536) {
-      parts.push(chunk);
-      chunk = '';
-    }
+    codes[ci++] = B64.charCodeAt(a >> 2);
+    codes[ci++] = B64.charCodeAt(((a & 3) << 4) | (b >> 4));
+    codes[ci++] = hasB ? B64.charCodeAt(((b & 15) << 2) | (c >> 6)) : EQ;
+    codes[ci++] = hasC ? B64.charCodeAt(c & 63) : EQ;
+    if (ci === codes.length) flush();
   }
-  parts.push(chunk);
+  if (ci) flush();
   return parts.join('');
 }
 
@@ -120,13 +124,31 @@ export function jpegsToPdf(pages: PdfPageImage[], pageW: number, pageH: number):
   return out;
 }
 
-/** Write PDF bytes to the cache directory and open the share sheet. */
+/** Write PDF bytes to the cache directory and open the share sheet. Errors
+ *  are re-thrown tagged with the failing stage so callers can surface them. */
 export async function sharePdfBytes(bytes: Uint8Array, filename: string, dialogTitle: string): Promise<void> {
-  const FS = await import('expo-file-system/legacy');
-  const uri = `${FS.cacheDirectory}${filename}`;
-  await FS.writeAsStringAsync(uri, bytesToBase64(bytes), { encoding: 'base64' });
-  const Sharing = await import('expo-sharing');
-  if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle, UTI: 'com.adobe.pdf' });
+  let uri: string;
+  try {
+    const FS = await import('expo-file-system/legacy');
+    uri = `${FS.cacheDirectory}${filename}`;
+    await FS.writeAsStringAsync(uri, bytesToBase64(bytes), { encoding: 'base64' });
+  } catch (legacyError) {
+    // Fall back to the SDK 54+ File API (writes bytes directly, no base64).
+    try {
+      const { File, Paths } = await import('expo-file-system');
+      const file = new File(Paths.cache, filename);
+      file.write(bytes);
+      uri = file.uri;
+    } catch {
+      throw new Error(`write failed: ${legacyError instanceof Error ? legacyError.message : String(legacyError)}`);
+    }
+  }
+  try {
+    const Sharing = await import('expo-sharing');
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle, UTI: 'com.adobe.pdf' });
+    }
+  } catch (e) {
+    throw new Error(`share failed: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
