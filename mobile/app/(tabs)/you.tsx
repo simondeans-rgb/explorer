@@ -5,7 +5,7 @@ import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck, Ruler, Thermometer } from 'lucide-react-native';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck, Ruler, Thermometer, Palette } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
@@ -418,6 +418,16 @@ export default function YouScreen() {
           <View style={{ flex: 1 }}>
             <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>Import travels</Text>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Flighty CSV, a country list, or your photos.</Text>
+          </View>
+          <ChevronRight size={20} color={COLORS.ink3} />
+        </Pressable>
+        <Pressable onPress={() => router.push('/covers')} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
+          <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: 'rgba(255,107,154,0.12)' }}>
+            <Palette size={20} color={COLORS.coral} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>Passport Cover</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Pick an app icon that reflects you.</Text>
           </View>
           <ChevronRight size={20} color={COLORS.ink3} />
         </Pressable>
