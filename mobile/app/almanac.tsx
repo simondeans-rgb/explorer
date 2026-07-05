@@ -11,6 +11,7 @@ import {
 } from 'lucide-react-native';
 import { PageHero } from '../components/PageHero';
 import { DestinationImage } from '../components/DestinationImage';
+import { BookPrinter, buildBookPages, type BookPageSpec } from '../components/AlmanacBookPages';
 import { goBack } from '../src/lib/nav';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
 import { shareAlmanacBook } from '../src/lib/almanacBook';
@@ -56,6 +57,8 @@ export default function AlmanacScreen() {
   const currentYear = new Date().getFullYear();
   const [edition, setEdition] = useState<'lifetime' | number>('lifetime');
   const [exporting, setExporting] = useState(false);
+  const [printJob, setPrintJob] = useState<BookPageSpec[] | null>(null);
+  const [printStatus, setPrintStatus] = useState<string | null>(null);
 
   const years = useMemo(() => {
     const set = new Set<number>();
@@ -196,31 +199,51 @@ export default function AlmanacScreen() {
     ['nature', 'Nature', Mountain],
   ];
 
+  function buildBookInput() {
+    return {
+      firstName,
+      generatedOn: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }),
+      heroCode: photoRanked[0]?.code,
+      photoStrip: photoRanked.slice(0, 7).map((a) => ({ code: a.code, name: a.name })),
+      figures: figures.map(([label, value]) => ({ label, value })),
+      continents: CONTINENTS.filter((c) => byContinent.has(c)).map((c) => ({
+        name: c,
+        coverCode: continentCover(byContinent.get(c) ?? []),
+        countries: (byContinent.get(c) ?? []).map((a) => ({ code: a.code, name: a.name })),
+      })),
+      trips: tripSpreads,
+      relationships: RELATIONSHIPS.filter((r) => relationshipCounts[r] > 0).map((r) => ({
+        label: RELATIONSHIP_META[r].label,
+        count: relationshipCounts[r],
+      })),
+      categories: catRows
+        .map(([key, label]) => ({ label, count: discoveryStats.byCategory[key] }))
+        .filter((c) => c.count > 0),
+      recognitions: earned.map((r) => ({ symbol: r.symbol, title: r.title, description: r.description })),
+    };
+  }
+
   async function exportBook() {
-    if (exporting) return;
+    if (exporting || printJob) return;
+    const input = buildBookInput();
+    // Prefer the native-rendered book (real photography + brand typefaces,
+    // captured from RN views); the WebView print path is the fallback for
+    // binaries without the snapshot module.
+    let canSnapshot = false;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy on purpose: native module absent in older builds
+      require('react-native-view-shot');
+      canSnapshot = true;
+    } catch {
+      canSnapshot = false;
+    }
+    if (canSnapshot) {
+      setPrintJob(buildBookPages(input));
+      return;
+    }
     setExporting(true);
     try {
-      await shareAlmanacBook({
-        firstName,
-        generatedOn: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }),
-        heroCode: photoRanked[0]?.code,
-        photoStrip: photoRanked.slice(0, 7).map((a) => ({ code: a.code, name: a.name })),
-        figures: figures.map(([label, value]) => ({ label, value })),
-        continents: CONTINENTS.filter((c) => byContinent.has(c)).map((c) => ({
-          name: c,
-          coverCode: continentCover(byContinent.get(c) ?? []),
-          countries: (byContinent.get(c) ?? []).map((a) => ({ code: a.code, name: a.name })),
-        })),
-        trips: tripSpreads,
-        relationships: RELATIONSHIPS.filter((r) => relationshipCounts[r] > 0).map((r) => ({
-          label: RELATIONSHIP_META[r].label,
-          count: relationshipCounts[r],
-        })),
-        categories: catRows
-          .map(([key, label]) => ({ label, count: discoveryStats.byCategory[key] }))
-          .filter((c) => c.count > 0),
-        recognitions: earned.map((r) => ({ symbol: r.symbol, title: r.title, description: r.description })),
-      });
+      await shareAlmanacBook(input);
     } catch {
       /* user dismissed or print unavailable */
     } finally {
@@ -278,10 +301,12 @@ export default function AlmanacScreen() {
 
             {/* export as a printable photo book */}
             <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
-              <Pressable onPress={exportBook} disabled={exporting} style={{ borderRadius: 24, overflow: 'hidden', opacity: exporting ? 0.6 : 1 }}>
+              <Pressable onPress={exportBook} disabled={exporting || printJob != null} style={{ borderRadius: 24, overflow: 'hidden', opacity: exporting || printJob ? 0.6 : 1 }}>
                 <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 10 }}>
                   <BookOpen size={18} color="#fff" />
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>{exporting ? 'Preparing your book…' : 'Export as photo book'}</Text>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>
+                    {printJob ? (printStatus ?? 'Preparing your book…') : exporting ? 'Preparing your book…' : 'Export as photo book'}
+                  </Text>
                 </LinearGradient>
               </Pressable>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 8, textAlign: 'center' }}>A printable PDF keepsake of your Almanac.</Text>
@@ -399,6 +424,20 @@ export default function AlmanacScreen() {
           </Section>
         )}
       </ScrollView>
+
+      {/* Offscreen book printer: mounts on export, snapshots page by page. */}
+      {printJob ? (
+        <BookPrinter
+          pages={printJob}
+          firstName={firstName}
+          dialogTitle="Share your Almanac"
+          onProgress={setPrintStatus}
+          onDone={() => {
+            setPrintJob(null);
+            setPrintStatus(null);
+          }}
+        />
+      ) : null}
     </View>
   );
 }

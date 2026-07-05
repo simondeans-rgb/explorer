@@ -214,4 +214,35 @@ test('cityGuides: richer guides sort first', () => {
   assert.equal(guides[0].city, 'Porto');
 });
 
+// ---- miniPdf --------------------------------------------------------------
+import { jpegsToPdf, base64ToBytes, bytesToBase64 } from '../src/lib/miniPdf';
+
+test('miniPdf: base64 round-trips bytes', () => {
+  const bytes = new Uint8Array([0, 1, 2, 250, 251, 252, 253, 254, 255, 137, 80]);
+  assert.deepEqual([...base64ToBytes(bytesToBase64(bytes))], [...bytes]);
+  assert.equal(bytesToBase64(new Uint8Array([77])), 'TQ==');
+});
+
+test('miniPdf: builds a structurally valid two-page PDF', () => {
+  // A tiny stand-in JPEG payload — structure is what's under test.
+  const fakeJpeg = bytesToBase64(new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 0xff, 0xd9]));
+  const pdf = jpegsToPdf(
+    [
+      { base64: fakeJpeg, width: 100, height: 50 },
+      { base64: fakeJpeg, width: 100, height: 50 },
+    ],
+    720,
+    1018,
+  );
+  const text = String.fromCharCode(...pdf);
+  assert.ok(text.startsWith('%PDF-1.4'));
+  assert.ok(text.includes('/Count 2'));
+  assert.ok(text.includes('/MediaBox [0 0 720 1018]'));
+  assert.ok(text.includes('/Filter /DCTDecode'));
+  assert.ok(text.trimEnd().endsWith('%%EOF'));
+  // xref offsets must point at their objects
+  const xrefAt = Number(text.split('startxref')[1].trim().split('\n')[0]);
+  assert.equal(text.slice(xrefAt, xrefAt + 4), 'xref');
+});
+
 console.log(`✓ all ${passed} tests passed`);
