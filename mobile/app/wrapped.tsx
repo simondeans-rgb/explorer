@@ -4,11 +4,13 @@ import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-na
 import { LinearGradient } from 'expo-linear-gradient';
 import { goBack } from '../src/lib/nav';
 import { X, Share2 } from 'lucide-react-native';
+import { Image } from 'expo-image';
+import Svg, { Path } from 'react-native-svg';
 import { DestinationImage } from '../components/DestinationImage';
 import { WorldlyIcon } from '../components/WorldlyLogo';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
-import { hasDestinationPhoto } from '../src/lib/destinationImage';
+import { destinationImage, hasDestinationPhoto, heroImage } from '../src/lib/destinationImage';
 import { continentOf } from '../src/data/countries';
 import { DISCOVERY_CATEGORY_META, type DiscoveryCategory } from '../src/types';
 import { useWorldly } from '../src/hooks/useWorldly';
@@ -93,10 +95,38 @@ export default function WrappedScreen() {
     .filter((a) => a.discovered)
     .sort((a, b) => b.discoveryScore - a.discoveryScore)[0];
 
+  // ---- Share poster data ---------------------------------------------------
+  // Photo-first editorial card: a hero photo of the most deeply explored
+  // country in scope, plus a strip of runner-up destinations, all ranked by
+  // discovery score so the card leads with the strongest story.
+  const scoreOf = new Map(aggregates.map((a) => [a.code, a.discoveryScore]));
+  const nameOf = new Map(aggregates.map((a) => [a.code, a.name]));
+  const rankedPhotoCodes = [...new Set(view.flagCodes)]
+    .filter((c) => hasDestinationPhoto(c))
+    .sort((a, b) => (scoreOf.get(b) ?? 0) - (scoreOf.get(a) ?? 0));
+  const heroCode = rankedPhotoCodes[0] ?? (topCountry && hasDestinationPhoto(topCountry.code) ? topCountry.code : undefined);
+  const heroSrc = heroImage(heroCode).photo!;
+  const miniCodes = rankedPhotoCodes.filter((c) => c !== heroCode).slice(0, 3);
+  const showMinis = miniCodes.length >= 2;
+
+  // The capture must not fire before the poster's photos have decoded, or the
+  // shared image ships with blank rectangles. Track loads so share() can wait
+  // briefly (they're usually already disk-cached from the slides behind).
+  const [loadedSrcs, setLoadedSrcs] = useState<ReadonlySet<string>>(new Set());
+  const posterSrcs = [heroSrc, ...(showMinis ? miniCodes.map((c) => destinationImage(c).photo!) : [])];
+  const posterReadyRef = useRef(false);
+  posterReadyRef.current = posterSrcs.every((s) => loadedSrcs.has(s));
+  const markLoaded = (src: string) =>
+    setLoadedSrcs((prev) => (prev.has(src) ? prev : new Set(prev).add(src)));
+
   async function share() {
     if (sharing) return;
     setSharing(true);
     try {
+      // Give the poster's photos a moment to finish decoding before capture.
+      for (let i = 0; i < 10 && !posterReadyRef.current; i++) {
+        await new Promise((r) => setTimeout(r, 150));
+      }
       // Prefer a PNG story card (previews inline when shared); fall back to
       // the PDF poster on binaries without the capture module.
       const asImage = posterRef.current
@@ -233,42 +263,91 @@ export default function WrappedScreen() {
       </Pressable>
 
       {/* Offscreen share card (9:16) captured to PNG by share(). Rendered but
-          parked out of view; collapsable=false so Android keeps the native view. */}
-      <View ref={posterRef} collapsable={false} style={{ position: 'absolute', left: -9999, top: 0, width: 360, height: 640 }}>
-        <LinearGradient colors={['#FF6B9A', '#9B7CFF', '#24D1C3']} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={{ flex: 1, alignItems: 'center', paddingTop: 44, paddingHorizontal: 28 }}>
-          <Text style={{ fontFamily: 'Fraunces', fontSize: 24, color: '#fff' }}>worldly</Text>
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 2.5, color: 'rgba(255,255,255,0.92)', marginTop: 22 }}>
-            {`${firstName.toUpperCase()}’S ${isYear ? year : 'WORLD,'} WRAPPED`}
+          parked out of view; collapsable=false so Android keeps the native view.
+          Design: photo-first editorial poster — a hero destination photo up
+          top, brand wave dividing into a deep-navy stat panel below. */}
+      <View ref={posterRef} collapsable={false} style={{ position: 'absolute', left: -9999, top: 0, width: 360, height: 640, backgroundColor: '#0D1428' }}>
+        {/* Hero photo of the most-explored destination in scope */}
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 358, overflow: 'hidden' }}>
+          <Image source={{ uri: heroSrc }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" cachePolicy="disk" onLoad={() => markLoaded(heroSrc)} />
+          <LinearGradient colors={['rgba(8,12,26,0.55)', 'rgba(8,12,26,0)']} locations={[0, 0.3]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+          <LinearGradient colors={['rgba(13,20,40,0)', 'rgba(13,20,40,0.92)']} locations={[0.42, 0.96]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+        </View>
+        {/* Brand wave dividing photo from panel */}
+        <Svg width="100%" height={30} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, top: 329 }}>
+          <Path d="M0,72 C240,44 480,40 720,58 C960,76 1200,92 1440,72 L1440,121 L0,121 Z" fill="#0D1428" />
+        </Svg>
+
+        {/* Brand row */}
+        <View className="flex-row items-center justify-between" style={{ position: 'absolute', top: 23, left: 23, right: 23 }}>
+          <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: '#fff', textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 9, textShadowOffset: { width: 0, height: 1 } }}>worldly</Text>
+          <View style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 4 }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '700', letterSpacing: 0.8, color: '#fff' }}>{isYear ? year : 'ALL TIME'}</Text>
+          </View>
+        </View>
+
+        {/* Headline over the photo's lower third */}
+        <View style={{ position: 'absolute', left: 23, right: 23, top: 212 }}>
+          <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '700', letterSpacing: 2.4, color: '#FFD9E5', textShadowColor: 'rgba(0,0,0,0.45)', textShadowRadius: 7, textShadowOffset: { width: 0, height: 1 } }}>
+            {`${firstName.toUpperCase()}’S ${isYear ? 'YEAR' : 'LIFE'} IN TRAVEL`}
           </Text>
-          <Text style={{ fontFamily: 'Fraunces', fontSize: 110, lineHeight: 116, color: '#fff', marginTop: 14 }}>{view.countries}</Text>
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff', marginTop: -2 }}>
-            {view.countries === 1 ? 'country' : 'countries'} explored
-          </Text>
-          <View className="flex-row flex-wrap justify-center" style={{ gap: 10, marginTop: 24 }}>
+          <View style={{ width: 35, height: 2, borderRadius: 1, backgroundColor: COLORS.coral, marginTop: 6 }} />
+          <View className="flex-row items-baseline" style={{ gap: 11, marginTop: 2 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 100, lineHeight: 106, color: '#fff', textShadowColor: 'rgba(0,0,0,0.45)', textShadowRadius: 17, textShadowOffset: { width: 0, height: 3 } }}>{view.countries}</Text>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 20, lineHeight: 22, color: '#fff', maxWidth: 133, textShadowColor: 'rgba(0,0,0,0.45)', textShadowRadius: 8, textShadowOffset: { width: 0, height: 1 } }}>
+              {view.countries === 1 ? 'country explored' : 'countries explored'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Stat panel */}
+        <View style={{ position: 'absolute', left: 0, right: 0, top: 358, bottom: 0, paddingHorizontal: 23, paddingTop: 26 }}>
+          <View className="flex-row">
             {([
               [view.continents.length, 'CONTINENTS'],
               [view.cities, 'CITIES'],
               [view.journeys, 'JOURNEYS'],
               [view.discoveries, 'DISCOVERIES'],
-            ] as const).map(([n, l]) => (
-              <View key={l} style={{ width: 140, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', paddingVertical: 12 }}>
-                <Text style={{ fontFamily: 'Fraunces', fontSize: 34, lineHeight: 38, color: '#fff' }}>{n}</Text>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 1, color: 'rgba(255,255,255,0.9)', marginTop: 1 }}>{l}</Text>
+            ] as const).map(([n, l], i) => (
+              <View key={l} style={{ flex: 1, alignItems: 'center', borderLeftWidth: i ? 1 : 0, borderLeftColor: 'rgba(255,255,255,0.14)' }}>
+                <Text style={{ fontFamily: 'Fraunces', fontSize: 27, lineHeight: 30, color: '#fff' }}>{n}</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 7.5, fontWeight: '700', letterSpacing: 1.3, color: '#8E97B8', marginTop: 3 }}>{l}</Text>
               </View>
             ))}
           </View>
-          <View style={{ marginTop: 22, backgroundColor: 'rgba(0,0,0,0.22)', borderRadius: 999, paddingHorizontal: 18, paddingVertical: 9 }}>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: '#fff' }}>
-              Explorer Level {level.level} · {level.title}
+
+          {view.flagCodes.length > 0 ? (
+            <Text numberOfLines={1} style={{ textAlign: 'center', fontSize: 17, lineHeight: 24, marginTop: 14 }}>
+              {view.flagCodes.slice(0, 12).map((c) => flagEmoji(c)).join(' ')}
             </Text>
+          ) : null}
+
+          {showMinis ? (
+            <View className="flex-row" style={{ gap: 8, marginTop: 14 }}>
+              {miniCodes.map((c) => {
+                const src = destinationImage(c).photo!;
+                return (
+                  <View key={c} style={{ flex: 1, height: 72, borderRadius: 11, overflow: 'hidden', backgroundColor: '#1A2138' }}>
+                    <Image source={{ uri: src }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" cachePolicy="disk" onLoad={() => markLoaded(src)} />
+                    <LinearGradient colors={['rgba(8,12,26,0)', 'rgba(8,12,26,0.55)']} locations={[0.45, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+                    <Text numberOfLines={1} style={{ position: 'absolute', left: 6, right: 6, bottom: 5, fontFamily: 'PlusJakarta', fontSize: 8.5, fontWeight: '700', color: '#fff', textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 5, textShadowOffset: { width: 0, height: 1 } }}>
+                      {nameOf.get(c) ?? c}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          ) : null}
+
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ textAlign: 'center', fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '700', letterSpacing: 1.5, color: '#FFB84D', marginTop: showMinis ? 15 : 24 }}>
+            {`EXPLORER LEVEL ${level.level}  ·  ${level.title.toUpperCase()}`}
+          </Text>
+
+          <View className="flex-row items-baseline justify-center" style={{ position: 'absolute', left: 0, right: 0, bottom: 15 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 10.5, color: '#9AA3C2' }}>worldly</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, color: '#6E7794' }}> · your travel story</Text>
           </View>
-          <Text style={{ fontSize: 19, lineHeight: 28, textAlign: 'center', marginTop: 16, maxWidth: 300 }} numberOfLines={2}>
-            {view.flagCodes.slice(0, 24).map((c) => flagEmoji(c)).join(' ')}
-          </Text>
-          <Text style={{ position: 'absolute', bottom: 22, fontFamily: 'PlusJakarta', fontSize: 11.5, color: 'rgba(255,255,255,0.72)' }}>
-            worldly · your travel story
-          </Text>
-        </LinearGradient>
+        </View>
       </View>
     </View>
   );
