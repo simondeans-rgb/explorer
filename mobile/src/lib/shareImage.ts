@@ -21,6 +21,9 @@ export async function shareViewAsPng(
       // Capture at story-sized resolution regardless of on-screen scale.
       width: 1080,
       height: 1920,
+      // iOS's default snapshot strategy (drawViewHierarchyInRect) refuses
+      // views parked offscreen; the layer renderer captures them fine.
+      useRenderInContext: true,
     });
   } catch {
     return false; // module missing (older binary) or capture failed → caller falls back

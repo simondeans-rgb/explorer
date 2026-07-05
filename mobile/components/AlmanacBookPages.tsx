@@ -487,14 +487,29 @@ export function BookPrinter({
         // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy on purpose: native module absent in older builds
         const { captureRef } = require('react-native-view-shot') as typeof import('react-native-view-shot');
         // 2160px wide = the full native detail of a 3x display — ~260 DPI on
-        // an A4 print of the 720pt page. Upscaling past the device scale
-        // would only soften it. Bounded so a wedged capture can't hang the
-        // export silently.
-        const base64 = await Promise.race([
-          captureRef(viewRef, { format: 'jpg', quality: 0.9, result: 'base64', width: 2160, height: 3054 }),
-          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('page capture timed out')), 12000)),
-        ]);
-        shots.current.push({ base64: base64.replace(/[\r\n]/g, ''), width: 2160, height: 3054 });
+        // an A4 print of the 720pt page. If the device balks at that bitmap,
+        // step down rather than abort; every attempt is time-bounded so a
+        // wedged capture can't hang the export silently.
+        let captured: PdfPageImage | null = null;
+        let lastError: unknown;
+        for (const w of [2160, 1440, 1080]) {
+          const h = Math.round((w * BOOK_H) / BOOK_W);
+          try {
+            const base64 = await Promise.race([
+              // useRenderInContext: iOS's default snapshot strategy
+              // (drawViewHierarchyInRect) refuses views parked offscreen;
+              // the layer renderer captures them fine.
+              captureRef(viewRef, { format: 'jpg', quality: 0.9, result: 'base64', width: w, height: h, useRenderInContext: true }),
+              new Promise<never>((_, reject) => setTimeout(() => reject(new Error('page capture timed out')), 12000)),
+            ]);
+            captured = { base64: base64.replace(/[\r\n]/g, ''), width: w, height: h };
+            break;
+          } catch (e) {
+            lastError = e;
+          }
+        }
+        if (!captured) throw lastError ?? new Error('capture failed');
+        shots.current.push(captured);
       } catch (e) {
         if (alive) onDone(new Error(`capture (page ${index + 1}): ${e instanceof Error ? e.message : String(e)}`));
         return;

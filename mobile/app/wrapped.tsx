@@ -154,7 +154,9 @@ export default function WrappedScreen() {
         // Let React commit and the native view draw before capturing.
         await new Promise<void>((r) => requestAnimationFrame(() => setTimeout(r, 24)));
         frames.push(
-          await captureRef(posterRef, { format: 'png', quality: 1, result: 'tmpfile', width: 1080, height: 1920 }),
+          // useRenderInContext: the default iOS snapshot strategy refuses
+          // offscreen views (the poster is parked at left: -9999).
+          await captureRef(posterRef, { format: 'png', quality: 1, result: 'tmpfile', width: 1080, height: 1920, useRenderInContext: true }),
         );
         setVideoProgress((i + 1) / ANIM);
       }
