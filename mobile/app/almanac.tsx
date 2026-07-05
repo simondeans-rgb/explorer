@@ -34,6 +34,7 @@ import { useAuth } from '../src/store/auth';
 import { useData } from '../src/store/data';
 import { useUnits } from '../src/store/units';
 import { formatDistance, KM_PER_MI } from '../src/lib/units';
+import { buildAlmanacStory, flightSentence } from '../src/lib/almanacStory';
 
 type IconCmp = ComponentType<{ size?: number; color?: string }>;
 
@@ -124,6 +125,26 @@ export default function AlmanacScreen() {
     return [...codes].filter((c) => hasDestinationPhoto(c)).map((code) => ({ code, name: nameOf.get(code) ?? code }));
   })();
 
+  // The narrator: prologue paragraphs plus the id of the first-ever trip,
+  // which gets its "WHERE IT ALL BEGAN" badge in the book.
+  const storyParagraphs = useMemo(
+    () =>
+      buildAlmanacStory({
+        expeditions,
+        discoveries,
+        countryName: (code) => nameOf.get(code) ?? code,
+        formatKm: (km) => formatDistance(km / KM_PER_MI, unit),
+      }),
+    [expeditions, discoveries, nameOf, unit],
+  );
+  const firstTripId = useMemo(
+    () =>
+      [...expeditions]
+        .filter((e) => e.startDate)
+        .sort((a, b) => a.startDate!.localeCompare(b.startDate!))[0]?.id,
+    [expeditions],
+  );
+
   // "Journeys of record" — the trips with the most to show (own photos first,
   // then journeys/notes), capped at 8 pages and told in chronological order.
   const tripSpreads = useMemo(() => {
@@ -169,6 +190,8 @@ export default function AlmanacScreen() {
         return {
           title: e.title,
           meta,
+          story: flightSentence(e.journeys) ?? undefined,
+          badge: e.id === firstTripId ? 'WHERE IT ALL BEGAN' : undefined,
           flagCodes: e.countryCodes.slice(0, 12),
           photos: photos.slice(0, 4),
           heroCode: e.countryCodes.find((c) => hasDestinationPhoto(c)),
@@ -180,7 +203,7 @@ export default function AlmanacScreen() {
             : undefined,
         };
       });
-  }, [captures, discoveries, expeditions, unit]);
+  }, [captures, discoveries, expeditions, unit, firstTripId]);
 
   const figures: [string, number, IconCmp, string][] = [
     ['Countries discovered', stats.countriesDiscovered, Globe2, COLORS.coral],
@@ -205,12 +228,18 @@ export default function AlmanacScreen() {
       generatedOn: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }),
       heroCode: photoRanked[0]?.code,
       photoStrip: photoRanked.slice(0, 7).map((a) => ({ code: a.code, name: a.name })),
+      storyParagraphs,
       figures: figures.map(([label, value]) => ({ label, value })),
-      continents: CONTINENTS.filter((c) => byContinent.has(c)).map((c) => ({
-        name: c,
-        coverCode: continentCover(byContinent.get(c) ?? []),
-        countries: (byContinent.get(c) ?? []).map((a) => ({ code: a.code, name: a.name })),
-      })),
+      continents: CONTINENTS.filter((c) => byContinent.has(c)).map((c) => {
+        const list = byContinent.get(c) ?? [];
+        const earliest = [...list].filter((a) => a.firstYear).sort((a, b) => a.firstYear! - b.firstYear!)[0];
+        return {
+          name: c,
+          coverCode: continentCover(list),
+          intro: earliest ? `You first set foot here in ${earliest.firstYear} — ${earliest.name}.` : undefined,
+          countries: list.map((a) => ({ code: a.code, name: a.name })),
+        };
+      }),
       trips: tripSpreads,
       relationships: RELATIONSHIPS.filter((r) => relationshipCounts[r] > 0).map((r) => ({
         label: RELATIONSHIP_META[r].label,

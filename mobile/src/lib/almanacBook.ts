@@ -32,6 +32,10 @@ export interface TripSpread {
   title: string;
   /** Preformatted "12 Nov — 21 Nov 2021 · 4 journeys · 1,430 mi". */
   meta: string;
+  /** A narrative line, e.g. "You flew with British Airways on board an Airbus A320." */
+  story?: string;
+  /** Eyebrow override for special pages, e.g. "WHERE IT ALL BEGAN". */
+  badge?: string;
   flagCodes: string[];
   /** The user's own photos (data URLs), lead first; up to 4 are used. */
   photos: string[];
@@ -47,8 +51,10 @@ export interface AlmanacBookInput {
   heroCode?: string;
   /** "Your world in pictures" spread, best-explored first. */
   photoStrip?: { code: string; name: string }[];
+  /** Prologue prose, one entry per paragraph (see almanacStory.ts). */
+  storyParagraphs?: string[];
   figures: { label: string; value: number }[];
-  continents: { name: string; coverCode?: string; countries: { code: string; name: string }[] }[];
+  continents: { name: string; coverCode?: string; intro?: string; countries: { code: string; name: string }[] }[];
   /** Per-trip spreads — the personal heart of the book. */
   trips?: TripSpread[];
   relationships: { label: string; count: number }[];
