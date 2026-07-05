@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,19 +7,31 @@ import { BackButton } from '../components/BackButton';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
 import { goBack } from '../src/lib/nav';
 import { useWorldly } from '../src/hooks/useWorldly';
-import { altIcons, lockReason, COVER_SECTIONS, type CoverDef } from '../src/lib/covers';
+import { getCoverState, applyCover, lockReason, COVER_SECTIONS, type CoverDef, type CoverState } from '../src/lib/covers';
 import { track } from '../src/lib/analytics';
 
 /** Passport Covers — pick an alternate app icon. On binaries without the
- *  native module the grid is a read-only preview with an "arriving soon" note. */
+ *  native module the grid is a read-only preview with an "arriving soon" note.
+ *  All native access is async and off the render path. */
 export default function CoversScreen() {
   const { width } = useWindowDimensions();
   const { stats, level } = useWorldly();
-  const icons = altIcons();
-  const [current, setCurrent] = useState<string | null>(() => icons?.getAppIconName() ?? null);
+  const [state, setState] = useState<CoverState | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    let mounted = true;
+    getCoverState().then((s) => {
+      if (mounted) setState(s);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const available = state != null;
+  const current = state?.current ?? null;
   const cell = (width - 40 - 24) / 3;
 
   async function pick(cover: CoverDef) {
@@ -29,15 +41,15 @@ export default function CoversScreen() {
       setNote(`${cover.title} is still locked — ${locked.toLowerCase()}.`);
       return;
     }
-    if (!icons) {
+    if (!available) {
       setNote('Passport Covers arrive with the next app update — this is a preview.');
       return;
     }
     if (cover.name === current) return;
     setBusy(true);
     try {
-      await icons.setAlternateAppIcon(cover.name);
-      setCurrent(cover.name);
+      await applyCover(cover.name);
+      setState({ current: cover.name });
       setNote(null);
       track('cover_changed', { cover: cover.name ?? 'classic' });
     } catch {
@@ -60,7 +72,7 @@ export default function CoversScreen() {
           </Text>
         </LinearGradient>
 
-        {!icons ? (
+        {!available ? (
           <View className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 16, padding: 14, gap: 12 }}>
             <Sparkles size={18} color={COLORS.coral} />
             <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2, lineHeight: 18 }}>
@@ -83,7 +95,7 @@ export default function CoversScreen() {
             <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 12, gap: 12 }}>
               {section.covers.map((cover) => {
                 const locked = lockReason(cover, stats.countriesDiscovered, level.level);
-                const selected = icons != null && current === cover.name;
+                const selected = available && current === cover.name;
                 return (
                   <Pressable
                     key={cover.title}

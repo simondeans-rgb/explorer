@@ -79,5 +79,12 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx scripts/run-tests.ts"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "autolinking": {
+      "exclude": [
+        "expo-alternate-app-icons"
+      ]
+    }
+  }
 }
