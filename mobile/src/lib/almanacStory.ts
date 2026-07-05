@@ -7,8 +7,20 @@ export interface StoryContext {
   expeditions: Expedition[];
   discoveries: Discovery[];
   countryName: (code: string) => string;
+  /** Countries the user calls home (lived/based/born) — excluded when
+   *  picking the "first overseas trip". */
+  homeCodes?: Set<string>;
   /** Preformatted in the user's unit, e.g. (5700) => "3,542 mi". */
   formatKm?: (km: number) => string;
+}
+
+// Countries whose names read wrong without a definite article ("to United
+// Kingdom" → "to the United Kingdom").
+const THE_CODES = new Set(['GB', 'US', 'NL', 'AE', 'PH', 'CZ', 'DO', 'BS', 'GM', 'MV', 'SC', 'MH', 'KY', 'VI', 'TC', 'FO']);
+
+/** Country name with its definite article where English wants one. */
+export function countryWithArticle(code: string, name: string): string {
+  return THE_CODES.has(code) ? `the ${name}` : name;
 }
 
 const SEASONS = ['winter', 'winter', 'spring', 'spring', 'spring', 'summer', 'summer', 'summer', 'autumn', 'autumn', 'autumn', 'winter'];
@@ -32,11 +44,13 @@ export function flightSentence(journeys: Journey[]): string | null {
   return `${parts.join(' ')}.`;
 }
 
+// Every phrase carries its place — a love-note that floats free of geography
+// reads as belonging to whatever trip was mentioned last.
 const LOVE_PHRASES: Record<string, (name: string, place?: string) => string> = {
   food: (n, p) => `you loved the food at ${n}${p ? ` in ${p}` : ''}`,
-  culture: (n) => `${n} moved you`,
-  nature: (n) => `the wild beauty of ${n} stayed with you`,
-  experience: (n) => `${n} became a story you still tell`,
+  culture: (n, p) => `${n}${p ? ` in ${p}` : ''} moved you`,
+  nature: (n, p) => `the wild beauty of ${n}${p ? ` in ${p}` : ''} stayed with you`,
+  experience: (n, p) => `${n}${p ? ` in ${p}` : ''} became a story you still tell`,
   accommodation: (n, p) => `${n}${p ? ` in ${p}` : ''} felt like home`,
 };
 
@@ -47,13 +61,18 @@ export function buildAlmanacStory(ctx: StoryContext): string[] {
     .filter((e) => e.startDate)
     .sort((a, b) => a.startDate!.localeCompare(b.startDate!));
 
-  // Where it all began.
-  const first = dated[0];
+  // Where it all began — the first trip that left home soil, when we know
+  // where home is.
+  const home = ctx.homeCodes ?? new Set<string>();
+  const overseas = dated.find((e) => e.countryCodes.some((c) => !home.has(c)));
+  const first = overseas ?? dated[0];
   if (first) {
-    const country = first.countryCodes[0] ? ctx.countryName(first.countryCodes[0]) : undefined;
+    const awayCode = first.countryCodes.find((c) => !home.has(c)) ?? first.countryCodes[0];
+    const country = awayCode ? countryWithArticle(awayCode, ctx.countryName(awayCode)) : undefined;
+    const kind = overseas && home.size ? 'overseas trip' : 'recorded trip';
     paras.push(
       country
-        ? `Your first recorded trip was to ${country}, in the ${seasonOf(first.startDate!)} of ${yearOf(first.startDate!)}. Do you remember the excitement?`
+        ? `Your first ${kind} was to ${country}, in the ${seasonOf(first.startDate!)} of ${yearOf(first.startDate!)}. Do you remember the excitement?`
         : `It all began with “${first.title}”, back in ${yearOf(first.startDate!)}. Do you remember the excitement?`,
     );
 
@@ -76,9 +95,11 @@ export function buildAlmanacStory(ctx: StoryContext): string[] {
   const food = loved.find((d) => d.category === 'food');
   const other = loved.find((d) => d !== food && d.category !== 'food' && LOVE_PHRASES[d.category]);
   if (food || other) {
+    const placeOf = (d: Discovery) =>
+      d.city || (d.countryCode ? countryWithArticle(d.countryCode, ctx.countryName(d.countryCode)) : undefined);
     const bits: string[] = [];
-    if (food) bits.push(LOVE_PHRASES.food(food.name, food.city || (food.countryCode ? ctx.countryName(food.countryCode) : undefined)));
-    if (other) bits.push(LOVE_PHRASES[other.category](other.name, other.city));
+    if (food) bits.push(LOVE_PHRASES.food(food.name, placeOf(food)));
+    if (other) bits.push(LOVE_PHRASES[other.category](other.name, placeOf(other)));
     const joined = bits.join(', and ');
     paras.push(`Along the way, ${joined}.`);
   }
@@ -90,9 +111,11 @@ export function buildAlmanacStory(ctx: StoryContext): string[] {
       tripsPerCountry.set(code, (tripsPerCountry.get(code) ?? 0) + 1);
     }
   }
-  const favourite = [...tripsPerCountry.entries()].sort((a, b) => b[1] - a[1])[0];
+  const favourite = [...tripsPerCountry.entries()].filter(([c]) => !home.has(c)).sort((a, b) => b[1] - a[1])[0];
   if (favourite && favourite[1] >= 2) {
-    paras.push(`${ctx.countryName(favourite[0])} keeps calling you back — ${favourite[1]} trips so far. Is it time for another?`);
+    const favName = countryWithArticle(favourite[0], ctx.countryName(favourite[0]));
+    const capped = favName.charAt(0).toUpperCase() + favName.slice(1);
+    paras.push(`${capped} keeps calling you back — ${favourite[1]} trips so far. Is it time for another?`);
   } else if (tripsPerCountry.size > 1) {
     paras.push(`${tripsPerCountry.size} countries in, and no two journeys alike. Where next?`);
   }

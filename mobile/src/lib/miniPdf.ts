@@ -59,9 +59,31 @@ export function bytesToBase64(bytes: Uint8Array): string {
 export interface PdfPageImage {
   /** Base64 JPEG (no data: prefix). */
   base64: string;
-  /** JPEG pixel dimensions. */
-  width: number;
-  height: number;
+  /** JPEG pixel dimensions; probed from the JPEG itself when omitted. */
+  width?: number;
+  height?: number;
+}
+
+/** Read pixel dimensions from a JPEG's SOF marker. */
+export function jpegSize(bytes: Uint8Array): { width: number; height: number } | null {
+  if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  let i = 2;
+  while (i + 9 < bytes.length) {
+    if (bytes[i] !== 0xff) {
+      i++;
+      continue;
+    }
+    const marker = bytes[i + 1];
+    if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+      i += 2;
+      continue;
+    }
+    if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+      return { height: (bytes[i + 5] << 8) | bytes[i + 6], width: (bytes[i + 7] << 8) | bytes[i + 8] };
+    }
+    i += 2 + ((bytes[i + 2] << 8) | bytes[i + 3]);
+  }
+  return null;
 }
 
 /** Bind full-bleed JPEG pages into a PDF (page size in PDF points). */
@@ -98,10 +120,11 @@ export function jpegsToPdf(pages: PdfPageImage[], pageW: number, pageH: number):
     const draw = `q ${pageW} 0 0 ${pageH} 0 0 cm /Im${i} Do Q`;
     obj(contentN, `<< /Length ${draw.length} >>\nstream\n${draw}\nendstream`);
     const jpeg = base64ToBytes(p.base64);
+    const dims = jpegSize(jpeg) ?? { width: p.width ?? pageW * 3, height: p.height ?? pageH * 3 };
     offsets[imageN] = pos;
     push(
       enc(
-        `${imageN} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${p.width} /Height ${p.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`,
+        `${imageN} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${dims.width} /Height ${dims.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`,
       ),
     );
     push(jpeg);

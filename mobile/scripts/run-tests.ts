@@ -281,6 +281,21 @@ test('almanacStory: prologue tells first trip, first flight and loves', () => {
   assert.ok(paras.some((p) => p.includes('Spain keeps calling you back')));
 });
 
+test('almanacStory: home country excluded, definite articles applied', () => {
+  const exp = (id: string, startDate: string, codes: string[]) => ({
+    id, userId: 'u', title: id, startDate, countryCodes: codes, journeys: [], createdAt: 0, updatedAt: 0,
+  });
+  const names: Record<string, string> = { GB: 'United Kingdom', US: 'United States' };
+  const paras = buildAlmanacStory({
+    expeditions: [exp('home', '2019-04-01', ['GB']), exp('away', '2021-06-05', ['US'])] as never,
+    discoveries: [] as never,
+    countryName: (c) => names[c] ?? c,
+    homeCodes: new Set(['GB']),
+  });
+  assert.ok(paras[0].includes('first overseas trip was to the United States'));
+  assert.ok(paras[0].includes('summer of 2021'));
+});
+
 test('almanacStory: articles and per-trip flight sentence', () => {
   assert.equal(withArticle('Airbus A320'), 'an Airbus A320');
   assert.equal(withArticle('Boeing 777'), 'a Boeing 777');

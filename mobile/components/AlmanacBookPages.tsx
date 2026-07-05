@@ -44,6 +44,7 @@ export type BookPageSpec =
       meta: string;
       story?: string;
       badge?: string;
+      legs?: { from: string; to: string; via?: string }[];
       flagCodes: string[];
       photos: string[];
       heroUrl?: string;
@@ -103,6 +104,7 @@ export function buildBookPages(input: AlmanacBookInput): BookPageSpec[] {
       meta: t.meta,
       story: t.story,
       badge: t.badge,
+      legs: t.legs,
       flagCodes: t.flagCodes,
       photos: t.photos.slice(0, 4),
       heroUrl: t.photos.length ? undefined : url(t.heroCode),
@@ -392,6 +394,21 @@ export function AlmanacBookPage({
               ))}
             </View>
           ) : null}
+          {/* Journey log fills the space when a trip has no personal photos */}
+          {!pics.length && spec.legs?.length ? (
+            <View style={{ marginTop: 20, gap: 9 }}>
+              {spec.legs.slice(0, 5).map((l, i) => (
+                <View key={i} style={{ flexDirection: 'row', alignItems: 'baseline', gap: 12, borderBottomWidth: i < Math.min(spec.legs!.length, 5) - 1 ? 1 : 0, borderBottomColor: 'rgba(22,32,58,0.08)', paddingBottom: 9 }}>
+                  <Text style={{ fontFamily: F.serif, fontSize: 21, color: INK }}>
+                    {l.from} <Text style={{ color: CORAL }}>→</Text> {l.to}
+                  </Text>
+                  {l.via ? (
+                    <Text numberOfLines={1} style={{ flex: 1, fontFamily: F.sans, fontSize: 14, color: MUTED, textAlign: 'right' }}>{l.via}</Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          ) : null}
           {spec.flagCodes.length ? (
             <Text style={{ fontSize: 26, marginTop: 16 }}>{spec.flagCodes.map((c) => flagEmoji(c)).join(' ')}</Text>
           ) : null}
@@ -486,23 +503,22 @@ export function BookPrinter({
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy on purpose: native module absent in older builds
         const { captureRef } = require('react-native-view-shot') as typeof import('react-native-view-shot');
-        // 2160px wide = the full native detail of a 3x display — ~260 DPI on
-        // an A4 print of the 720pt page. If the device balks at that bitmap,
-        // step down rather than abort; every attempt is time-bounded so a
-        // wedged capture can't hang the export silently.
+        // Capture at the view's NATURAL size: the renderer then rasterises at
+        // the device scale (3x → 2160×3054 px) through the high-quality path.
+        // Passing width/height instead sets the draw-canvas size in points —
+        // a 2160pt canvas means a ~240MB bitmap, which iOS refuses ("the view
+        // cannot be captured"), and the renderInContext fallback draws the
+        // layer unscaled into it (interlaced, washed-out output). The layer
+        // renderer at natural size is kept only as a last resort.
         let captured: PdfPageImage | null = null;
         let lastError: unknown;
-        for (const w of [2160, 1440, 1080]) {
-          const h = Math.round((w * BOOK_H) / BOOK_W);
+        for (const extra of [{}, { useRenderInContext: true }]) {
           try {
             const base64 = await Promise.race([
-              // useRenderInContext: iOS's default snapshot strategy
-              // (drawViewHierarchyInRect) refuses views parked offscreen;
-              // the layer renderer captures them fine.
-              captureRef(viewRef, { format: 'jpg', quality: 0.9, result: 'base64', width: w, height: h, useRenderInContext: true }),
+              captureRef(viewRef, { format: 'jpg', quality: 0.92, result: 'base64', ...extra }),
               new Promise<never>((_, reject) => setTimeout(() => reject(new Error('page capture timed out')), 12000)),
             ]);
-            captured = { base64: base64.replace(/[\r\n]/g, ''), width: w, height: h };
+            captured = { base64: base64.replace(/[\r\n]/g, '') };
             break;
           } catch (e) {
             lastError = e;
