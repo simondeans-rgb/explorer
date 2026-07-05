@@ -134,30 +134,34 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
         </View>
       </View>
 
-      {/* Action button — floated to the bottom right, raised above the bar. */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Add to your world"
-        onPress={onFab}
-        className="items-center justify-center rounded-full"
-        style={{
-          position: 'absolute',
-          right: 2,
-          bottom: 80,
-          height: 58,
-          width: 58,
-          backgroundColor: COLORS.coral,
-          borderWidth: 4,
-          borderColor: 'rgba(255,255,255,0.85)',
-          shadowColor: COLORS.coral,
-          shadowOpacity: 0.4,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: 6 },
-          elevation: 10,
-        }}
-      >
-        <Plus size={28} color="#fff" strokeWidth={2.6} />
-      </Pressable>
+      {/* Action button — floated to the bottom right, raised above the bar.
+          Hidden on Passport: that tab is settings-heavy with right-edge
+          toggles the button would cover, and there's nothing to add from it. */}
+      {pathname === '/you' ? null : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add to your world"
+          onPress={onFab}
+          className="items-center justify-center rounded-full"
+          style={{
+            position: 'absolute',
+            right: 2,
+            bottom: 80,
+            height: 58,
+            width: 58,
+            backgroundColor: COLORS.coral,
+            borderWidth: 4,
+            borderColor: 'rgba(255,255,255,0.85)',
+            shadowColor: COLORS.coral,
+            shadowOpacity: 0.4,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 6 },
+            elevation: 10,
+          }}
+        >
+          <Plus size={28} color="#fff" strokeWidth={2.6} />
+        </Pressable>
+      )}
     </View>
   );
 }

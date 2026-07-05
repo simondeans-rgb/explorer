@@ -106,7 +106,7 @@ export function ExplorerLevelCard({
         height,
         borderRadius: 24,
         overflow: 'hidden',
-        backgroundColor: COLORS.white,
+        backgroundColor: COLORS.card,
         ...SHADOW.card,
       }}
     >
@@ -120,7 +120,7 @@ export function ExplorerLevelCard({
             <Chip Icon={Globe2} color={COLORS.aqua} value={`${stats.countriesDiscovered} countries`} />
             <Chip Icon={Mountain} color={COLORS.coral} value={`${stats.continentsDiscovered} continents`} />
           </View>
-          <View style={{ height: 7, borderRadius: 7, backgroundColor: 'rgba(20,33,61,0.08)', overflow: 'hidden', marginTop: 8 }}>
+          <View style={{ height: 7, borderRadius: 7, backgroundColor: 'rgba(142,151,184,0.22)', overflow: 'hidden', marginTop: 8 }}>
             <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 7, borderRadius: 7, width: `${pct}%` }} />
           </View>
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink2, marginTop: 5 }}>
