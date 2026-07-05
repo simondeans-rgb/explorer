@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import type { ComponentType } from 'react';
 import {
   Plane, Home, Briefcase, GraduationCap, Anchor, Sparkles, Compass,
@@ -9,6 +10,7 @@ import {
   Globe2, Building2, Map as MapIcon, Award, BookOpen,
 } from 'lucide-react-native';
 import { PageHero } from '../components/PageHero';
+import { DestinationImage } from '../components/DestinationImage';
 import { goBack } from '../src/lib/nav';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
 import { shareAlmanacBook } from '../src/lib/almanacBook';
@@ -89,13 +91,38 @@ export default function AlmanacScreen() {
 
   const heroCode = discovered.find((a) => hasDestinationPhoto(a.code))?.code ?? 'WW';
 
-  const figures: [string, number, IconCmp][] = [
-    ['Countries discovered', stats.countriesDiscovered, Globe2],
-    ['Cities discovered', stats.citiesDiscovered, Building2],
-    ['Journeys completed', expeditions.length, Plane],
-    ['Discoveries made', discoveryStats.total, Compass],
-    ['Continents reached', stats.continentsDiscovered, MapIcon],
-    ['Recognitions earned', earned.length, Award],
+  // Photo-bearing countries ranked by how deeply they were explored — the
+  // imagery backbone of the Almanac (photo strip + continent chapter covers).
+  const photoRanked = useMemo(
+    () =>
+      [...aggregates]
+        .filter((a) => a.discovered && hasDestinationPhoto(a.code))
+        .sort((a, b) => b.discoveryScore - a.discoveryScore),
+    [aggregates],
+  );
+
+  const continentCover = (list: typeof discovered): string => {
+    const sorted = [...list].sort((a, b) => b.discoveryScore - a.discoveryScore);
+    return (sorted.find((a) => hasDestinationPhoto(a.code)) ?? sorted[0])?.code ?? 'WW';
+  };
+
+  // Countries touched in the selected year, for the edition's photo strip.
+  const nameOf = useMemo(() => new Map(aggregates.map((a) => [a.code, a.name])), [aggregates]);
+  const yearCodes = (() => {
+    if (!yearView) return [];
+    const codes = new Set<string>();
+    for (const e of yearExpeditions) for (const c of e.countryCodes) codes.add(c);
+    for (const p of yearPlaces) if (p.countryCode) codes.add(p.countryCode);
+    return [...codes].filter((c) => hasDestinationPhoto(c)).map((code) => ({ code, name: nameOf.get(code) ?? code }));
+  })();
+
+  const figures: [string, number, IconCmp, string][] = [
+    ['Countries discovered', stats.countriesDiscovered, Globe2, COLORS.coral],
+    ['Cities discovered', stats.citiesDiscovered, Building2, COLORS.aqua],
+    ['Journeys completed', expeditions.length, Plane, COLORS.lavender],
+    ['Discoveries made', discoveryStats.total, Compass, COLORS.sunburst],
+    ['Continents reached', stats.continentsDiscovered, MapIcon, COLORS.sky],
+    ['Recognitions earned', earned.length, Award, '#F2557D'],
   ];
 
   const catRows: [keyof typeof discoveryStats.byCategory, string, IconCmp][] = [
@@ -156,14 +183,27 @@ export default function AlmanacScreen() {
 
         {!yearView ? (
           <>
+            {/* Your world in pictures — the places you know best, as photos */}
+            {photoRanked.length > 0 ? (
+              <View style={{ marginTop: 18 }}>
+                <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, paddingHorizontal: 20 }}>Your world in pictures</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 3 }}>The places you know best. Tap one to relive it.</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, gap: 10 }}>
+                  {photoRanked.slice(0, 12).map((a) => (
+                    <CountryPhotoCard key={a.code} code={a.code} name={a.name} />
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+
             {/* figures */}
-            <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 16, gap: 10 }}>
-              {figures.map(([label, value, Icon]) => (
+            <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 20, gap: 10 }}>
+              {figures.map(([label, value, Icon, color]) => (
                 <View key={label} className="bg-white dark:bg-card rounded-3xl" style={{ flexBasis: '47%', flexGrow: 1, paddingHorizontal: 16, paddingVertical: 16 }}>
-                  <View className="rounded-xl items-center justify-center" style={{ height: 30, width: 30, backgroundColor: 'rgba(255,107,154,0.12)', marginBottom: 8 }}>
-                    <Icon size={16} color={COLORS.coral} />
+                  <View className="rounded-xl items-center justify-center" style={{ height: 30, width: 30, backgroundColor: `${color}1F`, marginBottom: 8 }}>
+                    <Icon size={16} color={color} />
                   </View>
-                  <Text style={{ fontFamily: 'Fraunces', fontSize: 34, color: COLORS.coral, lineHeight: 38 }}>{value}</Text>
+                  <Text style={{ fontFamily: 'Fraunces', fontSize: 34, color, lineHeight: 38 }}>{value}</Text>
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: COLORS.ink3, marginTop: 2 }}>{label.toUpperCase()}</Text>
                 </View>
               ))}
@@ -213,20 +253,23 @@ export default function AlmanacScreen() {
               </Section>
             ) : null}
 
-            {/* by continent */}
+            {/* by continent — photo "chapter" cards, covered by the most deeply
+                explored country of each continent */}
             <Section title="The world, by continent">
-              <View style={{ gap: 10 }}>
+              <View style={{ gap: 12 }}>
                 {CONTINENTS.filter((c) => byContinent.has(c)).map((c) => {
                   const list = byContinent.get(c) ?? [];
                   return (
-                    <View key={c} className="bg-white dark:bg-card rounded-2xl" style={{ padding: 16 }}>
-                      <View className="flex-row items-center justify-between" style={{ marginBottom: 10 }}>
-                        <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy }}>{c}</Text>
-                        <View className="rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 10, paddingVertical: 3 }}>
-                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.coral }}>{list.length} {list.length === 1 ? 'country' : 'countries'}</Text>
+                    <View key={c} className="bg-white dark:bg-card" style={{ borderRadius: 24, overflow: 'hidden' }}>
+                      <DestinationImage code={continentCover(list)} scrim style={{ height: 112, justifyContent: 'flex-end', paddingHorizontal: 16, paddingBottom: 10 }}>
+                        <View className="flex-row items-end justify-between">
+                          <Text style={{ fontFamily: 'Fraunces', fontSize: 23, color: '#fff', textShadowColor: 'rgba(0,0,0,0.35)', textShadowRadius: 8, textShadowOffset: { width: 0, height: 1 } }}>{c}</Text>
+                          <View className="rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.22)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.42)', paddingHorizontal: 11, paddingVertical: 4 }}>
+                            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: '#fff' }}>{list.length} {list.length === 1 ? 'country' : 'countries'}</Text>
+                          </View>
                         </View>
-                      </View>
-                      <Text style={{ fontSize: 24, lineHeight: 32 }}>{list.map((a) => flagEmoji(a.code)).join('  ')}</Text>
+                      </DestinationImage>
+                      <Text style={{ fontSize: 24, lineHeight: 34, paddingHorizontal: 16, paddingVertical: 12 }}>{list.map((a) => flagEmoji(a.code)).join('  ')}</Text>
                     </View>
                   );
                 })}
@@ -259,6 +302,13 @@ export default function AlmanacScreen() {
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink3 }}>Nothing dated to this year yet.</Text>
             ) : (
               <View style={{ gap: 16 }}>
+                {yearCodes.length > 0 ? (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}>
+                    {yearCodes.map(({ code, name }) => (
+                      <CountryPhotoCard key={code} code={code} name={name} />
+                    ))}
+                  </ScrollView>
+                ) : null}
                 {yearExpeditions.length > 0 ? (
                   <View>
                     <Text style={LABEL}>JOURNEYS OF RECORD</Text>
@@ -286,9 +336,27 @@ export default function AlmanacScreen() {
   );
 }
 
+/** A tappable destination photo card — flag + name over the country's photo,
+ *  leading into its country page. */
+function CountryPhotoCard({ code, name }: { code: string; name: string }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${name}`}
+      onPress={() => router.push(`/country/${code}`)}
+      style={{ width: 122, height: 164, borderRadius: 20, overflow: 'hidden' }}
+    >
+      <DestinationImage code={code} scrim style={{ flex: 1, justifyContent: 'flex-end', padding: 10 }}>
+        <Text style={{ fontSize: 17 }}>{flagEmoji(code)}</Text>
+        <Text numberOfLines={1} style={{ fontFamily: 'Fraunces', fontSize: 15, color: '#fff', marginTop: 2, textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } }}>{name}</Text>
+      </DestinationImage>
+    </Pressable>
+  );
+}
+
 function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} className="rounded-full" style={{ paddingHorizontal: 16, paddingVertical: 9, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
+    <Pressable onPress={onPress} className="rounded-full" style={{ paddingHorizontal: 16, paddingVertical: 9, backgroundColor: active ? COLORS.coral : COLORS.card }}>
       <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink2 }}>{label}</Text>
     </Pressable>
   );
