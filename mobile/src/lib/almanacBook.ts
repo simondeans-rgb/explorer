@@ -36,6 +36,8 @@ export interface TripSpread {
   story?: string;
   /** Eyebrow override for special pages, e.g. "WHERE IT ALL BEGAN". */
   badge?: string;
+  /** Journey log rows ("LHR → MAD" via "British Airways · Airbus A320"). */
+  legs?: { from: string; to: string; via?: string }[];
   flagCodes: string[];
   /** The user's own photos (data URLs), lead first; up to 4 are used. */
   photos: string[];

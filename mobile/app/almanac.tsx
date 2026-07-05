@@ -34,7 +34,7 @@ import { useAuth } from '../src/store/auth';
 import { useData } from '../src/store/data';
 import { useUnits } from '../src/store/units';
 import { formatDistance, KM_PER_MI } from '../src/lib/units';
-import { buildAlmanacStory, flightSentence } from '../src/lib/almanacStory';
+import { buildAlmanacStory, flightSentence, countryWithArticle } from '../src/lib/almanacStory';
 import { useToast } from '../src/store/toast';
 import { reportError } from '../src/lib/sentry';
 
@@ -130,15 +130,25 @@ export default function AlmanacScreen() {
 
   // The narrator: prologue paragraphs plus the id of the first-ever trip,
   // which gets its "WHERE IT ALL BEGAN" badge in the book.
+  const homeCodes = useMemo(
+    () =>
+      new Set(
+        aggregates
+          .filter((a) => a.relationships.includes('lived') || a.relationships.includes('based') || a.relationships.includes('born'))
+          .map((a) => a.code),
+      ),
+    [aggregates],
+  );
   const storyParagraphs = useMemo(
     () =>
       buildAlmanacStory({
         expeditions,
         discoveries,
         countryName: (code) => nameOf.get(code) ?? code,
+        homeCodes,
         formatKm: (km) => formatDistance(km / KM_PER_MI, unit),
       }),
-    [expeditions, discoveries, nameOf, unit],
+    [expeditions, discoveries, nameOf, homeCodes, unit],
   );
   const firstTripId = useMemo(
     () =>
@@ -195,6 +205,14 @@ export default function AlmanacScreen() {
           meta,
           story: flightSentence(e.journeys) ?? undefined,
           badge: e.id === firstTripId ? 'WHERE IT ALL BEGAN' : undefined,
+          legs: e.journeys
+            .filter((j) => j.from?.trim() && j.to?.trim())
+            .slice(0, 5)
+            .map((j) => ({
+              from: j.from!.trim(),
+              to: j.to!.trim(),
+              via: [j.operator, j.vehicle].filter(Boolean).join(' · ') || undefined,
+            })),
           flagCodes: e.countryCodes.slice(0, 12),
           photos: photos.slice(0, 4),
           heroCode: e.countryCodes.find((c) => hasDestinationPhoto(c)),
@@ -239,7 +257,7 @@ export default function AlmanacScreen() {
         return {
           name: c,
           coverCode: continentCover(list),
-          intro: earliest ? `You first set foot here in ${earliest.firstYear} — ${earliest.name}.` : undefined,
+          intro: earliest ? `You first set foot here in ${earliest.firstYear} — ${countryWithArticle(earliest.code, earliest.name)}.` : undefined,
           countries: list.map((a) => ({ code: a.code, name: a.name })),
         };
       }),
