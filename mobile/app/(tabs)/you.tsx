@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Linking, Switch } from 'react-native';
+import { View, Text, ScrollView, Pressable, Linking, Switch, Platform, Animated } from 'react-native';
+import { useRef } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck, Ruler, Thermometer, Palette } from 'lucide-react-native';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck, Ruler, Thermometer, Palette, Sun, Moon, SunMoon } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
@@ -34,6 +36,7 @@ import { useUnits } from '../../src/store/units';
 import type { DistanceUnit, TempUnit } from '../../src/lib/units';
 import { pickPhotoDataUrl } from '../../src/lib/photo';
 import { ensureProfile, loadProfilePhoto, saveProfilePhoto } from '../../src/lib/profile';
+import { getAppearanceMode, setAppearanceMode, type AppearanceMode } from '../../src/lib/appearance';
 
 const PRIVACY_URL = 'https://stickynotes-sand.vercel.app/privacy';
 const TERMS_URL = 'https://stickynotes-sand.vercel.app/terms';
@@ -119,6 +122,10 @@ export default function YouScreen() {
   const flightsToSort = unresolvedAirports + fetchableFlights;
   const [exporting, setExporting] = useState(false);
   const [notifOn, setNotifOn] = useState(false);
+  const [appearance, setAppearance] = useState<AppearanceMode>('system');
+  const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const scrimOpacity = scrollY.interpolate({ inputRange: [HERO_HEIGHT - 130, HERO_HEIGHT - 50], outputRange: [0, 1], extrapolate: 'clamp' });
   const [circleNotifOn, setCircleNotifOn] = useState(false);
   const [crewNotifOn, setCrewNotifOn] = useState(false);
   const [postTripOn, setPostTripOn] = useState(false);
@@ -126,6 +133,7 @@ export default function YouScreen() {
 
   useEffect(() => {
     anniversariesEnabled().then(setNotifOn);
+    getAppearanceMode().then(setAppearance);
     postTripRemindersEnabled().then(setPostTripOn);
     friendActivityEnabled().then(setCircleNotifOn);
     tripActivityEnabled().then(setCrewNotifOn);
@@ -278,7 +286,13 @@ export default function YouScreen() {
   ];
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 110 }}>
+    <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
+    <Animated.ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ paddingBottom: 170 }}
+      onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+      scrollEventThrottle={16}
+    >
       {/* Identity hero */}
       <DestinationImage code={HERO_CODES.you[0]} codes={HERO_CODES.you} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 56, minHeight: HERO_HEIGHT, alignItems: 'center' }}>
         <Pressable onPress={changeAvatar}>
@@ -528,6 +542,41 @@ export default function YouScreen() {
         </View>
       </View>
 
+      {/* Appearance — system-following by default, with a manual override.
+          iOS-only: Android ships light-locked, so an override would half-apply. */}
+      {Platform.OS === 'ios' ? (
+        <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>APPEARANCE</Text>
+          <View className="flex-row bg-white dark:bg-card rounded-3xl" style={{ padding: 5, gap: 5 }}>
+            {([
+              ['system', 'System', SunMoon],
+              ['light', 'Light', Sun],
+              ['dark', 'Dark', Moon],
+            ] as const).map(([mode, label, ModeIcon]) => {
+              const active = appearance === mode;
+              return (
+                <Pressable
+                  key={mode}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${label} appearance`}
+                  accessibilityState={{ selected: active }}
+                  onPress={() => {
+                    setAppearance(mode);
+                    setAppearanceMode(mode);
+                    track('appearance_changed', { mode });
+                  }}
+                  className="flex-row items-center justify-center rounded-2xl"
+                  style={{ flex: 1, paddingVertical: 11, gap: 6, backgroundColor: active ? COLORS.coral : 'transparent' }}
+                >
+                  <ModeIcon size={15} color={active ? '#fff' : COLORS.ink3} />
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink2 }}>{label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+
       {/* Units — miles or kilometres, applied across the app */}
       <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>UNITS</Text>
@@ -654,6 +703,14 @@ export default function YouScreen() {
       <DeleteAccountSheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} />
       <XpDetailSheet visible={xpOpen} onClose={() => setXpOpen(false)} level={level} stats={stats} discovery={discoveryStats} journeys={journeyStats} />
       <ResolveFlightsSheet visible={resolveOpen} onClose={() => setResolveOpen(false)} expeditions={expeditions} updateExpedition={updateExpedition} />
-    </ScrollView>
+    </Animated.ScrollView>
+
+    {/* Status-bar scrim: fades in once the hero scrolls away so card content
+        never collides with the clock. pointerEvents none — purely visual. */}
+    <Animated.View
+      pointerEvents="none"
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top + 6, backgroundColor: COLORS.warmwhite, opacity: scrimOpacity }}
+    />
+    </View>
   );
 }

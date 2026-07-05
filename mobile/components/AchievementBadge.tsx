@@ -75,7 +75,7 @@ export function AchievementBadge({ badge, tile = 64 }: { badge: Badge; tile?: nu
           </>
         )}
       </View>
-      <Text numberOfLines={2} style={{ fontFamily: 'PlusJakarta', fontSize: 11, lineHeight: 14, fontWeight: '700', color: earned ? COLORS.navySolid : COLORS.ink3, marginTop: 6, textAlign: 'center', minHeight: 26 }}>
+      <Text numberOfLines={2} style={{ fontFamily: 'PlusJakarta', fontSize: 11, lineHeight: 14, fontWeight: '700', color: earned ? COLORS.navy : COLORS.ink3, marginTop: 6, textAlign: 'center', minHeight: 26 }}>
         {badge.title}
       </Text>
       {!earned && badge.target > 1 ? (

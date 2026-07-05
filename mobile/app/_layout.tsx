@@ -38,6 +38,7 @@ import { AuthGate } from '../components/AuthGate';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { initSentry, wrapWithSentry } from '../src/lib/sentry';
 import { track, identify } from '../src/lib/analytics';
+import { applyStoredAppearance } from '../src/lib/appearance';
 
 SplashScreen.preventAutoHideAsync();
 initSentry();
@@ -92,6 +93,12 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
   useEffect(() => {
     if (appReady) SplashScreen.hideAsync();
   }, [appReady]);
+
+  // Re-apply the user's persisted Light/Dark/System choice before first paint
+  // settles (system-following until the stored value loads).
+  useEffect(() => {
+    applyStoredAppearance();
+  }, []);
 
   // Tie analytics to the signed-in account (uid only) once per session.
   useEffect(() => {
