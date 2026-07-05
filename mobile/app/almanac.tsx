@@ -30,6 +30,9 @@ import {
 } from '../src/types';
 import { useWorldly } from '../src/hooks/useWorldly';
 import { useAuth } from '../src/store/auth';
+import { useData } from '../src/store/data';
+import { useUnits } from '../src/store/units';
+import { formatDistance, KM_PER_MI } from '../src/lib/units';
 
 type IconCmp = ComponentType<{ size?: number; color?: string }>;
 
@@ -46,6 +49,8 @@ function expeditionYear(e: Expedition): number {
 
 export default function AlmanacScreen() {
   const { places, aggregates, stats, discoveries, discoveryStats, expeditions, journeyStats } = useWorldly();
+  const { captures } = useData();
+  const { unit } = useUnits();
   const { user } = useAuth();
   const firstName = user?.displayName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Explorer');
   const currentYear = new Date().getFullYear();
@@ -116,6 +121,64 @@ export default function AlmanacScreen() {
     return [...codes].filter((c) => hasDestinationPhoto(c)).map((code) => ({ code, name: nameOf.get(code) ?? code }));
   })();
 
+  // "Journeys of record" — the trips with the most to show (own photos first,
+  // then journeys/notes), capped at 8 pages and told in chronological order.
+  const tripSpreads = useMemo(() => {
+    const capsByTrip = new Map<string, typeof captures>();
+    for (const c of captures) {
+      if (!c.expeditionId) continue;
+      const list = capsByTrip.get(c.expeditionId) ?? [];
+      list.push(c);
+      capsByTrip.set(c.expeditionId, list);
+    }
+    const discByTrip = new Map<string, typeof discoveries>();
+    for (const d of discoveries) {
+      if (!d.expeditionId) continue;
+      const list = discByTrip.get(d.expeditionId) ?? [];
+      list.push(d);
+      discByTrip.set(d.expeditionId, list);
+    }
+    const fmtDay = (iso?: string) =>
+      iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : undefined;
+    return expeditions
+      .map((e) => {
+        const caps = [...(capsByTrip.get(e.id) ?? [])].sort(
+          (a, b) => (a.takenAt ?? a.createdAt) - (b.takenAt ?? b.createdAt),
+        );
+        const discs = discByTrip.get(e.id) ?? [];
+        const photos = [...caps.map((c) => c.dataUrl), ...discs.map((d) => d.photo).filter((p): p is string => !!p)];
+        return { e, discs, photos, score: photos.length * 3 + e.journeys.length + (e.note ? 1 : 0) };
+      })
+      .filter((t) => t.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8)
+      .sort((a, b) => (a.e.startDate ?? '9999').localeCompare(b.e.startDate ?? '9999'))
+      .map(({ e, discs, photos }) => {
+        const km = e.journeys.reduce((n, j) => n + (j.distanceKm ?? 0), 0);
+        const meta = [
+          [fmtDay(e.startDate), fmtDay(e.endDate)].filter(Boolean).join(' — '),
+          e.journeys.length ? `${e.journeys.length} ${e.journeys.length === 1 ? 'journey' : 'journeys'}` : '',
+          km > 0 ? formatDistance(km / KM_PER_MI, unit) : '',
+        ]
+          .filter(Boolean)
+          .join(' · ');
+        const quoted = discs.find((d) => d.note && d.note.trim().length > 12);
+        return {
+          title: e.title,
+          meta,
+          flagCodes: e.countryCodes.slice(0, 12),
+          photos: photos.slice(0, 4),
+          heroCode: e.countryCodes.find((c) => hasDestinationPhoto(c)),
+          quote: quoted
+            ? {
+                text: quoted.note!.trim().slice(0, 180),
+                attribution: [quoted.name, quoted.city].filter(Boolean).join(', '),
+              }
+            : undefined,
+        };
+      });
+  }, [captures, discoveries, expeditions, unit]);
+
   const figures: [string, number, IconCmp, string][] = [
     ['Countries discovered', stats.countriesDiscovered, Globe2, COLORS.coral],
     ['Cities discovered', stats.citiesDiscovered, Building2, COLORS.aqua],
@@ -148,6 +211,7 @@ export default function AlmanacScreen() {
           coverCode: continentCover(byContinent.get(c) ?? []),
           countries: (byContinent.get(c) ?? []).map((a) => ({ code: a.code, name: a.name })),
         })),
+        trips: tripSpreads,
         relationships: RELATIONSHIPS.filter((r) => relationshipCounts[r] > 0).map((r) => ({
           label: RELATIONSHIP_META[r].label,
           count: relationshipCounts[r],

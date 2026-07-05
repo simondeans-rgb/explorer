@@ -27,6 +27,19 @@ function esc(s: string): string {
   );
 }
 
+/** One trip's chapter page: the user's own photos, dates and words. */
+export interface TripSpread {
+  title: string;
+  /** Preformatted "12 Nov — 21 Nov 2021 · 4 journeys · 1,430 mi". */
+  meta: string;
+  flagCodes: string[];
+  /** The user's own photos (data URLs), lead first; up to 4 are used. */
+  photos: string[];
+  /** Destination fallback when the trip has no personal photos. */
+  heroCode?: string;
+  quote?: { text: string; attribution: string };
+}
+
 export interface AlmanacBookInput {
   firstName: string;
   generatedOn: string;
@@ -36,6 +49,8 @@ export interface AlmanacBookInput {
   photoStrip?: { code: string; name: string }[];
   figures: { label: string; value: number }[];
   continents: { name: string; coverCode?: string; countries: { code: string; name: string }[] }[];
+  /** Per-trip spreads — the personal heart of the book. */
+  trips?: TripSpread[];
   relationships: { label: string; count: number }[];
   categories: { label: string; count: number }[];
   recognitions: { symbol: string; title: string; description: string }[];
@@ -166,6 +181,33 @@ function continentPages(input: AlmanacBookInput, photos: PhotoMap): BookPage[] {
   }));
 }
 
+function tripPages(input: AlmanacBookInput, photos: PhotoMap): BookPage[] {
+  // One page per trip: the user's own photography leads; a destination photo
+  // stands in when a trip has none. Fixed-height blocks keep every page whole.
+  return (input.trips ?? []).map((t) => {
+    const pics = t.photos.slice(0, 4);
+    const [lead, ...rest] = pics;
+    const photoBlock = lead
+      ? `<div class="tlead">${photoFill(lead)}</div>` +
+        (rest.length
+          ? `<div class="tgrid">${rest.map((p) => `<div class="tcell">${photoFill(p)}</div>`).join('')}</div>`
+          : '')
+      : `<div class="tlead">${photoFill(t.heroCode ? photos.get(t.heroCode) : undefined)}<div class="fill pscrim"></div></div>`;
+    const quote = t.quote
+      ? `<div class="tquote">&ldquo;${esc(t.quote.text)}&rdquo;<div class="tattr">— ${esc(t.quote.attribution)}</div></div>`
+      : '';
+    const flags = t.flagCodes.length ? `<div class="tflags">${t.flagCodes.map((c) => flagEmoji(c)).join(' ')}</div>` : '';
+    return {
+      cls: 'light' as const,
+      folio: true,
+      body: `<div class="eyebrow coral">CHAPTER FOUR &nbsp;&middot;&nbsp; JOURNEYS OF RECORD</div>
+      <div class="kicker">${esc(t.title)}</div>
+      <div class="tmeta">${esc(t.meta)}</div>
+      ${photoBlock}${flags}${quote}`,
+    };
+  });
+}
+
 function recognitionsPage(input: AlmanacBookInput): BookPage | null {
   if (!input.recognitions.length) return null;
   const rows = input.recognitions
@@ -176,7 +218,7 @@ function recognitionsPage(input: AlmanacBookInput): BookPage | null {
   return {
     cls: 'light',
     folio: true,
-    body: `<div class="eyebrow coral">CHAPTER FOUR</div>
+    body: `<div class="eyebrow coral">CHAPTER FIVE</div>
     <div class="kicker">Recognitions earned</div>
     <div class="recs">${rows}</div>`,
   };
@@ -203,6 +245,7 @@ export function buildAlmanacBookHtml(input: AlmanacBookInput, photos: PhotoMap =
     picturesPage(input, photos),
     figuresPage(input),
     ...continentPages(input, photos),
+    ...tripPages(input, photos),
     recognitionsPage(input),
     backCover(input),
   ].filter((p): p is BookPage => p !== null);
@@ -268,6 +311,14 @@ export function buildAlmanacBookHtml(input: AlmanacBookInput, photos: PhotoMap =
     .row { background: rgba(255,255,255,.07); border-radius: 14px; padding: 12px 16px; display: flex; justify-content: space-between; font-size: 17px; color: #E6E9F2; }
     .row b { font-family: Georgia, serif; color: #fff; }
 
+    .tmeta { font-size: 16px; color: #6B7280; margin-bottom: 16px; }
+    .tlead { position: relative; height: 320px; border-radius: 24px; overflow: hidden; }
+    .tgrid { display: flex; gap: 12px; margin-top: 12px; }
+    .tcell { position: relative; flex: 1; height: 170px; border-radius: 18px; overflow: hidden; }
+    .tflags { font-size: 26px; margin-top: 16px; }
+    .tquote { font-family: Georgia, serif; font-style: italic; font-size: 21px; line-height: 1.5; color: #3A4361; margin-top: 18px; }
+    .tattr { font-style: normal; font-size: 14px; font-weight: 700; letter-spacing: 1px; color: #9AA1B2; margin-top: 8px; }
+
     .conthero { position: relative; height: 380px; border-radius: 26px; overflow: hidden; margin-top: 10px; }
     .countpill { position: absolute; right: 18px; bottom: 16px; font-size: 15px; font-weight: 700; color: #fff; background: rgba(255,255,255,.24); border: 1px solid rgba(255,255,255,.45); border-radius: 999px; padding: 7px 14px; }
     .flags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
@@ -301,6 +352,9 @@ export async function shareAlmanacBook(input: AlmanacBookInput): Promise<void> {
   if (input.heroCode && hasDestinationPhoto(input.heroCode)) codes.add(input.heroCode);
   for (const s of input.photoStrip ?? []) if (hasDestinationPhoto(s.code)) codes.add(s.code);
   for (const c of input.continents) if (c.coverCode && hasDestinationPhoto(c.coverCode)) codes.add(c.coverCode);
+  for (const t of input.trips ?? []) {
+    if (!t.photos.length && t.heroCode && hasDestinationPhoto(t.heroCode)) codes.add(t.heroCode);
+  }
   const photos: PhotoMap = new Map();
   await Promise.all(
     [...codes].map(async (code) => {
