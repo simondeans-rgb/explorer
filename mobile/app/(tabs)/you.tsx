@@ -330,7 +330,7 @@ export default function YouScreen() {
       </View>
       {nextDiscovery ? (
         <Pressable onPress={() => router.push('/achievements')} className="bg-white dark:bg-card rounded-2xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 10, padding: 12, gap: 12 }}>
-          <AchievementBadge badge={nextDiscovery} tile={44} />
+          <AchievementBadge badge={nextDiscovery} tile={44} labeled={false} />
           <View style={{ flex: 1 }}>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.coral }}>DISCOVERIES</Text>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.navy, marginTop: 1 }}>
@@ -348,7 +348,7 @@ export default function YouScreen() {
           as the NEXT UP achievement below so progress reads one way everywhere. */}
       {showGems && gemBadge ? (
         <Pressable onPress={() => router.push('/achievements')} className="bg-white dark:bg-card rounded-2xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 10, padding: 12, gap: 12 }}>
-          <AchievementBadge badge={gemBadge} tile={44} />
+          <AchievementBadge badge={gemBadge} tile={44} labeled={false} />
           <View style={{ flex: 1 }}>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: '#F5A623' }}>HIDDEN GEMS</Text>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.navy, marginTop: 1 }}>
@@ -412,7 +412,7 @@ export default function YouScreen() {
         </ScrollView>
         {nextBadge ? (
           <Pressable onPress={() => router.push('/achievements')} className="bg-white dark:bg-card rounded-2xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 2, padding: 12, gap: 12 }}>
-            <AchievementBadge badge={nextBadge} tile={44} />
+            <AchievementBadge badge={nextBadge} tile={44} labeled={false} />
             <View style={{ flex: 1 }}>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3 }}>NEXT UP</Text>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.navy, marginTop: 1 }}>{nextBadge.title}</Text>
