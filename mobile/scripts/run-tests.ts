@@ -245,4 +245,38 @@ test('miniPdf: builds a structurally valid two-page PDF', () => {
   assert.equal(text.slice(xrefAt, xrefAt + 4), 'xref');
 });
 
+// ---- almanacStory -----------------------------------------------------------
+import { buildAlmanacStory, flightSentence, withArticle } from '../src/lib/almanacStory';
+
+test('almanacStory: prologue tells first trip, first flight and loves', () => {
+  const exp = (id: string, startDate: string, codes: string[], journeys: object[] = []) => ({
+    id, userId: 'u', title: id, startDate, countryCodes: codes, journeys, createdAt: 0, updatedAt: 0,
+  });
+  const expeditions = [
+    exp('a', '2015-07-10', ['ES'], [{ id: 'j1', mode: 'flight', operator: 'British Airways', vehicle: 'Airbus A320', from: 'LHR', to: 'MAD', distanceKm: 1264 }]),
+    exp('b', '2019-03-02', ['ES']),
+  ];
+  const discoveries = [
+    { id: 'd1', userId: 'u', name: 'Café Lola', category: 'food', city: 'Seville', verdict: 'hidden-gem', createdAt: 0, updatedAt: 0 },
+  ];
+  const paras = buildAlmanacStory({
+    expeditions: expeditions as never,
+    discoveries: discoveries as never,
+    countryName: (c) => (c === 'ES' ? 'Spain' : c),
+    formatKm: (km) => `${Math.round(km)} km`,
+  });
+  assert.ok(paras[0].includes('Spain'));
+  assert.ok(paras[0].includes('summer of 2015'));
+  assert.ok(paras.some((p) => p.includes('British Airways') && p.includes('an Airbus A320')));
+  assert.ok(paras.some((p) => p.includes('Café Lola')));
+  assert.ok(paras.some((p) => p.includes('Spain keeps calling you back')));
+});
+
+test('almanacStory: articles and per-trip flight sentence', () => {
+  assert.equal(withArticle('Airbus A320'), 'an Airbus A320');
+  assert.equal(withArticle('Boeing 777'), 'a Boeing 777');
+  assert.equal(flightSentence([{ id: 'x', mode: 'flight', operator: 'Iberia' }] as never), 'You flew with Iberia.');
+  assert.equal(flightSentence([{ id: 'x', mode: 'rail' }] as never), null);
+});
+
 console.log(`✓ all ${passed} tests passed`);

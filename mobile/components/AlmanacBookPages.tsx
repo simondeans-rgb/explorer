@@ -27,6 +27,7 @@ const STAT_COLORS = ['#FF6B9A', '#24D1C3', '#9B7CFF', '#FFB84D', '#4DA6FF', '#F2
 export type BookPageSpec =
   | { kind: 'cover'; heroUrl?: string; firstName: string; generatedOn: string }
   | { kind: 'title'; firstName: string; generatedOn: string }
+  | { kind: 'story'; folio: number; paragraphs: string[] }
   | { kind: 'pictures'; folio: number; cards: { url: string; code: string; name: string }[] }
   | {
       kind: 'numbers';
@@ -35,12 +36,14 @@ export type BookPageSpec =
       relationships: { label: string; count: number }[];
       categories: { label: string; count: number }[];
     }
-  | { kind: 'continent'; folio: number; name: string; heroUrl?: string; countries: { code: string; name: string }[] }
+  | { kind: 'continent'; folio: number; name: string; heroUrl?: string; intro?: string; countries: { code: string; name: string }[] }
   | {
       kind: 'trip';
       folio: number;
       title: string;
       meta: string;
+      story?: string;
+      badge?: string;
       flagCodes: string[];
       photos: string[];
       heroUrl?: string;
@@ -74,6 +77,9 @@ export function buildBookPages(input: AlmanacBookInput): BookPageSpec[] {
     { kind: 'cover', heroUrl: url(input.heroCode), firstName: first, generatedOn: input.generatedOn },
     { kind: 'title', firstName: first, generatedOn: input.generatedOn },
   ];
+  if (input.storyParagraphs?.length) {
+    pages.push({ kind: 'story', folio: ++folio, paragraphs: input.storyParagraphs.slice(0, 5) });
+  }
   const cards = (input.photoStrip ?? [])
     .filter((s) => hasDestinationPhoto(s.code))
     .slice(0, 5)
@@ -87,7 +93,7 @@ export function buildBookPages(input: AlmanacBookInput): BookPageSpec[] {
     categories: input.categories,
   });
   for (const c of input.continents) {
-    pages.push({ kind: 'continent', folio: ++folio, name: c.name, heroUrl: url(c.coverCode), countries: c.countries });
+    pages.push({ kind: 'continent', folio: ++folio, name: c.name, heroUrl: url(c.coverCode), intro: c.intro, countries: c.countries });
   }
   for (const t of input.trips ?? []) {
     pages.push({
@@ -95,6 +101,8 @@ export function buildBookPages(input: AlmanacBookInput): BookPageSpec[] {
       folio: ++folio,
       title: t.title,
       meta: t.meta,
+      story: t.story,
+      badge: t.badge,
       flagCodes: t.flagCodes,
       photos: t.photos.slice(0, 4),
       heroUrl: t.photos.length ? undefined : url(t.heroCode),
@@ -229,6 +237,30 @@ export function AlmanacBookPage({
         </View>
       );
 
+    case 'story':
+      return (
+        <View style={base}>
+          <Eyebrow text="PROLOGUE" />
+          <Kicker text="The story so far" />
+          <Text style={{ fontFamily: F.serif, fontSize: 110, lineHeight: 110, color: CORAL, marginTop: 6, marginBottom: -54 }}>“</Text>
+          {spec.paragraphs.map((p, i) => (
+            <Text
+              key={i}
+              style={{
+                fontFamily: F.serif,
+                fontSize: i === 0 ? 27 : 22,
+                lineHeight: i === 0 ? 41 : 34,
+                color: i === 0 ? INK : '#3A4361',
+                marginTop: i === 0 ? 24 : 20,
+              }}
+            >
+              {p}
+            </Text>
+          ))}
+          <Folio n={spec.folio} firstName={firstName} />
+        </View>
+      );
+
     case 'pictures': {
       const [lead, ...rest] = spec.cards;
       const cell = (c: (typeof spec.cards)[number], h: number) => (
@@ -310,7 +342,10 @@ export function AlmanacBookPage({
         <View style={base}>
           <Eyebrow text="CHAPTER THREE · THE WORLD" />
           <Kicker text={spec.name} />
-          <View style={{ height: 380, borderRadius: 26, overflow: 'hidden', marginTop: 10 }}>
+          {spec.intro ? (
+            <Text style={{ fontFamily: F.serif, fontStyle: 'italic', fontSize: 19, color: '#3A4361', marginBottom: 12 }}>{spec.intro}</Text>
+          ) : null}
+          <View style={{ height: spec.intro ? 348 : 380, borderRadius: 26, overflow: 'hidden', marginTop: 10 }}>
             {spec.heroUrl ? <Photo url={spec.heroUrl} onLoad={onImageLoaded} /> : <BrandGradient />}
             <BottomScrim />
             <View style={{ position: 'absolute', right: 18, bottom: 16, backgroundColor: 'rgba(255,255,255,0.24)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.45)', borderRadius: 999, paddingVertical: 7, paddingHorizontal: 14 }}>
@@ -336,10 +371,15 @@ export function AlmanacBookPage({
       const [lead, ...rest] = pics;
       return (
         <View style={base}>
-          <Eyebrow text="CHAPTER FOUR · JOURNEYS OF RECORD" />
+          <Eyebrow text={spec.badge ?? 'CHAPTER FOUR · JOURNEYS OF RECORD'} />
           <Kicker text={spec.title} />
-          <Text style={{ fontFamily: F.sans, fontSize: 16, color: MUTED, marginBottom: 16 }}>{spec.meta}</Text>
-          <View style={{ height: 320, borderRadius: 24, overflow: 'hidden' }}>
+          <Text style={{ fontFamily: F.sans, fontSize: 16, color: MUTED, marginBottom: spec.story ? 8 : 16 }}>{spec.meta}</Text>
+          {spec.story ? (
+            <Text style={{ fontFamily: F.serif, fontStyle: 'italic', fontSize: 19, color: '#3A4361', marginBottom: 14 }} numberOfLines={2}>
+              {spec.story}
+            </Text>
+          ) : null}
+          <View style={{ height: spec.story ? 290 : 320, borderRadius: 24, overflow: 'hidden' }}>
             {lead ? <Photo url={lead} onLoad={onImageLoaded} /> : spec.heroUrl ? <Photo url={spec.heroUrl} onLoad={onImageLoaded} /> : <BrandGradient />}
             {!lead ? <BottomScrim /> : null}
           </View>
@@ -446,14 +486,17 @@ export function BookPrinter({
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy on purpose: native module absent in older builds
         const { captureRef } = require('react-native-view-shot') as typeof import('react-native-view-shot');
+        // 2160px wide = the full native detail of a 3x display — ~260 DPI on
+        // an A4 print of the 720pt page. Upscaling past the device scale
+        // would only soften it.
         const base64 = await captureRef(viewRef, {
           format: 'jpg',
           quality: 0.9,
           result: 'base64',
-          width: 1440,
-          height: 2036,
+          width: 2160,
+          height: 3054,
         });
-        shots.current.push({ base64: base64.replace(/[\r\n]/g, ''), width: 1440, height: 2036 });
+        shots.current.push({ base64: base64.replace(/[\r\n]/g, ''), width: 2160, height: 3054 });
       } catch (e) {
         if (alive) onDone(e instanceof Error ? e : new Error('capture failed'));
         return;
