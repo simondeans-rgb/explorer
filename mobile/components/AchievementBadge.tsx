@@ -19,17 +19,21 @@ const ICONS: Record<string, LucideIcon> = {
   Church, Home, House, Camera, BookOpen, Heart, Repeat, Snowflake, Zap, Leaf,
 };
 
-/** A thin progress ring drawn around a locked tile. */
+/** A thin progress ring orbiting a locked tile: a faint full track (so partial
+ *  progress reads as a ring, not a floating arc) with the coral arc on top,
+ *  centred on the tile with a 2px breathing gap. */
 function Ring({ progress, size }: { progress: number; size: number }) {
   const stroke = 3;
-  const r = (size - stroke) / 2;
+  const r = size / 2 + 2 + stroke / 2;
+  const dim = Math.ceil(2 * r + stroke);
+  const pad = (dim - size) / 2;
   const c = 2 * Math.PI * r;
   return (
-    <Svg width={size} height={size} style={{ position: 'absolute', top: -stroke, left: -stroke }}>
-      <Circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(20,33,61,0.08)" strokeWidth={stroke} fill="none" />
+    <Svg width={dim} height={dim} style={{ position: 'absolute', top: -pad, left: -pad }}>
+      <Circle cx={dim / 2} cy={dim / 2} r={r} stroke="rgba(142,151,184,0.28)" strokeWidth={stroke} fill="none" />
       <Circle
-        cx={size / 2}
-        cy={size / 2}
+        cx={dim / 2}
+        cy={dim / 2}
         r={r}
         stroke={COLORS.coral}
         strokeWidth={stroke}
@@ -37,20 +41,22 @@ function Ring({ progress, size }: { progress: number; size: number }) {
         strokeDasharray={c}
         strokeDashoffset={c * (1 - Math.max(0, Math.min(1, progress)))}
         strokeLinecap="round"
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        transform={`rotate(-90 ${dim / 2} ${dim / 2})`}
       />
     </Svg>
   );
 }
 
 /** An illustrated achievement tile — a rounded gradient square with a glyph,
- *  full-colour when earned, greyed with a progress ring while locked. */
-export function AchievementBadge({ badge, tile = 64 }: { badge: Badge; tile?: number }) {
+ *  full-colour when earned, muted with a progress ring while locked.
+ *  `labeled={false}` renders the tile alone, for cards that carry their own
+ *  title/progress text next to it. */
+export function AchievementBadge({ badge, tile = 64, labeled = true }: { badge: Badge; tile?: number; labeled?: boolean }) {
   const Icon = ICONS[badge.icon] ?? Award;
   const earned = badge.earned;
 
   return (
-    <View style={{ alignItems: 'center', width: tile + 16 }}>
+    <View style={{ alignItems: 'center', width: labeled ? tile + 16 : tile }}>
       <View style={{ width: tile, height: tile }}>
         {earned ? (
           <LinearGradient
@@ -63,10 +69,10 @@ export function AchievementBadge({ badge, tile = 64 }: { badge: Badge; tile?: nu
           </LinearGradient>
         ) : (
           <>
-            <View style={{ width: tile, height: tile, borderRadius: tile * 0.28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EEF0F6', opacity: badge.progress === 0 ? 0.92 : 1 }}>
-              <Icon size={tile * 0.42} color="#C2C7D6" />
+            <View style={{ width: tile, height: tile, borderRadius: tile * 0.28, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.tileMuted, opacity: badge.progress === 0 ? 0.92 : 1 }}>
+              <Icon size={tile * 0.42} color={COLORS.tileMutedIcon} />
               {badge.progress === 0 ? (
-                <View style={{ position: 'absolute', right: -2, bottom: -2, width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.navySolid, borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ position: 'absolute', right: -2, bottom: -2, width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.navySolid, borderWidth: 2, borderColor: COLORS.card, alignItems: 'center', justifyContent: 'center' }}>
                   <Lock size={10} color="#fff" />
                 </View>
               ) : null}
@@ -75,11 +81,15 @@ export function AchievementBadge({ badge, tile = 64 }: { badge: Badge; tile?: nu
           </>
         )}
       </View>
-      <Text numberOfLines={2} style={{ fontFamily: 'PlusJakarta', fontSize: 11, lineHeight: 14, fontWeight: '700', color: earned ? COLORS.navy : COLORS.ink3, marginTop: 6, textAlign: 'center', minHeight: 26 }}>
-        {badge.title}
-      </Text>
-      {!earned && badge.target > 1 ? (
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, opacity: 0.8 }}>{Math.min(badge.value, badge.target)}/{badge.target}</Text>
+      {labeled ? (
+        <>
+          <Text numberOfLines={2} style={{ fontFamily: 'PlusJakarta', fontSize: 11, lineHeight: 14, fontWeight: '700', color: earned ? COLORS.navy : COLORS.ink3, marginTop: 6, textAlign: 'center' }}>
+            {badge.title}
+          </Text>
+          {!earned && badge.target > 1 ? (
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, opacity: 0.8, marginTop: 1 }}>{Math.min(badge.value, badge.target)}/{badge.target}</Text>
+          ) : null}
+        </>
       ) : null}
     </View>
   );

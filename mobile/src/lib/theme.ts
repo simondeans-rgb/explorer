@@ -29,6 +29,10 @@ export const COLORS = {
   ink3: dyn('#8A90A6', '#9298B0'),
   white: '#FFFFFF',
   danger: '#F2557D', // brand-aligned destructive (coral-red, not finance red)
+  /** Muted tile surface (locked badges etc.) + its glyph colour — a step off
+   *  the card surface in both themes. */
+  tileMuted: dyn('#EEF0F6', '#242C4B'),
+  tileMutedIcon: dyn('#C2C7D6', '#6F79A1'),
 } as const;
 
 /** Shared scales so new/edited components stop hardcoding ad-hoc values. */

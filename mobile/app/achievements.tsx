@@ -52,7 +52,7 @@ export default function AchievementsScreen() {
         {/* Next up */}
         {nextUp ? (
           <Pressable onPress={() => open(nextUp)} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 16, padding: 14, gap: 14 }}>
-            <AchievementBadge badge={nextUp} tile={52} />
+            <AchievementBadge badge={nextUp} tile={52} labeled={false} />
             <View style={{ flex: 1 }}>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.coral }}>NEXT UP</Text>
               <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy, marginTop: 1 }}>{nextUp.title}</Text>
@@ -105,7 +105,7 @@ export default function AchievementsScreen() {
             <Pressable onPress={() => setSelected(null)} hitSlop={10} style={{ position: 'absolute', top: 14, right: 14 }}>
               <X size={20} color={COLORS.ink3} />
             </Pressable>
-            <AchievementBadge badge={selected} tile={92} />
+            <AchievementBadge badge={selected} tile={92} labeled={false} />
             <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, marginTop: 14, textAlign: 'center' }}>{selected.title}</Text>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink2, marginTop: 6, textAlign: 'center' }}>{selected.description}</Text>
             {selected.earned ? (
