@@ -140,9 +140,12 @@ export default function AlmanacScreen() {
       await shareAlmanacBook({
         firstName,
         generatedOn: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }),
+        heroCode: photoRanked[0]?.code,
+        photoStrip: photoRanked.slice(0, 7).map((a) => ({ code: a.code, name: a.name })),
         figures: figures.map(([label, value]) => ({ label, value })),
         continents: CONTINENTS.filter((c) => byContinent.has(c)).map((c) => ({
           name: c,
+          coverCode: continentCover(byContinent.get(c) ?? []),
           countries: (byContinent.get(c) ?? []).map((a) => ({ code: a.code, name: a.name })),
         })),
         relationships: RELATIONSHIPS.filter((r) => relationshipCounts[r] > 0).map((r) => ({
