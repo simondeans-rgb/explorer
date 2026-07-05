@@ -221,6 +221,15 @@ test('miniPdf: base64 round-trips bytes', () => {
   const bytes = new Uint8Array([0, 1, 2, 250, 251, 252, 253, 254, 255, 137, 80]);
   assert.deepEqual([...base64ToBytes(bytesToBase64(bytes))], [...bytes]);
   assert.equal(bytesToBase64(new Uint8Array([77])), 'TQ==');
+  // large enough to cross several encoder flush boundaries, all lengths mod 3
+  for (const len of [100000, 100001, 100002]) {
+    const big = new Uint8Array(len);
+    for (let i = 0; i < len; i++) big[i] = (i * 31 + 7) & 0xff;
+    const round = base64ToBytes(bytesToBase64(big));
+    assert.equal(round.length, len);
+    for (let i = 0; i < len; i += 997) assert.equal(round[i], big[i]);
+    assert.equal(round[len - 1], big[len - 1]);
+  }
 });
 
 test('miniPdf: builds a structurally valid two-page PDF', () => {

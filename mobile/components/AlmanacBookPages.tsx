@@ -488,17 +488,15 @@ export function BookPrinter({
         const { captureRef } = require('react-native-view-shot') as typeof import('react-native-view-shot');
         // 2160px wide = the full native detail of a 3x display — ~260 DPI on
         // an A4 print of the 720pt page. Upscaling past the device scale
-        // would only soften it.
-        const base64 = await captureRef(viewRef, {
-          format: 'jpg',
-          quality: 0.9,
-          result: 'base64',
-          width: 2160,
-          height: 3054,
-        });
+        // would only soften it. Bounded so a wedged capture can't hang the
+        // export silently.
+        const base64 = await Promise.race([
+          captureRef(viewRef, { format: 'jpg', quality: 0.9, result: 'base64', width: 2160, height: 3054 }),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('page capture timed out')), 12000)),
+        ]);
         shots.current.push({ base64: base64.replace(/[\r\n]/g, ''), width: 2160, height: 3054 });
       } catch (e) {
-        if (alive) onDone(e instanceof Error ? e : new Error('capture failed'));
+        if (alive) onDone(new Error(`capture (page ${index + 1}): ${e instanceof Error ? e.message : String(e)}`));
         return;
       }
       if (!alive) return;
@@ -507,11 +505,13 @@ export function BookPrinter({
       } else {
         try {
           onProgress('Binding your book…');
+          // Let the progress label paint before the JS thread gets busy.
+          await new Promise((r) => setTimeout(r, 60));
           const pdf = jpegsToPdf(shots.current, BOOK_W, BOOK_H);
           await sharePdfBytes(pdf, 'worldly-almanac.pdf', dialogTitle);
           onDone(null);
         } catch (e) {
-          onDone(e instanceof Error ? e : new Error('binding failed'));
+          onDone(new Error(`bind: ${e instanceof Error ? e.message : String(e)}`));
         }
       }
     })();
