@@ -1,10 +1,15 @@
 // Passport Covers — switchable app icons. The icon assets live in the native
-// binary (via the expo-alternate-app-icons config plugin); this registry holds
-// the product metadata: display copy, bundled previews and unlock rules.
+// binary (the expo-alternate-app-icons CONFIG PLUGIN generates the icon
+// catalog at build time); this registry holds the product metadata: display
+// copy, bundled previews and unlock rules.
 //
-// The package's JS entry calls requireNativeModule at import time, which
-// throws on binaries built before the plugin was added — so it's require()'d
-// lazily and everything degrades to a read-only preview. OTA-safe.
+// Runtime switching goes through our local WorldlyAppIcon module, which
+// dispatches every UIApplication access to the main thread. The package's own
+// native runtime is excluded from the build: it reads UIApplication state on
+// the calling queue during lazy module creation, which hard-crashes the app
+// the first time JS touches it. Binaries without WorldlyAppIcon degrade to a
+// read-only preview. OTA-safe.
+import { requireOptionalNativeModule } from 'expo-modules-core';
 
 export interface CoverDef {
   /** Plugin icon name (PascalCase); null = the default Worldly icon. */
@@ -58,21 +63,33 @@ export const COVER_SECTIONS: CoverSection[] = [
 ];
 /* eslint-enable @typescript-eslint/no-require-imports */
 
-type AltIconsModule = {
-  supportsAlternateIcons: boolean;
-  setAlternateAppIcon(name: string | null): Promise<string | null>;
-  getAppIconName(): string | null;
+type AppIconNative = {
+  getState(): Promise<{ supported: boolean; current?: string | null }>;
+  setIcon(name: string | null): Promise<string | null>;
 };
 
-/** The alternate-icons native module, or null on binaries without it. */
-export function altIcons(): AltIconsModule | null {
+const native = requireOptionalNativeModule<AppIconNative>('WorldlyAppIcon');
+
+export interface CoverState {
+  current: string | null;
+}
+
+/** Current cover state, or null when switching isn't available (older binary,
+ *  Android, or a device that doesn't support alternate icons). Never throws. */
+export async function getCoverState(): Promise<CoverState | null> {
+  if (!native) return null;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy on purpose: native module absent in older builds
-    const mod = require('expo-alternate-app-icons') as AltIconsModule;
-    return mod.supportsAlternateIcons ? mod : null;
+    const s = await native.getState();
+    return s.supported ? { current: s.current ?? null } : null;
   } catch {
     return null;
   }
+}
+
+/** Apply a cover (null = the classic icon). Throws when it can't be applied. */
+export async function applyCover(name: string | null): Promise<void> {
+  if (!native) throw new Error('App icon switching unavailable in this build');
+  await native.setIcon(name);
 }
 
 /** Why a cover is still locked for this user, or null when it's available. */
