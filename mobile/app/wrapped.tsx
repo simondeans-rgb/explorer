@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { goBack } from '../src/lib/nav';
-import { X, Share2 } from 'lucide-react-native';
+import { X, Share2, Film } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { DestinationImage } from '../components/DestinationImage';
@@ -17,6 +17,7 @@ import { useWorldly } from '../src/hooks/useWorldly';
 import { useAuth } from '../src/store/auth';
 import { shareWrappedPoster } from '../src/lib/wrappedPoster';
 import { shareViewAsPng } from '../src/lib/shareImage';
+import { canExportFrameVideo, encodeFramesToVideo } from '../src/lib/frameVideo';
 import { track } from '../src/lib/analytics';
 
 export default function WrappedScreen() {
@@ -119,8 +120,67 @@ export default function WrappedScreen() {
   const markLoaded = (src: string) =>
     setLoadedSrcs((prev) => (prev.has(src) ? prev : new Set(prev).add(src)));
 
+  // ---- Poster animation ----------------------------------------------------
+  // posterT ∈ [0,1] drives the poster's entrance choreography; 1 is the
+  // finished card (the state the still PNG captures). shareVideo() sweeps it
+  // across frames and encodes them into an MP4 via the FrameVideo module.
+  const [posterT, setPosterT] = useState(1);
+  const [videoProgress, setVideoProgress] = useState<number | null>(null);
+  const canVideo = canExportFrameVideo();
+  const posterPhase = (start: number, dur: number) => Math.max(0, Math.min(1, (posterT - start) / dur));
+  const easeOut = (p: number) => 1 - (1 - p) ** 3;
+  const pPhoto = easeOut(posterPhase(0, 0.5));
+  const pHead = easeOut(posterPhase(0.15, 0.45));
+  const pCount = posterPhase(0.25, 0.5);
+  const pPanel = easeOut(posterPhase(0.35, 0.5));
+  const pFlags = easeOut(posterPhase(0.55, 0.4));
+  const pMinis = easeOut(posterPhase(0.65, 0.35));
+  const shownCountries = Math.round(view.countries * (1 - (1 - pCount) ** 2));
+
+  async function shareVideo() {
+    if (sharing || videoProgress !== null) return;
+    setVideoProgress(0);
+    try {
+      for (let i = 0; i < 10 && !posterReadyRef.current; i++) {
+        await new Promise((r) => setTimeout(r, 150));
+      }
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy on purpose: native module absent in older builds
+      const { captureRef } = require('react-native-view-shot') as typeof import('react-native-view-shot');
+      const ANIM = 40; // frames across the entrance…
+      const FPS = 20; // …played at 20fps = 2s of motion, then held
+      const frames: string[] = [];
+      for (let i = 0; i < ANIM; i++) {
+        setPosterT(i / (ANIM - 1));
+        // Let React commit and the native view draw before capturing.
+        await new Promise<void>((r) => requestAnimationFrame(() => setTimeout(r, 24)));
+        frames.push(
+          await captureRef(posterRef, { format: 'png', quality: 1, result: 'tmpfile', width: 1080, height: 1920 }),
+        );
+        setVideoProgress((i + 1) / ANIM);
+      }
+      for (let i = 0; i < 30; i++) frames.push(frames[ANIM - 1]); // hold the finished card 1.5s
+      const uri = await encodeFramesToVideo(frames, FPS, 1080, 1920);
+      if (uri) {
+        const Sharing = await import('expo-sharing');
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri, {
+            mimeType: 'video/mp4',
+            dialogTitle: isYear ? `Share your ${year}, wrapped` : 'Share your world, wrapped',
+            UTI: 'public.mpeg-4',
+          });
+        }
+        track('wrapped_shared', { scope, format: 'mp4' });
+      }
+    } catch {
+      /* user dismissed or capture/encode failed */
+    } finally {
+      setPosterT(1);
+      setVideoProgress(null);
+    }
+  }
+
   async function share() {
-    if (sharing) return;
+    if (sharing || videoProgress !== null) return;
     setSharing(true);
     try {
       // Give the poster's photos a moment to finish decoding before capture.
@@ -231,10 +291,18 @@ export default function WrappedScreen() {
           <WorldlyIcon height={58} />
           <Text style={[S.bigTitle, { marginTop: 16 }]}>The world is waiting</Text>
           <Text style={S.sub}>Where will your next story take you?</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Share my Worldly" onPress={share} disabled={sharing} className="flex-row items-center rounded-full bg-white dark:bg-card" style={{ marginTop: 26, paddingHorizontal: 24, paddingVertical: 14, gap: 8, opacity: sharing ? 0.6 : 1 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Share my Worldly" onPress={share} disabled={sharing || videoProgress !== null} className="flex-row items-center rounded-full bg-white dark:bg-card" style={{ marginTop: 26, paddingHorizontal: 24, paddingVertical: 14, gap: 8, opacity: sharing ? 0.6 : 1 }}>
             <Share2 size={18} color={COLORS.coral} />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.coral }}>{sharing ? 'Preparing…' : 'Share my Worldly'}</Text>
           </Pressable>
+          {canVideo ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Share as video" onPress={shareVideo} disabled={sharing || videoProgress !== null} className="flex-row items-center rounded-full" style={{ marginTop: 12, paddingHorizontal: 22, paddingVertical: 12, gap: 8, backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.45)', opacity: videoProgress !== null ? 0.75 : 1 }}>
+              <Film size={17} color="#fff" />
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: '#fff' }}>
+                {videoProgress !== null ? `Rendering video… ${Math.round(videoProgress * 100)}%` : 'Share as video'}
+              </Text>
+            </Pressable>
+          ) : null}
         </Slide>
       </ScrollView>
 
@@ -269,7 +337,7 @@ export default function WrappedScreen() {
       <View ref={posterRef} collapsable={false} style={{ position: 'absolute', left: -9999, top: 0, width: 360, height: 640, backgroundColor: '#0D1428' }}>
         {/* Hero photo of the most-explored destination in scope */}
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 358, overflow: 'hidden' }}>
-          <Image source={{ uri: heroSrc }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" cachePolicy="disk" onLoad={() => markLoaded(heroSrc)} />
+          <Image source={{ uri: heroSrc }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: pPhoto, transform: [{ scale: 1.12 - 0.08 * pPhoto }] }} contentFit="cover" cachePolicy="disk" onLoad={() => markLoaded(heroSrc)} />
           <LinearGradient colors={['rgba(8,12,26,0.55)', 'rgba(8,12,26,0)']} locations={[0, 0.3]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
           <LinearGradient colors={['rgba(13,20,40,0)', 'rgba(13,20,40,0.92)']} locations={[0.42, 0.96]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
         </View>
@@ -279,7 +347,7 @@ export default function WrappedScreen() {
         </Svg>
 
         {/* Brand row */}
-        <View className="flex-row items-center justify-between" style={{ position: 'absolute', top: 23, left: 23, right: 23 }}>
+        <View className="flex-row items-center justify-between" style={{ position: 'absolute', top: 23, left: 23, right: 23, opacity: pHead }}>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: '#fff', textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 9, textShadowOffset: { width: 0, height: 1 } }}>worldly</Text>
           <View style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 4 }}>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '700', letterSpacing: 0.8, color: '#fff' }}>{isYear ? year : 'ALL TIME'}</Text>
@@ -287,13 +355,13 @@ export default function WrappedScreen() {
         </View>
 
         {/* Headline over the photo's lower third */}
-        <View style={{ position: 'absolute', left: 23, right: 23, top: 212 }}>
+        <View style={{ position: 'absolute', left: 23, right: 23, top: 212, opacity: pHead, transform: [{ translateY: 17 * (1 - pHead) }] }}>
           <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: '700', letterSpacing: 2.4, color: '#FFD9E5', textShadowColor: 'rgba(0,0,0,0.45)', textShadowRadius: 7, textShadowOffset: { width: 0, height: 1 } }}>
             {`${firstName.toUpperCase()}’S ${isYear ? 'YEAR' : 'LIFE'} IN TRAVEL`}
           </Text>
           <View style={{ width: 35, height: 2, borderRadius: 1, backgroundColor: COLORS.coral, marginTop: 6 }} />
           <View className="flex-row items-baseline" style={{ gap: 11, marginTop: 2 }}>
-            <Text style={{ fontFamily: 'Fraunces', fontSize: 100, lineHeight: 106, color: '#fff', textShadowColor: 'rgba(0,0,0,0.45)', textShadowRadius: 17, textShadowOffset: { width: 0, height: 3 } }}>{view.countries}</Text>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 100, lineHeight: 106, color: '#fff', textShadowColor: 'rgba(0,0,0,0.45)', textShadowRadius: 17, textShadowOffset: { width: 0, height: 3 } }}>{shownCountries}</Text>
             <Text style={{ fontFamily: 'Fraunces', fontSize: 20, lineHeight: 22, color: '#fff', maxWidth: 133, textShadowColor: 'rgba(0,0,0,0.45)', textShadowRadius: 8, textShadowOffset: { width: 0, height: 1 } }}>
               {view.countries === 1 ? 'country explored' : 'countries explored'}
             </Text>
@@ -301,7 +369,7 @@ export default function WrappedScreen() {
         </View>
 
         {/* Stat panel */}
-        <View style={{ position: 'absolute', left: 0, right: 0, top: 358, bottom: 0, paddingHorizontal: 23, paddingTop: 26 }}>
+        <View style={{ position: 'absolute', left: 0, right: 0, top: 358, bottom: 0, paddingHorizontal: 23, paddingTop: 26, opacity: pPanel, transform: [{ translateY: 13 * (1 - pPanel) }] }}>
           <View className="flex-row">
             {([
               [view.continents.length, 'CONTINENTS'],
@@ -317,13 +385,13 @@ export default function WrappedScreen() {
           </View>
 
           {view.flagCodes.length > 0 ? (
-            <Text numberOfLines={1} style={{ textAlign: 'center', fontSize: 17, lineHeight: 24, marginTop: 14 }}>
+            <Text numberOfLines={1} style={{ textAlign: 'center', fontSize: 17, lineHeight: 24, marginTop: 14, opacity: pFlags }}>
               {view.flagCodes.slice(0, 12).map((c) => flagEmoji(c)).join(' ')}
             </Text>
           ) : null}
 
           {showMinis ? (
-            <View className="flex-row" style={{ gap: 8, marginTop: 14 }}>
+            <View className="flex-row" style={{ gap: 8, marginTop: 14, opacity: pMinis, transform: [{ translateY: 9 * (1 - pMinis) }] }}>
               {miniCodes.map((c) => {
                 const src = destinationImage(c).photo!;
                 return (
@@ -339,7 +407,7 @@ export default function WrappedScreen() {
             </View>
           ) : null}
 
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ textAlign: 'center', fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '700', letterSpacing: 1.5, color: '#FFB84D', marginTop: showMinis ? 15 : 24 }}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ textAlign: 'center', fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '700', letterSpacing: 1.5, color: '#FFB84D', marginTop: showMinis ? 15 : 24, opacity: pFlags }}>
             {`EXPLORER LEVEL ${level.level}  ·  ${level.title.toUpperCase()}`}
           </Text>
 
