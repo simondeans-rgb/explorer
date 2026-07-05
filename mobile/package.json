@@ -12,6 +12,7 @@
     "babel-preset-expo": "~54.0.10",
     "d3-geo": "^3.1.1",
     "expo": "~54.0.0",
+    "expo-alternate-app-icons": "^8.0.0",
     "expo-apple-authentication": "~8.0.8",
     "expo-blur": "~15.0.8",
     "expo-build-properties": "~1.0.10",

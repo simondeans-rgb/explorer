@@ -104,6 +104,139 @@
             ]
           }
         }
+      ],
+      [
+        "expo-alternate-app-icons",
+        [
+          {
+            "name": "Midnight",
+            "ios": "./assets/icons/covers/midnight.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#17191F"
+            }
+          },
+          {
+            "name": "Pearl",
+            "ios": "./assets/icons/covers/pearl.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#F4F0E7"
+            }
+          },
+          {
+            "name": "Pride",
+            "ios": "./assets/icons/covers/pride.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#24408E"
+            }
+          },
+          {
+            "name": "Earth",
+            "ios": "./assets/icons/covers/earth.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#4C5C2F"
+            }
+          },
+          {
+            "name": "Sunset",
+            "ios": "./assets/icons/covers/sunset.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#FF6A55"
+            }
+          },
+          {
+            "name": "Ocean",
+            "ios": "./assets/icons/covers/ocean.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#17869E"
+            }
+          },
+          {
+            "name": "Aurora",
+            "ios": "./assets/icons/covers/aurora.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#5C2E9E"
+            }
+          },
+          {
+            "name": "FrequentFlyer",
+            "ios": "./assets/icons/covers/frequent-flyer.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#152240"
+            }
+          },
+          {
+            "name": "Luxury",
+            "ios": "./assets/icons/covers/luxury.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#151009"
+            }
+          },
+          {
+            "name": "Neon",
+            "ios": "./assets/icons/covers/neon.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#160423"
+            }
+          },
+          {
+            "name": "Sakura",
+            "ios": "./assets/icons/covers/sakura.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#F6C9D8"
+            }
+          },
+          {
+            "name": "Tropical",
+            "ios": "./assets/icons/covers/tropical.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#66CE72"
+            }
+          },
+          {
+            "name": "Winter",
+            "ios": "./assets/icons/covers/winter.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#CFE3F4"
+            }
+          },
+          {
+            "name": "Coffee",
+            "ios": "./assets/icons/covers/coffee.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#4C3120"
+            }
+          },
+          {
+            "name": "Christmas",
+            "ios": "./assets/icons/covers/christmas.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#10331F"
+            }
+          },
+          {
+            "name": "Halloween",
+            "ios": "./assets/icons/covers/halloween.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#180B2D"
+            }
+          }
+        ]
       ]
     ],
     "experiments": {
