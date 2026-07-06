@@ -272,7 +272,7 @@ test('almanacStory: prologue tells first trip, first flight and loves', () => {
     expeditions: expeditions as never,
     discoveries: discoveries as never,
     countryName: (c) => (c === 'ES' ? 'Spain' : c),
-    formatKm: (km) => `${Math.round(km)} km`,
+    formatMiles: (mi) => `${Math.round(mi)} mi`,
   });
   assert.ok(paras[0].includes('Spain'));
   assert.ok(paras[0].includes('summer of 2015'));

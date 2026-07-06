@@ -113,7 +113,8 @@ export function buildBookPages(input: AlmanacBookInput): BookPageSpec[] {
       quote: t.quote,
     });
   }
-  if (input.recognitions.length) pages.push({ kind: 'recognitions', folio: ++folio, items: input.recognitions });
+  // A page with one or two cards reads as an afterthought — earn the page.
+  if (input.recognitions.length >= 3) pages.push({ kind: 'recognitions', folio: ++folio, items: input.recognitions });
   pages.push({
     kind: 'back',
     countries: input.figures.find((f) => f.label.toLowerCase().includes('countries'))?.value,
@@ -246,21 +247,22 @@ export function AlmanacBookPage({
         <View style={base}>
           <Eyebrow text="PROLOGUE" />
           <Kicker text="The story so far" />
-          <Text style={{ fontFamily: F.serif, fontSize: 110, lineHeight: 110, color: CORAL, marginTop: 6, marginBottom: -54 }}>“</Text>
+          <Text style={{ fontFamily: F.serif, fontSize: 110, lineHeight: 110, color: CORAL, marginTop: 6, marginBottom: -50 }}>“</Text>
           {spec.paragraphs.map((p, i) => (
             <Text
               key={i}
               style={{
                 fontFamily: F.serif,
-                fontSize: i === 0 ? 27 : 22,
-                lineHeight: i === 0 ? 41 : 34,
+                fontSize: i === 0 ? 30 : 24,
+                lineHeight: i === 0 ? 46 : 38,
                 color: i === 0 ? INK : '#3A4361',
-                marginTop: i === 0 ? 24 : 20,
+                marginTop: i === 0 ? 26 : 24,
               }}
             >
               {p}
             </Text>
           ))}
+          <View style={{ width: 64, height: 4, borderRadius: 3, backgroundColor: CORAL, alignSelf: 'center', marginTop: 40 }} />
           <Folio n={spec.folio} firstName={firstName} />
         </View>
       );

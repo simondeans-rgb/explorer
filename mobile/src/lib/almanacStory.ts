@@ -10,9 +10,15 @@ export interface StoryContext {
   /** Countries the user calls home (lived/based/born) — excluded when
    *  picking the "first overseas trip". */
   homeCodes?: Set<string>;
-  /** Preformatted in the user's unit, e.g. (5700) => "3,542 mi". */
-  formatKm?: (km: number) => string;
+  /** Miles for a journey leg — lets callers enrich legs that are missing a
+   *  stored distance (e.g. via airport coordinates), so "the farthest single
+   *  leap" is judged across ALL flights, not just the enriched ones. */
+  legMiles?: (j: Journey) => number | undefined;
+  /** Preformatted in the user's unit with label, e.g. (3542) => "3,542 mi". */
+  formatMiles?: (miles: number) => string;
 }
+
+const MI_PER_KM = 1 / 1.609344;
 
 // Countries whose names read wrong without a definite article ("to United
 // Kingdom" → "to the United Kingdom").
@@ -124,12 +130,16 @@ export function buildAlmanacStory(ctx: StoryContext): string[] {
   const perYear = new Map<number, number>();
   for (const e of dated) perYear.set(yearOf(e.startDate!), (perYear.get(yearOf(e.startDate!)) ?? 0) + 1);
   const biggest = [...perYear.entries()].sort((a, b) => b[1] - a[1])[0];
-  const legs = dated.flatMap((e) => e.journeys).filter((j) => (j.distanceKm ?? 0) > 0);
-  const farthest = legs.sort((a, b) => (b.distanceKm ?? 0) - (a.distanceKm ?? 0))[0];
+  const legs = dated.flatMap((e) => e.journeys).filter((j) => j.from && j.to);
+  let farthest: { j: Journey; mi: number } | null = null;
+  for (const j of legs) {
+    const mi = ctx.legMiles?.(j) ?? (j.distanceKm ? j.distanceKm * MI_PER_KM : undefined);
+    if (mi && mi > 0 && (!farthest || mi > farthest.mi)) farthest = { j, mi };
+  }
   const bits: string[] = [];
   if (biggest && biggest[1] >= 2) bits.push(`${biggest[0]} was your biggest year yet — ${biggest[1]} trips`);
-  if (farthest && ctx.formatKm && farthest.from && farthest.to) {
-    bits.push(`the farthest single leap: ${ctx.formatKm(farthest.distanceKm!)}, ${farthest.from} to ${farthest.to}`);
+  if (farthest && ctx.formatMiles) {
+    bits.push(`the farthest single leap: ${ctx.formatMiles(farthest.mi)}, ${farthest.j.from} to ${farthest.j.to}`);
   }
   if (bits.length) {
     const line = bits.join('; ');
