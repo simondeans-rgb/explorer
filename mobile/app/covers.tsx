@@ -53,7 +53,9 @@ export default function CoversScreen() {
       setNote(null);
       track('cover_changed', { cover: cover.name ?? 'classic' });
     } catch {
-      setNote("That cover couldn't be applied — please try again.");
+      // Most common cause: a newly added cover on a binary whose icon
+      // catalog predates it.
+      setNote(`${cover.title} isn't in this version yet — it arrives with the next app update.`);
     } finally {
       setBusy(false);
     }
@@ -88,11 +90,12 @@ export default function CoversScreen() {
         ) : null}
 
         {COVER_SECTIONS.map((section) => (
-          <View key={section.title} style={{ marginTop: 22 }}>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1.4, color: COLORS.ink3, paddingHorizontal: 20 }}>
-              {section.title.toUpperCase()}
-            </Text>
-            <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 12, gap: 12 }}>
+          <View key={section.title} style={{ marginTop: 26 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, paddingHorizontal: 20 }}>{section.title}</Text>
+            {section.tagline ? (
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 2 }}>{section.tagline}</Text>
+            ) : null}
+            <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 14, gap: 12 }}>
               {section.covers.map((cover) => {
                 const locked = lockReason(cover, stats.countriesDiscovered, level.level);
                 const selected = available && current === cover.name;
@@ -105,23 +108,35 @@ export default function CoversScreen() {
                     onPress={() => pick(cover)}
                     style={{ width: cell, opacity: busy ? 0.7 : 1 }}
                   >
-                    <View style={{ borderRadius: 26, padding: 3, borderWidth: 2.5, borderColor: selected ? COLORS.coral : 'transparent' }}>
-                      <View style={{ borderRadius: 22, overflow: 'hidden' }}>
+                    <View style={{ borderRadius: 28, padding: 3, borderWidth: 2.5, borderColor: selected ? COLORS.coral : 'transparent', backgroundColor: selected ? 'rgba(255,107,154,0.08)' : 'transparent', shadowColor: '#14213D', shadowOpacity: selected ? 0.22 : 0.1, shadowRadius: selected ? 12 : 8, shadowOffset: { width: 0, height: 5 } }}>
+                      <View style={{ borderRadius: 24, overflow: 'hidden' }}>
                         <Image source={cover.preview} style={{ width: '100%', aspectRatio: 1 }} contentFit="cover" />
                         {locked ? (
-                          <View className="items-center justify-center" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(10,12,20,0.55)' }}>
-                            <Lock size={20} color="#fff" />
+                          <View className="items-center justify-center" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(10,12,20,0.58)' }}>
+                            <View className="rounded-full items-center justify-center" style={{ height: 34, width: 34, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' }}>
+                              <Lock size={16} color="#fff" />
+                            </View>
+                            <View className="rounded-full" style={{ position: 'absolute', bottom: 7, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: 'rgba(255,184,77,0.95)' }}>
+                              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 8.5, fontWeight: '800', letterSpacing: 0.4, color: '#5C3A00' }}>
+                                {cover.unlock?.level ? `LEVEL ${cover.unlock.level}` : `${cover.unlock?.countries} COUNTRIES`}
+                              </Text>
+                            </View>
+                          </View>
+                        ) : null}
+                        {!locked && cover.isNew && !selected ? (
+                          <View className="rounded-full" style={{ position: 'absolute', top: 7, left: 7, paddingHorizontal: 7, paddingVertical: 2.5, backgroundColor: COLORS.coral }}>
+                            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 8.5, fontWeight: '800', letterSpacing: 0.6, color: '#fff' }}>NEW</Text>
                           </View>
                         ) : null}
                       </View>
                       {selected ? (
-                        <View className="items-center justify-center rounded-full" style={{ position: 'absolute', top: -4, right: -4, height: 24, width: 24, backgroundColor: COLORS.coral, borderWidth: 2, borderColor: '#fff' }}>
-                          <Check size={13} color="#fff" strokeWidth={3} />
+                        <View className="items-center justify-center rounded-full" style={{ position: 'absolute', top: -5, right: -5, height: 26, width: 26, backgroundColor: COLORS.coral, borderWidth: 2, borderColor: '#fff' }}>
+                          <Check size={14} color="#fff" strokeWidth={3} />
                         </View>
                       ) : null}
                     </View>
-                    <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '700', color: COLORS.navy, textAlign: 'center', marginTop: 6 }}>{cover.title}</Text>
-                    <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 10.5, color: COLORS.ink3, textAlign: 'center', marginTop: 1 }}>
+                    <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '700', color: COLORS.navy, textAlign: 'center', marginTop: 7 }}>{cover.title}</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 10.5, color: locked ? '#B8860B' : COLORS.ink3, textAlign: 'center', marginTop: 1 }}>
                       {locked ?? cover.tagline}
                     </Text>
                   </Pressable>
@@ -132,7 +147,7 @@ export default function CoversScreen() {
         ))}
 
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, textAlign: 'center', marginTop: 26, paddingHorizontal: 32, lineHeight: 17 }}>
-          Earn special covers as you travel, explore and achieve milestones.
+          Earn special covers as you travel, explore and achieve milestones. New packs arrive through the year.
         </Text>
       </ScrollView>
     </View>

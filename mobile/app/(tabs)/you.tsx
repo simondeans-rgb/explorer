@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { CloudOff, Cloud, Sparkles, ChevronRight, Camera, ScrollText, Settings } from 'lucide-react-native';
+import { COVER_SECTIONS } from '../../src/lib/covers';
 import { DestinationImage } from '../../components/DestinationImage';
 import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
@@ -258,6 +259,33 @@ export default function YouScreen() {
           </Pressable>
         ) : null}
       </View>
+
+      {/* Passport Covers — the collectible storefront, front and centre. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Passport Covers"
+        onPress={() => router.push('/covers')}
+        className="bg-white dark:bg-card rounded-3xl flex-row items-center"
+        style={{ marginHorizontal: 20, marginTop: 16, padding: 14, gap: 12 }}
+      >
+        <View className="flex-row">
+          {[COVER_SECTIONS[0].covers[1], COVER_SECTIONS[2].covers[0], COVER_SECTIONS[1].covers[1]].map((c, i) => (
+            <Image
+              key={c.title}
+              source={c.preview}
+              style={{ height: 44, width: 44, borderRadius: 12, marginLeft: i === 0 ? 0 : -14, borderWidth: 2, borderColor: '#fff', transform: [{ rotate: `${(i - 1) * 7}deg` }] }}
+              contentFit="cover"
+            />
+          ))}
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>Passport Covers</Text>
+          <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>
+            Collect looks for your app icon — new packs in season.
+          </Text>
+        </View>
+        <ChevronRight size={20} color={COLORS.ink3} />
+      </Pressable>
 
       {/* Sync status — one slim row; everything else lives in Settings. */}
       <Pressable

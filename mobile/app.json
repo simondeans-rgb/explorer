@@ -235,6 +235,54 @@
               "foregroundImage": "./assets/images/android-icon-foreground.png",
               "backgroundColor": "#180B2D"
             }
+          },
+          {
+            "name": "PrideNeon",
+            "ios": "./assets/icons/covers/pride-neon.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#100518"
+            }
+          },
+          {
+            "name": "PrideNight",
+            "ios": "./assets/icons/covers/pride-night.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#14213D"
+            }
+          },
+          {
+            "name": "CandyCane",
+            "ios": "./assets/icons/covers/candy-cane.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#E23B4E"
+            }
+          },
+          {
+            "name": "CozyWinter",
+            "ios": "./assets/icons/covers/cozy-winter.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#5E82B8"
+            }
+          },
+          {
+            "name": "Ghost",
+            "ios": "./assets/icons/covers/ghost.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#1C1040"
+            }
+          },
+          {
+            "name": "WitchingHour",
+            "ios": "./assets/icons/covers/witching-hour.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#31185C"
+            }
           }
         ]
       ]

@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
   Cloud, CloudOff, LogOut, Download, Merge, Plane, RotateCcw, FileDown, CircleCheck, ChevronRight,
-  BellRing, Sparkles, Users, MapPinned, Sun, Moon, SunMoon, Ruler, Thermometer, Palette,
+  BellRing, Sparkles, Users, MapPinned, Sun, Moon, SunMoon, Ruler, Thermometer,
   ShieldCheck, FileText, Mail, Trash2,
 } from 'lucide-react-native';
 import { BackButton } from '../components/BackButton';
@@ -460,9 +460,6 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          <View className="bg-white dark:bg-card rounded-3xl" style={{ overflow: 'hidden', marginTop: 10 }}>
-            <Row first icon={Palette} tint="rgba(255,107,154,0.12)" label="Passport Cover" sub="Pick an app icon that reflects you." onPress={() => router.push('/covers')} />
-          </View>
         </View>
 
         {/* 3 — ABOUT & LEGAL */}
