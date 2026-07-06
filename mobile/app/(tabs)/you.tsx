@@ -7,7 +7,7 @@ import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck, Ruler, Thermometer, Palette, Sun, Moon, SunMoon } from 'lucide-react-native';
+import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck, Ruler, Thermometer, Palette, Sun, Moon, SunMoon, Merge } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
@@ -37,6 +37,7 @@ import type { DistanceUnit, TempUnit } from '../../src/lib/units';
 import { pickPhotoDataUrl } from '../../src/lib/photo';
 import { ensureProfile, loadProfilePhoto, saveProfilePhoto } from '../../src/lib/profile';
 import { getAppearanceMode, setAppearanceMode, type AppearanceMode } from '../../src/lib/appearance';
+import { suggestTripMerges } from '../../src/lib/tripMerge';
 
 const PRIVACY_URL = 'https://stickynotes-sand.vercel.app/privacy';
 const TERMS_URL = 'https://stickynotes-sand.vercel.app/terms';
@@ -124,6 +125,16 @@ export default function YouScreen() {
   const [notifOn, setNotifOn] = useState(false);
   const [appearance, setAppearance] = useState<AppearanceMode>('system');
   const insets = useSafeAreaInsets();
+  // Related-bookings check for the "Merge related trips" nudge row.
+  const mergeCount = useMemo(() => {
+    const nameOf = new Map(aggregates.map((a) => [a.code, a.name]));
+    const home = new Set(
+      aggregates
+        .filter((a) => a.relationships.includes('lived') || a.relationships.includes('based') || a.relationships.includes('born'))
+        .map((a) => a.code),
+    );
+    return suggestTripMerges(expeditions, { countryName: (c) => nameOf.get(c) ?? c, homeCodes: home }).length;
+  }, [aggregates, expeditions]);
   const scrollY = useRef(new Animated.Value(0)).current;
   const scrimOpacity = scrollY.interpolate({ inputRange: [HERO_HEIGHT - 130, HERO_HEIGHT - 50], outputRange: [0, 1], extrapolate: 'clamp' });
   const [circleNotifOn, setCircleNotifOn] = useState(false);
@@ -445,6 +456,20 @@ export default function YouScreen() {
           </View>
           <ChevronRight size={20} color={COLORS.ink3} />
         </Pressable>
+        {mergeCount > 0 ? (
+          <Pressable onPress={() => router.push('/merge-trips')} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
+            <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: 'rgba(155,124,255,0.14)' }}>
+              <Merge size={20} color={COLORS.lavender} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>Merge related trips</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>
+                {mergeCount} {mergeCount === 1 ? 'set of bookings looks' : 'sets of bookings look'} like one journey.
+              </Text>
+            </View>
+            <ChevronRight size={20} color={COLORS.ink3} />
+          </Pressable>
+        ) : null}
       </View>
 
       {/* Cloud sync */}

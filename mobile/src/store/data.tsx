@@ -136,6 +136,23 @@ interface DataApi extends DataShape {
       note?: string;
     },
   ) => Promise<void>;
+  /** Merge source trips into the target: the target takes the merged fields,
+   *  photos/discoveries on the sources move over, and the sources are deleted. */
+  mergeExpeditions: (input: {
+    targetId: string;
+    sourceIds: string[];
+    merged: {
+      title: string;
+      countryCodes: string[];
+      startDate?: string;
+      endDate?: string;
+      journeys: Journey[];
+      note?: string;
+    };
+    /** Docs whose expeditionId points at a source (for cloud re-linking). */
+    discoveryIds: string[];
+    captureIds: string[];
+  }) => Promise<void>;
   /** Re-derive imported-trip titles + destination-first country order against the
    *  given home countries (e.g. after residence changes). Returns # updated. */
   recalculateJourneys: (expeditions: Expedition[], homeCodes: string[]) => Promise<number>;
@@ -204,6 +221,7 @@ const DataContext = createContext<DataApi>({
   addExpedition: noop,
   removeExpedition: noop,
   updateExpedition: async () => {},
+  mergeExpeditions: async () => {},
   recalculateJourneys: async () => 0,
   addCapture: async () => {},
   removeCapture: noop,
@@ -766,6 +784,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     updatedAt: Date.now(),
                   }
                 : e,
+            ),
+          });
+        }
+      },
+      mergeExpeditions: async ({ targetId, sourceIds, merged, discoveryIds, captureIds }) => {
+        await api.updateExpedition(targetId, merged);
+        if (cloud && fdb && uid) {
+          for (const id of discoveryIds) {
+            updateDoc(doc(fdb, 'discoveries', id), { expeditionId: targetId, updatedAt: serverTimestamp() }).catch(logWriteError);
+          }
+          for (const id of captureIds) {
+            updateDoc(doc(fdb, 'captures', id), { expeditionId: targetId }).catch(logWriteError);
+          }
+          for (const id of sourceIds) api.removeExpedition(id);
+        } else {
+          const cur = localRef.current;
+          persistLocal({
+            ...cur,
+            expeditions: cur.expeditions.filter((e) => !sourceIds.includes(e.id)),
+            discoveries: cur.discoveries.map((d) =>
+              d.expeditionId && sourceIds.includes(d.expeditionId) ? { ...d, expeditionId: targetId, updatedAt: Date.now() } : d,
+            ),
+            captures: cur.captures.map((c) =>
+              c.expeditionId && sourceIds.includes(c.expeditionId) ? { ...c, expeditionId: targetId } : c,
             ),
           });
         }
