@@ -34,7 +34,9 @@ import { useWorldly } from '../src/hooks/useWorldly';
 import { useAuth } from '../src/store/auth';
 import { useData } from '../src/store/data';
 import { useUnits } from '../src/store/units';
-import { formatDistance, KM_PER_MI } from '../src/lib/units';
+import { formatDistance, distanceUnitLabel, KM_PER_MI } from '../src/lib/units';
+import { resolveEndpoint } from '../src/lib/journeyGeo';
+import { haversineMi } from '../src/lib/travelStats';
 import { buildAlmanacStory, flightSentence, countryWithArticle } from '../src/lib/almanacStory';
 import { useToast } from '../src/store/toast';
 import { reportError } from '../src/lib/sentry';
@@ -117,10 +119,26 @@ export default function AlmanacScreen() {
     [aggregates],
   );
 
-  const continentCover = (list: typeof discovered): string => {
+  // Best cover for a continent. When a `used` set is given (the book), prefer
+  // a photo country that hasn't appeared yet so the book never repeats
+  // imagery page after page.
+  const continentCover = (list: typeof discovered, used?: Set<string>): string => {
     const sorted = [...list].sort((a, b) => b.discoveryScore - a.discoveryScore);
-    return (sorted.find((a) => hasDestinationPhoto(a.code)) ?? sorted[0])?.code ?? 'WW';
+    const withPhoto = sorted.filter((a) => hasDestinationPhoto(a.code));
+    const pick = (used && withPhoto.find((a) => !used.has(a.code))) ?? withPhoto[0] ?? sorted[0];
+    if (pick && used) used.add(pick.code);
+    return pick?.code ?? 'WW';
   };
+
+  // Journey distance in miles, enriched from airport/city coordinates when a
+  // leg has no stored distance — so books and stories judge ALL legs.
+  const legMiles = (j: Expedition['journeys'][number]): number | undefined => {
+    if (j.distanceKm) return j.distanceKm / KM_PER_MI;
+    const a = resolveEndpoint(j.from);
+    const b = resolveEndpoint(j.to);
+    return a && b ? haversineMi(a, b) : undefined;
+  };
+  const fmtMiles = (mi: number) => `${formatDistance(mi, unit)} ${distanceUnitLabel(unit)}`;
 
   // Countries touched in the selected year, for the edition's photo strip.
   const nameOf = useMemo(() => new Map(aggregates.map((a) => [a.code, a.name])), [aggregates]);
@@ -150,7 +168,8 @@ export default function AlmanacScreen() {
         discoveries,
         countryName: (code) => nameOf.get(code) ?? code,
         homeCodes,
-        formatKm: (km) => formatDistance(km / KM_PER_MI, unit),
+        legMiles,
+        formatMiles: fmtMiles,
       }),
     [expeditions, discoveries, nameOf, homeCodes, unit],
   );
@@ -195,11 +214,11 @@ export default function AlmanacScreen() {
       .slice(0, 8)
       .sort((a, b) => (a.e.startDate ?? '9999').localeCompare(b.e.startDate ?? '9999'))
       .map(({ e, discs, photos }) => {
-        const km = e.journeys.reduce((n, j) => n + (j.distanceKm ?? 0), 0);
+        const miles = e.journeys.reduce((n, j) => n + (legMiles(j) ?? 0), 0);
         const meta = [
           [fmtDay(e.startDate), fmtDay(e.endDate)].filter(Boolean).join(' — '),
           e.journeys.length ? `${e.journeys.length} ${e.journeys.length === 1 ? 'journey' : 'journeys'}` : '',
-          km > 0 ? formatDistance(km / KM_PER_MI, unit) : '',
+          miles > 0 ? fmtMiles(miles) : '',
         ]
           .filter(Boolean)
           .join(' · ');
@@ -249,11 +268,19 @@ export default function AlmanacScreen() {
   ];
 
   function buildBookInput() {
+    // The book's imagery never repeats: the cover leads with the most-explored
+    // country AWAY from home, and every later stock photo (continent covers,
+    // trip heroes) avoids countries already pictured.
+    const used = new Set<string>();
+    const heroCode = (photoRanked.find((a) => !homeCodes.has(a.code)) ?? photoRanked[0])?.code;
+    if (heroCode) used.add(heroCode);
+    const strip = photoRanked.slice(0, 7).map((a) => ({ code: a.code, name: a.name }));
+    for (const s of strip.slice(0, 5)) used.add(s.code);
     return {
       firstName,
       generatedOn: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }),
-      heroCode: photoRanked[0]?.code,
-      photoStrip: photoRanked.slice(0, 7).map((a) => ({ code: a.code, name: a.name })),
+      heroCode,
+      photoStrip: strip,
       storyParagraphs,
       figures: figures.map(([label, value]) => ({ label, value })),
       continents: CONTINENTS.filter((c) => byContinent.has(c)).map((c) => {
@@ -261,12 +288,18 @@ export default function AlmanacScreen() {
         const earliest = [...list].filter((a) => a.firstYear).sort((a, b) => a.firstYear! - b.firstYear!)[0];
         return {
           name: c,
-          coverCode: continentCover(list),
+          coverCode: continentCover(list, used),
           intro: earliest ? `You first set foot here in ${earliest.firstYear} — ${countryWithArticle(earliest.code, earliest.name)}.` : undefined,
           countries: list.map((a) => ({ code: a.code, name: a.name })),
         };
       }),
-      trips: tripSpreads,
+      trips: tripSpreads.map((t) => {
+        if (t.photos.length) return t;
+        const alt = t.flagCodes.find((c) => hasDestinationPhoto(c) && !used.has(c));
+        const chosen = alt ?? t.heroCode;
+        if (chosen) used.add(chosen);
+        return { ...t, heroCode: chosen };
+      }),
       relationships: RELATIONSHIPS.filter((r) => relationshipCounts[r] > 0).map((r) => ({
         label: RELATIONSHIP_META[r].label,
         count: relationshipCounts[r],

@@ -21,7 +21,7 @@ export const LONDON_NY_MI = 3451; // London (LHR) → New York (JFK), a felt lon
 // A flight is "long haul" once it passes ~2,500 mi (≈ 4,000 km / 6+ hours).
 const LONG_HAUL_MI = 2500;
 
-function haversineMi(a: [number, number], b: [number, number]): number {
+export function haversineMi(a: [number, number], b: [number, number]): number {
   const toRad = (d: number) => (d * Math.PI) / 180;
   const [lng1, lat1] = a;
   const [lng2, lat2] = b;
