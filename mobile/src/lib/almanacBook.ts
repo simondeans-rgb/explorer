@@ -29,6 +29,8 @@ function esc(s: string): string {
 
 /** One trip's chapter page: the user's own photos, dates and words. */
 export interface TripSpread {
+  /** Expedition id, so photo swaps can be saved back onto the trip. */
+  tripId?: string;
   title: string;
   /** Preformatted "12 Nov — 21 Nov 2021 · 4 journeys · 1,430 mi". */
   meta: string;

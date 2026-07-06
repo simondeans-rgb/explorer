@@ -39,6 +39,7 @@ import { buildAlmanacStory, flightSentence, countryWithArticle } from '../src/li
 import { useToast } from '../src/store/toast';
 import { reportError } from '../src/lib/sentry';
 import { track } from '../src/lib/analytics';
+import { getBookPhotoOverrides, saveBookPhotoOverrides, applyBookPhotoOverrides, collectBookPhotoOverrides } from '../src/lib/bookPhotos';
 
 type IconCmp = ComponentType<{ size?: number; color?: string }>;
 
@@ -55,7 +56,7 @@ function expeditionYear(e: Expedition): number {
 
 export default function AlmanacScreen() {
   const { places, aggregates, stats, discoveries, discoveryStats, expeditions, journeyStats } = useWorldly();
-  const { captures } = useData();
+  const { captures, addCapture } = useData();
   const { unit } = useUnits();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -204,6 +205,7 @@ export default function AlmanacScreen() {
           .join(' · ');
         const quoted = discs.find((d) => d.note && d.note.trim().length > 12);
         return {
+          tripId: e.id,
           title: e.title,
           meta,
           story: flightSentence(e.journeys) ?? undefined,
@@ -291,8 +293,10 @@ export default function AlmanacScreen() {
       canSnapshot = false;
     }
     if (canSnapshot) {
-      // Photo review first: the book only builds once the user confirms.
-      setReview(buildBookPages(input));
+      // Photo review first, seeded with swaps saved from earlier builds —
+      // the book only builds once the user confirms.
+      const overrides = await getBookPhotoOverrides();
+      setReview(applyBookPhotoOverrides(buildBookPages(input), overrides));
       return;
     }
     setExporting(true);
@@ -484,10 +488,33 @@ export default function AlmanacScreen() {
         visible={review != null}
         pages={review}
         onCancel={() => setReview(null)}
-        onConfirm={(pages) => {
+        onConfirm={async (pages) => {
           setReview(null);
           setPrintJob(pages);
           track('book_built', { pages: pages.length });
+          // Remember the choices: stock-slot swaps persist locally, and new
+          // trip photos become real Captures on their trips, so the whole
+          // app (and every future book) benefits. Best-effort — the book
+          // builds regardless.
+          try {
+            const prev = await getBookPhotoOverrides();
+            await saveBookPhotoOverrides(collectBookPhotoOverrides(pages, prev));
+            const known = new Set<string>([
+              ...captures.map((c) => c.dataUrl),
+              ...discoveries.map((d) => d.photo).filter((p): p is string => !!p),
+            ]);
+            for (const p of pages) {
+              if (p.kind !== 'trip' || !p.tripId) continue;
+              const trip = expeditions.find((e) => e.id === p.tripId);
+              for (const url of p.photos) {
+                if (url.startsWith('data:') && !known.has(url)) {
+                  await addCapture({ dataUrl: url, expeditionId: p.tripId, countryCode: trip?.countryCodes[0] });
+                }
+              }
+            }
+          } catch (e) {
+            reportError(e, { where: 'book-photo-persist' });
+          }
         }}
       />
 
