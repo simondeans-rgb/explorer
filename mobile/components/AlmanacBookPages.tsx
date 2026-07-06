@@ -40,6 +40,7 @@ export type BookPageSpec =
   | {
       kind: 'trip';
       folio: number;
+      tripId?: string;
       title: string;
       meta: string;
       story?: string;
@@ -100,6 +101,7 @@ export function buildBookPages(input: AlmanacBookInput): BookPageSpec[] {
     pages.push({
       kind: 'trip',
       folio: ++folio,
+      tripId: t.tripId,
       title: t.title,
       meta: t.meta,
       story: t.story,
