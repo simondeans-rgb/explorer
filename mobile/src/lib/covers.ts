@@ -19,10 +19,14 @@ export interface CoverDef {
   preview: number;
   /** Requirement to unlock; covers without one are always available. */
   unlock?: { countries?: number; level?: number };
+  /** Highlight as a fresh addition to the collection. */
+  isNew?: boolean;
 }
 
 export interface CoverSection {
   title: string;
+  /** Editorial line under the section header (packs get one). */
+  tagline?: string;
   covers: CoverDef[];
 }
 
@@ -32,32 +36,51 @@ export const COVER_SECTIONS: CoverSection[] = [
     title: 'Core collection',
     covers: [
       { name: null, title: 'Classic Worldly', tagline: 'The vibrant original', preview: require('../../assets/icons/covers/previews/classic.png') },
-      { name: 'Midnight', title: 'Midnight', tagline: 'Sleek & sophisticated', preview: require('../../assets/icons/covers/previews/midnight.png') },
+      { name: 'Midnight', title: 'Midnight', tagline: 'Starlit & sophisticated', preview: require('../../assets/icons/covers/previews/midnight.png') },
       { name: 'Pearl', title: 'Pearl', tagline: 'Clean & elegant', preview: require('../../assets/icons/covers/previews/pearl.png') },
-      { name: 'Pride', title: 'Pride', tagline: 'Celebrate every journey', preview: require('../../assets/icons/covers/previews/pride.png') },
-      { name: 'Earth', title: 'Earth', tagline: 'Natural & grounded', preview: require('../../assets/icons/covers/previews/earth.png') },
-      { name: 'Sunset', title: 'Sunset', tagline: 'Warm & optimistic', preview: require('../../assets/icons/covers/previews/sunset.png') },
-      { name: 'Ocean', title: 'Ocean', tagline: 'Calm & refreshing', preview: require('../../assets/icons/covers/previews/ocean.png') },
-      { name: 'Aurora', title: 'Aurora', tagline: 'Magical & inspiring', preview: require('../../assets/icons/covers/previews/aurora.png'), unlock: { level: 5 } },
+      { name: 'Earth', title: 'Earth', tagline: 'Rolling hills & open air', preview: require('../../assets/icons/covers/previews/earth.png') },
+      { name: 'Sunset', title: 'Sunset', tagline: 'Golden-hour glow', preview: require('../../assets/icons/covers/previews/sunset.png') },
+      { name: 'Ocean', title: 'Ocean', tagline: 'Waves & sea air', preview: require('../../assets/icons/covers/previews/ocean.png') },
+      { name: 'Aurora', title: 'Aurora', tagline: 'Northern lights, bottled', preview: require('../../assets/icons/covers/previews/aurora.png'), unlock: { level: 5 } },
     ],
   },
   {
     title: 'Lifestyle',
     covers: [
-      { name: 'Sakura', title: 'Sakura', tagline: 'Japan-inspired', preview: require('../../assets/icons/covers/previews/sakura.png') },
-      { name: 'Tropical', title: 'Tropical', tagline: 'Sun, sea, paradise', preview: require('../../assets/icons/covers/previews/tropical.png') },
-      { name: 'Winter', title: 'Winter', tagline: 'Cool & serene', preview: require('../../assets/icons/covers/previews/winter.png') },
-      { name: 'Coffee', title: 'Coffee', tagline: 'Warm & comforting', preview: require('../../assets/icons/covers/previews/coffee.png') },
-      { name: 'FrequentFlyer', title: 'Frequent Flyer', tagline: 'Travel in style', preview: require('../../assets/icons/covers/previews/frequent-flyer.png'), unlock: { countries: 10 } },
-      { name: 'Luxury', title: 'Luxury', tagline: 'Premium & exclusive', preview: require('../../assets/icons/covers/previews/luxury.png'), unlock: { level: 8 } },
-      { name: 'Neon', title: 'Neon', tagline: 'Bold & energetic', preview: require('../../assets/icons/covers/previews/neon.png'), unlock: { countries: 25 } },
+      { name: 'Sakura', title: 'Sakura', tagline: 'Petals on the wind', preview: require('../../assets/icons/covers/previews/sakura.png') },
+      { name: 'Tropical', title: 'Tropical', tagline: 'Palms & paradise', preview: require('../../assets/icons/covers/previews/tropical.png') },
+      { name: 'Winter', title: 'Winter', tagline: 'First-snow quiet', preview: require('../../assets/icons/covers/previews/winter.png') },
+      { name: 'Coffee', title: 'Coffee', tagline: 'Beans, steam & mornings', preview: require('../../assets/icons/covers/previews/coffee.png') },
+      { name: 'FrequentFlyer', title: 'Frequent Flyer', tagline: 'Contrails & departures', preview: require('../../assets/icons/covers/previews/frequent-flyer.png'), unlock: { countries: 10 } },
+      { name: 'Luxury', title: 'Luxury', tagline: 'Gold dust & midnight', preview: require('../../assets/icons/covers/previews/luxury.png'), unlock: { level: 8 } },
+      { name: 'Neon', title: 'Neon', tagline: 'Synthwave nights', preview: require('../../assets/icons/covers/previews/neon.png'), unlock: { countries: 25 } },
     ],
   },
   {
-    title: 'Seasonal & special',
+    title: 'Christmas Pack',
+    tagline: 'Three festive editions for the season.',
     covers: [
-      { name: 'Christmas', title: 'Christmas', tagline: 'Festive cheer', preview: require('../../assets/icons/covers/previews/christmas.png') },
-      { name: 'Halloween', title: 'Halloween', tagline: 'Spooky season', preview: require('../../assets/icons/covers/previews/halloween.png') },
+      { name: 'Christmas', title: 'Classic Christmas', tagline: 'Fairy lights on the W', preview: require('../../assets/icons/covers/previews/christmas.png'), isNew: true },
+      { name: 'CandyCane', title: 'Candy Cane', tagline: 'Striped & glossy', preview: require('../../assets/icons/covers/previews/candy-cane.png'), isNew: true },
+      { name: 'CozyWinter', title: 'Cozy Winter', tagline: 'Cabin lights in the snow', preview: require('../../assets/icons/covers/previews/cozy-winter.png'), isNew: true },
+    ],
+  },
+  {
+    title: 'Halloween Pack',
+    tagline: 'Three spooky editions — if you dare.',
+    covers: [
+      { name: 'Halloween', title: 'Spooky Night', tagline: 'Bats, moon & pumpkins', preview: require('../../assets/icons/covers/previews/halloween.png'), isNew: true },
+      { name: 'Ghost', title: 'Ghost', tagline: 'Boo. (Look at the eyes.)', preview: require('../../assets/icons/covers/previews/ghost.png'), isNew: true },
+      { name: 'WitchingHour', title: 'Witching Hour', tagline: 'Hats, stars & spells', preview: require('../../assets/icons/covers/previews/witching-hour.png'), isNew: true },
+    ],
+  },
+  {
+    title: 'Pride Pack',
+    tagline: 'Celebrate every journey, loudly or quietly.',
+    covers: [
+      { name: 'Pride', title: 'Pride', tagline: 'The full flag, full volume', preview: require('../../assets/icons/covers/previews/pride.png') },
+      { name: 'PrideNeon', title: 'Pride Neon', tagline: 'Glowing after dark', preview: require('../../assets/icons/covers/previews/pride-neon.png'), isNew: true },
+      { name: 'PrideNight', title: 'Quiet Pride', tagline: 'Subtle rainbow, navy calm', preview: require('../../assets/icons/covers/previews/pride-night.png'), isNew: true },
     ],
   },
 ];
