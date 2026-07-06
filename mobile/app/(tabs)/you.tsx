@@ -1,55 +1,31 @@
-import { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Linking, Switch, Platform, Animated } from 'react-native';
-import { useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, ScrollView, Pressable, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, LogOut, Sparkles, ChevronRight, Camera, Download, ScrollText, RotateCcw, ShieldCheck, FileText, Mail, FileDown, BellRing, Users, MapPinned, Plane, CircleCheck, Ruler, Thermometer, Palette, Sun, Moon, SunMoon, Merge } from 'lucide-react-native';
+import { CloudOff, Cloud, Sparkles, ChevronRight, Camera, ScrollText, Settings } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
 import { HERO_CODES } from '../../src/lib/heroImages';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
-import { COLORS, GRADIENTS, HERO_HEIGHT } from '../../src/lib/theme';
+import { COLORS, HERO_HEIGHT } from '../../src/lib/theme';
 import { useWorldly } from '../../src/hooks/useWorldly';
-import { useConfirm } from '../../src/store/confirm';
 import { useAuth } from '../../src/store/auth';
-import { useData } from '../../src/store/data';
-import { useToast } from '../../src/store/toast';
-import { useOnboarding } from '../../src/store/onboarding';
-import { exportMyData } from '../../src/lib/exportData';
-import { anniversariesEnabled, setAnniversariesEnabled, postTripRemindersEnabled, setPostTripRemindersEnabled, requestNotificationPermission, rescheduleNotifications } from '../../src/lib/notifications';
-import { track } from '../../src/lib/analytics';
-import { friendActivityEnabled, enableFriendActivity, disableFriendActivity, tripActivityEnabled, enableTripActivity, disableTripActivity, refreshPushToken } from '../../src/lib/push';
-import { AuthSheet } from '../../components/AuthSheet';
-import { DeleteAccountSheet } from '../../components/DeleteAccountSheet';
 import { XpDetailSheet } from '../../components/XpDetailSheet';
 import { HeroWave } from '../../components/HeroWave';
-import { ResolveFlightsSheet } from '../../components/ResolveFlightsSheet';
-import { isEndpointResolved } from '../../src/lib/airportSearch';
-import { flightLookupConfigured } from '../../src/lib/flightLookup';
-import { findEnrichable } from '../../src/lib/flightRefresh';
-import { useUnits } from '../../src/store/units';
-import type { DistanceUnit, TempUnit } from '../../src/lib/units';
 import { pickPhotoDataUrl } from '../../src/lib/photo';
 import { ensureProfile, loadProfilePhoto, saveProfilePhoto } from '../../src/lib/profile';
-import { getAppearanceMode, setAppearanceMode, type AppearanceMode } from '../../src/lib/appearance';
-import { suggestTripMerges } from '../../src/lib/tripMerge';
-
-const PRIVACY_URL = 'https://stickynotes-sand.vercel.app/privacy';
-const TERMS_URL = 'https://stickynotes-sand.vercel.app/terms';
-const SUPPORT_EMAIL = 'worldly@simondeans.com';
 
 // Badges driven by logging discoveries — the pool for the Discoveries nudge card.
 const DISCOVERY_BADGES = new Set(['foodie', 'culture-vulture', 'naturalist', 'local-expert', 'gem-hunter', 'coffee-trail', 'festival-fan', 'night-owl', 'wildlife-watcher', 'attraction-seeker', 'ancient-explorer', 'skyline-chaser', 'beach-bum', 'pilgrim']);
 
+/** The Passport tab is identity only: who you are, how far you've come, what
+ *  you've earned. Everything operational lives behind the gear (/settings). */
 export default function YouScreen() {
   const { stats, discoveryStats, journeyStats, level, badges, aggregates } = useWorldly();
 
-  // Wrapped rotates through your own countries (recent first), padded to 4.
   // The user's visited countries that have a photo, most recent first — the
   // source for the Wrapped + Almanac card backdrops. When they haven't visited
   // anywhere yet, each card falls back to its curated default rotation.
@@ -73,181 +49,13 @@ export default function YouScreen() {
     () => (visitedPhotoCodes.length ? [...visitedPhotoCodes].reverse().slice(0, 6) : ['PE', 'EG', 'GR', 'IT']),
     [visitedPhotoCodes],
   );
-  const { configured, user, signOutUser } = useAuth();
-  const confirm = useConfirm();
-  const { places, discoveries, expeditions, captures, trips, recalculateJourneys, updateExpedition } = useData();
-  const { toast } = useToast();
-  const [recalcing, setRecalcing] = useState(false);
-  async function onRecalcJourneys() {
-    if (recalcing) return;
-    setRecalcing(true);
-    try {
-      const homeCodes = aggregates
-        .filter((a) => a.relationships.includes('lived') || a.relationships.includes('based'))
-        .map((a) => a.code);
-      const n = await recalculateJourneys(expeditions, homeCodes);
-      toast.success(n > 0 ? `Updated ${n} ${n === 1 ? 'journey' : 'journeys'}` : 'Your journeys are already up to date');
-    } catch {
-      toast.error("Couldn't recalculate — try again.");
-    } finally {
-      setRecalcing(false);
-    }
-  }
-  const { replay } = useOnboarding();
-  const [authOpen, setAuthOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const { configured, user } = useAuth();
   const [xpOpen, setXpOpen] = useState(false);
-  const [resolveOpen, setResolveOpen] = useState(false);
-  const { unit, setUnit, tempUnit, setTempUnit } = useUnits();
-
-  // Flight stops across all journeys that don't resolve to a known airport, so
-  // the Passport can offer to match them (they don't count in stats until then).
-  const unresolvedAirports = useMemo(() => {
-    let n = 0;
-    for (const e of expeditions) {
-      for (const j of e.journeys ?? []) {
-        if (j.mode !== 'flight') continue;
-        if (j.from?.trim() && !isEndpointResolved(j.from)) n++;
-        if (j.to?.trim() && !isEndpointResolved(j.to)) n++;
-      }
-    }
-    return n;
-  }, [expeditions]);
-
-  // Flights with details we could still fetch by flight number (missing data
-  // points, or a completed flight whose actual times haven't landed yet).
-  const fetchableFlights = useMemo(
-    () => (flightLookupConfigured() ? findEnrichable(expeditions, Date.now(), 'all').length : 0),
-    [expeditions],
-  );
-  const flightsToSort = unresolvedAirports + fetchableFlights;
-  const [exporting, setExporting] = useState(false);
-  const [notifOn, setNotifOn] = useState(false);
-  const [appearance, setAppearance] = useState<AppearanceMode>('system');
+  const [avatar, setAvatar] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
-  // Related-bookings check for the "Merge related trips" nudge row.
-  const mergeCount = useMemo(() => {
-    const nameOf = new Map(aggregates.map((a) => [a.code, a.name]));
-    const home = new Set(
-      aggregates
-        .filter((a) => a.relationships.includes('lived') || a.relationships.includes('based') || a.relationships.includes('born'))
-        .map((a) => a.code),
-    );
-    return suggestTripMerges(expeditions, { countryName: (c) => nameOf.get(c) ?? c, homeCodes: home }).length;
-  }, [aggregates, expeditions]);
   const scrollY = useRef(new Animated.Value(0)).current;
   const scrimOpacity = scrollY.interpolate({ inputRange: [HERO_HEIGHT - 130, HERO_HEIGHT - 50], outputRange: [0, 1], extrapolate: 'clamp' });
-  const [circleNotifOn, setCircleNotifOn] = useState(false);
-  const [crewNotifOn, setCrewNotifOn] = useState(false);
-  const [postTripOn, setPostTripOn] = useState(false);
-  const [avatar, setAvatar] = useState<string | null>(null);
 
-  useEffect(() => {
-    anniversariesEnabled().then(setNotifOn);
-    getAppearanceMode().then(setAppearance);
-    postTripRemindersEnabled().then(setPostTripOn);
-    friendActivityEnabled().then(setCircleNotifOn);
-    tripActivityEnabled().then(setCrewNotifOn);
-    refreshPushToken();
-  }, []);
-
-  async function onTogglePostTrip(v: boolean) {
-    if (v) {
-      if (!(await requestNotificationPermission())) {
-        toast.error('Allow notifications in Settings to get trip reminders.');
-        return;
-      }
-      await setPostTripRemindersEnabled(true);
-      setPostTripOn(true);
-      track('notification_toggled', { type: 'post_trip', on: true });
-      await rescheduleNotifications(expeditions, places, trips);
-      toast.success('Trip discovery reminders on ✨');
-    } else {
-      await setPostTripRemindersEnabled(false);
-      setPostTripOn(false);
-      track('notification_toggled', { type: 'post_trip', on: false });
-      await rescheduleNotifications(expeditions, places, trips);
-    }
-  }
-
-  async function onToggleCrewNotif(v: boolean) {
-    if (v) {
-      if (!user) {
-        toast.error('Sign in to get trip crew updates.');
-        return;
-      }
-      if (!(await enableTripActivity())) {
-        toast.error('Allow notifications to get trip crew updates.');
-        return;
-      }
-      setCrewNotifOn(true);
-      track('notification_toggled', { type: 'trip_crew', on: true });
-      toast.success('Trip crew updates on 🗺️');
-    } else {
-      await disableTripActivity();
-      setCrewNotifOn(false);
-      track('notification_toggled', { type: 'trip_crew', on: false });
-    }
-  }
-
-  async function onToggleCircleNotif(v: boolean) {
-    if (v) {
-      if (!user) {
-        toast.error('Sign in to hear when your circle travels.');
-        return;
-      }
-      if (!(await enableFriendActivity())) {
-        toast.error('Allow notifications to hear from your circle.');
-        return;
-      }
-      setCircleNotifOn(true);
-      track('notification_toggled', { type: 'circle', on: true });
-      toast.success('Circle updates on 👋');
-    } else {
-      await disableFriendActivity();
-      setCircleNotifOn(false);
-      track('notification_toggled', { type: 'circle', on: false });
-    }
-  }
-
-  async function onToggleNotif(v: boolean) {
-    if (v) {
-      if (!(await requestNotificationPermission())) {
-        toast.error('Allow notifications in Settings to get anniversary reminders.');
-        return;
-      }
-      await setAnniversariesEnabled(true);
-      setNotifOn(true);
-      track('notification_toggled', { type: 'anniversaries', on: true });
-      await rescheduleNotifications(expeditions, places, trips);
-      toast.success('Anniversary reminders on ✈️');
-    } else {
-      await setAnniversariesEnabled(false);
-      setNotifOn(false);
-      track('notification_toggled', { type: 'anniversaries', on: false });
-      await rescheduleNotifications(expeditions, places, trips);
-    }
-  }
-
-  async function onExport() {
-    if (exporting) return;
-    setExporting(true);
-    try {
-      const ok = await exportMyData({
-        account: { email: user?.email, name: user?.displayName },
-        places,
-        discoveries,
-        expeditions,
-        captures,
-        trips,
-      });
-      if (!ok) toast.error('Sharing is unavailable on this device.');
-    } catch {
-      toast.error("Couldn't export your data — please try again.");
-    } finally {
-      setExporting(false);
-    }
-  }
   const earned = badges.filter((b) => b.earned).length;
   // The locked achievement closest to completion — shown as a "next up" hook.
   const nextDiscovery = [...badges].filter((b) => !b.earned && DISCOVERY_BADGES.has(b.id)).sort((a, b) => b.progress - a.progress)[0];
@@ -296,6 +104,12 @@ export default function YouScreen() {
     ['Discoveries', discoveryStats.total, COLORS.sunburst],
   ];
 
+  const syncLabel = !configured
+    ? 'Offline demo — saved on this device'
+    : user
+      ? 'Synced to the cloud'
+      : 'Not backed up yet — set up sync';
+
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
     <Animated.ScrollView
@@ -306,6 +120,17 @@ export default function YouScreen() {
     >
       {/* Identity hero */}
       <DestinationImage code={HERO_CODES.you[0]} codes={HERO_CODES.you} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 56, minHeight: HERO_HEIGHT, alignItems: 'center' }}>
+        {/* Gear, not hamburger: settings live behind the profile, iOS-style. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+          onPress={() => router.push('/settings')}
+          hitSlop={10}
+          className="h-10 w-10 rounded-full items-center justify-center"
+          style={{ position: 'absolute', top: 58, right: 18, zIndex: 20, backgroundColor: 'rgba(20,33,61,0.45)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)' }}
+        >
+          <Settings size={20} color="#fff" />
+        </Pressable>
         <Pressable onPress={changeAvatar}>
           <View className="rounded-full items-center justify-center bg-white/20" style={{ height: 92, width: 92, borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)', overflow: 'hidden' }}>
             {avatar ? (
@@ -434,300 +259,20 @@ export default function YouScreen() {
         ) : null}
       </View>
 
-      {/* Import */}
-      <View style={{ paddingHorizontal: 20, marginTop: 12, gap: 10 }}>
-        <Pressable onPress={() => router.push('/import')} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
-          <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: 'rgba(36,209,195,0.14)' }}>
-            <Download size={20} color={COLORS.aqua} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>Import travels</Text>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Flighty CSV, a country list, or your photos.</Text>
-          </View>
-          <ChevronRight size={20} color={COLORS.ink3} />
-        </Pressable>
-        <Pressable onPress={() => router.push('/covers')} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
-          <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: 'rgba(255,107,154,0.12)' }}>
-            <Palette size={20} color={COLORS.coral} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>Passport Cover</Text>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Pick an app icon that reflects you.</Text>
-          </View>
-          <ChevronRight size={20} color={COLORS.ink3} />
-        </Pressable>
-        {mergeCount > 0 ? (
-          <Pressable onPress={() => router.push('/merge-trips')} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
-            <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: 'rgba(155,124,255,0.14)' }}>
-              <Merge size={20} color={COLORS.lavender} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>Merge related trips</Text>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>
-                {mergeCount} {mergeCount === 1 ? 'set of bookings looks' : 'sets of bookings look'} like one journey.
-              </Text>
-            </View>
-            <ChevronRight size={20} color={COLORS.ink3} />
-          </Pressable>
-        ) : null}
-      </View>
-
-      {/* Cloud sync */}
-      <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
-        {!configured ? (
-          <View className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
-            <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: COLORS.warmwhite }}>
-              <CloudOff size={20} color={COLORS.ink3} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>Offline demo</Text>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Your world is saved on this device.</Text>
-            </View>
-          </View>
-        ) : user ? (
-          <View className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
-            <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: 'rgba(36,209,195,0.14)' }}>
-              <Cloud size={20} color={COLORS.aqua} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>Synced to the cloud</Text>
-              <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{user.email}</Text>
-            </View>
-            <Pressable
-              onPress={async () => {
-                if (await confirm({ title: 'Sign out?', message: 'Your world stays safely synced — sign back in anytime to pick up where you left off.', confirmLabel: 'Sign out', destructive: true })) signOutUser();
-              }}
-              hitSlop={8}
-              className="rounded-full flex-row items-center"
-              style={{ paddingHorizontal: 14, paddingVertical: 9, gap: 6, backgroundColor: COLORS.warmwhite }}
-            >
-              <LogOut size={15} color={COLORS.ink2} />
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.ink2 }}>Sign out</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <Pressable onPress={() => setAuthOpen(true)}>
-            <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
-              <View className="rounded-2xl items-center justify-center bg-white/20" style={{ height: 42, width: 42 }}>
-                <Cloud size={20} color="#fff" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 16 }}>Sync your world</Text>
-                <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.9, marginTop: 1 }}>Sign in to keep it on every device.</Text>
-              </View>
-            </LinearGradient>
-          </Pressable>
-        )}
-      </View>
-
-      {/* Notifications */}
-      <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>NOTIFICATIONS</Text>
-        <View className="bg-white dark:bg-card rounded-3xl" style={{ paddingHorizontal: 16 }}>
-          <View className="flex-row items-center" style={{ gap: 12, paddingVertical: 14 }}>
-            <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(255,107,154,0.12)' }}>
-              <BellRing size={19} color={COLORS.coral} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>Travel anniversaries</Text>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>“On this day” memories of where you've been</Text>
-            </View>
-            <Switch accessibilityLabel="Travel anniversaries" value={notifOn} onValueChange={onToggleNotif} trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.coral }} thumbColor="#fff" />
-          </View>
-          <View className="flex-row items-center" style={{ gap: 12, paddingVertical: 14, borderTopWidth: 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
-            <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(245,166,35,0.14)' }}>
-              <Sparkles size={19} color="#F5A623" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>Trip discovery reminders</Text>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>After a trip, a nudge to log what you found</Text>
-            </View>
-            <Switch accessibilityLabel="Trip discovery reminders" value={postTripOn} onValueChange={onTogglePostTrip} trackColor={{ false: 'rgba(20,33,61,0.12)', true: '#F5A623' }} thumbColor="#fff" />
-          </View>
-          <View className="flex-row items-center" style={{ gap: 12, paddingVertical: 14, borderTopWidth: 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
-            <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(155,124,255,0.14)' }}>
-              <Users size={19} color={COLORS.lavender} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>From your circle</Text>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>When friends log trips & recommendations</Text>
-            </View>
-            <Switch accessibilityLabel="Updates from your circle" value={circleNotifOn} onValueChange={onToggleCircleNotif} trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.lavender }} thumbColor="#fff" />
-          </View>
-          <View className="flex-row items-center" style={{ gap: 12, paddingVertical: 14, borderTopWidth: 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
-            <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(36,209,195,0.14)' }}>
-              <MapPinned size={19} color={COLORS.aqua} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>Trip crew updates</Text>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>When crew edit a shared itinerary</Text>
-            </View>
-            <Switch accessibilityLabel="Trip crew updates" value={crewNotifOn} onValueChange={onToggleCrewNotif} trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.aqua }} thumbColor="#fff" />
-          </View>
-        </View>
-      </View>
-
-      {/* Appearance — system-following by default, with a manual override.
-          iOS-only: Android ships light-locked, so an override would half-apply. */}
-      {Platform.OS === 'ios' ? (
-        <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>APPEARANCE</Text>
-          <View className="flex-row bg-white dark:bg-card rounded-3xl" style={{ padding: 5, gap: 5 }}>
-            {([
-              ['system', 'System', SunMoon],
-              ['light', 'Light', Sun],
-              ['dark', 'Dark', Moon],
-            ] as const).map(([mode, label, ModeIcon]) => {
-              const active = appearance === mode;
-              return (
-                <Pressable
-                  key={mode}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${label} appearance`}
-                  accessibilityState={{ selected: active }}
-                  onPress={() => {
-                    setAppearance(mode);
-                    setAppearanceMode(mode);
-                    track('appearance_changed', { mode });
-                  }}
-                  className="flex-row items-center justify-center rounded-2xl"
-                  style={{ flex: 1, paddingVertical: 11, gap: 6, backgroundColor: active ? COLORS.coral : 'transparent' }}
-                >
-                  <ModeIcon size={15} color={active ? '#fff' : COLORS.ink3} />
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink2 }}>{label}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      ) : null}
-
-      {/* Units — miles or kilometres, applied across the app */}
-      <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>UNITS</Text>
-        <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14 }}>
-          <View className="flex-row items-center" style={{ gap: 12 }}>
-            <View className="rounded-2xl items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
-              <Ruler size={18} color={COLORS.ink2} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>Distance</Text>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Used for distances and areas across the app</Text>
-            </View>
-          </View>
-          <View className="flex-row rounded-full" style={{ backgroundColor: '#F1F1F7', padding: 3, marginTop: 12 }}>
-            {([['mi', 'Miles (mi)'], ['km', 'Kilometres (km)']] as [DistanceUnit, string][]).map(([id, label]) => {
-              const active = unit === id;
-              return (
-                <Pressable key={id} onPress={() => setUnit(id)} style={{ flex: 1, paddingVertical: 8, borderRadius: 999, backgroundColor: active ? COLORS.navySolid : 'transparent' }}>
-                  <Text style={{ textAlign: 'center', fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{label}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <View className="flex-row items-center" style={{ gap: 12, marginTop: 18 }}>
-            <View className="rounded-2xl items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
-              <Thermometer size={18} color={COLORS.ink2} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>Temperature</Text>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Used on country temperature charts</Text>
-            </View>
-          </View>
-          <View className="flex-row rounded-full" style={{ backgroundColor: '#F1F1F7', padding: 3, marginTop: 12 }}>
-            {([['c', 'Celsius (°C)'], ['f', 'Fahrenheit (°F)']] as [TempUnit, string][]).map(([id, label]) => {
-              const active = tempUnit === id;
-              return (
-                <Pressable key={id} onPress={() => setTempUnit(id)} style={{ flex: 1, paddingVertical: 8, borderRadius: 999, backgroundColor: active ? COLORS.navySolid : 'transparent' }}>
-                  <Text style={{ textAlign: 'center', fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{label}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      </View>
-
-      {/* Flights — resolve any unrecognised airports so they count in the stats */}
-      {expeditions.length > 0 ? (
-        <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>FLIGHTS</Text>
-          <View className="bg-white dark:bg-card rounded-3xl" style={{ overflow: 'hidden' }}>
-            <Pressable onPress={() => setResolveOpen(true)} className="flex-row items-center" style={{ paddingHorizontal: 16, paddingVertical: 14, gap: 12 }}>
-              <View className="rounded-2xl items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
-                <Plane size={18} color={COLORS.ink2} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>Resolve flights</Text>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>
-                  {unresolvedAirports > 0 && fetchableFlights > 0
-                    ? `${unresolvedAirports} to match · ${fetchableFlights} with details to fetch`
-                    : unresolvedAirports > 0
-                    ? `${unresolvedAirports} flight stop${unresolvedAirports === 1 ? '' : 's'} to match for accurate stats`
-                    : fetchableFlights > 0
-                    ? `${fetchableFlights} flight${fetchableFlights === 1 ? '' : 's'} with details to fetch`
-                    : 'All flights matched & up to date'}
-                </Text>
-              </View>
-              {flightsToSort > 0 ? (
-                <View className="rounded-full items-center justify-center" style={{ minWidth: 22, height: 22, paddingHorizontal: 7, backgroundColor: '#F4B740' }}>
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', color: '#fff' }}>{flightsToSort}</Text>
-                </View>
-              ) : (
-                <CircleCheck size={18} color="#12A594" />
-              )}
-              <ChevronRight size={18} color={COLORS.ink3} />
-            </Pressable>
-          </View>
-        </View>
-      ) : null}
-
-      {/* Legal & support */}
-      <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 }}>LEGAL & SUPPORT</Text>
-        <View className="bg-white dark:bg-card rounded-3xl" style={{ overflow: 'hidden' }}>
-          {[
-            { icon: ShieldCheck, label: 'Privacy Policy', onPress: () => Linking.openURL(PRIVACY_URL) },
-            { icon: FileText, label: 'Terms of Service', onPress: () => Linking.openURL(TERMS_URL) },
-            { icon: Mail, label: 'Contact support', sub: SUPPORT_EMAIL, onPress: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=Worldly%20support`) },
-            { icon: RotateCcw, label: recalcing ? 'Recalculating…' : 'Recalculate journeys', sub: 'Rebuild your trips if you’ve updated your home history.', onPress: onRecalcJourneys },
-            { icon: FileDown, label: exporting ? 'Preparing your data…' : 'Export my data', onPress: onExport },
-          ].map((row, i) => (
-            <Pressable key={row.label} onPress={row.onPress} className="flex-row items-center" style={{ paddingHorizontal: 16, paddingVertical: 14, gap: 12, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
-              <View className="rounded-2xl items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
-                <row.icon size={18} color={COLORS.ink2} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{row.label}</Text>
-                {row.sub ? <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{row.sub}</Text> : null}
-              </View>
-              <ChevronRight size={18} color={COLORS.ink3} />
-            </Pressable>
-          ))}
-        </View>
-        {user ? (
-          <Pressable onPress={() => setDeleteOpen(true)} hitSlop={8} style={{ alignItems: 'center', marginTop: 18, paddingVertical: 4 }}>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: '#E0245E' }}>Delete account</Text>
-          </Pressable>
-        ) : null}
-
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, textAlign: 'center', marginTop: 14 }}>
-          Worldly v{Constants.expoConfig?.version ?? '1.0.0'}
-        </Text>
-      </View>
-
-      {/* Replay intro */}
-      <Pressable onPress={replay} hitSlop={8} style={{ alignItems: 'center', marginTop: 28, paddingVertical: 8 }}>
-        <View className="flex-row items-center" style={{ gap: 6 }}>
-          <RotateCcw size={14} color={COLORS.ink3} />
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: COLORS.ink3 }}>Replay the welcome tour</Text>
-        </View>
+      {/* Sync status — one slim row; everything else lives in Settings. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Sync status — open settings"
+        onPress={() => router.push('/settings')}
+        className="bg-white dark:bg-card rounded-2xl flex-row items-center"
+        style={{ marginHorizontal: 20, marginTop: 14, paddingHorizontal: 14, paddingVertical: 12, gap: 10 }}
+      >
+        {configured && user ? <Cloud size={16} color={COLORS.aqua} /> : <CloudOff size={16} color={COLORS.ink3} />}
+        <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: COLORS.ink2 }}>{syncLabel}</Text>
+        <ChevronRight size={16} color={COLORS.ink3} />
       </Pressable>
 
-      <AuthSheet visible={authOpen} onClose={() => setAuthOpen(false)} />
-      <DeleteAccountSheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} />
       <XpDetailSheet visible={xpOpen} onClose={() => setXpOpen(false)} level={level} stats={stats} discovery={discoveryStats} journeys={journeyStats} />
-      <ResolveFlightsSheet visible={resolveOpen} onClose={() => setResolveOpen(false)} expeditions={expeditions} updateExpedition={updateExpedition} />
     </Animated.ScrollView>
 
     {/* Status-bar scrim: fades in once the hero scrolls away so card content
