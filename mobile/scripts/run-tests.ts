@@ -303,4 +303,42 @@ test('almanacStory: articles and per-trip flight sentence', () => {
   assert.equal(flightSentence([{ id: 'x', mode: 'rail' }] as never), null);
 });
 
+// ---- tripMerge --------------------------------------------------------------
+import { suggestTripMerges, buildMergedExpedition } from '../src/lib/tripMerge';
+
+const mkTrip = (id: string, startDate: string, endDate: string | undefined, codes: string[], journeys: object[]) => ({
+  id, userId: 'u', title: id, startDate, endDate, countryCodes: codes, journeys, createdAt: 0, updatedAt: 0,
+});
+const leg = (from: string, to: string, date?: string) => ({ id: `${from}-${to}`, mode: 'flight', from, to, date });
+
+test('tripMerge: chained bookings merge; distant trips stay separate', () => {
+  const trips = [
+    mkTrip('out', '2025-03-20', '2025-03-20', ['HK'], [leg('London (LHR)', 'Hong Kong (HKG)', '2025-03-20')]),
+    mkTrip('back', '2025-03-26', '2025-03-26', ['HK', 'GB'], [leg('Hong Kong (HKG)', 'London (LHR)', '2025-03-26')]),
+    mkTrip('later', '2025-06-10', '2025-06-14', ['DE'], [leg('London (LGW)', 'Berlin (BER)', '2025-06-10')]),
+  ];
+  const out = suggestTripMerges(trips as never, { countryName: (c) => ({ HK: 'Hong Kong', GB: 'United Kingdom', DE: 'Germany' })[c] ?? c, homeCodes: new Set(['GB']) });
+  assert.equal(out.length, 1);
+  assert.deepEqual(out[0].ids, ['out', 'back']);
+  assert.equal(out[0].journeyCount, 2);
+  assert.ok(out[0].title.includes('Hong Kong'));
+  assert.ok(out[0].reason.includes('HKG'));
+});
+
+test('tripMerge: overlapping dates merge; chain breaks without matching endpoint', () => {
+  const trips = [
+    mkTrip('a', '2025-02-01', '2025-02-10', ['ES'], [leg('London (LHR)', 'Madrid (MAD)')]),
+    mkTrip('b', '2025-02-08', '2025-02-12', ['PT'], [leg('Madrid (MAD)', 'Lisbon (LIS)')]),
+    mkTrip('c', '2025-02-20', '2025-02-22', ['FR'], [leg('London (LHR)', 'Paris (CDG)')]),
+  ];
+  const out = suggestTripMerges(trips as never, { countryName: (c) => c });
+  assert.equal(out.length, 1);
+  assert.deepEqual(out[0].ids, ['a', 'b']);
+  const merged = buildMergedExpedition(trips.slice(0, 2) as never, 'X');
+  assert.equal(merged.startDate, '2025-02-01');
+  assert.equal(merged.endDate, '2025-02-12');
+  assert.deepEqual(merged.countryCodes, ['ES', 'PT']);
+  assert.equal(merged.journeys.length, 2);
+});
+
 console.log(`✓ all ${passed} tests passed`);
