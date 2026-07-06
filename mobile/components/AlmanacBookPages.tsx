@@ -394,8 +394,8 @@ export function AlmanacBookPage({
               ))}
             </View>
           ) : null}
-          {/* Journey log fills the space when a trip has no personal photos */}
-          {!pics.length && spec.legs?.length ? (
+          {/* Journey log fills the space when the trip has at most one photo */}
+          {pics.length <= 1 && spec.legs?.length ? (
             <View style={{ marginTop: 20, gap: 9 }}>
               {spec.legs.slice(0, 5).map((l, i) => (
                 <View key={i} style={{ flexDirection: 'row', alignItems: 'baseline', gap: 12, borderBottomWidth: i < Math.min(spec.legs!.length, 5) - 1 ? 1 : 0, borderBottomColor: 'rgba(22,32,58,0.08)', paddingBottom: 9 }}>

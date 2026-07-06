@@ -12,6 +12,7 @@ import {
 import { PageHero } from '../components/PageHero';
 import { DestinationImage } from '../components/DestinationImage';
 import { BookPrinter, buildBookPages, type BookPageSpec } from '../components/AlmanacBookPages';
+import { BookReviewSheet } from '../components/BookReviewSheet';
 import { goBack } from '../src/lib/nav';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
 import { shareAlmanacBook } from '../src/lib/almanacBook';
@@ -37,6 +38,7 @@ import { formatDistance, KM_PER_MI } from '../src/lib/units';
 import { buildAlmanacStory, flightSentence, countryWithArticle } from '../src/lib/almanacStory';
 import { useToast } from '../src/store/toast';
 import { reportError } from '../src/lib/sentry';
+import { track } from '../src/lib/analytics';
 
 type IconCmp = ComponentType<{ size?: number; color?: string }>;
 
@@ -63,6 +65,7 @@ export default function AlmanacScreen() {
   const [exporting, setExporting] = useState(false);
   const [printJob, setPrintJob] = useState<BookPageSpec[] | null>(null);
   const [printStatus, setPrintStatus] = useState<string | null>(null);
+  const [review, setReview] = useState<BookPageSpec[] | null>(null);
 
   const years = useMemo(() => {
     const set = new Set<number>();
@@ -288,7 +291,8 @@ export default function AlmanacScreen() {
       canSnapshot = false;
     }
     if (canSnapshot) {
-      setPrintJob(buildBookPages(input));
+      // Photo review first: the book only builds once the user confirms.
+      setReview(buildBookPages(input));
       return;
     }
     setExporting(true);
@@ -474,6 +478,18 @@ export default function AlmanacScreen() {
           </Section>
         )}
       </ScrollView>
+
+      {/* Photo review: flag stock photos, let the user swap in their own. */}
+      <BookReviewSheet
+        visible={review != null}
+        pages={review}
+        onCancel={() => setReview(null)}
+        onConfirm={(pages) => {
+          setReview(null);
+          setPrintJob(pages);
+          track('book_built', { pages: pages.length });
+        }}
+      />
 
       {/* Offscreen book printer: mounts on export, snapshots page by page. */}
       {printJob ? (
