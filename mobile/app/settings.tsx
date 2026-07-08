@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import {
   Cloud, CloudOff, LogOut, Download, Merge, Plane, RotateCcw, FileDown, CircleCheck, ChevronRight,
   BellRing, Sparkles, Users, MapPinned, Sun, Moon, SunMoon, Ruler, Thermometer,
-  ShieldCheck, FileText, Mail, Trash2,
+  ShieldCheck, FileText, Mail, Trash2, Gem,
 } from 'lucide-react-native';
 import { BackButton } from '../components/BackButton';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
@@ -20,6 +20,7 @@ import { useOnboarding } from '../src/store/onboarding';
 import { useUnits } from '../src/store/units';
 import type { DistanceUnit, TempUnit } from '../src/lib/units';
 import { exportMyData } from '../src/lib/exportData';
+import { billingEnabled, useTier } from '../src/lib/billing';
 import { anniversariesEnabled, setAnniversariesEnabled, postTripRemindersEnabled, setPostTripRemindersEnabled, requestNotificationPermission, rescheduleNotifications } from '../src/lib/notifications';
 import { friendActivityEnabled, enableFriendActivity, disableFriendActivity, tripActivityEnabled, enableTripActivity, disableTripActivity, refreshPushToken } from '../src/lib/push';
 import { getAppearanceMode, setAppearanceMode, type AppearanceMode } from '../src/lib/appearance';
@@ -78,6 +79,7 @@ export default function SettingsScreen() {
   const confirm = useConfirm();
   const { replay } = useOnboarding();
   const { unit, setUnit, tempUnit, setTempUnit } = useUnits();
+  const tier = useTier();
 
   const [authOpen, setAuthOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -344,6 +346,23 @@ export default function SettingsScreen() {
             <Row icon={FileDown} label={exporting ? 'Preparing your data…' : 'Export my data'} sub="Everything you’ve logged, as a file you keep." onPress={onExport} />
           </View>
         </View>
+
+        {/* Explorer subscription — hidden until billing goes live */}
+        {billingEnabled() ? (
+          <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
+            <Text style={LABEL}>MEMBERSHIP</Text>
+            <View className="bg-white dark:bg-card rounded-3xl" style={{ paddingHorizontal: 16 }}>
+              <Row
+                first
+                icon={Gem}
+                tint={COLORS.coral}
+                label={tier === 'explorer' ? 'Worldly Explorer' : 'Upgrade to Explorer'}
+                sub={tier === 'explorer' ? 'Manage your subscription in the App Store.' : 'Unlimited everything — every cover, every chart.'}
+                onPress={() => (tier === 'explorer' ? Linking.openURL('https://apps.apple.com/account/subscriptions') : router.push('/upgrade'))}
+              />
+            </View>
+          </View>
+        ) : null}
 
         {/* 2 — PREFERENCES */}
         <View style={{ paddingHorizontal: 20, marginTop: 26 }}>

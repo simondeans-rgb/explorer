@@ -1,7 +1,9 @@
 import { useMemo, useState, memo } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import Svg, { Rect, Line, Polyline, Circle, Text as SvgText } from 'react-native-svg';
-import { Plane, TrainFront, Ship, Car, Anchor, Globe2, Moon, ArrowRight, Clock, Timer } from 'lucide-react-native';
+import { Plane, TrainFront, Ship, Car, Anchor, Globe2, Moon, ArrowRight, Clock, Timer, Lock } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { shouldGate } from '../src/lib/billing';
 import type { ComponentType } from 'react';
 import type { JourneyMode } from '../src/types';
 import { COLORS, SHADOW } from '../src/lib/theme';
@@ -105,13 +107,17 @@ function Chart({ values, labels, kind, width, partialLast }: { values: number[];
             ) : null}
           </>
         )}
-      {labels.map((lab, i) =>
-        i % labelEvery === 0 ? (
+      {labels.map((lab, i) => {
+        // Always label the last point (the in-progress year); when thinning,
+        // drop its neighbour instead so the two never collide.
+        const isLast = i === n - 1;
+        const drawn = isLast || (i % labelEvery === 0 && !(labelEvery > 1 && i === n - 2));
+        return drawn ? (
           <SvgText key={`x${i}`} x={kind === 'bar' ? xBand(i) : x(i)} y={H - 6} fontSize={9} fill={COLORS.ink3} textAnchor="middle">
             {lab}
           </SvgText>
-        ) : null,
-      )}
+        ) : null;
+      })}
     </Svg>
   );
 }
@@ -242,6 +248,7 @@ function JourneyStatsPanelInner({ expeditions }: { expeditions: Expedition[] }) 
     };
   })();
   const hasChartData = chart.values.some((v) => v > 0);
+  const chartsGated = shouldGate('charts');
 
   const earthX = distanceMi / EARTH_CIRCUMFERENCE_MI;
   const moonX = distanceMi / MOON_DISTANCE_MI;
@@ -276,7 +283,21 @@ function JourneyStatsPanelInner({ expeditions }: { expeditions: Expedition[] }) 
           </View>
           <View onLayout={(e) => setChartW(e.nativeEvent.layout.width)}>
             {chartW > 0 ? (
-              hasChartData ? (
+              chartsGated ? (
+                // Paywall trigger — the chart is visible but frosted for
+                // Wanderers. Inert (never rendered) until billing goes live.
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Unlock all flight charts with Explorer"
+                  onPress={() => router.push('/upgrade?trigger=charts')}
+                  className="items-center justify-center rounded-2xl"
+                  style={{ height: 150, backgroundColor: 'rgba(155,124,255,0.08)', gap: 6 }}
+                >
+                  <Lock size={18} color={COLORS.lavender} />
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '700', color: COLORS.navy }}>Every year of your flying life</Text>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11.5, color: COLORS.ink3 }}>Unlock the full dashboard with Explorer</Text>
+                </Pressable>
+              ) : hasChartData ? (
                 <Chart values={chart.values} labels={chart.labels} kind={chart.kind} width={chartW} partialLast={chart.partialLast} />
               ) : (
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, textAlign: 'center', paddingVertical: 24 }}>

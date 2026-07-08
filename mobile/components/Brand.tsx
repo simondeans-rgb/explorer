@@ -14,7 +14,7 @@ import Svg, {
  *  React-native-svg port of the web Brand mark. */
 export function WorldlyMark({ size = 28 }: { size?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 64 64">
+    <Svg width={size} height={size} viewBox="0 0 64 64" accessible accessibilityRole="image" accessibilityLabel="Worldly">
       <Defs>
         <LinearGradient id="wm" x1="8" y1="8" x2="56" y2="58" gradientUnits="userSpaceOnUse">
           <Stop offset="0" stopColor="#FF6A55" />

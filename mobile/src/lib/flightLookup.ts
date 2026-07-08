@@ -5,10 +5,34 @@
 //
 // The key is injected at bundle time from EXPO_PUBLIC_AERODATABOX_KEY (kept out
 // of the repo). Get one on RapidAPI → AeroDataBox.
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { canonicalAirportLabel } from './airportSearch';
 
 const KEY = process.env.EXPO_PUBLIC_AERODATABOX_KEY ?? '';
 const HOST = 'aerodatabox.p.rapidapi.com';
+
+// Monthly usage meter (free tier allows a fixed number of lookups per month
+// once billing is live — see src/lib/limits.ts). One counter per calendar
+// month; old months are simply abandoned.
+const meterKey = (now = new Date()) => `worldly:lookups:${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+export async function lookupsUsedThisMonth(): Promise<number> {
+  try {
+    return Number((await AsyncStorage.getItem(meterKey())) ?? '0') || 0;
+  } catch {
+    return 0;
+  }
+}
+
+async function countLookup(): Promise<void> {
+  try {
+    const k = meterKey();
+    const n = Number((await AsyncStorage.getItem(k)) ?? '0') || 0;
+    await AsyncStorage.setItem(k, String(n + 1));
+  } catch {
+    // metering must never break a lookup
+  }
+}
 
 export function flightLookupConfigured(): boolean {
   return KEY.length > 0;
@@ -134,6 +158,7 @@ export async function lookupFlight(rawNumber: string, dateISO: string): Promise<
       ),
     };
     if (!info.from && !info.to) return { ok: false, reason: 'not-found' };
+    void countLookup();
     return { ok: true, info };
   } catch {
     return { ok: false, reason: 'error' };

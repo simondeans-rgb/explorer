@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { goBack } from '../src/lib/nav';
+import { router } from 'expo-router';
+import { shouldGate } from '../src/lib/billing';
 import { X, Share2, Film } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
@@ -139,6 +141,10 @@ export default function WrappedScreen() {
 
   async function shareVideo() {
     if (sharing || videoProgress !== null) return;
+    if (shouldGate('wrapped')) {
+      router.push('/upgrade?trigger=wrapped');
+      return;
+    }
     setVideoProgress(0);
     try {
       for (let i = 0; i < 10 && !posterReadyRef.current; i++) {
@@ -181,6 +187,10 @@ export default function WrappedScreen() {
 
   async function share() {
     if (sharing || videoProgress !== null) return;
+    if (shouldGate('wrapped')) {
+      router.push('/upgrade?trigger=wrapped');
+      return;
+    }
     setSharing(true);
     try {
       // Give the poster's photos a moment to finish decoding before capture.

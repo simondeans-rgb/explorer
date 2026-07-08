@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useConfirm } from '../../src/store/confirm';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { Trash2, Plus, Check, Search, Plane, TrainFront, Ship, Car, Anchor, ImagePlus } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
@@ -14,7 +14,8 @@ import { JourneyGlobe } from '../../components/JourneyGlobe';
 import { RouteBuilder } from '../../components/RouteBuilder';
 import { AirportField } from '../../components/AirportField';
 import { isEndpointResolved, bestAirportMatch } from '../../src/lib/airportSearch';
-import { lookupFlight, normaliseFlightNumber, flightLookupConfigured } from '../../src/lib/flightLookup';
+import { lookupFlight, normaliseFlightNumber, flightLookupConfigured, lookupsUsedThisMonth } from '../../src/lib/flightLookup';
+import { shouldGate } from '../../src/lib/billing';
 import { CircleAlert } from 'lucide-react-native';
 import { DateField } from '../../components/DateField';
 import { FlightSummaryCard } from '../../components/FlightSummaryCard';
@@ -163,6 +164,11 @@ export default function JourneyScreen() {
     if (!num) { toast.error('Enter the flight number first.'); return; }
     const date = (leg.date || startDate || '').slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { toast.error('Add the flight date (YYYY-MM-DD) first.'); return; }
+    // Paywall trigger — monthly lookup allowance. Inert until billing goes live.
+    if (shouldGate('lookups', await lookupsUsedThisMonth())) {
+      router.push('/upgrade?trigger=lookups');
+      return;
+    }
     setLookingUp(leg.id);
     const r = await lookupFlight(num, date);
     setLookingUp(null);

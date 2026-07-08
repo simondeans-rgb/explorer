@@ -1,4 +1,4 @@
-import { Modal, View, Text, Pressable, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
+import { Modal, View, Text, Pressable, ScrollView, ActivityIndicator, StyleSheet, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Users, MapPin } from 'lucide-react-native';
@@ -106,7 +106,15 @@ export function LandmarkDetailSheet({
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, lineHeight: 21, color: COLORS.ink3 }}>A place worth seeing.</Text>
             )}
             {usedWikipedia ? (
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginTop: 8 }}>via Wikipedia</Text>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel="Read more on Wikipedia"
+                hitSlop={8}
+                onPress={() => Linking.openURL(info?.url ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(name ?? '')}`)}
+                style={{ alignSelf: 'flex-start', marginTop: 8 }}
+              >
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11.5, fontWeight: '600', color: COLORS.ink3 }}>via Wikipedia ›</Text>
+              </Pressable>
             ) : null}
 
             {/* Your saved info */}

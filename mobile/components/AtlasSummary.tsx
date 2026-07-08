@@ -2,7 +2,7 @@ import { memo, useEffect } from 'react';
 import { View, Text } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, { useSharedValue, useAnimatedStyle, withDelay, withTiming, Easing } from 'react-native-reanimated';
-import { Globe2, Building2, Plane, Share2 } from 'lucide-react-native';
+import { Globe2, Building2, MapPinned, Share2 } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { Button } from './Button';
 import { COLORS, SHADOW } from '../src/lib/theme';
@@ -115,7 +115,7 @@ export const AtlasSummary = memo(function AtlasSummary({
         <View style={{ flex: 1, gap: 16 }}>
           <StatRow icon={Globe2} color={COLORS.coral} tint="rgba(255,107,154,0.14)" value={stats.countriesDiscovered} label="Countries" />
           <StatRow icon={Building2} color="#12A594" tint="rgba(36,209,195,0.16)" value={stats.citiesDiscovered} label="Cities" />
-          <StatRow icon={Plane} color={COLORS.lavender} tint="rgba(155,124,255,0.16)" value={journeys} label="Journeys" />
+          <StatRow icon={MapPinned} color={COLORS.lavender} tint="rgba(155,124,255,0.16)" value={journeys} label="Trips" />
         </View>
       </View>
 

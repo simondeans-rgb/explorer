@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, Switch, ActivityIndicator, Share, Modal } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useConfirm } from '../../src/store/confirm';
 import { useLocalSearchParams } from 'expo-router';
-import { Plus, X, UserPlus, LogOut, FileDown, Navigation, Trash2 } from 'lucide-react-native';
+import { Plus, X, UserPlus, LogOut, FileDown, FileText, MessageSquareShare, Navigation, Trash2 } from 'lucide-react-native';
 import { BackButton } from '../../components/BackButton';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AddItinerarySheet } from '../../components/AddItinerarySheet';
@@ -17,6 +17,8 @@ import { countryFacts } from '../../src/data/countryFacts';
 import { landmarkCity } from '../../src/data/landmarkCities';
 import { ITINERARY_SLOTS, type RecommendationVerdict } from '../../src/types';
 import { buildItineraryHtml, saveItineraryDoc } from '../../src/lib/itineraryDoc';
+import { shareItineraryPdf, buildItineraryText } from '../../src/lib/itineraryPdf';
+import { track } from '../../src/lib/analytics';
 import { detectLocation } from '../../src/lib/checkIn';
 import { backgroundTrackingAvailable, startTripTracking, stopTripTracking } from '../../src/lib/tracking';
 import { useData } from '../../src/store/data';
@@ -36,6 +38,7 @@ export default function TripScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [crewOpen, setCrewOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [checking, setChecking] = useState(false);
   const [primeOpen, setPrimeOpen] = useState(false);
   const [detail, setDetail] = useState<{ name: string; city?: string; photo?: string; own?: { verdict?: RecommendationVerdict; note?: string } | null; friends: LandmarkPerson[] } | null>(null);
@@ -157,39 +160,54 @@ export default function TripScreen() {
     setDetail({ name, city, photo: photo ?? matches.find((d) => d.photo)?.photo, friends });
   };
 
-  async function exportDoc() {
+  function buildDocInput() {
+    if (!trip) return null;
+    const fmt = (n: number) => {
+      if (!trip.startDate) return `Day ${n}`;
+      const d = new Date(trip.startDate);
+      d.setDate(d.getDate() + (n - 1));
+      return d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+    };
+    const days = Array.from({ length: dayCount }, (_, i) => i + 1).map((n) => ({
+      label: `Day ${n} — ${fmt(n)}`,
+      note: trip.dayNotes?.[String(n)],
+      slots: ITINERARY_SLOTS.map((s) => ({
+        label: s.label,
+        items: trip.itinerary.filter((it) => it.day === n && (it.slot ?? 'allday') === s.id).map((it) => ({ name: it.name, meta: itineraryMeta(it) })),
+      })),
+    }));
+    const unscheduled = trip.itinerary.filter((it) => !it.day);
+    if (unscheduled.length) {
+      days.push({ label: 'Ideas (unscheduled)', note: undefined, slots: [{ label: 'Ideas', items: unscheduled.map((it) => ({ name: it.name, meta: itineraryMeta(it) })) }] });
+    }
+    const crew = trip.memberIds.map((m) => (m === user?.uid ? myName : trip.memberNames?.[m] ?? 'Friend'));
+    return {
+      title: trip.title,
+      subtitle: `${countryName(trip.countryCode)}${trip.startDate ? ` · ${trip.startDate}${trip.endDate ? ` – ${trip.endDate}` : ''}` : ''}`,
+      crew: trip.memberIds.length > 1 ? crew : undefined,
+      days,
+    };
+  }
+
+  async function exportPlan(kind: 'pdf' | 'text' | 'doc') {
     if (exporting || !trip) return;
+    setExportOpen(false);
     setExporting(true);
     try {
-      const fmt = (n: number) => {
-        if (!trip.startDate) return `Day ${n}`;
-        const d = new Date(trip.startDate);
-        d.setDate(d.getDate() + (n - 1));
-        return d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
-      };
-      const days = Array.from({ length: dayCount }, (_, i) => i + 1).map((n) => ({
-        label: `Day ${n} — ${fmt(n)}`,
-        note: trip.dayNotes?.[String(n)],
-        slots: ITINERARY_SLOTS.map((s) => ({
-          label: s.label,
-          items: trip.itinerary.filter((it) => it.day === n && (it.slot ?? 'allday') === s.id).map((it) => ({ name: it.name, meta: itineraryMeta(it) })),
-        })),
-      }));
-      const unscheduled = trip.itinerary.filter((it) => !it.day);
-      if (unscheduled.length) {
-        days.push({ label: 'Ideas (unscheduled)', note: undefined, slots: [{ label: 'Ideas', items: unscheduled.map((it) => ({ name: it.name, meta: itineraryMeta(it) })) }] });
+      const input = buildDocInput();
+      if (!input) return;
+      if (kind === 'pdf') {
+        const ok = await shareItineraryPdf(input);
+        if (!ok) toast.error('Sharing is unavailable on this device.');
+      } else if (kind === 'text') {
+        await Share.share({ message: buildItineraryText(input) });
+      } else {
+        const ok = await saveItineraryDoc(`${trip.title} itinerary`, buildItineraryHtml(input));
+        if (!ok) toast.error('Sharing is unavailable on this device.');
       }
-      const crew = trip.memberIds.map((m) => (m === user?.uid ? myName : trip.memberNames?.[m] ?? 'Friend'));
-      const html = buildItineraryHtml({
-        title: trip.title,
-        subtitle: `${countryName(trip.countryCode)}${trip.startDate ? ` · ${trip.startDate}${trip.endDate ? ` – ${trip.endDate}` : ''}` : ''}`,
-        crew: trip.memberIds.length > 1 ? crew : undefined,
-        days,
-      });
-      const ok = await saveItineraryDoc(`${trip.title} itinerary`, html);
-      if (!ok) toast.error('Sharing is unavailable on this device.');
+      track('itinerary_exported', { kind });
     } catch {
-      toast.error("Couldn't create the document.");
+      toast.error("Couldn't export the plan.");
     } finally {
       setExporting(false);
     }
@@ -379,6 +397,9 @@ export default function TripScreen() {
                 </>
               )}
             </Pressable>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11.5, color: COLORS.ink3, textAlign: 'center', marginTop: 6 }}>
+              Adds your current location to this trip.
+            </Text>
           </View>
         </View>
 
@@ -407,12 +428,39 @@ export default function TripScreen() {
             onOpenSuggestion={(s) => openDetail(s.name, s.photo, s.city)}
           />
 
-          <Pressable onPress={exportDoc} disabled={exporting} className="flex-row items-center justify-center rounded-full" style={{ alignSelf: 'center', marginTop: 18, paddingHorizontal: 18, paddingVertical: 10, gap: 7, backgroundColor: 'rgba(20,33,61,0.05)', opacity: exporting ? 0.6 : 1 }}>
+          <Pressable onPress={() => setExportOpen(true)} disabled={exporting} className="flex-row items-center justify-center rounded-full" style={{ alignSelf: 'center', marginTop: 18, paddingHorizontal: 18, paddingVertical: 10, gap: 7, backgroundColor: 'rgba(20,33,61,0.05)', opacity: exporting ? 0.6 : 1 }}>
             <FileDown size={16} color={COLORS.navy} />
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '700', color: COLORS.navy }}>{exporting ? 'Preparing…' : 'Save as Word document'}</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '700', color: COLORS.navy }}>{exporting ? 'Preparing…' : 'Export your plan'}</Text>
           </Pressable>
         </View>
       </ScrollView>
+
+      {/* Export chooser */}
+      <Modal visible={exportOpen} transparent animationType="slide" onRequestClose={() => setExportOpen(false)}>
+        <Pressable onPress={() => setExportOpen(false)} style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+          <Pressable onPress={(e) => e.stopPropagation()} style={{ backgroundColor: COLORS.warmwhite, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 14, paddingBottom: 36, paddingHorizontal: 20 }}>
+            <View style={{ alignSelf: 'center', height: 5, width: 44, borderRadius: 3, backgroundColor: 'rgba(20,33,61,0.15)', marginBottom: 10 }} />
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, marginBottom: 12 }}>Export your plan</Text>
+            {(
+              [
+                { k: 'pdf' as const, Icon: FileDown, title: 'Download as PDF', sub: 'A clean, printable copy to share or keep' },
+                { k: 'text' as const, Icon: MessageSquareShare, title: 'Share as text', sub: 'Compact plan for Messages or WhatsApp' },
+                { k: 'doc' as const, Icon: FileText, title: 'Word & Docs copy', sub: 'Opens in Word, Pages or Google Docs' },
+              ]
+            ).map(({ k, Icon, title, sub }) => (
+              <Pressable key={k} accessibilityRole="button" accessibilityLabel={title} onPress={() => exportPlan(k)} className="bg-white dark:bg-card flex-row items-center rounded-2xl" style={{ padding: 14, gap: 13, marginBottom: 9 }}>
+                <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: 'rgba(255,106,85,0.12)' }}>
+                  <Icon size={20} color={COLORS.coral} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>{title}</Text>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{sub}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Place / landmark detail */}
       <LandmarkDetailSheet

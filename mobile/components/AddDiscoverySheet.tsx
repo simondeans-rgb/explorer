@@ -29,7 +29,9 @@ import {
   type DiscoveryCategory,
   type RecommendationVerdict,
 } from '../src/types';
+import { router } from 'expo-router';
 import { useData } from '../src/store/data';
+import { shouldGate } from '../src/lib/billing';
 import { TripPickerField } from './TripPickerField';
 import { useToast } from '../src/store/toast';
 
@@ -63,6 +65,7 @@ export function AddDiscoverySheet({
   initialCity,
   initialSubcategory,
   initialLandmark,
+  startExpanded,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -72,8 +75,10 @@ export function AddDiscoverySheet({
   initialCity?: string;
   initialSubcategory?: string;
   initialLandmark?: string;
+  /** Open with every optional field visible (e.g. from "Add full details"). */
+  startExpanded?: boolean;
 }) {
-  const { addDiscovery, expeditions } = useData();
+  const { addDiscovery, expeditions, discoveries } = useData();
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [category, setCategory] = useState<DiscoveryCategory>('food');
@@ -88,6 +93,9 @@ export function AddDiscoverySheet({
   const [photo, setPhoto] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Quick mode by default: name + photo + verdict only. Everything else sits
+  // behind "Add more detail" so capture stays under fifteen seconds.
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -97,7 +105,9 @@ export function AddDiscoverySheet({
     if (initialCity) setCity(initialCity);
     if (initialSubcategory) setSubcategory(initialSubcategory);
     if (initialLandmark) setLandmark(initialLandmark);
-  }, [visible, initialCountryCode, initialName, initialCategory, initialCity, initialSubcategory, initialLandmark]);
+    // Prefilled detail fields would be invisible collapsed — open them up.
+    if (startExpanded || initialLandmark || initialSubcategory) setExpanded(true);
+  }, [visible, initialCountryCode, initialName, initialCategory, initialCity, initialSubcategory, initialLandmark, startExpanded]);
 
   async function pick(source: 'camera' | 'library') {
     setPicking(true);
@@ -145,6 +155,7 @@ export function AddDiscoverySheet({
     setPhoto(null);
     setPicking(false);
     setSaving(false);
+    setExpanded(false);
   }
   function close() {
     reset();
@@ -152,6 +163,12 @@ export function AddDiscoverySheet({
   }
   async function save() {
     if (!name.trim() || saving) return;
+    // Paywall trigger — the 11th discovery. Inert until billing goes live.
+    if (shouldGate('discoveries', discoveries.length)) {
+      close();
+      router.push('/upgrade?trigger=discoveries');
+      return;
+    }
     setSaving(true);
     try {
       await addDiscovery({
@@ -211,6 +228,47 @@ export function AddDiscoverySheet({
           )}
         </View>
 
+        {/* verdict — part of quick mode: location + verdict is the minimum capture */}
+        <SectionLabel>YOUR VERDICT (OPTIONAL)</SectionLabel>
+        <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 8, gap: 8 }}>
+          {RECOMMENDATION_VERDICTS.map((v) => {
+            const active = verdict === v;
+            return (
+              <Pressable
+                key={v}
+                onPress={() => setVerdict(active ? undefined : v)}
+                className="rounded-full"
+                style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.coral : '#fff' }}
+              >
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>
+                  {VERDICT_META[v].label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* everything else lives behind the expander — quick capture first */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded }}
+          onPress={() => setExpanded((e) => !e)}
+          className="flex-row items-center justify-center"
+          style={{ marginHorizontal: 20, marginTop: 16, paddingVertical: 11, gap: 6, borderRadius: 16, backgroundColor: 'rgba(20,33,61,0.05)' }}
+        >
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '700', color: COLORS.navy }}>
+            {expanded ? 'Fewer details' : 'Add more detail'}
+          </Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '700', color: COLORS.coral }}>{expanded ? '‹' : '›'}</Text>
+        </Pressable>
+        {!expanded ? (
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11.5, color: COLORS.ink3, textAlign: 'center', marginTop: 5, paddingHorizontal: 32 }}>
+            Category, place, trip &amp; notes
+          </Text>
+        ) : null}
+
+        {expanded ? (
+          <>
         {/* category */}
         <SectionLabel>CATEGORY</SectionLabel>
         <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 8, gap: 8 }}>
@@ -311,26 +369,6 @@ export function AddDiscoverySheet({
           </>
         ) : null}
 
-        {/* verdict */}
-        <SectionLabel>YOUR VERDICT (OPTIONAL)</SectionLabel>
-        <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 8, gap: 8 }}>
-          {RECOMMENDATION_VERDICTS.map((v) => {
-            const active = verdict === v;
-            return (
-              <Pressable
-                key={v}
-                onPress={() => setVerdict(active ? undefined : v)}
-                className="rounded-full"
-                style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.coral : '#fff' }}
-              >
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>
-                  {VERDICT_META[v].label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
         {/* note */}
         <SectionLabel>A DETAIL WORTH REMEMBERING (OPTIONAL)</SectionLabel>
         <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
@@ -343,6 +381,8 @@ export function AddDiscoverySheet({
             style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink, minHeight: 72, textAlignVertical: 'top' }}
           />
         </View>
+          </>
+        ) : null}
 
         <Pressable
           onPress={save}

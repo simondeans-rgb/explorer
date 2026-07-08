@@ -145,7 +145,7 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
       />
       <QuickLogSheet visible={sheet === 'quicklog'} onClose={() => setSheet(null)} onExpand={() => setSheet('discovery')} />
       <AddPlaceSheet visible={sheet === 'place'} onClose={() => setSheet(null)} />
-      <AddDiscoverySheet visible={sheet === 'discovery'} onClose={() => setSheet(null)} />
+      <AddDiscoverySheet visible={sheet === 'discovery'} onClose={() => setSheet(null)} startExpanded />
       <AddTripSheet visible={sheet === 'journey'} onClose={() => setSheet(null)} />
       <AddPhotoSheet visible={sheet === 'photo'} onClose={() => setSheet(null)} />
       <AddTripPlanSheet visible={sheet === 'trip'} onClose={() => setSheet(null)} />

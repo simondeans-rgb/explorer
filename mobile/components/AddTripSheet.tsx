@@ -8,7 +8,9 @@ import { AirportField } from './AirportField';
 import { DateField } from './DateField';
 import { FlightSummaryCard } from './FlightSummaryCard';
 import { resolveEndpoint } from '../src/lib/journeyGeo';
-import { lookupFlight, normaliseFlightNumber, flightLookupConfigured } from '../src/lib/flightLookup';
+import { router } from 'expo-router';
+import { lookupFlight, normaliseFlightNumber, flightLookupConfigured, lookupsUsedThisMonth } from '../src/lib/flightLookup';
+import { shouldGate } from '../src/lib/billing';
 import { COLORS } from '../src/lib/theme';
 import { useUnits } from '../src/store/units';
 import { flagEmoji } from '../src/lib/flags';
@@ -101,6 +103,11 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
     if (!num) { toast.error('Enter the flight number first.'); return; }
     const date = (leg.date || '').slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { toast.error('Add the flight date (YYYY-MM-DD) first.'); return; }
+    // Paywall trigger — monthly lookup allowance. Inert until billing goes live.
+    if (shouldGate('lookups', await lookupsUsedThisMonth())) {
+      router.push('/upgrade?trigger=lookups');
+      return;
+    }
     setLookingUp(leg.id);
     const r = await lookupFlight(num, date);
     setLookingUp(null);

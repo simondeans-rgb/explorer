@@ -29,7 +29,7 @@ export function ActionMenu({
       <Pressable onPress={onClose} style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
         <Pressable onPress={(e) => e.stopPropagation()} style={{ backgroundColor: COLORS.warmwhite, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 14, paddingBottom: 36 }}>
           <View style={{ alignSelf: 'center', height: 5, width: 44, borderRadius: 3, backgroundColor: 'rgba(20,33,61,0.15)', marginBottom: 10 }} />
-          <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, paddingHorizontal: 20, marginBottom: 10 }}>Add to your world</Text>
+          <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, paddingHorizontal: 20, marginBottom: 10 }}>What would you like to add?</Text>
 
           {/* Quick Log — the hero: rate a place in seconds. */}
           <Pressable accessibilityRole="button" accessibilityLabel="Leave a verdict — rate a place in seconds" onPress={() => onPick('quicklog')} className="flex-row items-center" style={{ marginHorizontal: 20, marginBottom: 6, borderRadius: 22, gap: 14, paddingHorizontal: 16, paddingVertical: 15, backgroundColor: COLORS.coral }}>
