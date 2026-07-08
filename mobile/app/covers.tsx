@@ -7,7 +7,9 @@ import { BackButton } from '../components/BackButton';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
 import { goBack } from '../src/lib/nav';
 import { useWorldly } from '../src/hooks/useWorldly';
-import { getCoverState, applyCover, lockReason, COVER_SECTIONS, type CoverDef, type CoverState } from '../src/lib/covers';
+import { getCoverState, applyCover, lockReason, lockProgress, seasonActive, COVER_SECTIONS, type CoverDef, type CoverState } from '../src/lib/covers';
+import { billingEnabled } from '../src/lib/billing';
+import { COVER_PRICE_PACK } from '../src/lib/limits';
 import { track } from '../src/lib/analytics';
 
 /** Passport Covers — pick an alternate app icon. On binaries without the
@@ -34,11 +36,19 @@ export default function CoversScreen() {
   const current = state?.current ?? null;
   const cell = (width - 40 - 24) / 3;
 
-  async function pick(cover: CoverDef) {
+  const month = new Date().getMonth() + 1;
+
+  async function pick(cover: CoverDef, inSeason: boolean) {
     if (busy) return;
     const locked = lockReason(cover, stats.countriesDiscovered, level.level);
     if (locked) {
       setNote(`${cover.title} is still locked — ${locked.toLowerCase()}.`);
+      return;
+    }
+    // Out-of-season packs stay switchable while billing is dormant (a live
+    // preview); once billing goes live they wait for their season.
+    if (!inSeason && billingEnabled()) {
+      setNote(`${cover.title} is out of season — it comes back later in the year.`);
       return;
     }
     if (!available) {
@@ -89,15 +99,30 @@ export default function CoversScreen() {
           </View>
         ) : null}
 
-        {COVER_SECTIONS.map((section) => (
+        {COVER_SECTIONS.map((section) => {
+          const inSeason = seasonActive(section.season, month);
+          return (
           <View key={section.title} style={{ marginTop: 26 }}>
-            <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, paddingHorizontal: 20 }}>{section.title}</Text>
+            <View className="flex-row items-center" style={{ paddingHorizontal: 20, gap: 8 }}>
+              <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, flexShrink: 1 }}>{section.title}</Text>
+              {!inSeason && section.season ? (
+                <View className="rounded-full" style={{ paddingHorizontal: 9, paddingVertical: 3, backgroundColor: 'rgba(255,184,77,0.22)' }}>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.5, color: '#8A5A00' }}>{section.season.returns.toUpperCase()}</Text>
+                </View>
+              ) : null}
+              {billingEnabled() && section.access === 'explorer' && section.season ? (
+                <View className="rounded-full" style={{ paddingHorizontal: 9, paddingVertical: 3, backgroundColor: 'rgba(91,108,255,0.14)' }}>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.5, color: '#3D4CC9' }}>PACK {COVER_PRICE_PACK} · FREE WITH EXPLORER</Text>
+                </View>
+              ) : null}
+            </View>
             {section.tagline ? (
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 2 }}>{section.tagline}</Text>
             ) : null}
-            <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 14, gap: 12 }}>
+            <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 14, gap: 12, opacity: inSeason ? 1 : 0.5 }}>
               {section.covers.map((cover) => {
                 const locked = lockReason(cover, stats.countriesDiscovered, level.level);
+                const progress = lockProgress(cover, stats.countriesDiscovered, level.level);
                 const selected = available && current === cover.name;
                 return (
                   <Pressable
@@ -105,7 +130,7 @@ export default function CoversScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={locked ? `${cover.title}, locked — ${locked}` : `Use the ${cover.title} cover`}
                     accessibilityState={{ selected }}
-                    onPress={() => pick(cover)}
+                    onPress={() => pick(cover, inSeason)}
                     style={{ width: cell, opacity: busy ? 0.7 : 1 }}
                   >
                     <View style={{ borderRadius: 28, padding: 3, borderWidth: 2.5, borderColor: selected ? COLORS.coral : 'transparent', backgroundColor: selected ? 'rgba(255,107,154,0.08)' : 'transparent', shadowColor: '#14213D', shadowOpacity: selected ? 0.22 : 0.1, shadowRadius: selected ? 12 : 8, shadowOffset: { width: 0, height: 5 } }}>
@@ -137,14 +162,15 @@ export default function CoversScreen() {
                     </View>
                     <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '700', color: COLORS.navy, textAlign: 'center', marginTop: 7 }}>{cover.title}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 10.5, color: locked ? '#B8860B' : COLORS.ink3, textAlign: 'center', marginTop: 1 }}>
-                      {locked ?? cover.tagline}
+                      {progress ?? cover.tagline}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
           </View>
-        ))}
+          );
+        })}
 
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, textAlign: 'center', marginTop: 26, paddingHorizontal: 32, lineHeight: 17 }}>
           Earn special covers as you travel, explore and achieve milestones. New packs arrive through the year.

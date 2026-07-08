@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import { useAuth } from '../src/store/auth';
 import { useConfirm } from '../src/store/confirm';
 import { useFriends } from '../src/hooks/useFriends';
+import { shouldGate } from '../src/lib/billing';
 import {
   sendRequest,
   acceptConnection,
@@ -83,6 +84,11 @@ export default function FriendsScreen() {
   }
   async function submit() {
     if (!user || !code.trim() || sending) return;
+    // Paywall trigger — the 4th Circle connection. Inert until billing goes live.
+    if (shouldGate('circle', friends.length)) {
+      router.push('/upgrade?trigger=circle');
+      return;
+    }
     setSending(true);
     setMessage(null);
     const res = await sendRequest({ uid: user.uid, name: myName }, code);

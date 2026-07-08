@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react';
 export interface LandmarkInfo {
   description?: string;
   image?: string;
+  /** Canonical Wikipedia article URL, for the "via Wikipedia ›" credit link. */
+  url?: string;
 }
 
 const cache = new Map<string, LandmarkInfo | null>();
@@ -35,12 +37,13 @@ function summaryToInfo(j: {
   description?: string;
   thumbnail?: { source?: string };
   originalimage?: { source?: string };
+  content_urls?: { desktop?: { page?: string } };
 }): LandmarkInfo | null {
   if (j.type === 'disambiguation') return null;
   const desc = j.extract ? firstSentence(j.extract) : j.description;
   const image = j.thumbnail?.source ?? j.originalimage?.source;
   if (!desc && !image) return null;
-  return { description: desc, image };
+  return { description: desc, image, url: j.content_urls?.desktop?.page };
 }
 
 /** Fetch the REST summary for an exact page title. */

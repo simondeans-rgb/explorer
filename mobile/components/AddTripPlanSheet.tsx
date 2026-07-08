@@ -6,7 +6,9 @@ import { DateField } from './DateField';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES } from '../src/data/countries';
+import { router } from 'expo-router';
 import { useData } from '../src/store/data';
+import { shouldGate } from '../src/lib/billing';
 import { useToast } from '../src/store/toast';
 
 /** Pad a partial pick ('2026' / '2026-07') to a full ISO date — trip
@@ -14,7 +16,7 @@ import { useToast } from '../src/store/toast';
 const fullISO = (v: string) => (v.length === 4 ? `${v}-01-01` : v.length === 7 ? `${v}-01` : v);
 
 export function AddTripPlanSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { addTrip } = useData();
+  const { addTrip, expeditions } = useData();
   const { toast } = useToast();
   const [title, setTitle] = useState('');
   const [query, setQuery] = useState('');
@@ -43,6 +45,14 @@ export function AddTripPlanSheet({ visible, onClose }: { visible: boolean; onClo
   }
   function save() {
     if (!ready) return;
+    // Paywall trigger — the 2nd planned trip. Inert until billing goes live.
+    const today = new Date().toISOString().slice(0, 10);
+    const planned = expeditions.filter((e) => e.startDate && e.startDate >= today).length;
+    if (shouldGate('itineraries', planned)) {
+      close();
+      router.push('/upgrade?trigger=itineraries');
+      return;
+    }
     addTrip({ title, countryCode: code, startDate: fullISO(start), endDate: end ? fullISO(end) : undefined, note });
     toast.success('Trip planned');
     close();

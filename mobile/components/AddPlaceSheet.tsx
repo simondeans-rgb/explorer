@@ -7,7 +7,9 @@ import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES, countryName } from '../src/data/countries';
 import { RELATIONSHIPS, RELATIONSHIP_META, type Relationship } from '../src/types';
+import { router } from 'expo-router';
 import { useData } from '../src/store/data';
+import { shouldGate } from '../src/lib/billing';
 import { useToast } from '../src/store/toast';
 import { useConfirm } from '../src/store/confirm';
 
@@ -58,6 +60,12 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
   }
   function save() {
     if (!ready) return;
+    // Paywall trigger — the 26th country. Inert until billing goes live.
+    if (kind === 'country' && shouldGate('countries', new Set(places.filter((p) => p.kind === 'country').map((p) => p.countryCode)).size)) {
+      close();
+      router.push('/upgrade?trigger=countries');
+      return;
+    }
     const firstDate = when || undefined;
     let livedFrom: string | undefined;
     let livedTo: string | undefined;

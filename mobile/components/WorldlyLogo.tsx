@@ -15,6 +15,9 @@ export function WorldlyLogo({ height = 24, white = false }: { height?: number; w
       source={white ? LOCKUP_WHITE : LOCKUP}
       style={{ height, width: height * LOCKUP_RATIO }}
       contentFit="contain"
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel="Worldly"
     />
   );
 }
@@ -27,6 +30,9 @@ export function WorldlyIcon({ height = 40 }: { height?: number }) {
       source={ICON}
       style={{ height, width: height * ICON_RATIO }}
       contentFit="contain"
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel="Worldly"
     />
   );
 }

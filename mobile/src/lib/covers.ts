@@ -10,6 +10,9 @@
 // the first time JS touches it. Binaries without WorldlyAppIcon degrade to a
 // read-only preview. OTA-safe.
 import { requireOptionalNativeModule } from 'expo-modules-core';
+import { type CoverSeason, seasonActive, lockProgress } from './coverRules';
+
+export { seasonActive, lockProgress, type CoverSeason };
 
 export interface CoverDef {
   /** Plugin icon name (PascalCase); null = the default Worldly icon. */
@@ -27,6 +30,11 @@ export interface CoverSection {
   title: string;
   /** Editorial line under the section header (packs get one). */
   tagline?: string;
+  /** Who gets this section once billing is live. 'earned' = achievement covers
+   *  (free once unlocked — never sold); 'explorer' = included with Explorer. */
+  access?: 'free' | 'explorer' | 'earned';
+  /** Present on calendar-gated packs; absent = available year-round. */
+  season?: CoverSeason;
   covers: CoverDef[];
 }
 
@@ -34,6 +42,7 @@ export interface CoverSection {
 export const COVER_SECTIONS: CoverSection[] = [
   {
     title: 'Core collection',
+    access: 'explorer',
     covers: [
       { name: null, title: 'Classic Worldly', tagline: 'The vibrant original', preview: require('../../assets/icons/covers/previews/classic.png') },
       { name: 'Midnight', title: 'Midnight', tagline: 'Starlit & sophisticated', preview: require('../../assets/icons/covers/previews/midnight.png') },
@@ -41,16 +50,24 @@ export const COVER_SECTIONS: CoverSection[] = [
       { name: 'Earth', title: 'Earth', tagline: 'Rolling hills & open air', preview: require('../../assets/icons/covers/previews/earth.png') },
       { name: 'Sunset', title: 'Sunset', tagline: 'Golden-hour glow', preview: require('../../assets/icons/covers/previews/sunset.png') },
       { name: 'Ocean', title: 'Ocean', tagline: 'Waves & sea air', preview: require('../../assets/icons/covers/previews/ocean.png') },
-      { name: 'Aurora', title: 'Aurora', tagline: 'Northern lights, bottled', preview: require('../../assets/icons/covers/previews/aurora.png'), unlock: { level: 5 } },
     ],
   },
   {
     title: 'Lifestyle',
+    access: 'explorer',
     covers: [
       { name: 'Sakura', title: 'Sakura', tagline: 'Petals on the wind', preview: require('../../assets/icons/covers/previews/sakura.png') },
       { name: 'Tropical', title: 'Tropical', tagline: 'Palms & paradise', preview: require('../../assets/icons/covers/previews/tropical.png') },
       { name: 'Winter', title: 'Winter', tagline: 'First-snow quiet', preview: require('../../assets/icons/covers/previews/winter.png') },
       { name: 'Coffee', title: 'Coffee', tagline: 'Beans, steam & mornings', preview: require('../../assets/icons/covers/previews/coffee.png') },
+    ],
+  },
+  {
+    title: 'Unlock these',
+    tagline: 'Earned by travelling — yours free forever once unlocked.',
+    access: 'earned',
+    covers: [
+      { name: 'Aurora', title: 'Aurora', tagline: 'Northern lights, bottled', preview: require('../../assets/icons/covers/previews/aurora.png'), unlock: { level: 5 } },
       { name: 'FrequentFlyer', title: 'Frequent Flyer', tagline: 'Contrails & departures', preview: require('../../assets/icons/covers/previews/frequent-flyer.png'), unlock: { countries: 10 } },
       { name: 'Luxury', title: 'Luxury', tagline: 'Gold dust & midnight', preview: require('../../assets/icons/covers/previews/luxury.png'), unlock: { level: 8 } },
       { name: 'Neon', title: 'Neon', tagline: 'Synthwave nights', preview: require('../../assets/icons/covers/previews/neon.png'), unlock: { countries: 25 } },
@@ -59,6 +76,8 @@ export const COVER_SECTIONS: CoverSection[] = [
   {
     title: 'Christmas Pack',
     tagline: 'Three festive editions for the season.',
+    access: 'explorer',
+    season: { months: [11, 12, 1], returns: 'Returns in November' },
     covers: [
       { name: 'Christmas', title: 'Classic Christmas', tagline: 'Fairy lights on the W', preview: require('../../assets/icons/covers/previews/christmas.png'), isNew: true },
       { name: 'CandyCane', title: 'Candy Cane', tagline: 'Striped & glossy', preview: require('../../assets/icons/covers/previews/candy-cane.png'), isNew: true },
@@ -68,6 +87,8 @@ export const COVER_SECTIONS: CoverSection[] = [
   {
     title: 'Halloween Pack',
     tagline: 'Three spooky editions — if you dare.',
+    access: 'explorer',
+    season: { months: [10], returns: 'Returns in October' },
     covers: [
       { name: 'Halloween', title: 'Spooky Night', tagline: 'Bats, moon & pumpkins', preview: require('../../assets/icons/covers/previews/halloween.png'), isNew: true },
       { name: 'Ghost', title: 'Ghost', tagline: 'Boo. (Look at the eyes.)', preview: require('../../assets/icons/covers/previews/ghost.png'), isNew: true },
@@ -77,6 +98,7 @@ export const COVER_SECTIONS: CoverSection[] = [
   {
     title: 'Pride Pack',
     tagline: 'Celebrate every journey, loudly or quietly.',
+    access: 'explorer',
     covers: [
       { name: 'Pride', title: 'Pride', tagline: 'The full flag, full volume', preview: require('../../assets/icons/covers/previews/pride.png') },
       { name: 'PrideNeon', title: 'Pride Neon', tagline: 'Glowing after dark', preview: require('../../assets/icons/covers/previews/pride-neon.png'), isNew: true },

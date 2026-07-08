@@ -341,4 +341,38 @@ test('tripMerge: overlapping dates merge; chain breaks without matching endpoint
   assert.equal(merged.journeys.length, 2);
 });
 
+// ---- Tiers & seasonal covers ------------------------------------------------
+import { WANDERER_LIMITS, ANNUAL_HEADLINE, EXPLORER_BENEFITS } from '../src/lib/limits';
+import { seasonActive, lockProgress } from '../src/lib/coverRules';
+
+test('limits: wanderer caps are sane and explorer copy carries the annual-first price', () => {
+  assert.equal(WANDERER_LIMITS.countries, 25);
+  assert.equal(WANDERER_LIMITS.cities, 50);
+  assert.equal(WANDERER_LIMITS.discoveries, 10);
+  assert.equal(WANDERER_LIMITS.circle, 3);
+  assert.equal(WANDERER_LIMITS.flightLookupsPerMonth, 10);
+  assert.equal(WANDERER_LIMITS.itineraries, 1);
+  assert.ok(ANNUAL_HEADLINE.startsWith('£39.99/year'));
+  assert.ok(EXPLORER_BENEFITS.length >= 6);
+});
+
+test('covers: season windows — Halloween October only, Christmas wraps Dec–Jan, no season = always', () => {
+  const halloween = { months: [10], returns: 'Returns in October' };
+  const christmas = { months: [11, 12, 1], returns: 'Returns in November' };
+  assert.equal(seasonActive(halloween, 10), true);
+  assert.equal(seasonActive(halloween, 7), false);
+  assert.equal(seasonActive(christmas, 12), true);
+  assert.equal(seasonActive(christmas, 1), true); // wraps into the new year
+  assert.equal(seasonActive(christmas, 7), false);
+  assert.equal(seasonActive(undefined, 7), true); // year-round packs
+});
+
+test('covers: lock progress shows the user how close they are', () => {
+  const neon = { name: 'Neon', title: 'Neon', tagline: '', preview: 0, unlock: { countries: 25 } };
+  assert.equal(lockProgress(neon, 19, 3), 'Explore 25 countries — you have 19');
+  assert.equal(lockProgress(neon, 25, 3), null); // earned
+  const luxury = { name: 'Luxury', title: 'Luxury', tagline: '', preview: 0, unlock: { level: 8 } };
+  assert.equal(lockProgress(luxury, 40, 5), "Reach Level 8 — you're Level 5");
+});
+
 console.log(`✓ all ${passed} tests passed`);
