@@ -46,7 +46,7 @@ export default function UpgradeScreen() {
     // the app until then, but stays graceful if opened directly.
     track('paywall_cta', { trigger: trigger ?? 'default', plan });
     if (!billingEnabled()) {
-      toast.success('Explorer is included free during the preview — enjoy!');
+      toast.success('Introductory offer — everything is already unlocked. Enjoy!');
       goBack();
     }
   }
@@ -123,7 +123,7 @@ export default function UpgradeScreen() {
 
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, textAlign: 'center', marginTop: 18, paddingHorizontal: 36, lineHeight: 16 }}>
           {tier === 'explorer' && !billingEnabled()
-            ? 'Explorer is included free during the preview. Pricing applies from public launch.'
+            ? 'Introductory offer: every feature is free for early explorers. Pricing arrives in a future update — founding explorers will be looked after.'
             : 'Billed through the App Store. Cancel any time in Settings › Subscriptions.'}
         </Text>
       </ScrollView>

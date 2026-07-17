@@ -347,11 +347,12 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Explorer subscription — hidden until billing goes live */}
-        {billingEnabled() ? (
-          <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
-            <Text style={LABEL}>MEMBERSHIP</Text>
-            <View className="bg-white dark:bg-card rounded-3xl" style={{ paddingHorizontal: 16 }}>
+        {/* Membership. While billing is dormant this is the introductory
+            offer, stated proudly: every feature free for early explorers. */}
+        <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
+          <Text style={LABEL}>MEMBERSHIP</Text>
+          <View className="bg-white dark:bg-card rounded-3xl" style={{ paddingHorizontal: 16 }}>
+            {billingEnabled() ? (
               <Row
                 first
                 icon={Gem}
@@ -360,9 +361,17 @@ export default function SettingsScreen() {
                 sub={tier === 'explorer' ? 'Manage your subscription in the App Store.' : 'Unlimited everything — every cover, every chart.'}
                 onPress={() => (tier === 'explorer' ? Linking.openURL('https://apps.apple.com/account/subscriptions') : router.push('/upgrade'))}
               />
-            </View>
+            ) : (
+              <Row
+                first
+                icon={Gem}
+                tint={COLORS.coral}
+                label="Founding explorer"
+                sub="Introductory offer — every feature is free for early explorers, on us."
+              />
+            )}
           </View>
-        ) : null}
+        </View>
 
         {/* 2 — PREFERENCES */}
         <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
