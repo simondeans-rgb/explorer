@@ -39,6 +39,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { initSentry, wrapWithSentry } from '../src/lib/sentry';
 import { track, identify } from '../src/lib/analytics';
 import { applyStoredAppearance } from '../src/lib/appearance';
+import { recordFirstSeen } from '../src/lib/founding';
 
 SplashScreen.preventAutoHideAsync();
 initSentry();
@@ -95,9 +96,12 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
   }, [appReady]);
 
   // Re-apply the user's persisted Light/Dark/System choice before first paint
-  // settles (system-following until the stored value loads).
+  // settles (system-following until the stored value loads). Also stamp the
+  // founding-explorer first-seen date (grandfathers the introductory offer
+  // when paid Explorer activates).
   useEffect(() => {
     applyStoredAppearance();
+    recordFirstSeen();
   }, []);
 
   // Tie analytics to the signed-in account (uid only) once per session.
