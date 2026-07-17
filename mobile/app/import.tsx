@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { readAsStringAsync } from 'expo-file-system/legacy';
@@ -177,6 +177,7 @@ export default function ImportScreen() {
   const [scanSheetOpen, setScanSheetOpen] = useState(false);
   const [scanRows, setScanRows] = useState<PlaceRow[]>([]);
   const [scanPhotoCands, setScanPhotoCands] = useState<Record<string, PhotoCandidate[]>>({});
+  const scanCancel = useRef({ cancelled: false });
   const [scanScanned, setScanScanned] = useState(0);
   const [scanLocated, setScanLocated] = useState(0);
   const [scanNote, setScanNote] = useState('');
@@ -266,7 +267,8 @@ export default function ImportScreen() {
     setScanThorough(thorough);
     setScanProgress(0);
     try {
-      const { rows, scanned, located, photos, denied, limited, partial } = await scanPhotosForCountries((p) => setScanProgress(p.scanned), homeRanges(places), { thorough });
+      scanCancel.current = { cancelled: false };
+      const { rows, scanned, located, photos, denied, limited, partial, cancelled } = await scanPhotosForCountries((p) => setScanProgress(p.scanned), homeRanges(places), { thorough, cancel: scanCancel.current });
       if (denied) {
         setScanMsg('Photo access is needed to detect where you’ve been.');
         return;
@@ -274,7 +276,11 @@ export default function ImportScreen() {
       const limitedNote = limited
         ? ' Worldly only has access to selected photos — choose “All Photos” in Settings → Worldly → Photos for a full scan.'
         : '';
-      const partialNote = partial ? ' (The scan stopped early — run it again to finish.)' : '';
+      const partialNote = cancelled
+        ? ' (Scan stopped — these are the countries found so far.)'
+        : partial
+          ? ' (The scan stopped early — run it again to finish.)'
+          : '';
       if (rows.length === 0) {
         const locHint =
           located === 0 && !thorough
@@ -419,6 +425,11 @@ export default function ImportScreen() {
               <Text style={btnText}>Scan my photos</Text>
             )}
           </Pressable>
+          {scanBusy ? (
+            <Pressable onPress={() => { scanCancel.current.cancelled = true; }} className="items-center justify-center" style={{ paddingVertical: 10, marginBottom: 2 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '700', color: COLORS.coral }}>Stop scanning — keep what's found</Text>
+            </Pressable>
+          ) : null}
           <Pressable onPress={() => scanPhotos(true)} disabled={scanBusy} className="flex-row items-center justify-center" style={ghostBtn(scanBusy)}>
             {scanBusy && scanThorough ? (
               <>

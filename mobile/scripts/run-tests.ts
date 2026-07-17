@@ -375,4 +375,42 @@ test('covers: lock progress shows the user how close they are', () => {
   assert.equal(lockProgress(luxury, 40, 5), "Reach Level 8 — you're Level 5");
 });
 
+// ---- "On this day" memories -------------------------------------------------
+import { todaysMemories } from '../src/lib/memories';
+
+test('memories: only earlier-year same-month/day events count, oldest first', () => {
+  const now = new Date(2026, 6, 17); // 17 Jul 2026
+  const trips = [
+    { id: 't1', title: 'Tokyo adventure', countryCodes: ['JP'], startDate: '2023-07-17', journeys: [] },
+    { id: 't2', title: 'Wrong day', countryCodes: ['FR'], startDate: '2023-07-16', journeys: [] },
+    { id: 't3', title: 'Wrong month', countryCodes: ['DE'], startDate: '2023-06-17', journeys: [] },
+    { id: 't4', title: 'Today this year', countryCodes: ['US'], startDate: '2026-07-17', journeys: [] },
+    { id: 't5', title: '', countryCodes: ['IT'], startDate: '2019-07-17', journeys: [] },
+  ] as never[];
+  const places = [
+    { id: 'p1', kind: 'country', countryCode: 'ES', name: 'Spain', firstDate: '2021-07-17' },
+    { id: 'p2', kind: 'country', countryCode: 'PT', name: 'Portugal', firstDate: '2021-12-25' },
+  ] as never[];
+  const out = todaysMemories(trips, places, now);
+  assert.equal(out.length, 3);
+  // Oldest first: 2019 trip (7y), 2021 place (5y), 2023 trip (3y).
+  assert.deepEqual(out.map((m) => m.yearsAgo), [7, 5, 3]);
+  assert.equal(out[0].label, 'Italy'); // untitled trip falls back to country name
+  assert.equal(out[0].kind, 'trip');
+  assert.equal(out[1].label, 'Spain');
+  assert.equal(out[1].kind, 'place');
+  assert.equal(out[1].countryCode, 'ES');
+  assert.equal(out[2].label, 'Tokyo adventure');
+  assert.equal(out[2].countryCode, 'JP');
+});
+
+test('memories: undated or malformed dates never match', () => {
+  const now = new Date(2026, 6, 17);
+  const trips = [
+    { id: 't1', title: 'No date', countryCodes: ['JP'], journeys: [] },
+    { id: 't2', title: 'Garbage', countryCodes: ['FR'], startDate: 'July 17th', journeys: [] },
+  ] as never[];
+  assert.deepEqual(todaysMemories(trips, [], now), []);
+});
+
 console.log(`✓ all ${passed} tests passed`);
