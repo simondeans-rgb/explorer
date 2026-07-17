@@ -85,7 +85,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       >
         {SLIDES.map((s, i) => (
           <View key={i} style={{ width }}>
-            <View style={{ height: '64%' }}>
+            <View style={{ height: '56%' }}>
               <Image source={s.image} style={StyleSheet.absoluteFill} contentFit="cover" transition={250} />
               {/* gentle scrim for status-bar legibility + depth, keeps the photo vibrant */}
               <LinearGradient
@@ -97,9 +97,11 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                 <Path d="M0,72 C240,44 480,40 720,58 C960,76 1200,92 1440,72 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
               </Svg>
             </View>
-            <View style={{ paddingHorizontal: 32, paddingTop: 28 }}>
-              <Text style={{ fontFamily: 'Fraunces', fontSize: 32, color: COLORS.navy, lineHeight: 36 }}>{s.title}</Text>
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink2, marginTop: 12, lineHeight: 24 }}>{s.body}</Text>
+            {/* paddingBottom clears the absolutely-positioned footer so large
+                accessibility text never runs under the dots or button. */}
+            <View style={{ flex: 1, paddingHorizontal: 32, paddingTop: 24, paddingBottom: 176 }}>
+              <Text maxFontSizeMultiplier={1.15} style={{ fontFamily: 'Fraunces', fontSize: 32, color: COLORS.navy, lineHeight: 36 }}>{s.title}</Text>
+              <Text maxFontSizeMultiplier={1.15} style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink2, marginTop: 12, lineHeight: 24 }}>{s.body}</Text>
             </View>
           </View>
         ))}
