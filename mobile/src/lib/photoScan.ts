@@ -19,11 +19,21 @@ export interface ScanProgress {
   done: boolean;
 }
 
+/** A photo that could illustrate a scanned country's page. */
+export interface PhotoCandidate {
+  /** file:// when the asset is local, else the ph:// library uri. */
+  uri: string;
+  takenAt?: number; // ms epoch
+}
+
 export interface ScanResult {
   rows: PlaceRow[];
   scanned: number;
   /** Items that carried a usable GPS location (diagnostic). */
   located: number;
+  /** Up to a few representative photos per detected country, keyed by code —
+   *  offered to the user (opt-in) as country-page captures. */
+  photos: Record<string, PhotoCandidate[]>;
   denied?: boolean;
   limited?: boolean;
   partial?: boolean; // stopped early on an unexpected error
@@ -75,13 +85,16 @@ export async function scanPhotosForCountries(
   try {
     perm = await MediaLibrary.requestPermissionsAsync();
   } catch {
-    return { rows: [], scanned: 0, located: 0, denied: true };
+    return { rows: [], scanned: 0, located: 0, photos: {}, denied: true };
   }
-  if (!perm.granted) return { rows: [], scanned: 0, located: 0, denied: true };
+  if (!perm.granted) return { rows: [], scanned: 0, located: 0, photos: {}, denied: true };
   const limited = perm.accessPrivileges === 'limited';
 
   const coordCache = new Map<string, string | null>();
   const earliestYear = new Map<string, number | undefined>();
+  // Candidate captures: up to 3 photos per country, each from a different day
+  // so a burst of near-identical shots doesn't fill all the slots.
+  const candidates = new Map<string, (PhotoCandidate & { day: number })[]>();
   let after: string | undefined;
   let scanned = 0;
   let located = 0;
@@ -133,6 +146,16 @@ export async function scanPhotosForCountries(
           const prev = earliestYear.get(code);
           if (!earliestYear.has(code)) earliestYear.set(code, year);
           else if (year && (!prev || year < prev)) earliestYear.set(code, year);
+          // Remember a few stills as capture candidates (photos only — videos
+          // can't become JPEG captures).
+          if (group[i].mediaType === MediaLibrary.MediaType.photo) {
+            const list = candidates.get(code) ?? [];
+            const day = Math.floor(ts / 86400000);
+            if (list.length < 3 && !list.some((c) => c.day === day)) {
+              list.push({ uri: infos[i]?.localUri ?? group[i].uri, takenAt: group[i].creationTime || undefined, day });
+              candidates.set(code, list);
+            }
+          }
         }
         onProgress?.({ scanned, countries: earliestYear.size, done: false });
         if (scanned >= maxAssets) break;
@@ -153,5 +176,9 @@ export async function scanPhotosForCountries(
     countryCode: code,
     firstYear: year,
   }));
-  return { rows, scanned, located, limited, partial };
+  const photos: Record<string, PhotoCandidate[]> = {};
+  for (const [code, list] of candidates) {
+    photos[code] = list.map(({ uri, takenAt }) => ({ uri, takenAt }));
+  }
+  return { rows, scanned, located, photos, limited, partial };
 }

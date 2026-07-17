@@ -96,6 +96,22 @@ export async function pickPhotoWithMeta(
   return { dataUrl: `data:image/jpeg;base64,${out.base64}`, ...meta };
 }
 
+/** Downscale any local/library image uri into a compact JPEG data URL —
+ *  the storage format for captures. Returns null when the uri can't be read
+ *  (e.g. an iCloud-offloaded photo with no local copy). */
+export async function uriToDataUrl(uri: string, maxWidth = 1600): Promise<string | null> {
+  try {
+    const out = await manipulateAsync(uri, [{ resize: { width: maxWidth } }], {
+      compress: 0.6,
+      format: SaveFormat.JPEG,
+      base64: true,
+    });
+    return out.base64 ? `data:image/jpeg;base64,${out.base64}` : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Back-compat: just the data URL (callers that don't need the metadata). */
 export async function pickPhotoDataUrl(
   source: 'camera' | 'library',
