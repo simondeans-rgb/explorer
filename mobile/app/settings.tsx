@@ -33,9 +33,9 @@ import { AuthSheet } from '../components/AuthSheet';
 import { DeleteAccountSheet } from '../components/DeleteAccountSheet';
 import { ResolveFlightsSheet } from '../components/ResolveFlightsSheet';
 
-const PRIVACY_URL = 'https://stickynotes-sand.vercel.app/privacy';
-const TERMS_URL = 'https://stickynotes-sand.vercel.app/terms';
-const SUPPORT_EMAIL = 'worldly@simondeans.com';
+const PRIVACY_URL = 'https://www.worldly-explorer.com/privacy.html';
+const TERMS_URL = 'https://www.worldly-explorer.com/terms.html';
+const SUPPORT_EMAIL = 'hello@worldly-explorer.com';
 
 const LABEL = { fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800' as const, letterSpacing: 1, color: COLORS.ink3, marginBottom: 10 };
 

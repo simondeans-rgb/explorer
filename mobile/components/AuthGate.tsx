@@ -19,8 +19,8 @@ import { HERO_CODES } from '../src/lib/heroImages';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
 import { useAuth } from '../src/store/auth';
 
-const PRIVACY_URL = 'https://stickynotes-sand.vercel.app/privacy';
-const TERMS_URL = 'https://stickynotes-sand.vercel.app/terms';
+const PRIVACY_URL = 'https://www.worldly-explorer.com/privacy.html';
+const TERMS_URL = 'https://www.worldly-explorer.com/terms.html';
 
 type Mode = 'in' | 'up';
 
