@@ -13,7 +13,7 @@ import { parseCheckins } from '../src/lib/checkinsImport';
 import { parsePolarsteps, parsePolarstepsZip } from '../src/lib/polarstepsImport';
 import { parseTripit } from '../src/lib/tripitImport';
 import { parseCountryList } from '../src/lib/listImport';
-import { scanPhotosForCountries } from '../src/lib/photoScan';
+import { scanPhotosForCountries, type PhotoCandidate } from '../src/lib/photoScan';
 import { homeRanges } from '../src/lib/residence';
 import { track } from '../src/lib/analytics';
 import { ScanResultSheet } from '../components/ScanResultSheet';
@@ -176,6 +176,7 @@ export default function ImportScreen() {
   const [scanMsg, setScanMsg] = useState<string | null>(null);
   const [scanSheetOpen, setScanSheetOpen] = useState(false);
   const [scanRows, setScanRows] = useState<PlaceRow[]>([]);
+  const [scanPhotoCands, setScanPhotoCands] = useState<Record<string, PhotoCandidate[]>>({});
   const [scanScanned, setScanScanned] = useState(0);
   const [scanLocated, setScanLocated] = useState(0);
   const [scanNote, setScanNote] = useState('');
@@ -265,7 +266,7 @@ export default function ImportScreen() {
     setScanThorough(thorough);
     setScanProgress(0);
     try {
-      const { rows, scanned, located, denied, limited, partial } = await scanPhotosForCountries((p) => setScanProgress(p.scanned), homeRanges(places), { thorough });
+      const { rows, scanned, located, photos, denied, limited, partial } = await scanPhotosForCountries((p) => setScanProgress(p.scanned), homeRanges(places), { thorough });
       if (denied) {
         setScanMsg('Photo access is needed to detect where you’ve been.');
         return;
@@ -289,6 +290,7 @@ export default function ImportScreen() {
       setScanScanned(scanned);
       setScanLocated(located);
       setScanRows(rows);
+      setScanPhotoCands(photos);
       setScanNote(`${limitedNote}${partialNote}`);
       setScanSheetOpen(true);
       track('import_run', { source: 'photo_scan', count: rows.length });
@@ -303,7 +305,10 @@ export default function ImportScreen() {
     setAddBusy(true);
     try {
       const added = await importPlaces(selected);
-      setScanSheetOpen(false);
+      // If the scan carried photo candidates for any added country, the sheet
+      // moves to its opt-in photo step — leave it open for that.
+      const photosFollow = selected.some((r) => (scanPhotoCands[r.countryCode] ?? []).length > 0);
+      if (!photosFollow) setScanSheetOpen(false);
       setScanMsg(
         added > 0
           ? `Added ${added} ${added === 1 ? 'country' : 'countries'} to your map.${scanNote}`
@@ -440,6 +445,7 @@ export default function ImportScreen() {
         located={scanLocated}
         rows={scanRows}
         existingCodes={existingCountryCodes}
+        photos={scanPhotoCands}
         busy={addBusy}
         onClose={() => setScanSheetOpen(false)}
         onConfirm={addScanned}

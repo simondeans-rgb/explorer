@@ -1,20 +1,29 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { Check } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { countryName } from '../src/data/countries';
 import type { PlaceRow } from '../src/lib/flightyImport';
+import type { PhotoCandidate } from '../src/lib/photoScan';
+import { uriToDataUrl } from '../src/lib/photo';
+import { useData } from '../src/store/data';
+import { useToast } from '../src/store/toast';
+import { track } from '../src/lib/analytics';
 
 /** After a photo scan, let the user review the detected countries — which are
- *  new vs already on their map — and choose exactly which new ones to add. */
+ *  new vs already on their map — and choose exactly which new ones to add.
+ *  A second, opt-in step then offers the scanned photos themselves as
+ *  country-page captures (each pre-selected, tap to leave out). */
 export function ScanResultSheet({
   visible,
   scanned,
   located,
   rows,
   existingCodes,
+  photos = {},
   busy,
   onClose,
   onConfirm,
@@ -24,10 +33,18 @@ export function ScanResultSheet({
   located: number;
   rows: PlaceRow[];
   existingCodes: Set<string>;
+  /** Capture candidates per country code, from the scan. */
+  photos?: Record<string, PhotoCandidate[]>;
   busy: boolean;
   onClose: () => void;
   onConfirm: (selected: PlaceRow[]) => void;
 }) {
+  const { addCapture } = useData();
+  const { toast } = useToast();
+  const [step, setStep] = useState<'countries' | 'photos'>('countries');
+  const [photoCodes, setPhotoCodes] = useState<string[]>([]);
+  const [photoSel, setPhotoSel] = useState<Set<string>>(new Set());
+  const [savingPhotos, setSavingPhotos] = useState(false);
   // Split detected countries into new (addable) and already-on-the-map.
   const { fresh, already } = useMemo(() => {
     const seen = new Set<string>();
@@ -46,7 +63,10 @@ export function ScanResultSheet({
   // Selection: every new country starts selected.
   const [selected, setSelected] = useState<Set<string>>(new Set());
   useEffect(() => {
-    if (visible) setSelected(new Set(fresh.map((r) => r.countryCode)));
+    if (visible) {
+      setSelected(new Set(fresh.map((r) => r.countryCode)));
+      setStep('countries');
+    }
   }, [visible, fresh]);
 
   const allOn = fresh.length > 0 && selected.size === fresh.length;
@@ -60,7 +80,109 @@ export function ScanResultSheet({
   const toggleAll = () =>
     setSelected(allOn ? new Set() : new Set(fresh.map((r) => r.countryCode)));
 
-  const confirm = () => onConfirm(fresh.filter((r) => selected.has(r.countryCode)));
+  const confirm = () => {
+    const chosen = fresh.filter((r) => selected.has(r.countryCode));
+    onConfirm(chosen);
+    // Offer the photos themselves next — for the countries just added.
+    const withPhotos = chosen.map((r) => r.countryCode).filter((c) => (photos[c] ?? []).length > 0);
+    if (withPhotos.length > 0) {
+      setPhotoCodes(withPhotos);
+      setPhotoSel(new Set(withPhotos.flatMap((c) => (photos[c] ?? []).map((p) => `${c}|${p.uri}`))));
+      setStep('photos');
+    }
+  };
+
+  async function savePhotos() {
+    if (savingPhotos) return;
+    setSavingPhotos(true);
+    try {
+      let added = 0;
+      for (const code of photoCodes) {
+        for (const p of photos[code] ?? []) {
+          if (!photoSel.has(`${code}|${p.uri}`)) continue;
+          const dataUrl = await uriToDataUrl(p.uri);
+          if (!dataUrl) continue;
+          await addCapture({ dataUrl, countryCode: code, takenAt: p.takenAt });
+          added++;
+        }
+      }
+      track('scan_photos_added', { count: added });
+      if (added > 0) toast.success(`Added ${added} photo${added === 1 ? '' : 's'} to your country pages`);
+      else toast.error("Those photos couldn't be read — they may be in iCloud.");
+    } catch {
+      toast.error("Couldn't add those photos.");
+    } finally {
+      setSavingPhotos(false);
+      onClose();
+    }
+  }
+
+  if (step === 'photos') {
+    return (
+      <SheetShell visible={visible} title="Add the photos too?" onClose={onClose}>
+        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, paddingHorizontal: 20, marginBottom: 6, lineHeight: 18 }}>
+          These are from your scan — add them to each country's page so your map has memories, not just pins. Tap any photo to leave it out.
+        </Text>
+        <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 6, paddingBottom: 8 }}>
+          {photoCodes.map((code) => (
+            <View key={code} style={{ marginBottom: 14 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.navy, marginBottom: 8 }}>
+                {flagEmoji(code)}  {countryName(code)}
+              </Text>
+              <View className="flex-row" style={{ gap: 8 }}>
+                {(photos[code] ?? []).map((p) => {
+                  const key = `${code}|${p.uri}`;
+                  const on = photoSel.has(key);
+                  return (
+                    <Pressable
+                      key={key}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: on }}
+                      onPress={() =>
+                        setPhotoSel((s) => {
+                          const next = new Set(s);
+                          if (next.has(key)) next.delete(key);
+                          else next.add(key);
+                          return next;
+                        })
+                      }
+                      style={{ flex: 1, aspectRatio: 1, borderRadius: 16, overflow: 'hidden', opacity: on ? 1 : 0.4 }}
+                    >
+                      <Image source={{ uri: p.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+                      {on ? (
+                        <View className="items-center justify-center rounded-full" style={{ position: 'absolute', top: 6, right: 6, height: 22, width: 22, backgroundColor: COLORS.coral }}>
+                          <Check size={13} color="#fff" strokeWidth={3} />
+                        </View>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+        <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
+          <Pressable
+            onPress={savePhotos}
+            disabled={savingPhotos || photoSel.size === 0}
+            className="items-center justify-center rounded-2xl"
+            style={{ backgroundColor: COLORS.coral, paddingVertical: 15, opacity: savingPhotos || photoSel.size === 0 ? 0.5 : 1 }}
+          >
+            {savingPhotos ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>
+                Add {photoSel.size} photo{photoSel.size === 1 ? '' : 's'}
+              </Text>
+            )}
+          </Pressable>
+          <Pressable onPress={onClose} disabled={savingPhotos} style={{ alignItems: 'center', paddingVertical: 12 }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '600', color: COLORS.ink3 }}>Skip — just the countries</Text>
+          </Pressable>
+        </View>
+      </SheetShell>
+    );
+  }
 
   return (
     <SheetShell visible={visible} title="Countries we found" onClose={onClose}>
