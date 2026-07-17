@@ -27,7 +27,7 @@ function friendlyAuthError(err: { message?: string; code?: string }): string {
   }
 }
 
-type Busy = null | 'google';
+type Busy = null | 'google' | 'apple';
 
 // Social sign-in needs the native modules, which only exist in a real iOS build
 // (not Expo Go). Decide this with zero native calls — Platform + the Expo Go
@@ -36,8 +36,11 @@ type Busy = null | 'google';
 const SOCIAL_AVAILABLE =
   Platform.OS === 'ios' && Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
 
-/** Google sign-in button, shown only in a real iOS build (never in Expo Go).
- *  On error, the real reason is surfaced to the screen and Sentry. */
+/** Apple + Google sign-in buttons, shown only in a real iOS build (never in
+ *  Expo Go). Apple comes first — App Review guideline 4.8 requires Sign in
+ *  with Apple wherever a third-party login is offered, and Apple's HIG asks
+ *  for it to be at least as prominent. On error, the real reason is surfaced
+ *  to the screen and Sentry. */
 export function SocialAuthButtons({
   onError,
   onBusyChange,
@@ -45,7 +48,7 @@ export function SocialAuthButtons({
   onError: (msg: string | null) => void;
   onBusyChange?: (busy: boolean) => void;
 }) {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, signInWithApple } = useAuth();
   const [busy, setBusy] = useState<Busy>(null);
 
   if (!SOCIAL_AVAILABLE) return null;
@@ -83,6 +86,26 @@ export function SocialAuthButtons({
       </View>
 
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Continue with Apple"
+        onPress={() => run('apple', signInWithApple)}
+        disabled={busy !== null}
+        className="flex-row items-center justify-center rounded-2xl"
+        style={{ backgroundColor: '#000', paddingVertical: 14, gap: 9, opacity: busy ? 0.7 : 1, marginBottom: 10 }}
+      >
+        {busy === 'apple' ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <>
+            <Text style={{ fontSize: 18, color: '#fff', marginTop: -2 }}></Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Continue with Apple</Text>
+          </>
+        )}
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Continue with Google"
         onPress={() => run('google', signInWithGoogle)}
         disabled={busy !== null}
         className="flex-row items-center justify-center rounded-2xl"
