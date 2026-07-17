@@ -1,9 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Camera, ChevronRight, UserPlus, MapPin, CloudUpload } from 'lucide-react-native';
+import { Camera, ChevronRight, UserPlus, MapPin, CloudUpload, CalendarHeart, Sparkles, X } from 'lucide-react-native';
+import { Linking } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { todaysMemories } from '../../src/lib/memories';
+import { track } from '../../src/lib/analytics';
 import { WorldlyLogo } from '../../components/WorldlyLogo';
 import { HeroWave } from '../../components/HeroWave';
 import { Squiggle } from '../../components/Squiggle';
@@ -35,7 +39,7 @@ const TILE_H = 150;
 
 export default function StoryScreen() {
   const { aggregates, stats, level } = useWorldly();
-  const { captures, removeCapture, trips, places, discoveries } = useData();
+  const { captures, removeCapture, trips, places, discoveries, expeditions } = useData();
   const confirm = useConfirm();
   const { width } = useWindowDimensions();
   const { user } = useAuth();
@@ -58,6 +62,27 @@ export default function StoryScreen() {
   const logoWhite = heroLogoIsWhite(activeHero);
   const [addOpen, setAddOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
+  // "On this day" memories + the seasonal Wrapped moment + feedback card.
+  const onThisDay = useMemo(() => todaysMemories(expeditions, places), [expeditions, places]);
+  const isDecember = new Date().getMonth() === 11;
+  const [feedbackDismissed, setFeedbackDismissed] = useState(true);
+  useEffect(() => {
+    AsyncStorage.getItem('worldly:feedbackCardDismissed')
+      .then((v) => setFeedbackDismissed(v === '1'))
+      .catch(() => {});
+  }, []);
+  function dismissFeedback() {
+    setFeedbackDismissed(true);
+    AsyncStorage.setItem('worldly:feedbackCardDismissed', '1').catch(() => {});
+    track('feedback_card_dismissed');
+  }
+  function openFeedback() {
+    track('feedback_card_opened');
+    const body = encodeURIComponent(
+      '1. What do you love / what did you show someone?\n\n2. What annoyed or confused you?\n\n3. What would make you open Worldly after every trip?\n',
+    );
+    Linking.openURL(`mailto:hello@worldly-explorer.com?subject=My%20Worldly%20feedback&body=${body}`).catch(() => {});
+  }
   const [circleItem, setCircleItem] = useState<CircleStoryItem | null>(null);
 
   // A few evocative "from your circle" items — recommendations, wishlists, visits.
@@ -197,6 +222,57 @@ export default function StoryScreen() {
         );
       })()}
 
+      {/* On this day — anniversaries surfaced in-feed, not just as pushes */}
+      {onThisDay.length > 0 ? (
+        <View style={{ paddingHorizontal: 20, paddingTop: 18 }}>
+          <View className="flex-row items-center" style={{ gap: 7, marginBottom: 10 }}>
+            <CalendarHeart size={16} color={COLORS.coral} />
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1.2, color: COLORS.coral }}>ON THIS DAY</Text>
+          </View>
+          <View style={{ gap: 10 }}>
+            {onThisDay.slice(0, 2).map((mem, i) => (
+              <Pressable
+                key={`${mem.label}-${i}`}
+                onPress={() => (mem.countryCode ? router.push(`/country/${mem.countryCode}`) : undefined)}
+                className="bg-white dark:bg-card rounded-3xl flex-row items-center"
+                style={{ padding: 12, gap: 12 }}
+              >
+                <View style={{ height: 58, width: 58, borderRadius: 14, overflow: 'hidden' }}>
+                  <DestinationImage code={mem.countryCode ?? 'WW'} style={{ height: 58, width: 58 }} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: 'Fraunces', fontSize: 15.5, color: COLORS.navy, lineHeight: 21 }}>
+                    {mem.yearsAgo === 1 ? 'A year ago today' : `${mem.yearsAgo} years ago today`}, {mem.kind === 'trip' ? 'you set off to' : 'you were in'} {mem.label}.
+                  </Text>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2 }}>Do you remember it?</Text>
+                </View>
+                {mem.countryCode ? <ChevronRight size={17} color={COLORS.ink3} /> : null}
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {/* December: the Year in Travel moment, pinned */}
+      {isDecember ? (
+        <View style={{ paddingHorizontal: 20, paddingTop: 18 }}>
+          <Pressable onPress={() => { track('wrapped_card_tap'); router.push('/wrapped'); }} style={{ borderRadius: 26, overflow: 'hidden' }}>
+            <LinearGradient colors={['#FF6B9A', '#9B7CFF', '#24D1C3']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 18 }}>
+              <View className="flex-row items-center" style={{ gap: 8 }}>
+                <Sparkles size={16} color="#fff" />
+                <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, opacity: 0.95 }}>YEAR IN TRAVEL</Text>
+              </View>
+              <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 23, marginTop: 6 }}>Your {new Date().getFullYear()}, wrapped</Text>
+              <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.95, marginTop: 3 }}>Every journey of the year, told back to you — ready to share.</Text>
+              <View className="flex-row items-center rounded-full" style={{ alignSelf: 'flex-start', marginTop: 12, backgroundColor: 'rgba(255,255,255,0.24)', paddingLeft: 13, paddingRight: 9, paddingVertical: 7, gap: 4 }}>
+                <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 0.6 }}>WATCH IT</Text>
+                <ChevronRight size={14} color="#fff" />
+              </View>
+            </LinearGradient>
+          </Pressable>
+        </View>
+      ) : null}
+
       {/* Memories */}
       <View style={{ marginTop: 24 }}>
         <View style={{ paddingHorizontal: 20 }}>
@@ -327,6 +403,24 @@ export default function StoryScreen() {
           </ScrollView>
         )}
       </View>
+
+      {/* Founding-explorer feedback card — dismissible, shown until dismissed */}
+      {!feedbackDismissed ? (
+        <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+          <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 18 }}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Dismiss" onPress={dismissFeedback} hitSlop={10} style={{ position: 'absolute', top: 12, right: 12 }}>
+              <X size={16} color={COLORS.ink3} />
+            </Pressable>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 19, color: COLORS.navy, paddingRight: 24 }}>You're one of Worldly's first explorers</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, color: COLORS.ink2, marginTop: 6, lineHeight: 19 }}>
+              Two minutes of your honest feedback shapes what gets built next. What do you love, what's annoying, what's missing?
+            </Text>
+            <Pressable onPress={openFeedback} className="rounded-full items-center justify-center" style={{ alignSelf: 'flex-start', marginTop: 12, backgroundColor: COLORS.coral, paddingHorizontal: 16, paddingVertical: 9 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: '#fff' }}>Share your thoughts</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
 
     </ScrollView>
 

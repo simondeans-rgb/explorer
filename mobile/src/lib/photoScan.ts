@@ -37,6 +37,7 @@ export interface ScanResult {
   denied?: boolean;
   limited?: boolean;
   partial?: boolean; // stopped early on an unexpected error
+  cancelled?: boolean; // the user stopped the scan
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {
@@ -63,6 +64,9 @@ export interface ScanOptions {
    *  but is slower and uses network data. */
   thorough?: boolean;
   maxAssets?: number;
+  /** Set `cancelled` to true to stop the scan; whatever was gathered so far is
+   *  still returned (with `cancelled: true` on the result). */
+  cancel?: { cancelled: boolean };
 }
 
 /** Scan the whole library (paged) for geotagged photos. Photos taken while you
@@ -158,8 +162,9 @@ export async function scanPhotosForCountries(
           }
         }
         onProgress?.({ scanned, countries: earliestYear.size, done: false });
-        if (scanned >= maxAssets) break;
+        if (scanned >= maxAssets || opts.cancel?.cancelled) break;
       }
+      if (opts.cancel?.cancelled) break;
 
       if (!page.hasNextPage) break;
       after = page.endCursor;
@@ -180,5 +185,5 @@ export async function scanPhotosForCountries(
   for (const [code, list] of candidates) {
     photos[code] = list.map(({ uri, takenAt }) => ({ uri, takenAt }));
   }
-  return { rows, scanned, located, photos, limited, partial };
+  return { rows, scanned, located, photos, limited, partial, cancelled: opts.cancel?.cancelled };
 }
