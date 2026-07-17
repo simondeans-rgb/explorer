@@ -221,8 +221,8 @@ export default function StoryScreen() {
             ))}
           </ScrollView>
         ) : (
-          <Pressable onPress={() => setPhotoOpen(true)} className="bg-white dark:bg-card rounded-3xl flex-row" style={{ marginHorizontal: 20, marginTop: 12, overflow: 'hidden', height: TILE_H }}>
-            <Image source={{ uri: MEMORIES_IMG }} style={{ width: '42%', height: TILE_H }} contentFit="cover" transition={300} cachePolicy="memory-disk" />
+          <Pressable onPress={() => setPhotoOpen(true)} className="bg-white dark:bg-card rounded-3xl flex-row" style={{ marginHorizontal: 20, marginTop: 12, overflow: 'hidden', minHeight: TILE_H }}>
+            <Image source={{ uri: MEMORIES_IMG }} style={{ width: '42%', height: '100%' }} contentFit="cover" transition={300} cachePolicy="memory-disk" />
             <View style={{ flex: 1, padding: 16, justifyContent: 'center' }}>
               <Text style={{ fontFamily: 'Fraunces', fontSize: 19, color: COLORS.navy }}>Keep your memories</Text>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 3, lineHeight: 17 }}>Save the moments from your travels and relive them anytime.</Text>
@@ -269,8 +269,8 @@ export default function StoryScreen() {
       ) : (
         <View style={{ marginTop: 24, paddingHorizontal: 20 }}>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, marginBottom: 12 }}>Your circle</Text>
-          <Pressable onPress={() => router.push('/circle')} className="bg-white dark:bg-card rounded-3xl flex-row" style={{ overflow: 'hidden', height: TILE_H }}>
-            <Image source={{ uri: CIRCLE_IMG }} style={{ width: '42%', height: TILE_H }} contentFit="cover" transition={300} cachePolicy="memory-disk" />
+          <Pressable onPress={() => router.push('/circle')} className="bg-white dark:bg-card rounded-3xl flex-row" style={{ overflow: 'hidden', minHeight: TILE_H }}>
+            <Image source={{ uri: CIRCLE_IMG }} style={{ width: '42%', height: '100%' }} contentFit="cover" transition={300} cachePolicy="memory-disk" />
             <View style={{ flex: 1, padding: 16, justifyContent: 'center' }}>
               <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy }}>Travel better together</Text>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 3, lineHeight: 17 }}>Connect with friends to see where they've been and swap recommendations.</Text>

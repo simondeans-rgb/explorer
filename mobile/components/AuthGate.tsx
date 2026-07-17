@@ -164,12 +164,12 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
               ) : null}
 
               <Pressable onPress={submit} disabled={busy} style={{ marginTop: error || notice || mode === 'in' ? 16 : 18, borderRadius: 18, overflow: 'hidden', opacity: busy ? 0.7 : 1 }}>
-                <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="flex-row items-center justify-center" style={{ paddingVertical: 16, gap: 8 }}>
+                <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="flex-row items-center justify-center" style={{ paddingVertical: 16, gap: 8, flexWrap: 'nowrap' }}>
                   {busy ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
                     <>
-                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>
+                      <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff', flexShrink: 1 }}>
                         {mode === 'in' ? 'Sign in' : 'Create account'}
                       </Text>
                       <ArrowRight size={18} color="#fff" />

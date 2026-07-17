@@ -22,3 +22,20 @@ try {
 } catch {
   /* never let a compatibility shim break startup */
 }
+
+// Cap Dynamic Type scaling at 125%. Larger accessibility sizes still scale the
+// whole app up meaningfully, but past this point fixed-height cards, the
+// onboarding footer and pill CTAs clip or overlap (tester report). Components
+// can opt into more with an explicit maxFontSizeMultiplier.
+try {
+  const { Text, TextInput } = require('react-native') as {
+    Text: { defaultProps?: { maxFontSizeMultiplier?: number } };
+    TextInput: { defaultProps?: { maxFontSizeMultiplier?: number } };
+  };
+  for (const C of [Text, TextInput]) {
+    C.defaultProps = C.defaultProps ?? {};
+    if (C.defaultProps.maxFontSizeMultiplier == null) C.defaultProps.maxFontSizeMultiplier = 1.25;
+  }
+} catch {
+  /* never let a compatibility shim break startup */
+}
