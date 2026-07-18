@@ -375,6 +375,21 @@ test('covers: lock progress shows the user how close they are', () => {
   assert.equal(lockProgress(luxury, 40, 5), "Reach Level 8 — you're Level 5");
 });
 
+// ---- Offline city lookup ----------------------------------------------------
+import { cityAt } from '../src/lib/cityLookup';
+
+test('cityLookup: resolves major cities, respects country filter, null in the wild', () => {
+  assert.equal(cityAt(2.35, 48.86)?.name, 'Paris');
+  assert.equal(cityAt(2.35, 48.86)?.countryCode, 'FR');
+  assert.equal(cityAt(-0.13, 51.51)?.name, 'London');
+  // Heathrow (~24km out) still counts as London thanks to the big-city radius.
+  assert.equal(cityAt(-0.45, 51.47, 'GB')?.name, 'London');
+  // A coordinate in Geneva must not match anything French when filtered to FR.
+  assert.notEqual(cityAt(6.14, 46.2, 'FR')?.name ?? null, 'Geneva');
+  // Mid-Atlantic: nothing.
+  assert.equal(cityAt(-30, 30), null);
+});
+
 // ---- "On this day" memories -------------------------------------------------
 import { todaysMemories } from '../src/lib/memories';
 

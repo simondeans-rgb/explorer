@@ -25,8 +25,8 @@ const CORAL_DEEP = '#E2497F';
 const STAT_COLORS = ['#FF6B9A', '#24D1C3', '#9B7CFF', '#FFB84D', '#4DA6FF', '#F2557D'];
 
 export type BookPageSpec =
-  | { kind: 'cover'; heroUrl?: string; firstName: string; generatedOn: string }
-  | { kind: 'title'; firstName: string; generatedOn: string }
+  | { kind: 'cover'; heroUrl?: string; firstName: string; generatedOn: string; edition?: number }
+  | { kind: 'title'; firstName: string; generatedOn: string; edition?: number }
   | { kind: 'story'; folio: number; paragraphs: string[] }
   | { kind: 'pictures'; folio: number; cards: { url: string; code: string; name: string }[] }
   | {
@@ -76,8 +76,8 @@ export function buildBookPages(input: AlmanacBookInput): BookPageSpec[] {
   const url = (code?: string) => (code && hasDestinationPhoto(code) ? destinationImage(code).photo : undefined);
   let folio = 0;
   const pages: BookPageSpec[] = [
-    { kind: 'cover', heroUrl: url(input.heroCode), firstName: first, generatedOn: input.generatedOn },
-    { kind: 'title', firstName: first, generatedOn: input.generatedOn },
+    { kind: 'cover', heroUrl: url(input.heroCode), firstName: first, generatedOn: input.generatedOn, edition: input.edition },
+    { kind: 'title', firstName: first, generatedOn: input.generatedOn, edition: input.edition },
   ];
   if (input.storyParagraphs?.length) {
     pages.push({ kind: 'story', folio: ++folio, paragraphs: input.storyParagraphs.slice(0, 5) });
@@ -216,10 +216,12 @@ export function AlmanacBookPage({
             <Text style={{ fontFamily: F.serif, fontSize: 40, color: '#fff' }}>worldly</Text>
             <View>
               <Text style={{ fontFamily: F.sans, fontSize: 18, fontWeight: '800', letterSpacing: 5, color: '#FFD9E5' }}>
-                A RECORD OF EVERYWHERE YOU’VE BEEN
+                {spec.edition ? `THE YEAR ${spec.edition}, IN FULL` : 'A RECORD OF EVERYWHERE YOU’VE BEEN'}
               </Text>
               <View style={{ width: 64, height: 4, borderRadius: 3, backgroundColor: CORAL, marginTop: 12, marginBottom: 10 }} />
-              <Text style={{ fontFamily: F.serif, fontSize: 104, lineHeight: 108, color: '#fff' }}>The{'\n'}Almanac</Text>
+              <Text style={{ fontFamily: F.serif, fontSize: 104, lineHeight: 108, color: '#fff' }}>
+                {spec.edition ? `Your\n${spec.edition}` : 'The\nAlmanac'}
+              </Text>
               <Text style={{ fontFamily: F.sans, fontSize: 19, letterSpacing: 4, color: 'rgba(255,255,255,0.92)', marginTop: 22 }}>
                 {spec.firstName.toUpperCase()}’S EDITION · {spec.generatedOn}
               </Text>
@@ -233,10 +235,14 @@ export function AlmanacBookPage({
         <View style={{ ...base, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontFamily: F.serif, fontSize: 30, color: INK }}>worldly</Text>
           <View style={{ width: 64, height: 4, borderRadius: 3, backgroundColor: CORAL, marginVertical: 16 }} />
-          <Text style={{ fontFamily: F.serif, fontSize: 64, color: INK, marginTop: 10 }}>The Almanac</Text>
-          <Text style={{ fontFamily: F.sans, fontSize: 19, color: MUTED, marginTop: 12 }}>A record of everywhere you’ve been</Text>
+          <Text style={{ fontFamily: F.serif, fontSize: 64, color: INK, marginTop: 10 }}>
+            {spec.edition ? `Your ${spec.edition}` : 'The Almanac'}
+          </Text>
+          <Text style={{ fontFamily: F.sans, fontSize: 19, color: MUTED, marginTop: 12 }}>
+            {spec.edition ? `A record of your ${spec.edition} travels` : 'A record of everywhere you’ve been'}
+          </Text>
           <Text style={{ fontFamily: F.sans, fontSize: 13, fontWeight: '700', letterSpacing: 3, color: FAINT, marginTop: 64, lineHeight: 26, textAlign: 'center' }}>
-            FIRST EDITION · PRINTED {spec.generatedOn.toUpperCase()}
+            {spec.edition ? `${spec.edition} VOLUME` : 'FIRST EDITION'} · PRINTED {spec.generatedOn.toUpperCase()}
             {'\n'}FOR {spec.firstName.toUpperCase()}
           </Text>
         </View>

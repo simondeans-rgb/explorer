@@ -66,6 +66,19 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
 
+    // One-line replies on a capture. Anyone signed in may read (counts render
+    // wherever the capture is visible); authors write their own, short, text.
+    match /replies/{replyId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.captureId is string
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 280;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
     // Saved bookmarks stay private to their owner.
     match /saved/{savedId} {
       allow read, update, delete: if isOwner();

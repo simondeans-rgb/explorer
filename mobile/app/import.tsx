@@ -187,6 +187,10 @@ export default function ImportScreen() {
   const existingCountryCodes = new Set(
     places.filter((p) => p.kind === 'country' && p.countryCode).map((p) => p.countryCode),
   );
+  // Cities already recorded, keyed like the scan sheet expects.
+  const existingCityKeys = new Set(
+    places.filter((p) => p.kind === 'city' && p.name).map((p) => `${p.countryCode}|${p.name!.toLowerCase()}`),
+  );
 
   async function importFlighty() {
     setCsvMsg(null);
@@ -317,8 +321,8 @@ export default function ImportScreen() {
       if (!photosFollow) setScanSheetOpen(false);
       setScanMsg(
         added > 0
-          ? `Added ${added} ${added === 1 ? 'country' : 'countries'} to your map.${scanNote}`
-          : `No new countries added.${scanNote}`,
+          ? `Added ${added} new place${added === 1 ? '' : 's'} to your map.${scanNote}`
+          : `No new places added.${scanNote}`,
       );
     } catch {
       setScanMsg('Could not add those countries.');
@@ -417,7 +421,7 @@ export default function ImportScreen() {
         </Card>
 
         {/* Photos */}
-        <Card icon={Images} title="Scan your photos" body="We read each photo’s location tag and date (on your device only) to detect the countries you’ve visited, in the right year — and skip anywhere you lived at the time, so home doesn’t count as a trip. Scanning your whole library can take a minute.">
+        <Card icon={Images} title="Scan your photos" body="We read each photo’s location tag and date (on your device only) to detect the countries and cities you’ve visited, in the right year — and skip anywhere you lived at the time, so home doesn’t count as a trip. Scanning your whole library can take a minute.">
           <Pressable onPress={() => scanPhotos(false)} disabled={scanBusy} style={btn(scanBusy)}>
             {scanBusy && !scanThorough ? (
               <Text style={btnText}>Scanning… {scanProgress} photos</Text>
@@ -456,6 +460,7 @@ export default function ImportScreen() {
         located={scanLocated}
         rows={scanRows}
         existingCodes={existingCountryCodes}
+        existingCityKeys={existingCityKeys}
         photos={scanPhotoCands}
         busy={addBusy}
         onClose={() => setScanSheetOpen(false)}
