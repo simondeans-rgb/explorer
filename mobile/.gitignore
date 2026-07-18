@@ -43,3 +43,5 @@ yarn-error.*
 # iOS signing credentials (local, never commit)
 credentials/
 credentials.json
+credentials.json
+creds/
