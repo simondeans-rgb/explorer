@@ -428,4 +428,28 @@ test('memories: undated or malformed dates never match', () => {
   assert.deepEqual(todaysMemories(trips, [], now), []);
 });
 
+// ---- Passport Cover Engine --------------------------------------------------
+import { geometryFingerprint } from '../covers-engine/src/geometry';
+import { COVER_THEMES } from '../src/lib/coverThemes.gen';
+
+test('cover engine: the protected W geometry is locked', () => {
+  // The Worldly mark is the brand. If this fails, geometry.ts was edited —
+  // that must be a deliberate brand decision, not a side effect.
+  assert.equal(geometryFingerprint(), '82a653b6');
+});
+
+test('cover engine: every theme is complete and well-formed', () => {
+  const hex = /^#[0-9A-F]{6}$/i;
+  const names = Object.keys(COVER_THEMES);
+  assert.ok(names.length >= 27);
+  assert.ok(names.includes('Classic'));
+  for (const t of Object.values(COVER_THEMES)) {
+    assert.ok(hex.test(t.accent), `${t.icon} accent`);
+    assert.equal(t.gradient.length, 2, `${t.icon} gradient`);
+    assert.ok(t.gradient.every((g) => hex.test(g)), `${t.icon} gradient hex`);
+    assert.ok(hex.test(t.androidBg), `${t.icon} androidBg`);
+    if (t.particles !== 'none') assert.ok(t.particleColors.length > 0, `${t.icon} particleColors`);
+  }
+});
+
 console.log(`✓ all ${passed} tests passed`);
