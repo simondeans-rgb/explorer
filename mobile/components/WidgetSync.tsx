@@ -1,14 +1,20 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import { useWorldly } from '../src/hooks/useWorldly';
 import { useData } from '../src/store/data';
+import { reportError } from '../src/lib/sentry';
 
-const APP_GROUP = 'group.com.simmyd23.worldly';
+interface WidgetBridge {
+  setWidgetData(json: string): Promise<boolean>;
+}
+
+// Null on binaries built before the widget existed — those have nothing to sync.
+const bridge = requireOptionalNativeModule<WidgetBridge>('WorldlyWidgetBridge');
 
 /** Pushes headline stats into the shared app group for the home-screen widget
  *  (countries, cities, level, next-trip countdown) and asks WidgetKit to
- *  refresh. Renders nothing. The ExtensionStorage native module only exists in
- *  binaries built with the widget — older builds no-op via the try/catch. */
+ *  refresh. Renders nothing. */
 export function WidgetSync() {
   const { stats, level } = useWorldly();
   const { trips } = useData();
@@ -27,16 +33,8 @@ export function WidgetSync() {
   });
 
   useEffect(() => {
-    if (Platform.OS !== 'ios') return;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy on purpose: module absent in pre-widget binaries
-      const { ExtensionStorage } = require('@bacons/apple-targets') as typeof import('@bacons/apple-targets');
-      const storage = new ExtensionStorage(APP_GROUP);
-      storage.set('widgetData', payload);
-      ExtensionStorage.reloadWidget();
-    } catch {
-      /* binary without the widget module — nothing to sync */
-    }
+    if (Platform.OS !== 'ios' || !bridge) return;
+    bridge.setWidgetData(payload).catch((e) => reportError(e, { where: 'widgetSync' }));
   }, [payload]);
 
   return null;
