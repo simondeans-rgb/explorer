@@ -4,13 +4,15 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, Lock, Sparkles } from 'lucide-react-native';
 import { BackButton } from '../components/BackButton';
-import { COLORS, GRADIENTS } from '../src/lib/theme';
+import { COLORS } from '../src/lib/theme';
 import { goBack } from '../src/lib/nav';
 import { useWorldly } from '../src/hooks/useWorldly';
 import { getCoverState, applyCover, lockReason, lockProgress, seasonActive, COVER_SECTIONS, type CoverDef, type CoverState } from '../src/lib/covers';
 import { billingEnabled } from '../src/lib/billing';
 import { COVER_PRICE_PACK } from '../src/lib/limits';
 import { track } from '../src/lib/analytics';
+import { COVER_THEMES } from '../src/lib/coverThemes.gen';
+import { CoverParticles } from '../components/CoverParticles';
 
 /** Passport Covers — pick an alternate app icon. On binaries without the
  *  native module the grid is a read-only preview with an "arriving soon" note.
@@ -35,6 +37,9 @@ export default function CoversScreen() {
   const available = state != null;
   const current = state?.current ?? null;
   const cell = (width - 40 - 24) / 3;
+  // The active cover themes this screen: header gradient + ambient particles.
+  const theme = COVER_THEMES[current ?? 'Classic'] ?? COVER_THEMES.Classic;
+  const HEADER_H = 148;
 
   const month = new Date().getMonth() + 1;
 
@@ -75,7 +80,8 @@ export default function CoversScreen() {
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Header */}
-        <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingTop: 60, paddingBottom: 26, paddingHorizontal: 22 }}>
+        <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingTop: 60, paddingBottom: 26, paddingHorizontal: 22, minHeight: HEADER_H, overflow: 'hidden' }}>
+          <CoverParticles profile={theme.particles} colors={theme.particleColors} width={width} height={HEADER_H + 40} />
           <BackButton onPress={goBack} style={{ position: 'absolute', top: 58, left: 18, zIndex: 20 }} />
           <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1.5, opacity: 0.9, textAlign: 'center' }}>EXPRESS YOUR STYLE</Text>
           <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 30, textAlign: 'center', marginTop: 2 }}>Passport Covers</Text>
@@ -133,7 +139,7 @@ export default function CoversScreen() {
                     onPress={() => pick(cover, inSeason)}
                     style={{ width: cell, opacity: busy ? 0.7 : 1 }}
                   >
-                    <View style={{ borderRadius: 28, padding: 3, borderWidth: 2.5, borderColor: selected ? COLORS.coral : 'transparent', backgroundColor: selected ? 'rgba(255,107,154,0.08)' : 'transparent', shadowColor: '#14213D', shadowOpacity: selected ? 0.22 : 0.1, shadowRadius: selected ? 12 : 8, shadowOffset: { width: 0, height: 5 } }}>
+                    <View style={{ borderRadius: 28, padding: 3, borderWidth: 2.5, borderColor: selected ? theme.accent : 'transparent', backgroundColor: selected ? `${theme.accent}14` : 'transparent', shadowColor: '#14213D', shadowOpacity: selected ? 0.22 : 0.1, shadowRadius: selected ? 12 : 8, shadowOffset: { width: 0, height: 5 } }}>
                       <View style={{ borderRadius: 24, overflow: 'hidden' }}>
                         <Image source={cover.preview} style={{ width: '100%', aspectRatio: 1 }} contentFit="cover" />
                         {locked ? (
@@ -155,7 +161,7 @@ export default function CoversScreen() {
                         ) : null}
                       </View>
                       {selected ? (
-                        <View className="items-center justify-center rounded-full" style={{ position: 'absolute', top: -5, right: -5, height: 26, width: 26, backgroundColor: COLORS.coral, borderWidth: 2, borderColor: '#fff' }}>
+                        <View className="items-center justify-center rounded-full" style={{ position: 'absolute', top: -5, right: -5, height: 26, width: 26, backgroundColor: theme.accent, borderWidth: 2, borderColor: '#fff' }}>
                           <Check size={14} color="#fff" strokeWidth={3} />
                         </View>
                       ) : null}

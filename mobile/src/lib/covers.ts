@@ -96,6 +96,17 @@ export const COVER_SECTIONS: CoverSection[] = [
     ],
   },
   {
+    title: 'Voyager Pack',
+    tagline: 'Four new journeys for the shelf — city, memory, mountain, desert.',
+    access: 'explorer',
+    covers: [
+      { name: 'Metropolis', title: 'Metropolis', tagline: 'Dusk over the skyline', preview: require('../../assets/icons/covers/previews/metropolis.png'), isNew: true },
+      { name: 'VintageVoyage', title: 'Vintage Voyage', tagline: 'A well-stamped passport page', preview: require('../../assets/icons/covers/previews/vintage-voyage.png'), isNew: true },
+      { name: 'Summit', title: 'Summit', tagline: 'Alpine dawn, thin air', preview: require('../../assets/icons/covers/previews/summit.png'), isNew: true },
+      { name: 'Oasis', title: 'Oasis', tagline: 'Desert dusk, warm sand', preview: require('../../assets/icons/covers/previews/oasis.png'), isNew: true },
+    ],
+  },
+  {
     title: 'Pride Pack',
     tagline: 'Celebrate every journey, loudly or quietly.',
     access: 'explorer',

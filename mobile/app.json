@@ -289,6 +289,38 @@
               "foregroundImage": "./assets/images/android-icon-foreground.png",
               "backgroundColor": "#31185C"
             }
+          },
+          {
+            "name": "Metropolis",
+            "ios": "./assets/icons/covers/metropolis.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#141F49"
+            }
+          },
+          {
+            "name": "VintageVoyage",
+            "ios": "./assets/icons/covers/vintage-voyage.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#B29360"
+            }
+          },
+          {
+            "name": "Summit",
+            "ios": "./assets/icons/covers/summit.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#16294F"
+            }
+          },
+          {
+            "name": "Oasis",
+            "ios": "./assets/icons/covers/oasis.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#7A3A55"
+            }
           }
         ]
       ],
