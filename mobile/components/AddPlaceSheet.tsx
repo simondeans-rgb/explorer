@@ -10,6 +10,7 @@ import { RELATIONSHIPS, RELATIONSHIP_META, type Relationship } from '../src/type
 import { router } from 'expo-router';
 import { useData } from '../src/store/data';
 import { shouldGate } from '../src/lib/billing';
+import { maybeAskForRating } from '../src/lib/rating';
 import { useToast } from '../src/store/toast';
 import { useConfirm } from '../src/store/confirm';
 
@@ -87,6 +88,12 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
       residencePeriods,
     });
     toast.success(kind === 'city' ? 'City added' : 'Country added');
+    // Milestone countries are a high note — the right moment to ask for a
+    // rating (no-op on binaries without the store-review module).
+    if (kind === 'country') {
+      const count = new Set(places.filter((p) => p.kind === 'country').map((p) => p.countryCode)).size + 1;
+      if (count === 10 || count === 25 || count === 50) maybeAskForRating(`country_${count}`);
+    }
     const wasResidence = isResidence;
     const newCode = code;
     close();

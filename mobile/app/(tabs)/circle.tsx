@@ -4,8 +4,10 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import type { ComponentType } from 'react';
-import { UserPlus, ArrowRight, MapPin, Star, Plus, Sparkles, Settings2, Gem, BookmarkCheck, Check, HeartHandshake, Heart } from 'lucide-react-native';
+import { UserPlus, ArrowRight, MapPin, Star, Plus, Sparkles, Settings2, Gem, BookmarkCheck, Check, HeartHandshake, Heart, MessageCircle } from 'lucide-react-native';
 import { useLikes } from '../../src/hooks/useLikes';
+import { useReplies } from '../../src/hooks/useReplies';
+import { ReplySheet } from '../../components/ReplySheet';
 import { PageHero } from '../../components/PageHero';
 import { LandmarkDetailSheet } from '../../components/LandmarkDetailSheet';
 import { COLORS, GRADIENTS, SHADOW, HERO_HEIGHT } from '../../src/lib/theme';
@@ -199,10 +201,10 @@ export default function CircleScreen() {
       .slice(0, 12)
       .map((c) => ({ ...c, friend: nameByUid.get(c.userId) ?? 'A friend' }));
   }, [friendsData.captures, friends]);
-  const { likes, toggle } = useLikes(
-    useMemo(() => snaps.map((s) => s.id), [snaps]),
-    user?.uid,
-  );
+  const snapIds = useMemo(() => snaps.map((s) => s.id), [snaps]);
+  const { likes, toggle } = useLikes(snapIds, user?.uid);
+  const replies = useReplies(snapIds, !!user?.uid);
+  const [replySnap, setReplySnap] = useState<(typeof snaps)[number] | null>(null);
 
   const hasContent = activity.length > 0 || snaps.length > 0 || recs.length > 0 || !!mostVisited || recents.length > 0 || wishes.length > 0 || compat.length > 0;
   const savedMostVisited = mostVisited ? myPlaces.some((p) => p.kind === 'country' && p.countryCode === mostVisited.countryCode) : false;
@@ -305,7 +307,7 @@ export default function CircleScreen() {
           {/* Snaps from your circle */}
           {snaps.length > 0 ? (
             <>
-              <SectionTitle hint="Tap the heart to cheer them on">From your circle's camera roll</SectionTitle>
+              <SectionTitle hint="Cheer with a heart, or leave a reply">From your circle's camera roll</SectionTitle>
               <View style={{ marginHorizontal: -20 }}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
                   {snaps.map((s) => {
@@ -324,6 +326,10 @@ export default function CircleScreen() {
                         <Pressable onPress={() => toggle(s.id, s.userId)} hitSlop={8} className="absolute flex-row items-center rounded-full" style={{ top: 8, right: 8, gap: 4, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: 'rgba(0,0,0,0.4)' }}>
                           <Heart size={14} color={st.likedByMe ? COLORS.coral : '#fff'} fill={st.likedByMe ? COLORS.coral : 'transparent'} />
                           {st.count > 0 ? <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700' }}>{st.count}</Text> : null}
+                        </Pressable>
+                        <Pressable accessibilityLabel={`Reply to ${s.friend}`} onPress={() => setReplySnap(s)} hitSlop={8} className="absolute flex-row items-center rounded-full" style={{ top: 8, left: 8, gap: 4, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                          <MessageCircle size={14} color="#fff" />
+                          {(replies[s.id]?.length ?? 0) > 0 ? <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700' }}>{replies[s.id].length}</Text> : null}
                         </Pressable>
                       </View>
                     );
@@ -547,6 +553,13 @@ export default function CircleScreen() {
         </View>
       )}
 
+      <ReplySheet
+        snap={replySnap}
+        replies={replySnap ? (replies[replySnap.id] ?? []) : []}
+        myUid={user?.uid}
+        myName={myName}
+        onClose={() => setReplySnap(null)}
+      />
       <LandmarkDetailSheet
         visible={!!rec}
         onClose={() => setRec(null)}

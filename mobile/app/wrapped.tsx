@@ -18,6 +18,7 @@ import { DISCOVERY_CATEGORY_META, type DiscoveryCategory } from '../src/types';
 import { useWorldly } from '../src/hooks/useWorldly';
 import { useAuth } from '../src/store/auth';
 import { shareWrappedPoster } from '../src/lib/wrappedPoster';
+import { maybeAskForRating } from '../src/lib/rating';
 import { shareViewAsPng } from '../src/lib/shareImage';
 import { canExportFrameVideo, encodeFramesToVideo } from '../src/lib/frameVideo';
 import { track } from '../src/lib/analytics';
@@ -176,6 +177,7 @@ export default function WrappedScreen() {
           });
         }
         track('wrapped_shared', { scope, format: 'mp4' });
+        maybeAskForRating('wrapped_video_share');
       }
     } catch {
       /* user dismissed or capture/encode failed */
@@ -220,6 +222,7 @@ export default function WrappedScreen() {
         });
       }
       track('wrapped_shared', { scope, format: asImage ? 'png' : 'pdf' });
+      maybeAskForRating('wrapped_share');
     } catch {
       /* user dismissed or print unavailable */
     } finally {

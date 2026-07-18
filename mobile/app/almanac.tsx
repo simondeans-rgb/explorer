@@ -183,7 +183,8 @@ export default function AlmanacScreen() {
 
   // "Journeys of record" — the trips with the most to show (own photos first,
   // then journeys/notes), capped at 8 pages and told in chronological order.
-  const tripSpreads = useMemo(() => {
+  // A plain function so year volumes can rebuild it over a filtered trip list.
+  const makeTripSpreads = (sourceExpeditions: Expedition[]) => {
     const capsByTrip = new Map<string, typeof captures>();
     for (const c of captures) {
       if (!c.expeditionId) continue;
@@ -200,7 +201,7 @@ export default function AlmanacScreen() {
     }
     const fmtDay = (iso?: string) =>
       iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : undefined;
-    return expeditions
+    return sourceExpeditions
       .map((e) => {
         const caps = [...(capsByTrip.get(e.id) ?? [])].sort(
           (a, b) => (a.takenAt ?? a.createdAt) - (b.takenAt ?? b.createdAt),
@@ -248,7 +249,12 @@ export default function AlmanacScreen() {
             : undefined,
         };
       });
-  }, [captures, discoveries, expeditions, unit, firstTripId]);
+  };
+  const tripSpreads = useMemo(
+    () => makeTripSpreads(expeditions),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- makeTripSpreads reads only these
+    [captures, discoveries, expeditions, unit, firstTripId],
+  );
 
   const figures: [string, number, IconCmp, string][] = [
     ['Countries discovered', stats.countriesDiscovered, Globe2, COLORS.coral],
@@ -268,46 +274,90 @@ export default function AlmanacScreen() {
   ];
 
   function buildBookInput() {
+    // Year volumes ("Your 2025") build from the year's slice of everything;
+    // the lifetime Almanac uses the full record.
+    const year = yearView ? (edition as number) : undefined;
+    const scopedExp = year ? yearExpeditions : expeditions;
+    const scopedDisc = year ? yearDiscoveries : discoveries;
+    const scopeCodes = year
+      ? (() => {
+          const s = new Set<string>();
+          for (const e of scopedExp) for (const c of e.countryCodes) s.add(c);
+          for (const p of yearPlaces) if (p.countryCode) s.add(p.countryCode);
+          return s;
+        })()
+      : null;
+    const ranked = scopeCodes ? photoRanked.filter((a) => scopeCodes.has(a.code)) : photoRanked;
+    const chapters = CONTINENTS.map((c) => {
+      const all = byContinent.get(c) ?? [];
+      return { name: c, list: scopeCodes ? all.filter((a) => scopeCodes.has(a.code)) : all };
+    }).filter((c) => c.list.length > 0);
+
     // The book's imagery never repeats: the cover leads with the most-explored
     // country AWAY from home, and every later stock photo (continent covers,
     // trip heroes) avoids countries already pictured.
     const used = new Set<string>();
-    const heroCode = (photoRanked.find((a) => !homeCodes.has(a.code)) ?? photoRanked[0])?.code;
+    const heroCode = (ranked.find((a) => !homeCodes.has(a.code)) ?? ranked[0])?.code;
     if (heroCode) used.add(heroCode);
-    const strip = photoRanked.slice(0, 7).map((a) => ({ code: a.code, name: a.name }));
+    const strip = ranked.slice(0, 7).map((a) => ({ code: a.code, name: a.name }));
     for (const s of strip.slice(0, 5)) used.add(s.code);
     return {
       firstName,
       generatedOn: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }),
+      edition: year,
       heroCode,
       photoStrip: strip,
-      storyParagraphs,
-      figures: figures.map(([label, value]) => ({ label, value })),
-      continents: CONTINENTS.filter((c) => byContinent.has(c)).map((c) => {
-        const list = byContinent.get(c) ?? [];
+      storyParagraphs: year
+        ? buildAlmanacStory({
+            expeditions: scopedExp,
+            discoveries: scopedDisc,
+            countryName: (code) => nameOf.get(code) ?? code,
+            homeCodes,
+            legMiles,
+            formatMiles: fmtMiles,
+          })
+        : storyParagraphs,
+      figures: year
+        ? [
+            { label: 'Countries', value: scopeCodes!.size },
+            { label: 'Cities', value: yearPlaces.filter((p) => p.kind === 'city').length },
+            { label: 'Journeys', value: scopedExp.length },
+            { label: 'Discoveries', value: scopedDisc.length },
+            { label: 'Continents', value: chapters.length },
+          ].filter((f) => f.value > 0)
+        : figures.map(([label, value]) => ({ label, value })),
+      continents: chapters.map(({ name, list }) => {
         const earliest = [...list].filter((a) => a.firstYear).sort((a, b) => a.firstYear! - b.firstYear!)[0];
         return {
-          name: c,
+          name,
           coverCode: continentCover(list, used),
-          intro: earliest ? `You first set foot here in ${earliest.firstYear} — ${countryWithArticle(earliest.code, earliest.name)}.` : undefined,
+          intro:
+            !year && earliest
+              ? `You first set foot here in ${earliest.firstYear} — ${countryWithArticle(earliest.code, earliest.name)}.`
+              : undefined,
           countries: list.map((a) => ({ code: a.code, name: a.name })),
         };
       }),
-      trips: tripSpreads.map((t) => {
+      trips: (year ? makeTripSpreads(scopedExp) : tripSpreads).map((t) => {
         if (t.photos.length) return t;
         const alt = t.flagCodes.find((c) => hasDestinationPhoto(c) && !used.has(c));
         const chosen = alt ?? t.heroCode;
         if (chosen) used.add(chosen);
         return { ...t, heroCode: chosen };
       }),
-      relationships: RELATIONSHIPS.filter((r) => relationshipCounts[r] > 0).map((r) => ({
-        label: RELATIONSHIP_META[r].label,
-        count: relationshipCounts[r],
-      })),
-      categories: catRows
-        .map(([key, label]) => ({ label, count: discoveryStats.byCategory[key] }))
-        .filter((c) => c.count > 0),
-      recognitions: earned.map((r) => ({ symbol: r.symbol, title: r.title, description: r.description })),
+      // Relationship + recognition tallies are lifetime concepts — a single
+      // year's volume leaves them out rather than showing misleading totals.
+      relationships: year
+        ? []
+        : RELATIONSHIPS.filter((r) => relationshipCounts[r] > 0).map((r) => ({
+            label: RELATIONSHIP_META[r].label,
+            count: relationshipCounts[r],
+          })),
+      categories: (year
+        ? catRows.map(([key, label]) => ({ label, count: scopedDisc.filter((d) => d.category === key).length }))
+        : catRows.map(([key, label]) => ({ label, count: discoveryStats.byCategory[key] }))
+      ).filter((c) => c.count > 0),
+      recognitions: year ? [] : earned.map((r) => ({ symbol: r.symbol, title: r.title, description: r.description })),
     };
   }
 
@@ -512,6 +562,21 @@ export default function AlmanacScreen() {
                 ) : null}
               </View>
             )}
+            {yearPlaces.length > 0 || yearExpeditions.length > 0 || yearDiscoveries.length > 0 ? (
+              <View style={{ marginTop: 16 }}>
+                <Pressable onPress={exportBook} disabled={exporting || printJob != null} style={{ borderRadius: 24, overflow: 'hidden', opacity: exporting || printJob ? 0.6 : 1 }}>
+                  <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 10 }}>
+                    <BookOpen size={18} color="#fff" />
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>
+                      {printJob ? (printStatus ?? 'Preparing your book…') : exporting ? 'Preparing your book…' : `Export "Your ${edition}"`}
+                    </Text>
+                  </LinearGradient>
+                </Pressable>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 8, textAlign: 'center' }}>
+                  A printable volume of just this year — one for every shelf.
+                </Text>
+              </View>
+            ) : null}
           </Section>
         )}
       </ScrollView>

@@ -51,6 +51,9 @@ export interface TripSpread {
 export interface AlmanacBookInput {
   firstName: string;
   generatedOn: string;
+  /** When set, this is a single-year volume ("Your 2025") rather than the
+   *  lifetime Almanac — covers and title pages say so. */
+  edition?: number;
   /** Cover photo country (the most deeply explored). */
   heroCode?: string;
   /** "Your world in pictures" spread, best-explored first. */
@@ -107,9 +110,9 @@ function coverPage(input: AlmanacBookInput, photos: PhotoMap, first: string): Bo
     <div class="coverin">
       <div class="coverbrand">worldly</div>
       <div>
-        <div class="eyebrow">A RECORD OF EVERYWHERE YOU&#8217;VE BEEN</div>
+        <div class="eyebrow">${input.edition ? `THE YEAR ${input.edition}, IN FULL` : 'A RECORD OF EVERYWHERE YOU&#8217;VE BEEN'}</div>
         <div class="eyeline"></div>
-        <div class="covertitle">The<br>Almanac</div>
+        <div class="covertitle">${input.edition ? `Your<br>${input.edition}` : 'The<br>Almanac'}</div>
         <div class="covername">${esc(first.toUpperCase())}&#8217;S EDITION &nbsp;&middot;&nbsp; ${esc(input.generatedOn)}</div>
       </div>
     </div>`,
@@ -122,9 +125,9 @@ function titlePage(input: AlmanacBookInput, first: string): BookPage {
     body: `<div>
       <div class="tpbrand">worldly</div>
       <div class="eyeline center"></div>
-      <div class="tptitle">The Almanac</div>
-      <div class="tpsub">A record of everywhere you&#8217;ve been</div>
-      <div class="tpedition">FIRST EDITION &nbsp;&middot;&nbsp; PRINTED ${esc(input.generatedOn.toUpperCase())}<br>FOR ${esc(first.toUpperCase())}</div>
+      <div class="tptitle">${input.edition ? `Your ${input.edition}` : 'The Almanac'}</div>
+      <div class="tpsub">${input.edition ? `A record of your ${input.edition} travels` : 'A record of everywhere you&#8217;ve been'}</div>
+      <div class="tpedition">${input.edition ? `${input.edition} VOLUME` : 'FIRST EDITION'} &nbsp;&middot;&nbsp; PRINTED ${esc(input.generatedOn.toUpperCase())}<br>FOR ${esc(first.toUpperCase())}</div>
     </div>`,
   };
 }

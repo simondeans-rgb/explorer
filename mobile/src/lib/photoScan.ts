@@ -8,6 +8,7 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import type { PlaceRow } from './flightyImport';
 import { isHome, type HomeRange } from './residence';
 import { countryAt } from './geoLookup';
+import { cityAt } from './cityLookup';
 
 // Keep the screen on for the duration of a scan: a large library can take a
 // while, and an auto-lock mid-scan would suspend JS and leave it unfinished.
@@ -95,7 +96,12 @@ export async function scanPhotosForCountries(
   const limited = perm.accessPrivileges === 'limited';
 
   const coordCache = new Map<string, string | null>();
+  // City matching wants finer cells than the country cache (~1km vs ~11km) so
+  // neighbouring photos don't inherit the wrong town.
+  const cityCache = new Map<string, string | null>();
   const earliestYear = new Map<string, number | undefined>();
+  // Earliest year per detected city, keyed `${countryCode}|${cityName}`.
+  const cityYear = new Map<string, number | undefined>();
   // Candidate captures: up to 3 photos per country, each from a different day
   // so a burst of near-identical shots doesn't fill all the slots.
   const candidates = new Map<string, (PhotoCandidate & { day: number })[]>();
@@ -150,6 +156,23 @@ export async function scanPhotosForCountries(
           const prev = earliestYear.get(code);
           if (!earliestYear.has(code)) earliestYear.set(code, year);
           else if (year && (!prev || year < prev)) earliestYear.set(code, year);
+          // Which city? Offline nearest-city match, cached per ~1km cell.
+          const cKey = `${lat.toFixed(2)},${lng.toFixed(2)}`;
+          let city = cityCache.get(cKey);
+          if (city === undefined) {
+            try {
+              city = cityAt(lng, lat, code)?.name ?? null;
+            } catch {
+              city = null;
+            }
+            cityCache.set(cKey, city);
+          }
+          if (city) {
+            const ck = `${code}|${city}`;
+            const cPrev = cityYear.get(ck);
+            if (!cityYear.has(ck)) cityYear.set(ck, year);
+            else if (year && (!cPrev || year < cPrev)) cityYear.set(ck, year);
+          }
           // Remember a few stills as capture candidates (photos only — videos
           // can't become JPEG captures).
           if (group[i].mediaType === MediaLibrary.MediaType.photo) {
@@ -181,6 +204,10 @@ export async function scanPhotosForCountries(
     countryCode: code,
     firstYear: year,
   }));
+  for (const [ck, year] of cityYear) {
+    const [code, name] = ck.split('|');
+    rows.push({ kind: 'city', countryCode: code, name, firstYear: year });
+  }
   const photos: Record<string, PhotoCandidate[]> = {};
   for (const [code, list] of candidates) {
     photos[code] = list.map(({ uri, takenAt }) => ({ uri, takenAt }));
