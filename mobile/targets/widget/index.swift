@@ -82,6 +82,20 @@ private struct Eyebrow: View {
   }
 }
 
+// The "+" capture button — tapping it deep-links straight into the app's
+// add menu (mobile://add) instead of just opening the app.
+private let ADD_URL = URL(string: "mobile://add")!
+
+private struct AddBadge: View {
+  var body: some View {
+    Image(systemName: "plus")
+      .font(.system(size: 14, weight: .bold))
+      .foregroundColor(.white)
+      .frame(width: 28, height: 28)
+      .background(Circle().fill(CORAL))
+  }
+}
+
 private struct TripLine: View {
   let title: String
   let days: Int?
@@ -102,7 +116,11 @@ struct SmallView: View {
   let entry: WorldlyEntry
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
-      Eyebrow()
+      HStack(alignment: .top) {
+        Eyebrow()
+        Spacer()
+        AddBadge()
+      }
       Spacer()
       Text("\(entry.countries)")
         .font(.system(size: 44, weight: .bold, design: .serif))
@@ -159,29 +177,33 @@ struct MediumView: View {
         }
       }
       Spacer()
-      if let title = entry.tripTitle, let days = entry.tripDays {
-        VStack(alignment: .trailing, spacing: 2) {
-          Text("NEXT TRIP")
-            .font(.system(size: 9, weight: .heavy))
-            .kerning(1.5)
-            .foregroundColor(.white.opacity(0.6))
-          Text(days == 0 ? "Today" : "\(days)")
-            .font(.system(size: days == 0 ? 24 : 38, weight: .bold, design: .serif))
-            .foregroundColor(CORAL)
-          Text(days == 0 ? title : days == 1 ? "day · \(title)" : "days · \(title)")
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundColor(.white.opacity(0.9))
-            .lineLimit(1)
-        }
-        .frame(maxWidth: 130, alignment: .trailing)
-      } else {
-        VStack(alignment: .trailing, spacing: 4) {
-          Image(systemName: "globe.europe.africa.fill")
-            .font(.system(size: 34))
-            .foregroundColor(.white.opacity(0.28))
-          Text("Where next?")
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundColor(.white.opacity(0.6))
+      VStack(alignment: .trailing, spacing: 0) {
+        Link(destination: ADD_URL) { AddBadge() }
+        Spacer()
+        if let title = entry.tripTitle, let days = entry.tripDays {
+          VStack(alignment: .trailing, spacing: 2) {
+            Text("NEXT TRIP")
+              .font(.system(size: 9, weight: .heavy))
+              .kerning(1.5)
+              .foregroundColor(.white.opacity(0.6))
+            Text(days == 0 ? "Today" : "\(days)")
+              .font(.system(size: days == 0 ? 24 : 32, weight: .bold, design: .serif))
+              .foregroundColor(CORAL)
+            Text(days == 0 ? title : days == 1 ? "day · \(title)" : "days · \(title)")
+              .font(.system(size: 11, weight: .semibold))
+              .foregroundColor(.white.opacity(0.9))
+              .lineLimit(1)
+          }
+          .frame(maxWidth: 130, alignment: .trailing)
+        } else {
+          VStack(alignment: .trailing, spacing: 4) {
+            Image(systemName: "globe.europe.africa.fill")
+              .font(.system(size: 30))
+              .foregroundColor(.white.opacity(0.28))
+            Text("Where next?")
+              .font(.system(size: 11, weight: .semibold))
+              .foregroundColor(.white.opacity(0.6))
+          }
         }
       }
     }
@@ -197,7 +219,9 @@ struct WorldlyWidgetView: View {
       case .systemMedium:
         MediumView(entry: entry)
       default:
-        SmallView(entry: entry)
+        // Small widgets allow a single tap target, so the whole tile goes to
+        // the add menu — the "+" badge is the affordance.
+        SmallView(entry: entry).widgetURL(ADD_URL)
       }
     }
     .containerBackground(for: .widget) {

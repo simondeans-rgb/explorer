@@ -26,6 +26,7 @@ import { AchievementWatcher } from '../components/AchievementWatcher';
 import { LocationSync } from '../components/LocationSync';
 import { NotificationScheduler } from '../components/NotificationScheduler';
 import { WidgetSync } from '../components/WidgetSync';
+import { onOpenAddMenu } from '../src/lib/addMenu';
 import { GlobalTabBar } from '../components/GlobalTabBar';
 import { ActionMenu, type ActionKind } from '../components/ActionMenu';
 import { AddPlaceSheet } from '../components/AddPlaceSheet';
@@ -104,6 +105,9 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
     applyStoredAppearance();
     recordFirstSeen();
   }, []);
+
+  // The widget's "+" deep link (mobile://add → app/add.tsx) opens the FAB menu.
+  useEffect(() => onOpenAddMenu(() => setMenuOpen(true)), []);
 
   // Tie analytics to the signed-in account (uid only) once per session.
   useEffect(() => {
