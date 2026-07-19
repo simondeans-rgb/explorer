@@ -144,7 +144,7 @@ export function FlightSummaryCard(p: FlightSummaryProps) {
             {depInfo ? <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: depInfo.tint, marginTop: 2 }}>{depInfo.label}</Text> : null}
           </View>
           {dur ? (
-            <View className="rounded-full" style={{ backgroundColor: '#F4F3FB', paddingHorizontal: 10, paddingVertical: 3, marginTop: 3 }}>
+            <View className="rounded-full" style={{ backgroundColor: COLORS.tileMuted, paddingHorizontal: 10, paddingVertical: 3, marginTop: 3 }}>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.ink2 }}>{dur}</Text>
             </View>
           ) : null}

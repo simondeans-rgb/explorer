@@ -294,7 +294,7 @@ export default function SettingsScreen() {
             </View>
           ) : (
             <Pressable accessibilityRole="button" accessibilityLabel="Sync your world" onPress={() => setAuthOpen(true)} style={{ marginBottom: 10 }}>
-              <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
+              <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 24, overflow: 'hidden', padding: 16, gap: 12 }}>
                 <View className="rounded-2xl items-center justify-center bg-white/20" style={{ height: 42, width: 42 }}>
                   <Cloud size={20} color="#fff" />
                 </View>
