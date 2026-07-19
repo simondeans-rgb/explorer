@@ -188,7 +188,40 @@ private struct AddBadge: View {
       .foregroundColor(.white)
       .frame(width: 28, height: 28)
       .background(Circle().fill(tint))
+      .shadow(color: tint.opacity(0.5), radius: 6, y: 2)
   }
+}
+
+/// The protected Worldly mark (route line + 5 pins), drawn as a faint
+/// background watermark so the widget carries brand identity and the empty
+/// space reads as intentional. Normalised from the app icon geometry.
+private struct WMark: View {
+  var color: Color
+  private let pts: [(CGFloat, CGFloat)] = [(0.174, 0.295), (0.332, 0.672), (0.500, 0.405), (0.669, 0.679), (0.832, 0.293)]
+  var body: some View {
+    GeometryReader { geo in
+      let w = geo.size.width, h = geo.size.height
+      let p = pts.map { CGPoint(x: $0.0 * w, y: $0.1 * h) }
+      ZStack {
+        Path { path in
+          path.move(to: p[0])
+          for pt in p.dropFirst() { path.addLine(to: pt) }
+        }
+        .stroke(color, style: StrokeStyle(lineWidth: w * 0.055, lineCap: .round, lineJoin: .round))
+        ForEach(0..<p.count, id: \.self) { i in
+          Circle().fill(color).frame(width: w * 0.1, height: w * 0.1).position(p[i])
+        }
+      }
+    }
+  }
+}
+
+/// Glossy gradient number — the app's vibrant hero-figure look (white shining
+/// down into the cover accent).
+private func heroNumber(_ value: String, accent: Color, size: CGFloat) -> some View {
+  Text(value)
+    .font(.system(size: size, weight: .bold, design: .serif))
+    .foregroundStyle(LinearGradient(colors: [.white, accent], startPoint: .top, endPoint: .bottom))
 }
 
 private struct ProgressRing: View {
@@ -197,12 +230,18 @@ private struct ProgressRing: View {
   let center: String
   var body: some View {
     ZStack {
-      Circle().stroke(Color.white.opacity(0.18), lineWidth: 6)
+      Circle().stroke(Color.white.opacity(0.16), lineWidth: 7)
       Circle()
         .trim(from: 0, to: max(0.02, min(1, progress)))
-        .stroke(tint, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+        .stroke(
+          AngularGradient(gradient: Gradient(colors: [tint.opacity(0.7), tint, .white, tint]), center: .center),
+          style: StrokeStyle(lineWidth: 7, lineCap: .round)
+        )
         .rotationEffect(.degrees(-90))
-      Text(center).font(.system(size: 20, weight: .bold, design: .serif)).foregroundColor(.white)
+        .shadow(color: tint.opacity(0.6), radius: 4)
+      Text(center)
+        .font(.system(size: 22, weight: .bold, design: .serif))
+        .foregroundStyle(LinearGradient(colors: [.white, tint], startPoint: .top, endPoint: .bottom))
     }
   }
 }
@@ -211,14 +250,19 @@ private struct FlagStrip: View {
   let flags: [String]
   let max: Int
   var body: some View {
-    HStack(spacing: 2) {
+    HStack(spacing: 4) {
       ForEach(Array(flags.prefix(max).enumerated()), id: \.offset) { _, code in
-        Text(flagEmoji(code)).font(.system(size: 18))
+        Text(flagEmoji(code))
+          .font(.system(size: 15))
+          .frame(width: 26, height: 26)
+          .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Color.white.opacity(0.13)))
+          .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(Color.white.opacity(0.1), lineWidth: 0.5))
       }
       if flags.count > max {
         Text("+\(flags.count - max)")
-          .font(.system(size: 11, weight: .bold))
-          .foregroundColor(.white.opacity(0.7))
+          .font(.system(size: 11, weight: .heavy))
+          .foregroundColor(.white.opacity(0.75))
+          .padding(.leading, 1)
       }
     }
   }
@@ -268,7 +312,7 @@ private struct MomentView: View {
     switch d.synced ? entry.moment : .stats {
     case .stats:
       VStack(alignment: .leading, spacing: 1) {
-        Text("\(d.countries)").font(.system(size: 46, weight: .bold, design: .serif)).foregroundColor(.white)
+        heroNumber("\(d.countries)", accent: d.accent, size: 46)
         Text(d.synced ? (d.countries == 1 ? "country explored" : "countries explored") : "Open Worldly to sync")
           .font(.system(size: 11, weight: .medium)).foregroundColor(.white.opacity(0.72)).lineLimit(1)
       }
@@ -286,8 +330,7 @@ private struct MomentView: View {
     case .nextTrip:
       VStack(alignment: .leading, spacing: 1) {
         Text("NEXT TRIP").font(.system(size: 9, weight: .heavy)).kerning(1.2).foregroundColor(.white.opacity(0.6))
-        Text(d.nextTripDays == 0 ? "Today" : "\(d.nextTripDays ?? 0)")
-          .font(.system(size: 42, weight: .bold, design: .serif)).foregroundColor(.white)
+        heroNumber(d.nextTripDays == 0 ? "Today" : "\(d.nextTripDays ?? 0)", accent: d.accent, size: 42)
         Text((d.nextTripDays == 1 ? "day · " : "days · ") + (d.nextTripTitle ?? ""))
           .font(.system(size: 11, weight: .semibold)).foregroundColor(d.accent).lineLimit(1)
       }
@@ -316,7 +359,7 @@ private struct MediumView: View {
       VStack(alignment: .leading, spacing: 0) {
         Eyebrow(text: "Worldly", color: d.accent)
         Spacer()
-        Text("\(d.countries)").font(.system(size: 46, weight: .bold, design: .serif)).foregroundColor(.white)
+        heroNumber("\(d.countries)", accent: d.accent, size: 46)
         Text(d.synced ? (d.countries == 1 ? "country explored" : "countries explored") : "Open to sync")
           .font(.system(size: 11, weight: .medium)).foregroundColor(.white.opacity(0.72)).lineLimit(1)
         if d.cities > 0 || d.continents > 0 {
@@ -489,8 +532,19 @@ struct WorldlyWidgetEntryView: View {
   }
 
   @ViewBuilder private func themed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+    let d = entry.data
     content().containerBackground(for: .widget) {
-      LinearGradient(colors: entry.data.gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+      ZStack {
+        LinearGradient(colors: d.gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+        // Accent glows give the flat gradient depth and vibrancy.
+        RadialGradient(colors: [d.accent.opacity(0.42), .clear], center: .topLeading, startRadius: 2, endRadius: 280)
+        RadialGradient(colors: [d.accent.opacity(0.18), .clear], center: .bottomTrailing, startRadius: 2, endRadius: 240)
+        // Faint brand watermark bleeding off the lower-right corner.
+        WMark(color: .white.opacity(0.06))
+          .frame(width: 260, height: 260)
+          .rotationEffect(.degrees(-8))
+          .offset(x: 78, y: 66)
+      }
     }
   }
 }
