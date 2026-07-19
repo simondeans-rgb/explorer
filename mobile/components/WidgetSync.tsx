@@ -36,6 +36,26 @@ function widgetGradient(accent: string): [string, string] {
   return [mix(accent, '#0E1524', 0.1), mix(accent, '#070A12', 0.03)];
 }
 
+/** Turn a widget-hero source — a user capture (data URL or Storage URL) or a
+ *  stock destination URL — into a downscaled base64 JPEG for the widget. */
+async function sourceToBase64(src: string): Promise<string | null> {
+  const FS = await import('expo-file-system/legacy');
+  const localUri = `${FS.cacheDirectory}widget-src-in.jpg`;
+  if (src.startsWith('data:')) {
+    const b64 = src.split(',')[1] ?? '';
+    if (!b64) return null;
+    await FS.writeAsStringAsync(localUri, b64, { encoding: FS.EncodingType.Base64 });
+  } else {
+    await FS.downloadAsync(src, localUri);
+  }
+  const out = await manipulateAsync(localUri, [{ resize: { width: 680 } }], {
+    compress: 0.72,
+    format: SaveFormat.JPEG,
+    base64: true,
+  });
+  return out.base64 ?? null;
+}
+
 /** Pushes a rich snapshot into the shared app group for the home-screen and
  *  Lock Screen widgets: headline stats, level progress, next-trip countdown,
  *  a flag strip of recent countries, an "on this day" memory, and the active
@@ -43,8 +63,17 @@ function widgetGradient(accent: string): [string, string] {
  *  Renders nothing. */
 export function WidgetSync() {
   const { stats, level, places, expeditions } = useWorldly();
-  const { trips } = useData();
+  const { trips, captures } = useData();
   const theme = useCoverTheme();
+
+  // The user's own most-recent photo for a country, if they have one.
+  const userPhotoFor = (code: string): string | null => {
+    const caps = captures.filter((c) => c.countryCode === code && c.dataUrl);
+    if (!caps.length) return null;
+    caps.sort((a, b) => (b.takenAt ?? b.createdAt ?? 0) - (a.takenAt ?? a.createdAt ?? 0));
+    return caps[0].dataUrl;
+  };
+  const hasAnyPhoto = (code: string) => !!userPhotoFor(code) || hasDestinationPhoto(code);
 
   const today = new Date().toISOString().slice(0, 10);
   const next = trips
@@ -63,11 +92,16 @@ export function WidgetSync() {
   const memory = todaysMemories(expeditions, places)[0];
 
   // Featured destination for the widget's full-bleed photo: your next trip's
-  // country, else the most recent country you've logged that has a photo.
+  // country, else the most recent country you've logged — provided it has a
+  // photo of some kind (your own, or stock).
   const featuredCode =
-    next?.countryCode && hasDestinationPhoto(next.countryCode)
+    next?.countryCode && hasAnyPhoto(next.countryCode)
       ? next.countryCode
-      : recentFlags.find((c) => hasDestinationPhoto(c)) ?? null;
+      : recentFlags.find(hasAnyPhoto) ?? null;
+  // Prefer the user's own photo of that country; fall back to the stock hero.
+  const featuredSrc = featuredCode
+    ? userPhotoFor(featuredCode) ?? destinationImage(featuredCode).photo ?? null
+    : null;
 
   const payload = JSON.stringify({
     countries: stats.countriesDiscovered,
@@ -94,34 +128,27 @@ export function WidgetSync() {
     bridge.setWidgetData(payload).catch((e) => reportError(e, { where: 'widgetSync' }));
   }, [payload]);
 
-  // Fetch + downscale the featured destination photo into the shared container
-  // (only when it changes; the image is heavier than the JSON snapshot).
-  const lastImageCode = useRef<string | null | undefined>(undefined);
+  // Fetch + downscale the featured photo into the shared container (only when
+  // the source changes; the image is heavier than the JSON snapshot). A user
+  // capture takes priority over stock, so adding your own photo updates it.
+  const lastImageSrc = useRef<string | null | undefined>(undefined);
   useEffect(() => {
     if (Platform.OS !== 'ios' || !bridge?.setWidgetImage) return;
-    if (featuredCode === lastImageCode.current) return;
-    lastImageCode.current = featuredCode;
+    if (featuredSrc === lastImageSrc.current) return;
+    lastImageSrc.current = featuredSrc;
     (async () => {
       try {
-        const url = featuredCode ? destinationImage(featuredCode).photo : undefined;
-        if (!url) {
+        if (!featuredSrc) {
           await bridge.setWidgetImage!('');
           return;
         }
-        const FS = await import('expo-file-system/legacy');
-        const dest = `${FS.cacheDirectory}widget-src.jpg`;
-        await FS.downloadAsync(url, dest);
-        const out = await manipulateAsync(dest, [{ resize: { width: 680 } }], {
-          compress: 0.72,
-          format: SaveFormat.JPEG,
-          base64: true,
-        });
-        if (out.base64) await bridge.setWidgetImage!(out.base64);
+        const base64 = await sourceToBase64(featuredSrc);
+        await bridge.setWidgetImage!(base64 ?? '');
       } catch (e) {
         reportError(e, { where: 'widgetImage' });
       }
     })();
-  }, [featuredCode]);
+  }, [featuredSrc]);
 
   return null;
 }
