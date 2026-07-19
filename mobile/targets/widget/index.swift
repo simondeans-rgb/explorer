@@ -217,12 +217,16 @@ private struct BrandMark: View {
   }
 }
 
-/// Logo lockup for the widget header: the mark + "Worldly".
+/// Logo lockup for the widget header: the mark + "Worldly". Sized down on the
+/// small widget so the wordmark never wraps beside the add button.
 private struct BrandLockup: View {
+  var markHeight: CGFloat = 20
+  var fontSize: CGFloat = 15
   var body: some View {
     HStack(spacing: 6) {
-      BrandMark(height: 20)
-      Text("Worldly").font(.system(size: 15, weight: .heavy)).foregroundColor(.white)
+      BrandMark(height: markHeight)
+      Text("Worldly").font(.system(size: fontSize, weight: .heavy)).foregroundColor(.white)
+        .lineLimit(1).minimumScaleFactor(0.8).fixedSize(horizontal: true, vertical: false)
         .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
     }
   }
@@ -287,19 +291,22 @@ private struct ProgressRing: View {
   let progress: Double
   let tint: Color
   let center: String
+  var lineWidth: CGFloat = 7
+  var centerSize: CGFloat = 22
   var body: some View {
     ZStack {
-      Circle().stroke(Color.white.opacity(0.16), lineWidth: 7)
+      Circle().stroke(Color.white.opacity(0.16), lineWidth: lineWidth)
       Circle()
         .trim(from: 0, to: max(0.02, min(1, progress)))
         .stroke(
           AngularGradient(gradient: Gradient(colors: [tint.opacity(0.7), tint, .white, tint]), center: .center),
-          style: StrokeStyle(lineWidth: 7, lineCap: .round)
+          style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
         )
         .rotationEffect(.degrees(-90))
         .shadow(color: tint.opacity(0.6), radius: 4)
       Text(center)
-        .font(.system(size: 22, weight: .bold, design: .serif))
+        .font(.system(size: centerSize, weight: .bold, design: .serif))
+        .minimumScaleFactor(0.6).lineLimit(1)
         .foregroundStyle(LinearGradient(colors: [.white, tint], startPoint: .top, endPoint: .bottom))
     }
   }
@@ -370,9 +377,9 @@ private struct MomentView: View {
     let d = entry.data
     VStack(alignment: .leading, spacing: 0) {
       HStack(alignment: .top) {
-        BrandLockup()
-        Spacer()
-        AddBadge(tint: d.accent, size: 38)
+        BrandLockup(markHeight: 17, fontSize: 13.5)
+        Spacer(minLength: 6)
+        AddBadge(tint: d.accent, size: 34)
       }
       Spacer()
       content.glassPill(d.heroImage != nil)
@@ -442,12 +449,13 @@ private struct MediumView: View {
             .font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.75)).lineLimit(1)
           if d.cities > 0 || d.continents > 0 {
             Text("\(d.cities) cities · \(d.continents) continents")
-              .font(.system(size: 11.5, weight: .semibold)).foregroundColor(d.accent).lineLimit(1).padding(.top, 2)
+              .font(.system(size: 11.5, weight: .semibold)).foregroundColor(d.accent)
+              .lineLimit(1).minimumScaleFactor(0.75).padding(.top, 2)
           }
         }
         .glassPill(d.heroImage != nil)
         Spacer(minLength: 0)
-        rightPanel.glassPill(d.heroImage != nil).frame(maxWidth: 138, alignment: .trailing)
+        rightPanel.glassPill(d.heroImage != nil).frame(maxWidth: 126, alignment: .trailing)
       }
     }
   }
@@ -457,13 +465,13 @@ private struct MediumView: View {
     if let title = d.nextTripTitle, let days = d.nextTripDays {
       VStack(alignment: .trailing, spacing: 0) {
         Text("NEXT TRIP").font(.system(size: 10, weight: .heavy)).kerning(1.4).foregroundColor(d.accent)
+        Text(title).font(.system(size: 15, weight: .bold)).foregroundColor(.white).lineLimit(1).minimumScaleFactor(0.7).padding(.bottom, 1)
         if days == 0 {
           Text("Today!").font(.system(size: 32, weight: .bold, design: .serif)).foregroundColor(.white)
         } else {
           heroNumber("\(days)", accent: d.accent, size: 44)
           Text(days == 1 ? "day away" : "days away").font(.system(size: 11, weight: .semibold)).foregroundColor(.white.opacity(0.75)).padding(.top, -2)
         }
-        Text(title).font(.system(size: 14, weight: .bold)).foregroundColor(.white).lineLimit(1).minimumScaleFactor(0.7).padding(.top, 1)
       }
     } else if let mem = d.memoryLabel {
       VStack(alignment: .trailing, spacing: 1) {
@@ -496,7 +504,7 @@ private struct LargeView: View {
       // Hero: a compact progress ring beside the headline, the stat trio below.
       VStack(alignment: .leading, spacing: 14) {
         HStack(alignment: .center, spacing: 14) {
-          ProgressRing(progress: d.levelProgress, tint: d.accent, center: "\(d.countries)").frame(width: 58, height: 58)
+          ProgressRing(progress: d.levelProgress, tint: d.accent, center: "\(d.countries)", lineWidth: 6, centerSize: 21).frame(width: 60, height: 60)
           Text(d.synced ? "countries explored" : "Open Worldly to sync")
             .font(.system(size: 20, weight: .bold, design: .serif)).foregroundColor(.white).lineLimit(2)
           Spacer(minLength: 0)
