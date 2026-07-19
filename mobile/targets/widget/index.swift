@@ -262,6 +262,10 @@ private func heroNumber(_ value: String, _ accent: Color, size: CGFloat) -> some
 private struct Eyebrow: View {
   let text: String
   var tint: Color = .white.opacity(0.7)
+  init(_ text: String, tint: Color = .white.opacity(0.7)) {
+    self.text = text
+    self.tint = tint
+  }
   var body: some View {
     Text(text).font(.system(size: 10.5, weight: .heavy)).kerning(1.4).foregroundColor(tint).lineLimit(1)
   }
