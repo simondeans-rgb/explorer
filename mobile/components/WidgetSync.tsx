@@ -8,12 +8,21 @@ import { useCoverTheme } from '../src/hooks/useCoverTheme';
 import { todaysMemories } from '../src/lib/memories';
 import { destinationImage, hasDestinationPhoto } from '../src/lib/destinationImage';
 import { countryName } from '../src/data/countries';
+import {
+  pickWidgetTrip,
+  pickNextAchievement,
+  worldPercent,
+  xpToNext,
+  legibleAccentOnDark,
+  WORLD_TOTAL,
+} from '../src/lib/widgetPayload';
 import { reportError } from '../src/lib/sentry';
 
 interface WidgetBridge {
   setWidgetData(json: string): Promise<boolean>;
-  /** Optional — present only on binaries built with the photo widget. */
-  setWidgetImage?(base64: string): Promise<boolean>;
+  /** Optional — present only on binaries built with the photo widget.
+   *  `name` selects which hero image: 'hero' (general), 'trip', 'memory'. */
+  setWidgetImage?(base64: string, name?: string): Promise<boolean>;
 }
 
 // Null on binaries built before the widget existed — those have nothing to sync.
@@ -40,10 +49,10 @@ function widgetGradient(accent: string): [string, string] {
  *  stock destination URL — into a downscaled base64 JPEG for the widget.
  *  Best-effort: any failure (bad download, unreadable file, decode error)
  *  returns null and the widget falls back to its gradient. */
-async function sourceToBase64(src: string): Promise<string | null> {
+async function sourceToBase64(src: string, tag: string): Promise<string | null> {
   try {
     const FS = await import('expo-file-system/legacy');
-    const localUri = `${FS.cacheDirectory}widget-src-in.jpg`;
+    const localUri = `${FS.cacheDirectory}widget-src-${tag}.jpg`;
     if (src.startsWith('data:')) {
       const b64 = src.split(',')[1] ?? '';
       if (!b64) return null;
@@ -65,12 +74,12 @@ async function sourceToBase64(src: string): Promise<string | null> {
 }
 
 /** Pushes a rich snapshot into the shared app group for the home-screen and
- *  Lock Screen widgets: headline stats, level progress, next-trip countdown,
- *  a flag strip of recent countries, an "on this day" memory, and the active
- *  Passport Cover's colours (so the widget matches the app you've styled).
- *  Renders nothing. */
+ *  Lock Screen widgets. Feeds a configurable, Passport-Cover-themed widget
+ *  family — exploration progress, next trip, explorer level, world progress,
+ *  next achievement and travel memory — each derived from live data via
+ *  `widgetPayload`. Renders nothing. */
 export function WidgetSync() {
-  const { stats, level, places, expeditions } = useWorldly();
+  const { stats, level, places, expeditions, badges } = useWorldly();
   const { trips, captures } = useData();
   const theme = useCoverTheme();
 
@@ -82,34 +91,37 @@ export function WidgetSync() {
     return caps[0].dataUrl;
   };
   const hasAnyPhoto = (code: string) => !!userPhotoFor(code) || hasDestinationPhoto(code);
+  // Best available image for a country: the user's own photo, else the stock hero.
+  const photoFor = (code: string): string | null =>
+    userPhotoFor(code) ?? destinationImage(code).photo ?? null;
 
   const today = new Date().toISOString().slice(0, 10);
-  const next = trips
-    .filter((t) => t.startDate && t.startDate >= today)
-    .sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
+  const trip = pickWidgetTrip(trips, today);
 
-  // Recent countries → a flag strip. Most recent travel year first.
-  const recentFlags = places
+  // Recent countries — kept only to choose an ambient hero photo for the
+  // stats-led focuses (the widget no longer shows a flag strip).
+  const recentCountries = places
     .filter((p) => p.kind === 'country' && p.countryCode)
     .sort((a, b) => (b.firstYear ?? 0) - (a.firstYear ?? 0) || (b.createdAt ?? 0) - (a.createdAt ?? 0))
     .map((p) => p.countryCode)
-    .filter((c, i, arr) => arr.indexOf(c) === i)
-    .slice(0, 10);
+    .filter((c, i, arr) => arr.indexOf(c) === i);
 
   // "On this day" — the standout memory for today, if any.
   const memory = todaysMemories(expeditions, places)[0];
+  const memoryYear = memory ? new Date().getFullYear() - memory.yearsAgo : null;
 
-  // Featured destination for the widget's full-bleed photo: your next trip's
-  // country, else the most recent country you've logged — provided it has a
-  // photo of some kind (your own, or stock).
-  const featuredCode =
-    next?.countryCode && hasAnyPhoto(next.countryCode)
-      ? next.countryCode
-      : recentFlags.find(hasAnyPhoto) ?? null;
-  // Prefer the user's own photo of that country; fall back to the stock hero.
-  const featuredSrc = featuredCode
-    ? userPhotoFor(featuredCode) ?? destinationImage(featuredCode).photo ?? null
-    : null;
+  const nextAch = pickNextAchievement(badges);
+
+  // Hero image (exploration / world / smart-ambient): the trip country if there
+  // is one, else the most recent country you've logged — provided it has a photo.
+  const heroCode =
+    (trip?.countryCode && hasAnyPhoto(trip.countryCode) && trip.countryCode) ||
+    recentCountries.find(hasAnyPhoto) ||
+    null;
+  const heroSrc = heroCode ? photoFor(heroCode) : null;
+  // Per-focus heroes so Next Trip and Travel Memory each show the right place.
+  const tripSrc = trip?.countryCode && hasAnyPhoto(trip.countryCode) ? photoFor(trip.countryCode) : null;
+  const memorySrc = memory?.countryCode && hasAnyPhoto(memory.countryCode) ? photoFor(memory.countryCode) : null;
 
   const payload = JSON.stringify({
     countries: stats.countriesDiscovered,
@@ -119,27 +131,43 @@ export function WidgetSync() {
     levelTitle: level.title,
     levelProgress: Math.round(level.progress * 100) / 100,
     nextTitle: level.nextTitle ?? null,
-    nextTripTitle: next?.title ?? null,
-    nextTripDate: next?.startDate ?? null,
-    recentFlags,
+    xp: level.xp,
+    xpToNext: xpToNext(level),
+    worldTotal: WORLD_TOTAL,
+    worldPercent: worldPercent(stats.countriesDiscovered),
+    // Next trip (or the trip you're on).
+    tripTitle: trip?.title ?? null,
+    tripCountry: trip?.countryCode ? countryName(trip.countryCode) : null,
+    tripCountryCode: trip?.countryCode ?? null,
+    tripStatus: trip?.status ?? null, // upcoming | today | underway
+    tripDays: trip?.days ?? null,
+    tripDate: trip?.startDate ?? null,
+    tripEnd: trip?.endDate ?? null,
+    // Next achievement.
+    achTitle: nextAch?.title ?? null,
+    achValue: nextAch?.value ?? null,
+    achTarget: nextAch?.target ?? null,
+    achUnit: nextAch?.unit ?? null,
+    achProgress: nextAch ? Math.round(nextAch.progress * 100) / 100 : null,
+    // Travel memory ("on this day").
     memoryLabel: memory?.label ?? null,
-    memoryYearsAgo: memory?.yearsAgo ?? null,
+    memoryYear,
     memoryCountry: memory?.countryCode ?? null,
-    featured: featuredCode ? countryName(featuredCode) : null,
+    // Theming — accent for glows/rings; accentText a contrast-safe variant for
+    // small labels on the deep background.
     accent: theme.accent,
+    accentText: legibleAccentOnDark(theme.accent),
     gradientTop: widgetGradient(theme.accent)[0],
     gradientBottom: widgetGradient(theme.accent)[1],
   });
 
   // Don't overwrite good widget data with an empty snapshot. On a fresh launch
   // (and briefly after an app update) the stores are still loading, so stats
-  // read 0 — writing that would blank the widget until the next sync. Skip
-  // empty writes so the last real numbers stay put until the data is back.
+  // read 0 — writing that would blank the widget until the next sync.
   const emptySnapshot =
     stats.countriesDiscovered === 0 &&
     stats.citiesDiscovered === 0 &&
-    recentFlags.length === 0 &&
-    !next &&
+    !trip &&
     !memory;
 
   useEffect(() => {
@@ -147,28 +175,34 @@ export function WidgetSync() {
     bridge.setWidgetData(payload).catch((e) => reportError(e, { where: 'widgetSync' }));
   }, [payload, emptySnapshot]);
 
-  // Fetch + downscale the featured photo into the shared container (only when
-  // the source changes; the image is heavier than the JSON snapshot). A user
-  // capture takes priority over stock, so adding your own photo updates it.
-  const lastImageSrc = useRef<string | null | undefined>(undefined);
-  useEffect(() => {
+  // Push each keyed hero image only when its source changes (images are heavier
+  // than the JSON). A user capture takes priority over stock, so adding your own
+  // photo updates the widget.
+  const pushImage = (src: string | null, key: 'hero' | 'trip' | 'memory', ref: React.MutableRefObject<string | null | undefined>) => {
     if (Platform.OS !== 'ios' || !bridge?.setWidgetImage) return;
-    if (featuredSrc === lastImageSrc.current) return;
-    lastImageSrc.current = featuredSrc;
+    if (src === ref.current) return;
+    ref.current = src;
     (async () => {
       try {
-        if (!featuredSrc) {
-          await bridge.setWidgetImage!('');
+        if (!src) {
+          await bridge.setWidgetImage!('', key);
           return;
         }
-        const base64 = await sourceToBase64(featuredSrc);
+        const base64 = await sourceToBase64(src, key);
         // '' clears the hero so the widget shows its gradient — never errors.
-        await bridge.setWidgetImage!(base64 ?? '');
+        await bridge.setWidgetImage!(base64 ?? '', key);
       } catch {
         // Non-critical: leave whatever hero was there.
       }
     })();
-  }, [featuredSrc]);
+  };
+
+  const lastHero = useRef<string | null | undefined>(undefined);
+  const lastTrip = useRef<string | null | undefined>(undefined);
+  const lastMemory = useRef<string | null | undefined>(undefined);
+  useEffect(() => { pushImage(heroSrc, 'hero', lastHero); }, [heroSrc]);
+  useEffect(() => { pushImage(tripSrc, 'trip', lastTrip); }, [tripSrc]);
+  useEffect(() => { pushImage(memorySrc, 'memory', lastMemory); }, [memorySrc]);
 
   return null;
 }

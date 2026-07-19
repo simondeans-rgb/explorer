@@ -10,8 +10,20 @@ import { parseTripit } from '../src/lib/tripitImport';
 import { parseCountryList, matchCountry, scanCountries } from '../src/lib/listImport';
 import { matchExpedition, expeditionLabel } from '../src/lib/tripMatch';
 import { buildCityGuides, guideKey } from '../src/lib/cityGuides';
+import {
+  pickWidgetTrip,
+  worldPercent,
+  xpToNext,
+  achievementUnit,
+  pickNextAchievement,
+  legibleAccentOnDark,
+  relLuminance,
+  isoDaysBetween,
+  WORLD_TOTAL,
+} from '../src/lib/widgetPayload';
 import type { Discovery } from '../src/types';
-import type { Expedition } from '../src/types';
+import type { Expedition, Trip } from '../src/types';
+import type { Badge } from '../src/lib/explorer';
 
 let passed = 0;
 function test(name: string, fn: () => void) {
@@ -306,16 +318,16 @@ test('almanacStory: articles and per-trip flight sentence', () => {
 // ---- tripMerge --------------------------------------------------------------
 import { suggestTripMerges, buildMergedExpedition } from '../src/lib/tripMerge';
 
-const mkTrip = (id: string, startDate: string, endDate: string | undefined, codes: string[], journeys: object[]) => ({
+const mkWTrip = (id: string, startDate: string, endDate: string | undefined, codes: string[], journeys: object[]) => ({
   id, userId: 'u', title: id, startDate, endDate, countryCodes: codes, journeys, createdAt: 0, updatedAt: 0,
 });
 const leg = (from: string, to: string, date?: string) => ({ id: `${from}-${to}`, mode: 'flight', from, to, date });
 
 test('tripMerge: chained bookings merge; distant trips stay separate', () => {
   const trips = [
-    mkTrip('out', '2025-03-20', '2025-03-20', ['HK'], [leg('London (LHR)', 'Hong Kong (HKG)', '2025-03-20')]),
-    mkTrip('back', '2025-03-26', '2025-03-26', ['HK', 'GB'], [leg('Hong Kong (HKG)', 'London (LHR)', '2025-03-26')]),
-    mkTrip('later', '2025-06-10', '2025-06-14', ['DE'], [leg('London (LGW)', 'Berlin (BER)', '2025-06-10')]),
+    mkWTrip('out', '2025-03-20', '2025-03-20', ['HK'], [leg('London (LHR)', 'Hong Kong (HKG)', '2025-03-20')]),
+    mkWTrip('back', '2025-03-26', '2025-03-26', ['HK', 'GB'], [leg('Hong Kong (HKG)', 'London (LHR)', '2025-03-26')]),
+    mkWTrip('later', '2025-06-10', '2025-06-14', ['DE'], [leg('London (LGW)', 'Berlin (BER)', '2025-06-10')]),
   ];
   const out = suggestTripMerges(trips as never, { countryName: (c) => ({ HK: 'Hong Kong', GB: 'United Kingdom', DE: 'Germany' })[c] ?? c, homeCodes: new Set(['GB']) });
   assert.equal(out.length, 1);
@@ -327,9 +339,9 @@ test('tripMerge: chained bookings merge; distant trips stay separate', () => {
 
 test('tripMerge: overlapping dates merge; chain breaks without matching endpoint', () => {
   const trips = [
-    mkTrip('a', '2025-02-01', '2025-02-10', ['ES'], [leg('London (LHR)', 'Madrid (MAD)')]),
-    mkTrip('b', '2025-02-08', '2025-02-12', ['PT'], [leg('Madrid (MAD)', 'Lisbon (LIS)')]),
-    mkTrip('c', '2025-02-20', '2025-02-22', ['FR'], [leg('London (LHR)', 'Paris (CDG)')]),
+    mkWTrip('a', '2025-02-01', '2025-02-10', ['ES'], [leg('London (LHR)', 'Madrid (MAD)')]),
+    mkWTrip('b', '2025-02-08', '2025-02-12', ['PT'], [leg('Madrid (MAD)', 'Lisbon (LIS)')]),
+    mkWTrip('c', '2025-02-20', '2025-02-22', ['FR'], [leg('London (LHR)', 'Paris (CDG)')]),
   ];
   const out = suggestTripMerges(trips as never, { countryName: (c) => c });
   assert.equal(out.length, 1);
@@ -480,6 +492,96 @@ test('catalogue: achievement covers are never for sale', () => {
       }
     }
   }
+});
+
+// ---- Widget payload derivations -------------------------------------------
+
+function wgTrip(over: Partial<Trip>): Trip {
+  return {
+    id: over.id ?? 't', userId: 'u', title: over.title ?? 'Trip', countryCode: over.countryCode ?? 'IS',
+    startDate: over.startDate ?? '2027-01-01', endDate: over.endDate, itinerary: [], memberIds: ['u'],
+    createdAt: 0, updatedAt: 0, ...over,
+  };
+}
+
+test('widget trip: soonest upcoming trip with day countdown', () => {
+  const t = pickWidgetTrip(
+    [wgTrip({ id: 'a', title: 'Iceland', countryCode: 'IS', startDate: '2026-09-01' }),
+     wgTrip({ id: 'b', title: 'Japan', countryCode: 'JP', startDate: '2026-08-01' })],
+    '2026-07-19',
+  );
+  assert.equal(t?.title, 'Japan');
+  assert.equal(t?.status, 'upcoming');
+  assert.equal(t?.days, isoDaysBetween('2026-07-19', '2026-08-01'));
+  assert.equal(t?.days, 13);
+});
+
+test('widget trip: a trip spanning today reads as underway, 0 days', () => {
+  const t = pickWidgetTrip([wgTrip({ title: 'Iceland', countryCode: 'IS', startDate: '2026-07-15', endDate: '2026-07-25' })], '2026-07-19');
+  assert.equal(t?.status, 'underway');
+  assert.equal(t?.days, 0);
+});
+
+test('widget trip: a trip starting today reads as today', () => {
+  const t = pickWidgetTrip([wgTrip({ startDate: '2026-07-19' })], '2026-07-19');
+  assert.equal(t?.status, 'today');
+});
+
+test('widget trip: an already-finished trip is not featured; none → null', () => {
+  assert.equal(pickWidgetTrip([wgTrip({ startDate: '2026-06-01', endDate: '2026-06-10' })], '2026-07-19'), null);
+  assert.equal(pickWidgetTrip([], '2026-07-19'), null);
+});
+
+test('widget world percent: clamped, one decimal', () => {
+  assert.equal(worldPercent(19), 9.7);
+  assert.equal(worldPercent(0), 0);
+  assert.equal(worldPercent(195), 100);
+  assert.equal(worldPercent(400), 100);
+  assert.equal(WORLD_TOTAL, 195);
+});
+
+test('widget xpToNext: remaining XP, null when maxed', () => {
+  assert.equal(xpToNext({ xp: 460, nextLevelXp: 800, maxed: false }), 340);
+  assert.equal(xpToNext({ xp: 9000, nextLevelXp: 8500, maxed: true }), null);
+  assert.equal(xpToNext({ xp: 900, nextLevelXp: 800, maxed: false }), 0);
+});
+
+test('widget achievement unit: parsed from description', () => {
+  assert.equal(achievementUnit('Visit 10 countries'), 'countries');
+  assert.equal(achievementUnit('Set foot on all 7 continents'), 'continents');
+  assert.equal(achievementUnit('Save 25 food & drink spots'), 'food & drink spots');
+  assert.equal(achievementUnit('Live somewhere new'), undefined);
+});
+
+function mkBadge(over: Partial<Badge>): Badge {
+  return {
+    id: over.id ?? 'b', title: over.title ?? 'Badge', description: over.description ?? 'Visit 10 countries',
+    emoji: '🌍', icon: 'Globe', gradient: ['#000', '#111'], category: 'core',
+    earned: over.earned ?? false, progress: over.progress ?? 0, value: over.value ?? 0, target: over.target ?? 10, ...over,
+  };
+}
+
+test('widget next achievement: nearest unearned by progress then remaining', () => {
+  const next = pickNextAchievement([
+    mkBadge({ id: 'far', title: 'World Wanderer', description: 'Visit 25 countries', value: 19, target: 25, progress: 19 / 25 }),
+    mkBadge({ id: 'near', title: 'Globetrotter', description: 'Visit 10 countries', value: 9, target: 10, progress: 0.9 }),
+    mkBadge({ id: 'done', title: 'First Steps', description: 'Add your first country', value: 1, target: 1, earned: true, progress: 1 }),
+  ]);
+  assert.equal(next?.title, 'Globetrotter');
+  assert.equal(next?.unit, 'countries');
+  assert.equal(next?.value, 9);
+  assert.equal(next?.target, 10);
+});
+
+test('widget next achievement: all earned → null', () => {
+  assert.equal(pickNextAchievement([mkBadge({ earned: true, progress: 1 })]), null);
+});
+
+test('widget legible accent: a dark accent is lifted to a readable luminance', () => {
+  const lifted = legibleAccentOnDark('#0A0A0A');
+  assert.ok(relLuminance(lifted) >= 0.45, `expected lifted luminance, got ${relLuminance(lifted)}`);
+  // A colour already bright enough is left essentially as-is.
+  assert.equal(legibleAccentOnDark('#FFFFFF'), '#FFFFFF');
 });
 
 console.log(`✓ all ${passed} tests passed`);

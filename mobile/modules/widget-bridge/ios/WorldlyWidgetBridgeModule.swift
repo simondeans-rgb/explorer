@@ -22,14 +22,18 @@ public class WorldlyWidgetBridgeModule: Module {
       promise.resolve(true)
     }
 
-    // Writes the featured destination photo into the shared container so the
-    // widget can use it as a full-bleed background. Empty string clears it.
-    AsyncFunction("setWidgetImage") { (base64: String, promise: Promise) in
+    // Writes a destination photo into the shared container so the widget can use
+    // it as a full-bleed background. `name` selects which hero it is (the widget
+    // reads a different image per focus): "hero" (general), "trip", "memory".
+    // An unknown name is sanitised to "hero". Empty base64 clears that image.
+    AsyncFunction("setWidgetImage") { (base64: String, name: String?, promise: Promise) in
       guard let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: WorldlyWidgetBridgeModule.appGroup) else {
         promise.reject("NO_APP_GROUP", "App group unavailable")
         return
       }
-      let url = container.appendingPathComponent("widget-hero.jpg")
+      let allowed = ["hero", "trip", "memory"]
+      let key = allowed.contains(name ?? "hero") ? (name ?? "hero") : "hero"
+      let url = container.appendingPathComponent("widget-\(key).jpg")
       if base64.isEmpty {
         try? FileManager.default.removeItem(at: url)
       } else if let data = Data(base64Encoded: base64) {
