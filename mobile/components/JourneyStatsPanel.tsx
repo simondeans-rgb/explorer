@@ -75,7 +75,7 @@ function Chart({ values, labels, kind, width, partialLast }: { values: number[];
   return (
     <Svg width={width} height={H}>
       {gridYs.map((g, i) => (
-        <Line key={i} x1={padL} y1={y(g)} x2={width - padR} y2={y(g)} stroke="#EAEBF2" strokeWidth={1} />
+        <Line key={i} x1={padL} y1={y(g)} x2={width - padR} y2={y(g)} stroke={COLORS.tileMuted} strokeWidth={1} />
       ))}
       {gridYs.map((g, i) => (
         <SvgText key={`l${i}`} x={padL - 6} y={y(g) + 3} fontSize={9} fill={COLORS.ink3} textAnchor="end">
@@ -131,7 +131,7 @@ function CompareRow({ Icon, tint, multiple, label, frac }: { Icon: ComponentType
         <Icon size={16} color={tint} />
       </View>
       <View style={{ flex: 1 }}>
-        <View className="rounded-full" style={{ height: 26, backgroundColor: '#F1F1F7', overflow: 'hidden', justifyContent: 'center' }}>
+        <View className="rounded-full" style={{ height: 26, backgroundColor: COLORS.tileMuted, overflow: 'hidden', justifyContent: 'center' }}>
           <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.max(6, Math.min(100, frac * 100))}%`, backgroundColor: tint + '33', borderRadius: 999 }} />
           <Text style={{ marginLeft: 12, fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink2 }}>
             <Text style={{ fontWeight: '800', color: COLORS.ink }}>{fmt}×</Text> {label}
@@ -165,7 +165,7 @@ function Segmented({ value, onChange }: { value: Gran; onChange: (g: Gran) => vo
     { id: 'weekday', label: 'Weekday' },
   ];
   return (
-    <View className="flex-row rounded-full" style={{ backgroundColor: '#F1F1F7', padding: 3 }}>
+    <View className="flex-row rounded-full" style={{ backgroundColor: COLORS.tileMuted, padding: 3 }}>
       {opts.map((o) => {
         const active = value === o.id;
         return (
@@ -185,7 +185,7 @@ function RankBlock({ title, rows, tint }: { title: string; rows: { label: string
     <View style={{ gap: 8 }}>
       <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 0.6, color: COLORS.ink3 }}>{title}</Text>
       {rows.map((r) => (
-        <View key={r.label} className="rounded-xl" style={{ height: 30, backgroundColor: '#F4F3FB', overflow: 'hidden', justifyContent: 'center' }}>
+        <View key={r.label} className="rounded-xl" style={{ height: 30, backgroundColor: COLORS.tileMuted, overflow: 'hidden', justifyContent: 'center' }}>
           <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.max(8, (r.count / max) * 100)}%`, backgroundColor: tint + '2E' }} />
           <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 11 }}>
             <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: COLORS.ink, flexShrink: 1 }}>{r.label}</Text>
@@ -270,7 +270,7 @@ function JourneyStatsPanelInner({ expeditions }: { expeditions: Expedition[] }) 
               ['airports', stats.airports],
               ['airlines', stats.airlines],
             ] as [string, number][]).filter(([, v]) => v > 0).map(([label, v]) => (
-              <View key={label} className="flex-row items-baseline rounded-full" style={{ backgroundColor: '#F4F3FB', paddingHorizontal: 10, paddingVertical: 4, gap: 4 }}>
+              <View key={label} className="flex-row items-baseline rounded-full" style={{ backgroundColor: COLORS.tileMuted, paddingHorizontal: 10, paddingVertical: 4, gap: 4 }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '800', color: COLORS.navy }}>{v}</Text>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{v === 1 ? label.replace(/s$/, '') : label}</Text>
               </View>
@@ -326,7 +326,7 @@ function JourneyStatsPanelInner({ expeditions }: { expeditions: Expedition[] }) 
           </View>
 
           {stats.longest || stats.shortest ? (
-            <View style={{ gap: 12, marginTop: 16, borderTopWidth: 1, borderTopColor: '#EEEDF5', paddingTop: 14 }}>
+            <View style={{ gap: 12, marginTop: 16, borderTopWidth: 1, borderTopColor: COLORS.tileMuted, paddingTop: 14 }}>
               {stats.longest ? <ExtremeRow title="LONGEST FLIGHT" f={stats.longest} unit={unit} /> : null}
               {stats.shortest && stats.shortest !== stats.longest ? <ExtremeRow title="SHORTEST FLIGHT" f={stats.shortest} unit={unit} /> : null}
             </View>
@@ -358,7 +358,7 @@ function JourneyStatsPanelInner({ expeditions }: { expeditions: Expedition[] }) 
           ) : null}
 
           {stats.punctuality.length > 0 || stats.totalDelayMin > 0 ? (
-            <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: '#EEEDF5', paddingTop: 14 }}>
+            <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: COLORS.tileMuted, paddingTop: 14 }}>
               <View className="flex-row items-center" style={{ gap: 6 }}>
                 <Timer size={13} color={COLORS.ink3} />
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 0.6, color: COLORS.ink3 }}>PUNCTUALITY</Text>
@@ -388,7 +388,7 @@ function JourneyStatsPanelInner({ expeditions }: { expeditions: Expedition[] }) 
             {otherModes.map((m) => {
               const Icon = MODE_ICON[m];
               return (
-                <View key={m} className="flex-row items-center rounded-2xl" style={{ backgroundColor: '#F7F7FB', paddingHorizontal: 14, paddingVertical: 10, gap: 9, minWidth: 104 }}>
+                <View key={m} className="flex-row items-center rounded-2xl" style={{ backgroundColor: COLORS.tileMuted, paddingHorizontal: 14, paddingVertical: 10, gap: 9, minWidth: 104 }}>
                   <View className="rounded-full items-center justify-center" style={{ height: 32, width: 32, backgroundColor: COLORS.card, ...SHADOW.card }}>
                     <Icon size={16} color={COLORS.lavender} />
                   </View>

@@ -108,7 +108,7 @@ export default function UpgradeScreen() {
         </View>
 
         <Pressable onPress={subscribe} style={{ marginHorizontal: 20, marginTop: 18, borderRadius: 22, overflow: 'hidden' }}>
-          <LinearGradient colors={GRADIENTS.sunrise} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} className="flex-row items-center justify-center" style={{ paddingVertical: 16, gap: 8 }}>
+          <LinearGradient colors={GRADIENTS.sunrise} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 }}>
             <Sparkles size={17} color="#fff" />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15.5, fontWeight: '800', color: '#fff' }}>
               {plan === 'annual' ? `Start Explorer — ${PRICE_ANNUAL}/year` : `Start Explorer — ${PRICE_MONTHLY}/month`}

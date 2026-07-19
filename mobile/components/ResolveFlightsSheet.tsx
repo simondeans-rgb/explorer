@@ -183,7 +183,7 @@ export function ResolveFlightsSheet({
     <SheetShell visible={visible} title="Resolve flights" onClose={onClose}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 12 }}>
         {result ? (
-          <View className="rounded-2xl" style={{ marginHorizontal: 20, marginTop: 4, marginBottom: allGood ? 0 : 14, backgroundColor: '#F4F3FB', paddingHorizontal: 14, paddingVertical: 11 }}>
+          <View className="rounded-2xl" style={{ marginHorizontal: 20, marginTop: 4, marginBottom: allGood ? 0 : 14, backgroundColor: COLORS.tileMuted, paddingHorizontal: 14, paddingVertical: 11 }}>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2, lineHeight: 18 }}>{result}</Text>
           </View>
         ) : null}
@@ -231,7 +231,7 @@ export function ResolveFlightsSheet({
                     </View>
                     <View className="flex-row flex-wrap" style={{ gap: 5 }}>
                       {c.reasons.map((r) => (
-                        <View key={r} className="rounded-full" style={{ backgroundColor: '#F4F3FB', paddingHorizontal: 9, paddingVertical: 3 }}>
+                        <View key={r} className="rounded-full" style={{ backgroundColor: COLORS.tileMuted, paddingHorizontal: 9, paddingVertical: 3 }}>
                           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '600', color: COLORS.ink2 }}>{REASON_LABEL[r] ?? r}</Text>
                         </View>
                       ))}
