@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import type { ComponentType } from 'react';
-import { UserPlus, ArrowRight, MapPin, Star, Plus, Sparkles, Settings2, Gem, BookmarkCheck, Check, HeartHandshake, Heart, MessageCircle, X } from 'lucide-react-native';
+import { UserPlus, ArrowRight, MapPin, Star, Plus, Sparkles, Settings2, Gem, BookmarkCheck, Check, HeartHandshake, Heart, MessageCircle, X, ChevronRight } from 'lucide-react-native';
 import { useLikes } from '../../src/hooks/useLikes';
 import { useReplies } from '../../src/hooks/useReplies';
 import { ReplySheet } from '../../components/ReplySheet';
@@ -143,6 +143,9 @@ export default function CircleScreen() {
   function declineRequest(id: string) {
     removeConnection(id).catch(() => {});
     track('circle_request_declined', { via: 'circle' });
+  }
+  function openFriend(uid: string, name: string) {
+    router.push(`/friend/${uid}?name=${encodeURIComponent(name)}`);
   }
 
   const recs = useMemo(() => circleRecommendations(friendsData.discoveries, friends), [friendsData.discoveries, friends]);
@@ -396,7 +399,7 @@ export default function CircleScreen() {
           <SectionTitle hint="Your circle, ranked by Explorer XP">Circle leaderboard</SectionTitle>
           <View style={{ gap: 8 }}>
             {leaderboard.map((m, i) => (
-              <View key={m.uid} className="bg-white dark:bg-card rounded-2xl flex-row items-center" style={{ padding: 12, gap: 12, ...SHADOW.card }}>
+              <Pressable key={m.uid} onPress={() => openFriend(m.uid, m.name)} accessibilityLabel={`View ${m.name}'s travel profile`} className="bg-white dark:bg-card rounded-2xl flex-row items-center" style={{ padding: 12, gap: 12, ...SHADOW.card }}>
                 <Text style={{ width: 18, textAlign: 'center', fontFamily: 'Fraunces', fontSize: 16, color: i === 0 ? COLORS.coral : COLORS.ink3 }}>{i + 1}</Text>
                 <Avatar name={m.name} size={40} />
                 <View style={{ flex: 1 }}>
@@ -407,7 +410,8 @@ export default function CircleScreen() {
                   <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.lavender }}>{m.xp.toLocaleString()}</Text>
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 0.5, color: COLORS.ink3 }}>XP</Text>
                 </View>
-              </View>
+                <ChevronRight size={16} color={COLORS.ink3} />
+              </Pressable>
             ))}
           </View>
 

@@ -261,13 +261,15 @@ export default function FriendsScreen() {
             const codes = countriesByFriend.get(f.uid) ?? [];
             return (
               <View key={f.uid} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 14, gap: 12 }}>
-                <Avatar name={f.name} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{f.name}</Text>
-                  <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 1 }}>
-                    {codes.length > 0 ? `${codes.length} ${codes.length === 1 ? 'country' : 'countries'} · ${codes.slice(0, 10).map((c) => flagEmoji(c)).join(' ')}` : 'No countries shared yet'}
-                  </Text>
-                </View>
+                <Pressable onPress={() => router.push(`/friend/${f.uid}?name=${encodeURIComponent(f.name)}`)} accessibilityLabel={`View ${f.name}'s travel profile`} className="flex-row items-center" style={{ flex: 1, gap: 12 }}>
+                  <Avatar name={f.name} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{f.name}</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, marginTop: 1 }}>
+                      {codes.length > 0 ? `${codes.length} ${codes.length === 1 ? 'country' : 'countries'} · ${codes.slice(0, 10).map((c) => flagEmoji(c)).join(' ')}` : 'No countries shared yet'}
+                    </Text>
+                  </View>
+                </Pressable>
                 <Pressable onPress={() => removeFriend(f.uid, f.name)} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 34, width: 34, backgroundColor: COLORS.warmwhite }}>
                   <X size={16} color={COLORS.ink3} />
                 </Pressable>

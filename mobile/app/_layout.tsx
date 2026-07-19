@@ -129,6 +129,7 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
         <Stack.Screen name="discovery/[id]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="guide/[key]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="friends" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="friend/[uid]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="invite-contacts" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="scan" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
         <Stack.Screen name="add/[code]" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
