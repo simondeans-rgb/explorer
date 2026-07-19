@@ -142,10 +142,21 @@ export async function getCoverState(): Promise<CoverState | null> {
   }
 }
 
+// Listeners notified when the active cover changes — lets the cover theme
+// (and thus the widget) update live rather than only on next app launch.
+const coverListeners = new Set<() => void>();
+export function subscribeCover(fn: () => void): () => void {
+  coverListeners.add(fn);
+  return () => {
+    coverListeners.delete(fn);
+  };
+}
+
 /** Apply a cover (null = the classic icon). Throws when it can't be applied. */
 export async function applyCover(name: string | null): Promise<void> {
   if (!native) throw new Error('App icon switching unavailable in this build');
   await native.setIcon(name);
+  for (const fn of coverListeners) fn();
 }
 
 /** Why a cover is still locked for this user, or null when it's available. */
