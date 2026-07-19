@@ -1,14 +1,19 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo-modules-core';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { useWorldly } from '../src/hooks/useWorldly';
 import { useData } from '../src/store/data';
 import { useCoverTheme } from '../src/hooks/useCoverTheme';
 import { todaysMemories } from '../src/lib/memories';
+import { destinationImage, hasDestinationPhoto } from '../src/lib/destinationImage';
+import { countryName } from '../src/data/countries';
 import { reportError } from '../src/lib/sentry';
 
 interface WidgetBridge {
   setWidgetData(json: string): Promise<boolean>;
+  /** Optional — present only on binaries built with the photo widget. */
+  setWidgetImage?(base64: string): Promise<boolean>;
 }
 
 // Null on binaries built before the widget existed — those have nothing to sync.
@@ -24,12 +29,11 @@ function mix(a: string, b: string, t: number): string {
   return `#${to(r)}${to(g)}${to(bl)}`;
 }
 
-/** A cover's widget background: always a deep, premium dark gradient so white
- *  text stays legible — but tinted toward the cover's accent so each cover
- *  still reads as distinct. (Using a cover's own light gradient washed the
- *  text out.) */
+/** The no-photo fallback background: a deep, clean near-black tinted only
+ *  faintly toward the cover accent — the accent glow (drawn natively) supplies
+ *  the colour pop, so the base stays rich rather than muddy. */
 function widgetGradient(accent: string): [string, string] {
-  return [mix(accent, '#111A30', 0.22), mix(accent, '#080B16', 0.06)];
+  return [mix(accent, '#0E1524', 0.1), mix(accent, '#070A12', 0.03)];
 }
 
 /** Pushes a rich snapshot into the shared app group for the home-screen and
@@ -58,6 +62,13 @@ export function WidgetSync() {
   // "On this day" — the standout memory for today, if any.
   const memory = todaysMemories(expeditions, places)[0];
 
+  // Featured destination for the widget's full-bleed photo: your next trip's
+  // country, else the most recent country you've logged that has a photo.
+  const featuredCode =
+    next?.countryCode && hasDestinationPhoto(next.countryCode)
+      ? next.countryCode
+      : recentFlags.find((c) => hasDestinationPhoto(c)) ?? null;
+
   const payload = JSON.stringify({
     countries: stats.countriesDiscovered,
     cities: stats.citiesDiscovered,
@@ -72,6 +83,7 @@ export function WidgetSync() {
     memoryLabel: memory?.label ?? null,
     memoryYearsAgo: memory?.yearsAgo ?? null,
     memoryCountry: memory?.countryCode ?? null,
+    featured: featuredCode ? countryName(featuredCode) : null,
     accent: theme.accent,
     gradientTop: widgetGradient(theme.accent)[0],
     gradientBottom: widgetGradient(theme.accent)[1],
@@ -81,6 +93,35 @@ export function WidgetSync() {
     if (Platform.OS !== 'ios' || !bridge) return;
     bridge.setWidgetData(payload).catch((e) => reportError(e, { where: 'widgetSync' }));
   }, [payload]);
+
+  // Fetch + downscale the featured destination photo into the shared container
+  // (only when it changes; the image is heavier than the JSON snapshot).
+  const lastImageCode = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (Platform.OS !== 'ios' || !bridge?.setWidgetImage) return;
+    if (featuredCode === lastImageCode.current) return;
+    lastImageCode.current = featuredCode;
+    (async () => {
+      try {
+        const url = featuredCode ? destinationImage(featuredCode).photo : undefined;
+        if (!url) {
+          await bridge.setWidgetImage!('');
+          return;
+        }
+        const FS = await import('expo-file-system/legacy');
+        const dest = `${FS.cacheDirectory}widget-src.jpg`;
+        await FS.downloadAsync(url, dest);
+        const out = await manipulateAsync(dest, [{ resize: { width: 680 } }], {
+          compress: 0.72,
+          format: SaveFormat.JPEG,
+          base64: true,
+        });
+        if (out.base64) await bridge.setWidgetImage!(out.base64);
+      } catch (e) {
+        reportError(e, { where: 'widgetImage' });
+      }
+    })();
+  }, [featuredCode]);
 
   return null;
 }

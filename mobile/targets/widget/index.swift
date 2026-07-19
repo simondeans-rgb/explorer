@@ -7,6 +7,7 @@
 // Passport Cover. Data arrives via the shared app group (see WidgetSync.tsx).
 import WidgetKit
 import SwiftUI
+import UIKit
 
 private let APP_GROUP = "group.com.simmyd23.worldly"
 private let ADD_URL = URL(string: "mobile://add")!
@@ -52,6 +53,8 @@ struct WidgetData {
   var recentFlags: [String] = []
   var memoryLabel: String? = nil
   var memoryYearsAgo: Int? = nil
+  var featured: String? = nil
+  var heroImage: UIImage? = nil
   var accent = Color(hex: "#FF6B9A")
   var gradient: [Color] = [Color(hex: "#14213D"), Color(hex: "#0E1837")]
   var synced = false
@@ -67,7 +70,7 @@ private func daysUntil(_ iso: String, from: Date) -> Int? {
   return days >= 0 ? days : nil
 }
 
-private func loadData(asOf: Date) -> WidgetData {
+private func loadData(asOf: Date, loadImage: Bool = true) -> WidgetData {
   var d = WidgetData()
   guard
     let defaults = UserDefaults(suiteName: APP_GROUP),
@@ -94,9 +97,14 @@ private func loadData(asOf: Date) -> WidgetData {
     d.memoryLabel = m
     d.memoryYearsAgo = (obj["memoryYearsAgo"] as? NSNumber)?.intValue
   }
+  if let f = obj["featured"] as? String, !f.isEmpty { d.featured = f }
   if let a = obj["accent"] as? String { d.accent = Color(hex: a) }
   if let top = obj["gradientTop"] as? String, let bot = obj["gradientBottom"] as? String {
     d.gradient = [Color(hex: top), Color(hex: bot)]
+  }
+  // The featured destination photo, if the app has written one.
+  if loadImage, let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: APP_GROUP) {
+    d.heroImage = UIImage(contentsOfFile: container.appendingPathComponent("widget-hero.jpg").path)
   }
   return d
 }
@@ -146,11 +154,12 @@ struct Provider: TimelineProvider {
     let cal = Calendar.current
     var entries: [WorldlyEntry] = []
     // One frame every 3 hours over the next day, cycling the moments so the
-    // widget quietly changes what it shows through the day. Reload after the
-    // last entry (which also refreshes the countdown for the new day).
+    // widget quietly changes what it shows through the day. The hero photo is
+    // decoded once and shared across entries to stay within the memory budget.
     for i in 0..<8 {
       let date = cal.date(byAdding: .hour, value: i * 3, to: now) ?? now
-      let d = loadData(asOf: date)
+      var d = loadData(asOf: date, loadImage: false)
+      d.heroImage = base.heroImage
       entries.append(WorldlyEntry(date: date, data: d, moment: moments[i % moments.count]))
     }
     completion(Timeline(entries: entries, policy: .atEnd))
@@ -332,7 +341,7 @@ private struct MomentView: View {
         Text("NEXT TRIP").font(.system(size: 9, weight: .heavy)).kerning(1.2).foregroundColor(.white.opacity(0.6))
         heroNumber(d.nextTripDays == 0 ? "Today" : "\(d.nextTripDays ?? 0)", accent: d.accent, size: 42)
         Text((d.nextTripDays == 1 ? "day · " : "days · ") + (d.nextTripTitle ?? ""))
-          .font(.system(size: 11, weight: .semibold)).foregroundColor(d.accent).lineLimit(1)
+          .font(.system(size: 11, weight: .semibold)).foregroundColor(d.accent).lineLimit(1).minimumScaleFactor(0.8)
       }
     case .progress:
       HStack(spacing: 12) {
@@ -387,10 +396,15 @@ private struct MediumView: View {
         Text("Open to sync").font(.system(size: 10, weight: .semibold)).foregroundColor(.white.opacity(0.6))
       }
     } else if let title = d.nextTripTitle, let days = d.nextTripDays {
-      VStack(alignment: .trailing, spacing: 2) {
-        Text("NEXT TRIP").font(.system(size: 9, weight: .heavy)).kerning(1.2).foregroundColor(.white.opacity(0.6))
-        Text(days == 0 ? "Today" : "\(days)").font(.system(size: days == 0 ? 24 : 32, weight: .bold, design: .serif)).foregroundColor(d.accent)
-        Text((days == 1 ? "day · " : "days · ") + title).font(.system(size: 11, weight: .semibold)).foregroundColor(.white.opacity(0.9)).lineLimit(1)
+      VStack(alignment: .trailing, spacing: 1) {
+        Text("NEXT TRIP").font(.system(size: 9, weight: .heavy)).kerning(1.2).foregroundColor(.white.opacity(0.7))
+        if days == 0 {
+          Text("Today!").font(.system(size: 24, weight: .bold, design: .serif)).foregroundColor(.white)
+        } else {
+          heroNumber("\(days)", accent: d.accent, size: 34)
+          Text(days == 1 ? "day away" : "days away").font(.system(size: 10, weight: .medium)).foregroundColor(.white.opacity(0.7))
+        }
+        Text(title).font(.system(size: 12.5, weight: .bold)).foregroundColor(.white).lineLimit(1).minimumScaleFactor(0.75)
       }
     } else if let mem = d.memoryLabel {
       VStack(alignment: .trailing, spacing: 2) {
@@ -535,15 +549,25 @@ struct WorldlyWidgetEntryView: View {
     let d = entry.data
     content().containerBackground(for: .widget) {
       ZStack {
-        LinearGradient(colors: d.gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
-        // Accent glows give the flat gradient depth and vibrancy.
-        RadialGradient(colors: [d.accent.opacity(0.42), .clear], center: .topLeading, startRadius: 2, endRadius: 280)
-        RadialGradient(colors: [d.accent.opacity(0.18), .clear], center: .bottomTrailing, startRadius: 2, endRadius: 240)
-        // Faint brand watermark bleeding off the lower-right corner.
-        WMark(color: .white.opacity(0.06))
-          .frame(width: 260, height: 260)
-          .rotationEffect(.degrees(-8))
-          .offset(x: 78, y: 66)
+        if let img = d.heroImage {
+          // Full-bleed destination photography — the Airbnb/Spotify move.
+          Image(uiImage: img).resizable().scaledToFill()
+          // Legibility: darken overall a touch, deepen toward the bottom where
+          // the stats sit, and keep a whisper of the cover accent up top.
+          Color.black.opacity(0.28)
+          LinearGradient(colors: [.black.opacity(0.35), .clear, .black.opacity(0.68)], startPoint: .top, endPoint: .bottom)
+          RadialGradient(colors: [d.accent.opacity(0.22), .clear], center: .topTrailing, startRadius: 2, endRadius: 220)
+        } else {
+          LinearGradient(colors: d.gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+          // Accent glows give the deep base depth and vibrancy.
+          RadialGradient(colors: [d.accent.opacity(0.5), .clear], center: .topLeading, startRadius: 2, endRadius: 300)
+          RadialGradient(colors: [d.accent.opacity(0.22), .clear], center: .bottomTrailing, startRadius: 2, endRadius: 240)
+          // Faint brand watermark bleeding off the lower-right corner.
+          WMark(color: .white.opacity(0.06))
+            .frame(width: 260, height: 260)
+            .rotationEffect(.degrees(-8))
+            .offset(x: 78, y: 66)
+        }
       }
     }
   }
