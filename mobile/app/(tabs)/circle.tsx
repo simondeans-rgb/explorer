@@ -22,6 +22,7 @@ import { useAuth } from '../../src/store/auth';
 import { useData } from '../../src/store/data';
 import { useToast } from '../../src/store/toast';
 import { useFriends } from '../../src/hooks/useFriends';
+import { useWorldly } from '../../src/hooks/useWorldly';
 import { acceptConnection, removeConnection } from '../../src/lib/connections';
 import { track } from '../../src/lib/analytics';
 import { recentVisits, wishlists, circleRecommendations, mostVisitedCountry, travelCompatibility, type CircleRec } from '../../src/lib/circle';
@@ -125,6 +126,7 @@ export default function CircleScreen() {
   const { user } = useAuth();
   const myName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
   const { friends, friendsData, connections } = useFriends(user?.uid, myName);
+  const worldly = useWorldly();
   const { places: myPlaces, discoveries: myDiscoveries, addPlace } = useData();
   const { toast } = useToast();
   const [rec, setRec] = useState<CircleRec | null>(null);
@@ -162,18 +164,18 @@ export default function CircleScreen() {
     const rows = friends.map((f) => {
       const fp = friendsData.places.filter((p) => p.userId === f.uid);
       const fd = friendsData.discoveries.filter((d) => d.userId === f.uid);
+      const fe = friendsData.expeditions.filter((e) => e.userId === f.uid);
       const stats = computeStats(aggregateByCountry(fp));
-      const lvl = computeExplorerLevel(stats, computeDiscoveryStats(fd), computeJourneyStats([]));
+      // Full Explorer XP — journeys included — so the ranking matches the level
+      // everyone sees on their own Passport (no confusing off-by-a-few-levels).
+      const lvl = computeExplorerLevel(stats, computeDiscoveryStats(fd), computeJourneyStats(fe));
       return { uid: f.uid, name: f.name, level: lvl.level, title: lvl.title, xp: lvl.xp, countries: stats.countriesDiscovered, isMe: false };
     });
-    // Include the user, ranked the same way (journeys excluded on both sides) so
-    // it's a fair comparison — everyone scored on countries, cities, continents
-    // and discoveries. So they can see if they're in the lead.
-    const myStats = computeStats(aggregateByCountry(myPlaces));
-    const myLvl = computeExplorerLevel(myStats, computeDiscoveryStats(myDiscoveries), computeJourneyStats([]));
-    rows.push({ uid: user?.uid ?? 'me', name: myName, level: myLvl.level, title: myLvl.title, xp: myLvl.xp, countries: myStats.countriesDiscovered, isMe: true });
+    // The user's own row uses the exact level/XP from their Passport (useWorldly),
+    // so the two screens never disagree.
+    rows.push({ uid: user?.uid ?? 'me', name: myName, level: worldly.level.level, title: worldly.level.title, xp: worldly.level.xp, countries: worldly.stats.countriesDiscovered, isMe: true });
     return rows.sort((a, b) => b.xp - a.xp);
-  }, [friends, friendsData, myPlaces, myDiscoveries, user?.uid, myName]);
+  }, [friends, friendsData, worldly.level, worldly.stats, user?.uid, myName]);
   const myRank = useMemo(() => leaderboard.findIndex((m) => m.isMe) + 1, [leaderboard]);
 
   const hasCircle = friends.length > 0;
