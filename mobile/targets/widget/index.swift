@@ -245,7 +245,7 @@ private extension View {
         .background(
           RoundedRectangle(cornerRadius: radius, style: .continuous)
             .fill(.ultraThinMaterial)
-            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Color.black.opacity(0.22)))
+            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Color.black.opacity(0.1)))
             .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).stroke(Color.white.opacity(0.14), lineWidth: 0.5))
         )
         .environment(\.colorScheme, .dark)
