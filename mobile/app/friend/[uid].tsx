@@ -1,12 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { MapPin, Star, Gem, ChevronRight, Users } from 'lucide-react-native';
+import { MapPin, Star, Gem, Users } from 'lucide-react-native';
 import { DestinationImage } from '../../components/DestinationImage';
 import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
+import { FriendCountrySheet } from '../../components/FriendCountrySheet';
 import { BackButton } from '../../components/BackButton';
-import { COLORS, HERO_HEIGHT } from '../../src/lib/theme';
+import { COLORS, HERO_HEIGHT, SHADOW } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { aggregateByCountry, computeStats } from '../../src/lib/stats';
@@ -38,11 +39,30 @@ export default function FriendProfileScreen() {
   const name = ((Array.isArray(params.name) ? params.name[0] : params.name) || 'Traveller').trim();
   const initial = name.charAt(0).toUpperCase();
 
+  const [selected, setSelected] = useState<string | null>(null);
   const data = useFriendsData(uid ? [uid] : []);
   const places = useMemo(() => data.places.filter((p) => p.userId === uid), [data.places, uid]);
   const discoveries = useMemo(() => data.discoveries.filter((d) => d.userId === uid), [data.discoveries, uid]);
   const expeditions = useMemo(() => data.expeditions.filter((e) => e.userId === uid), [data.expeditions, uid]);
-  const captureCount = useMemo(() => data.captures.filter((c) => c.userId === uid).length, [data.captures, uid]);
+  const captures = useMemo(() => data.captures.filter((c) => c.userId === uid), [data.captures, uid]);
+  const captureCount = captures.length;
+
+  // Per-country counts of their photos + saved places, for the tile sublines
+  // and to hint which countries are worth tapping into.
+  const contentByCountry = useMemo(() => {
+    const m = new Map<string, { photos: number; places: number }>();
+    const bump = (code: string | undefined, key: 'photos' | 'places') => {
+      if (!code) return;
+      const e = m.get(code) ?? { photos: 0, places: 0 };
+      e[key]++;
+      m.set(code, e);
+    };
+    discoveries.forEach((d) => bump(d.countryCode, 'places'));
+    captures.forEach((c) => bump(c.countryCode, 'photos'));
+    return m;
+  }, [discoveries, captures]);
+  const selPhotos = useMemo(() => (selected ? captures.filter((c) => c.countryCode === selected) : []), [captures, selected]);
+  const selDiscoveries = useMemo(() => (selected ? discoveries.filter((d) => d.countryCode === selected) : []), [discoveries, selected]);
 
   const aggregates = useMemo(() => aggregateByCountry(places), [places]);
   const stats = useMemo(() => computeStats(aggregates), [aggregates]);
@@ -67,6 +87,13 @@ export default function FriendProfileScreen() {
   );
   const earned = badges.filter((b) => b.earned).length;
   const earnedFirst = useMemo(() => [...badges].sort((a, b) => Number(b.earned) - Number(a.earned) || b.progress - a.progress), [badges]);
+  // Countries laid out as columns of two, so the carousel scrolls as a tidy
+  // two-row band rather than a wrapping flag soup.
+  const columns = useMemo(() => {
+    const cols: (typeof visited)[] = [];
+    for (let i = 0; i < visited.length; i += 2) cols.push(visited.slice(i, i + 2));
+    return cols;
+  }, [visited]);
 
   const isSelf = uid === user?.uid;
   const hasAnything = stats.countriesDiscovered > 0 || discoveries.length > 0 || expeditions.length > 0;
@@ -120,20 +147,47 @@ export default function FriendProfileScreen() {
               ))}
             </View>
 
-            {/* Countries visited — a flag wall, tap a flag to open the country. */}
+            {/* Countries visited — a two-row carousel of readable tiles. Tap one
+                to see the photos + places they saved there. */}
             {visited.length > 0 ? (
-              <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
-                <Text style={{ fontFamily: 'Fraunces', fontSize: 21, color: COLORS.navy, marginBottom: 10 }}>
-                  Countries visited <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink3, fontWeight: '700' }}>{visited.length}</Text>
-                </Text>
-                <View className="flex-row flex-wrap" style={{ gap: 8 }}>
-                  {visited.map((a) => (
-                    <Pressable key={a.code} onPress={() => router.push(`/country/${a.code}`)} className="flex-row items-center rounded-full" style={{ backgroundColor: '#fff', paddingLeft: 8, paddingRight: 12, paddingVertical: 6, gap: 6, borderWidth: 1, borderColor: 'rgba(20,33,61,0.06)' }}>
-                      <Text style={{ fontSize: 17 }}>{flagEmoji(a.code)}</Text>
-                      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '600', color: COLORS.navy }}>{countryName(a.code) || a.code}</Text>
-                    </Pressable>
-                  ))}
+              <View style={{ marginTop: 24 }}>
+                <View className="flex-row items-end justify-between" style={{ paddingHorizontal: 20, marginBottom: 12 }}>
+                  <Text style={{ fontFamily: 'Fraunces', fontSize: 21, color: COLORS.navy }}>
+                    Countries visited <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink3, fontWeight: '700' }}>{visited.length}</Text>
+                  </Text>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>Tap to explore</Text>
                 </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}>
+                  {columns.map((col, ci) => (
+                    <View key={ci} style={{ gap: 10 }}>
+                      {col.map((a) => {
+                        const c = contentByCountry.get(a.code);
+                        const bits: string[] = [];
+                        if (c?.places) bits.push(`${c.places} ${c.places === 1 ? 'place' : 'places'}`);
+                        if (c?.photos) bits.push(`${c.photos} ${c.photos === 1 ? 'photo' : 'photos'}`);
+                        const sub = bits.join(' · ') || (a.firstYear ? `Visited ${a.firstYear}` : 'Visited');
+                        const rich = !!(c?.places || c?.photos);
+                        return (
+                          <Pressable
+                            key={a.code}
+                            onPress={() => setSelected(a.code)}
+                            accessibilityLabel={`${countryName(a.code) || a.code} — ${sub}`}
+                            className="bg-white dark:bg-card flex-row items-center rounded-2xl"
+                            style={{ width: 190, padding: 11, gap: 10, borderWidth: rich ? 1.5 : 1, borderColor: rich ? 'rgba(255,107,154,0.35)' : 'rgba(20,33,61,0.06)', ...SHADOW.card }}
+                          >
+                            <View className="items-center justify-center rounded-xl" style={{ height: 40, width: 40, backgroundColor: COLORS.warmwhite }}>
+                              <Text style={{ fontSize: 22 }}>{flagEmoji(a.code)}</Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.navy }}>{countryName(a.code) || a.code}</Text>
+                              <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 11.5, fontWeight: '600', color: rich ? COLORS.coral : COLORS.ink3, marginTop: 1 }}>{sub}</Text>
+                            </View>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  ))}
+                </ScrollView>
               </View>
             ) : null}
 
@@ -187,6 +241,15 @@ export default function FriendProfileScreen() {
           </>
         )}
       </ScrollView>
+
+      <FriendCountrySheet
+        visible={selected != null}
+        onClose={() => setSelected(null)}
+        friendName={name}
+        code={selected}
+        photos={selPhotos}
+        discoveries={selDiscoveries}
+      />
     </View>
   );
 }
