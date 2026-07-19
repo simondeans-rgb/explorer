@@ -37,23 +37,31 @@ function widgetGradient(accent: string): [string, string] {
 }
 
 /** Turn a widget-hero source — a user capture (data URL or Storage URL) or a
- *  stock destination URL — into a downscaled base64 JPEG for the widget. */
+ *  stock destination URL — into a downscaled base64 JPEG for the widget.
+ *  Best-effort: any failure (bad download, unreadable file, decode error)
+ *  returns null and the widget falls back to its gradient. */
 async function sourceToBase64(src: string): Promise<string | null> {
-  const FS = await import('expo-file-system/legacy');
-  const localUri = `${FS.cacheDirectory}widget-src-in.jpg`;
-  if (src.startsWith('data:')) {
-    const b64 = src.split(',')[1] ?? '';
-    if (!b64) return null;
-    await FS.writeAsStringAsync(localUri, b64, { encoding: FS.EncodingType.Base64 });
-  } else {
-    await FS.downloadAsync(src, localUri);
+  try {
+    const FS = await import('expo-file-system/legacy');
+    const localUri = `${FS.cacheDirectory}widget-src-in.jpg`;
+    if (src.startsWith('data:')) {
+      const b64 = src.split(',')[1] ?? '';
+      if (!b64) return null;
+      await FS.writeAsStringAsync(localUri, b64, { encoding: FS.EncodingType.Base64 });
+    } else {
+      const res = await FS.downloadAsync(src, localUri);
+      if (res.status !== 200) return null; // 404/redirect/HTML — not an image
+    }
+    const out = await manipulateAsync(localUri, [{ resize: { width: 680 } }], {
+      compress: 0.72,
+      format: SaveFormat.JPEG,
+      base64: true,
+    });
+    return out.base64 ?? null;
+  } catch {
+    // Missing stock image, offline, or an unreadable cache file — non-critical.
+    return null;
   }
-  const out = await manipulateAsync(localUri, [{ resize: { width: 680 } }], {
-    compress: 0.72,
-    format: SaveFormat.JPEG,
-    base64: true,
-  });
-  return out.base64 ?? null;
 }
 
 /** Pushes a rich snapshot into the shared app group for the home-screen and
@@ -123,10 +131,21 @@ export function WidgetSync() {
     gradientBottom: widgetGradient(theme.accent)[1],
   });
 
+  // Don't overwrite good widget data with an empty snapshot. On a fresh launch
+  // (and briefly after an app update) the stores are still loading, so stats
+  // read 0 — writing that would blank the widget until the next sync. Skip
+  // empty writes so the last real numbers stay put until the data is back.
+  const emptySnapshot =
+    stats.countriesDiscovered === 0 &&
+    stats.citiesDiscovered === 0 &&
+    recentFlags.length === 0 &&
+    !next &&
+    !memory;
+
   useEffect(() => {
-    if (Platform.OS !== 'ios' || !bridge) return;
+    if (Platform.OS !== 'ios' || !bridge || emptySnapshot) return;
     bridge.setWidgetData(payload).catch((e) => reportError(e, { where: 'widgetSync' }));
-  }, [payload]);
+  }, [payload, emptySnapshot]);
 
   // Fetch + downscale the featured photo into the shared container (only when
   // the source changes; the image is heavier than the JSON snapshot). A user
@@ -143,9 +162,10 @@ export function WidgetSync() {
           return;
         }
         const base64 = await sourceToBase64(featuredSrc);
+        // '' clears the hero so the widget shows its gradient — never errors.
         await bridge.setWidgetImage!(base64 ?? '');
-      } catch (e) {
-        reportError(e, { where: 'widgetImage' });
+      } catch {
+        // Non-critical: leave whatever hero was there.
       }
     })();
   }, [featuredSrc]);
