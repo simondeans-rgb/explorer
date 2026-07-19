@@ -348,13 +348,11 @@ private struct MomentView: View {
       HStack(alignment: .top) {
         BrandLockup()
         Spacer()
-        AddBadge(tint: d.accent, size: 30)
+        AddBadge(tint: d.accent, size: 38)
       }
       Spacer()
       content
       Spacer()
-      // Small widgets allow only one tap target, so flags here are display-only.
-      if !d.recentFlags.isEmpty { FlagRow(flags: d.recentFlags, maxCount: 5, clickable: false, size: 25, showOverflow: false) }
     }
   }
 
@@ -426,8 +424,6 @@ private struct MediumView: View {
         Spacer(minLength: 0)
         rightPanel.frame(maxWidth: 130, alignment: .trailing)
       }
-      Spacer()
-      if !d.recentFlags.isEmpty { FlagRow(flags: d.recentFlags, maxCount: 7, clickable: true, size: 30) }
     }
   }
 
@@ -472,19 +468,20 @@ private struct LargeView: View {
         Link(destination: ADD_URL) { AddBadge(tint: d.accent, size: 42) }
       }
       Spacer(minLength: 8)
-      // Hero: progress ring + headline stats.
-      HStack(alignment: .center, spacing: 18) {
-        ProgressRing(progress: d.levelProgress, tint: d.accent, center: "\(d.countries)").frame(width: 96, height: 96)
-        VStack(alignment: .leading, spacing: 6) {
+      // Hero: a compact progress ring beside the headline, the stat trio below.
+      VStack(alignment: .leading, spacing: 14) {
+        HStack(alignment: .center, spacing: 14) {
+          ProgressRing(progress: d.levelProgress, tint: d.accent, center: "\(d.countries)").frame(width: 58, height: 58)
           Text(d.synced ? "countries explored" : "Open Worldly to sync")
-            .font(.system(size: 17, weight: .bold, design: .serif)).foregroundColor(.white).lineLimit(1)
-          HStack(spacing: 16) {
-            bigStat("\(d.cities)", "cities", color: d.accent)
-            bigStat("\(d.continents)", "continents")
-            if d.level > 0 { bigStat("\(d.level)", "level") }
-          }
+            .font(.system(size: 20, weight: .bold, design: .serif)).foregroundColor(.white).lineLimit(2)
+          Spacer(minLength: 0)
         }
-        Spacer()
+        HStack(spacing: 24) {
+          bigStat("\(d.cities)", "cities", color: d.accent)
+          bigStat("\(d.continents)", "continents")
+          if d.level > 0 { bigStat("\(d.level)", "level") }
+          Spacer()
+        }
       }
       Spacer(minLength: 12)
       // Prominent next-trip / memory band.
