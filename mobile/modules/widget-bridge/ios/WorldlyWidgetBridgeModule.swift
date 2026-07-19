@@ -21,5 +21,24 @@ public class WorldlyWidgetBridgeModule: Module {
       }
       promise.resolve(true)
     }
+
+    // Writes the featured destination photo into the shared container so the
+    // widget can use it as a full-bleed background. Empty string clears it.
+    AsyncFunction("setWidgetImage") { (base64: String, promise: Promise) in
+      guard let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: WorldlyWidgetBridgeModule.appGroup) else {
+        promise.reject("NO_APP_GROUP", "App group unavailable")
+        return
+      }
+      let url = container.appendingPathComponent("widget-hero.jpg")
+      if base64.isEmpty {
+        try? FileManager.default.removeItem(at: url)
+      } else if let data = Data(base64Encoded: base64) {
+        try? data.write(to: url, options: .atomic)
+      }
+      if #available(iOS 14.0, *) {
+        WidgetCenter.shared.reloadAllTimelines()
+      }
+      promise.resolve(true)
+    }
   }
 }
