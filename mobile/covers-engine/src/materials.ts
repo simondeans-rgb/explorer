@@ -98,10 +98,42 @@ export const CHROME: Material = {
   pinSheen: 0.9,
 };
 
+/** White Carrara marble — premium editions. */
+export const MARBLE: Material = {
+  id: 'marble',
+  defs:
+    '<linearGradient id="m-marble-line" x1="0" y1="0" x2="0" y2="1024" gradientUnits="userSpaceOnUse">' +
+    '<stop offset="0" stop-color="#FFFFFF"/><stop offset="0.5" stop-color="#F3F2EF"/><stop offset="1" stop-color="#D8D6CF"/></linearGradient>' +
+    '<linearGradient id="m-marble-pin" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0" stop-color="#FFFFFF"/><stop offset="0.6" stop-color="#EFEDE7"/>' +
+    '<stop offset="1" stop-color="#CBC8BF"/></linearGradient>',
+  lineStroke: 'url(#m-marble-line)',
+  pinFill: 'url(#m-marble-pin)',
+  bevel: '#FFFFFF',
+  pinSheen: 0.7,
+};
+
+/** Woven natural linen — understated, tactile core editions. */
+export const LINEN: Material = {
+  id: 'linen',
+  defs:
+    '<linearGradient id="m-linen-line" x1="0" y1="0" x2="0" y2="1024" gradientUnits="userSpaceOnUse">' +
+    '<stop offset="0" stop-color="#FBF7EE"/><stop offset="1" stop-color="#E4DAC6"/></linearGradient>' +
+    '<linearGradient id="m-linen-pin" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0" stop-color="#FCF9F1"/><stop offset="0.62" stop-color="#F0E8D6"/>' +
+    '<stop offset="1" stop-color="#D3C6AC"/></linearGradient>',
+  lineStroke: 'url(#m-linen-line)',
+  pinFill: 'url(#m-linen-pin)',
+  bevel: '#FFFDF6',
+  pinSheen: 0.5,
+};
+
 export const MATERIALS: Record<string, Material> = {
   porcelain: PORCELAIN,
   gold: GOLD,
   ice: ICE,
   parchment: PARCHMENT,
   chrome: CHROME,
+  marble: MARBLE,
+  linen: LINEN,
 };

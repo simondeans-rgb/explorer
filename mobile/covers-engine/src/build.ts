@@ -3,12 +3,14 @@
 //   npm run covers:build -- summit  — one cover
 import { join } from 'node:path';
 import { VOYAGER_RECIPES } from './recipes/voyager';
+import { CATALOGUE_RECIPES } from './recipes/catalogue';
 import { renderCoverAssets, contactSheet } from './render';
 
+const ALL_RECIPES = { ...VOYAGER_RECIPES, ...CATALOGUE_RECIPES };
 const only = process.argv[2];
 
 async function main() {
-  const entries = Object.entries(VOYAGER_RECIPES).filter(([slug]) => !only || slug === only);
+  const entries = Object.entries(ALL_RECIPES).filter(([slug]) => !only || slug === only);
   for (const [slug, recipe] of entries) {
     await renderCoverAssets(slug, recipe());
     console.log('rendered', slug);
