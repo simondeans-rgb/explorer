@@ -26,6 +26,7 @@ import { AchievementWatcher } from '../components/AchievementWatcher';
 import { LocationSync } from '../components/LocationSync';
 import { NotificationScheduler } from '../components/NotificationScheduler';
 import { WidgetSync } from '../components/WidgetSync';
+import { CircleRequestPrompt } from '../components/CircleRequestPrompt';
 import { onOpenAddMenu } from '../src/lib/addMenu';
 import { GlobalTabBar } from '../components/GlobalTabBar';
 import { ActionMenu, type ActionKind } from '../components/ActionMenu';
@@ -141,6 +142,7 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
       <LocationSync />
       <NotificationScheduler />
       <WidgetSync />
+      <CircleRequestPrompt />
 
       {/* Global, always-visible navigation bar + its action menu / sheets. */}
       <GlobalTabBar onFab={() => setMenuOpen(true)} />
