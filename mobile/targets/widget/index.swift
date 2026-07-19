@@ -179,25 +179,51 @@ struct Provider: TimelineProvider {
 
 // MARK: - Building blocks
 
-private struct Eyebrow: View {
-  let text: String
-  var color: Color
+private struct AddBadge: View {
+  var tint: Color
+  var size: CGFloat = 28
   var body: some View {
-    Text(text.uppercased())
-      .font(.system(size: 10, weight: .heavy)).kerning(1.8)
-      .foregroundColor(color)
+    Image(systemName: "plus")
+      .font(.system(size: size * 0.48, weight: .bold))
+      .foregroundColor(.white)
+      .frame(width: size, height: size)
+      .background(Circle().fill(tint))
+      .shadow(color: tint.opacity(0.5), radius: 6, y: 2)
   }
 }
 
-private struct AddBadge: View {
-  var tint: Color
+/// The Worldly logo mark — the five coloured map-pins joined by the route line,
+/// exactly the app icon geometry, rendered small for the widget header.
+private struct BrandMark: View {
+  var height: CGFloat = 22
+  private let pts: [(CGFloat, CGFloat)] = [(0.09, 0.30), (0.30, 0.80), (0.50, 0.42), (0.70, 0.80), (0.91, 0.30)]
+  private let cols = [Color(hex: "#FF6B9A"), Color(hex: "#24D1C3"), Color(hex: "#FFB84D"), Color(hex: "#9B7CFF"), Color(hex: "#4DA6FF")]
   var body: some View {
-    Image(systemName: "plus")
-      .font(.system(size: 14, weight: .bold))
-      .foregroundColor(.white)
-      .frame(width: 28, height: 28)
-      .background(Circle().fill(tint))
-      .shadow(color: tint.opacity(0.5), radius: 6, y: 2)
+    GeometryReader { geo in
+      let w = geo.size.width, h = geo.size.height
+      let p = pts.map { CGPoint(x: $0.0 * w, y: $0.1 * h) }
+      ZStack {
+        Path { path in
+          path.move(to: p[0])
+          for pt in p.dropFirst() { path.addLine(to: pt) }
+        }
+        .stroke(Color.white, style: StrokeStyle(lineWidth: h * 0.15, lineCap: .round, lineJoin: .round))
+        ForEach(0..<p.count, id: \.self) { i in
+          Circle().fill(cols[i]).frame(width: h * 0.30, height: h * 0.30).position(p[i])
+        }
+      }
+    }
+    .frame(width: height * 1.4, height: height)
+  }
+}
+
+/// Logo lockup for the widget header: the mark + "Worldly".
+private struct BrandLockup: View {
+  var body: some View {
+    HStack(spacing: 6) {
+      BrandMark(height: 20)
+      Text("Worldly").font(.system(size: 15, weight: .heavy)).foregroundColor(.white)
+    }
   }
 }
 
@@ -255,21 +281,36 @@ private struct ProgressRing: View {
   }
 }
 
-private struct FlagStrip: View {
+/// A ticker-tape row of country flags along the bottom. On medium/large each
+/// flag is a Link that opens that country's card; small widgets allow only one
+/// tap target, so there the flags are display-only.
+private struct FlagRow: View {
   let flags: [String]
-  let max: Int
+  let maxCount: Int
+  var clickable: Bool = false
+  var size: CGFloat = 32
+  var showOverflow: Bool = true
+
+  private func chip(_ code: String) -> some View {
+    Text(flagEmoji(code))
+      .font(.system(size: size * 0.6))
+      .frame(width: size, height: size)
+      .background(RoundedRectangle(cornerRadius: size * 0.26, style: .continuous).fill(Color.white.opacity(0.15)))
+      .overlay(RoundedRectangle(cornerRadius: size * 0.26, style: .continuous).stroke(Color.white.opacity(0.12), lineWidth: 0.5))
+  }
+
   var body: some View {
-    HStack(spacing: 4) {
-      ForEach(Array(flags.prefix(max).enumerated()), id: \.offset) { _, code in
-        Text(flagEmoji(code))
-          .font(.system(size: 15))
-          .frame(width: 26, height: 26)
-          .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Color.white.opacity(0.13)))
-          .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(Color.white.opacity(0.1), lineWidth: 0.5))
+    HStack(spacing: 5) {
+      ForEach(Array(flags.prefix(maxCount).enumerated()), id: \.offset) { _, code in
+        if clickable, let url = URL(string: "mobile://country/\(code)") {
+          Link(destination: url) { chip(code) }
+        } else {
+          chip(code)
+        }
       }
-      if flags.count > max {
-        Text("+\(flags.count - max)")
-          .font(.system(size: 11, weight: .heavy))
+      if showOverflow && flags.count > maxCount {
+        Text("+\(flags.count - maxCount)")
+          .font(.system(size: 12, weight: .heavy))
           .foregroundColor(.white.opacity(0.75))
           .padding(.leading, 1)
       }
@@ -305,14 +346,15 @@ private struct MomentView: View {
     let d = entry.data
     VStack(alignment: .leading, spacing: 0) {
       HStack(alignment: .top) {
-        Eyebrow(text: "Worldly", color: d.accent)
+        BrandLockup()
         Spacer()
-        AddBadge(tint: d.accent)
+        AddBadge(tint: d.accent, size: 30)
       }
       Spacer()
       content
       Spacer()
-      if !d.recentFlags.isEmpty { FlagStrip(flags: d.recentFlags, max: 5) }
+      // Small widgets allow only one tap target, so flags here are display-only.
+      if !d.recentFlags.isEmpty { FlagRow(flags: d.recentFlags, maxCount: 5, clickable: false, size: 25, showOverflow: false) }
     }
   }
 
@@ -364,56 +406,55 @@ private struct MediumView: View {
   let entry: WorldlyEntry
   var body: some View {
     let d = entry.data
-    HStack(alignment: .top, spacing: 12) {
-      VStack(alignment: .leading, spacing: 0) {
-        Eyebrow(text: "Worldly", color: d.accent)
+    VStack(alignment: .leading, spacing: 0) {
+      HStack(alignment: .top) {
+        BrandLockup()
         Spacer()
-        heroNumber("\(d.countries)", accent: d.accent, size: 46)
-        Text(d.synced ? (d.countries == 1 ? "country explored" : "countries explored") : "Open to sync")
-          .font(.system(size: 11, weight: .medium)).foregroundColor(.white.opacity(0.72)).lineLimit(1)
-        if d.cities > 0 || d.continents > 0 {
-          Text("\(d.cities) cities · \(d.continents) continents")
-            .font(.system(size: 11, weight: .semibold)).foregroundColor(d.accent).lineLimit(1).padding(.top, 3)
+        Link(destination: ADD_URL) { AddBadge(tint: d.accent, size: 40) }
+      }
+      Spacer()
+      HStack(alignment: .bottom, spacing: 12) {
+        VStack(alignment: .leading, spacing: 1) {
+          heroNumber("\(d.countries)", accent: d.accent, size: 52)
+          Text(d.synced ? (d.countries == 1 ? "country explored" : "countries explored") : "Open Worldly to sync")
+            .font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.75)).lineLimit(1)
+          if d.cities > 0 || d.continents > 0 {
+            Text("\(d.cities) cities · \(d.continents) continents")
+              .font(.system(size: 11.5, weight: .semibold)).foregroundColor(d.accent).lineLimit(1).padding(.top, 2)
+          }
         }
-        Spacer()
-        if !d.recentFlags.isEmpty { FlagStrip(flags: d.recentFlags, max: 7) }
+        Spacer(minLength: 0)
+        rightPanel.frame(maxWidth: 130, alignment: .trailing)
       }
-      Spacer(minLength: 0)
-      VStack(alignment: .trailing, spacing: 8) {
-        Link(destination: ADD_URL) { AddBadge(tint: d.accent) }
-        Spacer()
-        rightPanel
-      }
-      .frame(maxWidth: 128, alignment: .trailing)
+      Spacer()
+      if !d.recentFlags.isEmpty { FlagRow(flags: d.recentFlags, maxCount: 7, clickable: true, size: 30) }
     }
   }
 
   @ViewBuilder private var rightPanel: some View {
     let d = entry.data
-    if !d.synced {
-      VStack(alignment: .trailing, spacing: 4) {
-        Image(systemName: "globe.europe.africa.fill").font(.system(size: 30)).foregroundColor(.white.opacity(0.28))
-        Text("Open to sync").font(.system(size: 10, weight: .semibold)).foregroundColor(.white.opacity(0.6))
-      }
-    } else if let title = d.nextTripTitle, let days = d.nextTripDays {
-      VStack(alignment: .trailing, spacing: 1) {
-        Text("NEXT TRIP").font(.system(size: 9, weight: .heavy)).kerning(1.2).foregroundColor(.white.opacity(0.7))
+    if let title = d.nextTripTitle, let days = d.nextTripDays {
+      VStack(alignment: .trailing, spacing: 0) {
+        Text("NEXT TRIP").font(.system(size: 10, weight: .heavy)).kerning(1.4).foregroundColor(d.accent)
         if days == 0 {
-          Text("Today!").font(.system(size: 24, weight: .bold, design: .serif)).foregroundColor(.white)
+          Text("Today!").font(.system(size: 32, weight: .bold, design: .serif)).foregroundColor(.white)
         } else {
-          heroNumber("\(days)", accent: d.accent, size: 34)
-          Text(days == 1 ? "day away" : "days away").font(.system(size: 10, weight: .medium)).foregroundColor(.white.opacity(0.7))
+          heroNumber("\(days)", accent: d.accent, size: 44)
+          Text(days == 1 ? "day away" : "days away").font(.system(size: 11, weight: .semibold)).foregroundColor(.white.opacity(0.75)).padding(.top, -2)
         }
-        Text(title).font(.system(size: 12.5, weight: .bold)).foregroundColor(.white).lineLimit(1).minimumScaleFactor(0.75)
+        Text(title).font(.system(size: 14, weight: .bold)).foregroundColor(.white).lineLimit(1).minimumScaleFactor(0.7).padding(.top, 1)
       }
     } else if let mem = d.memoryLabel {
-      VStack(alignment: .trailing, spacing: 2) {
-        Text("ON THIS DAY").font(.system(size: 9, weight: .heavy)).kerning(1.2).foregroundColor(.white.opacity(0.6))
-        Text(mem).font(.system(size: 20, weight: .bold, design: .serif)).foregroundColor(.white).lineLimit(1)
-        if let y = d.memoryYearsAgo { Text(y == 1 ? "a year ago" : "\(y) years ago").font(.system(size: 10.5)).foregroundColor(.white.opacity(0.7)) }
+      VStack(alignment: .trailing, spacing: 1) {
+        Text("ON THIS DAY").font(.system(size: 10, weight: .heavy)).kerning(1.4).foregroundColor(d.accent)
+        Text(mem).font(.system(size: 26, weight: .bold, design: .serif)).foregroundColor(.white).lineLimit(1).minimumScaleFactor(0.7)
+        if let y = d.memoryYearsAgo { Text(y == 1 ? "a year ago today" : "\(y) years ago today").font(.system(size: 11)).foregroundColor(.white.opacity(0.75)) }
       }
     } else {
-      ProgressRing(progress: d.levelProgress, tint: d.accent, center: "\(d.level)").frame(width: 58, height: 58)
+      VStack(alignment: .trailing, spacing: 4) {
+        ProgressRing(progress: d.levelProgress, tint: d.accent, center: "\(d.level)").frame(width: 66, height: 66)
+        Text(d.levelTitle).font(.system(size: 12, weight: .bold)).foregroundColor(.white).lineLimit(1)
+      }
     }
   }
 }
@@ -425,52 +466,79 @@ private struct LargeView: View {
   var body: some View {
     let d = entry.data
     VStack(alignment: .leading, spacing: 0) {
-      HStack {
-        Eyebrow(text: "Worldly", color: d.accent)
+      HStack(alignment: .center) {
+        BrandLockup()
         Spacer()
-        if d.level > 0 {
-          Text("\(d.levelTitle) · Lvl \(d.level)").font(.system(size: 11, weight: .semibold)).foregroundColor(.white.opacity(0.7))
-        }
-        Link(destination: ADD_URL) { AddBadge(tint: d.accent) }
+        Link(destination: ADD_URL) { AddBadge(tint: d.accent, size: 42) }
       }
-      Spacer(minLength: 10)
-      HStack(alignment: .center, spacing: 16) {
-        ProgressRing(progress: d.levelProgress, tint: d.accent, center: "\(d.countries)").frame(width: 88, height: 88)
+      Spacer(minLength: 8)
+      // Hero: progress ring + headline stats.
+      HStack(alignment: .center, spacing: 18) {
+        ProgressRing(progress: d.levelProgress, tint: d.accent, center: "\(d.countries)").frame(width: 96, height: 96)
         VStack(alignment: .leading, spacing: 6) {
-          Text(d.synced ? "\(d.countries) countries explored" : "Open Worldly to sync")
-            .font(.system(size: 18, weight: .bold, design: .serif)).foregroundColor(.white).lineLimit(1)
-          HStack(spacing: 14) {
+          Text(d.synced ? "countries explored" : "Open Worldly to sync")
+            .font(.system(size: 17, weight: .bold, design: .serif)).foregroundColor(.white).lineLimit(1)
+          HStack(spacing: 16) {
             bigStat("\(d.cities)", "cities", color: d.accent)
             bigStat("\(d.continents)", "continents")
+            if d.level > 0 { bigStat("\(d.level)", "level") }
           }
         }
         Spacer()
       }
       Spacer(minLength: 12)
-      if !d.recentFlags.isEmpty {
-        Text("RECENTLY VISITED").font(.system(size: 9, weight: .heavy)).kerning(1.4).foregroundColor(.white.opacity(0.55))
-        FlagStrip(flags: d.recentFlags, max: 10).padding(.top, 4)
-      }
+      // Prominent next-trip / memory band.
+      band
       Spacer(minLength: 12)
-      HStack(spacing: 10) {
-        if let title = d.nextTripTitle, let days = d.nextTripDays {
-          pill(icon: "airplane.departure", text: days == 0 ? "\(title) today!" : days == 1 ? "\(title) tomorrow" : "\(title) in \(days) days", tint: d.accent)
-        }
-        if let mem = d.memoryLabel, let y = d.memoryYearsAgo {
-          pill(icon: "sparkles", text: "\(mem) · \(y == 1 ? "1 yr" : "\(y) yrs") ago", tint: d.accent)
-        }
-        Spacer()
+      if !d.recentFlags.isEmpty {
+        Text("RECENTLY VISITED").font(.system(size: 10, weight: .heavy)).kerning(1.6).foregroundColor(.white.opacity(0.6))
+        FlagRow(flags: d.recentFlags, maxCount: 8, clickable: true, size: 30, showOverflow: false).padding(.top, 6)
       }
     }
   }
 
-  private func pill(icon: String, text: String, tint: Color) -> some View {
-    HStack(spacing: 5) {
-      Image(systemName: icon).font(.system(size: 10, weight: .bold)).foregroundColor(tint)
-      Text(text).font(.system(size: 11.5, weight: .semibold)).foregroundColor(.white.opacity(0.92)).lineLimit(1)
+  @ViewBuilder private var band: some View {
+    let d = entry.data
+    if let title = d.nextTripTitle, let days = d.nextTripDays {
+      HStack(alignment: .center, spacing: 12) {
+        Image(systemName: "airplane.departure").font(.system(size: 22, weight: .semibold)).foregroundColor(d.accent)
+        VStack(alignment: .leading, spacing: 0) {
+          Text("NEXT TRIP").font(.system(size: 10, weight: .heavy)).kerning(1.4).foregroundColor(.white.opacity(0.7))
+          Text(title).font(.system(size: 22, weight: .bold, design: .serif)).foregroundColor(.white).lineLimit(1).minimumScaleFactor(0.7)
+        }
+        Spacer()
+        VStack(alignment: .trailing, spacing: -2) {
+          heroNumber(days == 0 ? "Today" : "\(days)", accent: d.accent, size: 38)
+          if days != 0 { Text(days == 1 ? "day away" : "days away").font(.system(size: 11, weight: .semibold)).foregroundColor(.white.opacity(0.75)) }
+        }
+      }
+      .padding(.horizontal, 14).padding(.vertical, 12)
+      .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.white.opacity(0.1)))
+    } else if let mem = d.memoryLabel, let y = d.memoryYearsAgo {
+      HStack(alignment: .center, spacing: 12) {
+        Image(systemName: "sparkles").font(.system(size: 22)).foregroundColor(d.accent)
+        VStack(alignment: .leading, spacing: 0) {
+          Text("ON THIS DAY").font(.system(size: 10, weight: .heavy)).kerning(1.4).foregroundColor(.white.opacity(0.7))
+          Text(mem).font(.system(size: 22, weight: .bold, design: .serif)).foregroundColor(.white).lineLimit(1).minimumScaleFactor(0.7)
+        }
+        Spacer()
+        Text(y == 1 ? "1 year ago" : "\(y) years ago").font(.system(size: 12, weight: .semibold)).foregroundColor(.white.opacity(0.8))
+      }
+      .padding(.horizontal, 14).padding(.vertical, 12)
+      .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.white.opacity(0.1)))
+    } else if d.level > 0, let n = d.nextTitle {
+      HStack(alignment: .center, spacing: 12) {
+        Image(systemName: "trophy.fill").font(.system(size: 20)).foregroundColor(d.accent)
+        VStack(alignment: .leading, spacing: 0) {
+          Text("EXPLORER LEVEL \(d.level)").font(.system(size: 10, weight: .heavy)).kerning(1.4).foregroundColor(.white.opacity(0.7))
+          Text(d.levelTitle).font(.system(size: 22, weight: .bold, design: .serif)).foregroundColor(.white).lineLimit(1)
+        }
+        Spacer()
+        Text("Next: \(n)").font(.system(size: 12, weight: .semibold)).foregroundColor(.white.opacity(0.8))
+      }
+      .padding(.horizontal, 14).padding(.vertical, 12)
+      .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.white.opacity(0.1)))
     }
-    .padding(.horizontal, 10).padding(.vertical, 7)
-    .background(Capsule().fill(Color.white.opacity(0.1)))
   }
 }
 
