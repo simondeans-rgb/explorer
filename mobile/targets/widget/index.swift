@@ -312,17 +312,19 @@ private struct MediumView: View {
   let entry: WorldlyEntry
   var body: some View {
     let d = entry.data
-    HStack(alignment: .top, spacing: 14) {
+    HStack(alignment: .top, spacing: 12) {
       VStack(alignment: .leading, spacing: 0) {
         Eyebrow(text: "Worldly", color: d.accent)
         Spacer()
-        HStack(alignment: .firstTextBaseline, spacing: 14) {
-          bigStat("\(d.countries)", "countries")
-          bigStat("\(d.cities)", "cities", color: d.accent)
-          bigStat("\(d.continents)", "continents")
+        Text("\(d.countries)").font(.system(size: 46, weight: .bold, design: .serif)).foregroundColor(.white)
+        Text(d.synced ? (d.countries == 1 ? "country explored" : "countries explored") : "Open to sync")
+          .font(.system(size: 11, weight: .medium)).foregroundColor(.white.opacity(0.72)).lineLimit(1)
+        if d.cities > 0 || d.continents > 0 {
+          Text("\(d.cities) cities · \(d.continents) continents")
+            .font(.system(size: 11, weight: .semibold)).foregroundColor(d.accent).lineLimit(1).padding(.top, 3)
         }
         Spacer()
-        if !d.recentFlags.isEmpty { FlagStrip(flags: d.recentFlags, max: 8) }
+        if !d.recentFlags.isEmpty { FlagStrip(flags: d.recentFlags, max: 7) }
       }
       Spacer(minLength: 0)
       VStack(alignment: .trailing, spacing: 8) {

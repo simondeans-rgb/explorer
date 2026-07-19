@@ -14,6 +14,24 @@ interface WidgetBridge {
 // Null on binaries built before the widget existed — those have nothing to sync.
 const bridge = requireOptionalNativeModule<WidgetBridge>('WorldlyWidgetBridge');
 
+/** Blend two hex colours: `t` of `a` + `(1-t)` of `b`. */
+function mix(a: string, b: string, t: number): string {
+  const ch = (s: string, i: number) => parseInt(s.slice(i, i + 2), 16);
+  const to = (v: number) => Math.round(v).toString(16).padStart(2, '0');
+  const r = ch(a, 1) * t + ch(b, 1) * (1 - t);
+  const g = ch(a, 3) * t + ch(b, 3) * (1 - t);
+  const bl = ch(a, 5) * t + ch(b, 5) * (1 - t);
+  return `#${to(r)}${to(g)}${to(bl)}`;
+}
+
+/** A cover's widget background: always a deep, premium dark gradient so white
+ *  text stays legible — but tinted toward the cover's accent so each cover
+ *  still reads as distinct. (Using a cover's own light gradient washed the
+ *  text out.) */
+function widgetGradient(accent: string): [string, string] {
+  return [mix(accent, '#111A30', 0.22), mix(accent, '#080B16', 0.06)];
+}
+
 /** Pushes a rich snapshot into the shared app group for the home-screen and
  *  Lock Screen widgets: headline stats, level progress, next-trip countdown,
  *  a flag strip of recent countries, an "on this day" memory, and the active
@@ -55,8 +73,8 @@ export function WidgetSync() {
     memoryYearsAgo: memory?.yearsAgo ?? null,
     memoryCountry: memory?.countryCode ?? null,
     accent: theme.accent,
-    gradientTop: theme.gradient[0],
-    gradientBottom: theme.gradient[1],
+    gradientTop: widgetGradient(theme.accent)[0],
+    gradientBottom: widgetGradient(theme.accent)[1],
   });
 
   useEffect(() => {
