@@ -158,19 +158,23 @@ export default function CircleScreen() {
   );
 
   // Rank the circle by Explorer XP, computed from each friend's places + discoveries.
-  const leaderboard = useMemo(
-    () =>
-      friends
-        .map((f) => {
-          const fp = friendsData.places.filter((p) => p.userId === f.uid);
-          const fd = friendsData.discoveries.filter((d) => d.userId === f.uid);
-          const stats = computeStats(aggregateByCountry(fp));
-          const lvl = computeExplorerLevel(stats, computeDiscoveryStats(fd), computeJourneyStats([]));
-          return { uid: f.uid, name: f.name, level: lvl.level, title: lvl.title, xp: lvl.xp, countries: stats.countriesDiscovered };
-        })
-        .sort((a, b) => b.xp - a.xp),
-    [friends, friendsData],
-  );
+  const leaderboard = useMemo(() => {
+    const rows = friends.map((f) => {
+      const fp = friendsData.places.filter((p) => p.userId === f.uid);
+      const fd = friendsData.discoveries.filter((d) => d.userId === f.uid);
+      const stats = computeStats(aggregateByCountry(fp));
+      const lvl = computeExplorerLevel(stats, computeDiscoveryStats(fd), computeJourneyStats([]));
+      return { uid: f.uid, name: f.name, level: lvl.level, title: lvl.title, xp: lvl.xp, countries: stats.countriesDiscovered, isMe: false };
+    });
+    // Include the user, ranked the same way (journeys excluded on both sides) so
+    // it's a fair comparison — everyone scored on countries, cities, continents
+    // and discoveries. So they can see if they're in the lead.
+    const myStats = computeStats(aggregateByCountry(myPlaces));
+    const myLvl = computeExplorerLevel(myStats, computeDiscoveryStats(myDiscoveries), computeJourneyStats([]));
+    rows.push({ uid: user?.uid ?? 'me', name: myName, level: myLvl.level, title: myLvl.title, xp: myLvl.xp, countries: myStats.countriesDiscovered, isMe: true });
+    return rows.sort((a, b) => b.xp - a.xp);
+  }, [friends, friendsData, myPlaces, myDiscoveries, user?.uid, myName]);
+  const myRank = useMemo(() => leaderboard.findIndex((m) => m.isMe) + 1, [leaderboard]);
 
   const hasCircle = friends.length > 0;
   // Wishlist overlaps: places you BOTH want to visit → "plan a trip together".
@@ -395,22 +399,35 @@ export default function CircleScreen() {
             </>
           ) : null}
 
-          {/* Circle leaderboard */}
-          <SectionTitle hint="Your circle, ranked by Explorer XP">Circle leaderboard</SectionTitle>
+          {/* Circle leaderboard — you included */}
+          <SectionTitle hint={myRank === 1 ? "You're leading your circle 🏆" : `You and your circle, ranked by Explorer XP`}>Circle leaderboard</SectionTitle>
           <View style={{ gap: 8 }}>
             {leaderboard.map((m, i) => (
-              <Pressable key={m.uid} onPress={() => openFriend(m.uid, m.name)} accessibilityLabel={`View ${m.name}'s travel profile`} className="bg-white dark:bg-card rounded-2xl flex-row items-center" style={{ padding: 12, gap: 12, ...SHADOW.card }}>
+              <Pressable
+                key={m.uid}
+                onPress={m.isMe ? undefined : () => openFriend(m.uid, m.name)}
+                accessibilityLabel={m.isMe ? `You, ranked ${i + 1}` : `View ${m.name}'s travel profile`}
+                className="rounded-2xl flex-row items-center bg-white dark:bg-card"
+                style={{ padding: 12, gap: 12, ...SHADOW.card, ...(m.isMe ? { backgroundColor: 'rgba(255,107,154,0.10)', borderWidth: 1.5, borderColor: 'rgba(255,107,154,0.45)' } : {}) }}
+              >
                 <Text style={{ width: 18, textAlign: 'center', fontFamily: 'Fraunces', fontSize: 16, color: i === 0 ? COLORS.coral : COLORS.ink3 }}>{i + 1}</Text>
                 <Avatar name={m.name} size={40} />
                 <View style={{ flex: 1 }}>
-                  <Text numberOfLines={1} style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>{m.name}</Text>
+                  <View className="flex-row items-center" style={{ gap: 6 }}>
+                    <Text numberOfLines={1} style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy, flexShrink: 1 }}>{m.isMe ? 'You' : m.name}</Text>
+                    {m.isMe ? (
+                      <View className="rounded-full" style={{ backgroundColor: COLORS.coral, paddingHorizontal: 7, paddingVertical: 1.5 }}>
+                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.5, color: '#fff' }}>YOU</Text>
+                      </View>
+                    ) : null}
+                  </View>
                   <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Lvl {m.level} · {m.title} · {m.countries} {m.countries === 1 ? 'country' : 'countries'}</Text>
                 </View>
                 <View className="items-end">
                   <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.lavender }}>{m.xp.toLocaleString()}</Text>
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 0.5, color: COLORS.ink3 }}>XP</Text>
                 </View>
-                <ChevronRight size={16} color={COLORS.ink3} />
+                {m.isMe ? <View style={{ width: 16 }} /> : <ChevronRight size={16} color={COLORS.ink3} />}
               </Pressable>
             ))}
           </View>
