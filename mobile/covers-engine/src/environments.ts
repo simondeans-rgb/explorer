@@ -204,3 +204,161 @@ export function dunes(bands: Array<[number, number, string, number]>, crest?: st
     })
     .join('');
 }
+
+/* ---------- catalogue expansion primitives ---------- */
+
+/** A soft radiant sun/moon disc with a glow halo. */
+export function disc(x: number, y: number, r: number, col: string, glow: string, glowOp = 0.5): string {
+  return (
+    `<circle cx="${x}" cy="${y}" r="${r * 2}" fill="${glow}" opacity="${glowOp}" filter="url(#blur24)"/>` +
+    `<circle cx="${x}" cy="${y}" r="${r * 1.25}" fill="${glow}" opacity="${glowOp * 0.9}" filter="url(#blur12)"/>` +
+    `<circle cx="${x}" cy="${y}" r="${r}" fill="${col}"/>`
+  );
+}
+
+/** Cherry/spring blossom petals drifting (still frame). */
+export function petals(seed = 3, n = 20, cols = ['#FFD7E4', '#FFC2D6', '#FFFFFF']): string {
+  const r = rng(seed);
+  const out: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const x = r() * 1024;
+    const y = r() * 1024;
+    const s = 8 + r() * 12;
+    const rot = r() * 360;
+    const c = cols[i % cols.length];
+    out.push(
+      `<g transform="translate(${x.toFixed(0)},${y.toFixed(0)}) rotate(${rot.toFixed(0)}) scale(${(s / 12).toFixed(2)})" opacity="${(0.55 + r() * 0.4).toFixed(2)}">` +
+        `<path d="M0,-11 C6,-8 6,4 0,11 C-6,4 -6,-8 0,-11 Z" fill="${c}"/></g>`,
+    );
+  }
+  return out.join('');
+}
+
+/** Falling autumn leaves. */
+export function leaves(seed = 4, n = 16, cols = ['#E8912F', '#D2542B', '#F2B84B', '#B23A28']): string {
+  const r = rng(seed);
+  const out: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const x = r() * 1024;
+    const y = r() * 1024;
+    const s = 0.7 + r() * 0.9;
+    const rot = r() * 360;
+    const c = cols[i % cols.length];
+    out.push(
+      `<g transform="translate(${x.toFixed(0)},${y.toFixed(0)}) rotate(${rot.toFixed(0)}) scale(${s.toFixed(2)})" opacity="${(0.6 + r() * 0.35).toFixed(2)}">` +
+        `<path d="M0,-16 C11,-11 11,8 0,17 C-11,8 -11,-11 0,-16 Z" fill="${c}"/>` +
+        `<path d="M0,-14 L0,15" stroke="#00000022" stroke-width="1.6"/></g>`,
+    );
+  }
+  return out.join('');
+}
+
+/** A palm-tree silhouette. */
+export function palm(x: number, y: number, s: number, col = '#0E2A24'): string {
+  const frond = (a: number) => `<path d="M0,0 Q${Math.cos((a * Math.PI) / 180) * 120},${Math.sin((a * Math.PI) / 180) * 120 - 30} ${Math.cos((a * Math.PI) / 180) * 210},${Math.sin((a * Math.PI) / 180) * 210} Q${Math.cos((a * Math.PI) / 180) * 130},${Math.sin((a * Math.PI) / 180) * 130 + 26} 0,0 Z" fill="${col}"/>`;
+  return (
+    `<g transform="translate(${x},${y}) scale(${s})">` +
+    `<path d="M-14,0 C-22,140 -30,250 -20,360 L20,360 C10,250 6,140 14,0 Z" fill="${col}"/>` +
+    `<g transform="translate(0,2)">${[200, 225, 250, 290, 315, 340].map(frond).join('')}</g></g>`
+  );
+}
+
+/** A paper lantern (Lunar New Year / festival). */
+export function lantern(x: number, y: number, s: number, col = '#D8232A', cap = '#E8B23A'): string {
+  return (
+    `<g transform="translate(${x},${y}) scale(${s})">` +
+    `<line x1="0" y1="-90" x2="0" y2="-56" stroke="${cap}" stroke-width="4"/>` +
+    `<rect x="-24" y="-58" width="48" height="10" rx="3" fill="${cap}"/>` +
+    `<ellipse cx="0" cy="0" rx="52" ry="60" fill="${col}"/>` +
+    `<ellipse cx="0" cy="0" rx="52" ry="60" fill="none" stroke="#00000022" stroke-width="2"/>` +
+    `<path d="M-30,-42 A60,60 0 0 0 -30,42 M0,-58 L0,58 M30,-42 A60,60 0 0 1 30,42" fill="none" stroke="${cap}" stroke-width="3" opacity="0.65"/>` +
+    `<rect x="-24" y="48" width="48" height="10" rx="3" fill="${cap}"/>` +
+    `<g stroke="${cap}" stroke-width="3">${[-16, -6, 4, 14].map((tx) => `<line x1="${tx}" y1="58" x2="${tx}" y2="92"/>`).join('')}</g></g>`
+  );
+}
+
+/** Flowing marble veins across the whole tile. */
+export function marbleVeins(seed = 12, n = 5, col = '#C7BFA8', op = 0.5): string {
+  const r = rng(seed);
+  const out: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const y0 = r() * 1024;
+    const w = 2 + r() * 4;
+    out.push(
+      `<path d="M-40,${y0.toFixed(0)} C${(200 + r() * 120).toFixed(0)},${(y0 - 120 + r() * 80).toFixed(0)} ${(560 + r() * 120).toFixed(0)},${(y0 + 120 - r() * 80).toFixed(0)} 1064,${(y0 - 40 + r() * 80).toFixed(0)}" fill="none" stroke="${col}" stroke-width="${w.toFixed(1)}" opacity="${(op * (0.5 + r() * 0.5)).toFixed(2)}"/>`,
+    );
+  }
+  return out.join('');
+}
+
+/** Layered nebula clouds for cosmic covers. */
+export function nebula(cols = ['#7C4DFF', '#4D8CFF', '#FF6BAA']): string {
+  const blob = (x: number, y: number, r: number, c: string, op: number) =>
+    `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}" opacity="${op}" filter="url(#blur24)"/>`;
+  return (
+    blob(360, 380, 300, cols[0], 0.5) +
+    blob(680, 300, 260, cols[1], 0.42) +
+    blob(560, 640, 320, cols[2], 0.32) +
+    blob(220, 620, 200, cols[1], 0.3)
+  );
+}
+
+/** Art-deco radiating rays from a point. */
+export function decoRays(cx: number, cy: number, n: number, len: number, col: string, op = 0.5, spread = 360): string {
+  const out: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = (spread / n) * i - spread / 2 - 90;
+    const rad = (a * Math.PI) / 180;
+    const w = i % 2 === 0 ? 8 : 3;
+    out.push(`<line x1="${cx}" y1="${cy}" x2="${(cx + Math.cos(rad) * len).toFixed(0)}" y2="${(cy + Math.sin(rad) * len).toFixed(0)}" stroke="${col}" stroke-width="${w}" opacity="${op}"/>`);
+  }
+  return out.join('');
+}
+
+/** A stylised globe with latitude/longitude arcs and glowing visited dots. */
+export function globe(cx: number, cy: number, r: number, ocean: string, land: string, dot: string, seed = 30): string {
+  const rnd = rng(seed);
+  const dots: string[] = [];
+  for (let i = 0; i < 18; i++) {
+    const a = rnd() * Math.PI * 2;
+    const rr = Math.sqrt(rnd()) * r * 0.82;
+    dots.push(`<circle cx="${(cx + Math.cos(a) * rr).toFixed(0)}" cy="${(cy + Math.sin(a) * rr * 0.9).toFixed(0)}" r="${(3 + rnd() * 4).toFixed(1)}" fill="${dot}" opacity="${(0.7 + rnd() * 0.3).toFixed(2)}"/>`);
+  }
+  return (
+    `<circle cx="${cx}" cy="${cy}" r="${r + 14}" fill="${dot}" opacity="0.18" filter="url(#blur24)"/>` +
+    `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${ocean}"/>` +
+    `<clipPath id="globeclip"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath>` +
+    `<g clip-path="url(#globeclip)" stroke="${land}" stroke-width="2.5" fill="none" opacity="0.5">` +
+    [-0.6, -0.3, 0, 0.3, 0.6].map((f) => `<ellipse cx="${cx}" cy="${(cy + r * f).toFixed(0)}" rx="${r}" ry="${(r * 0.16).toFixed(0)}"/>`).join('') +
+    [-0.6, -0.3, 0, 0.3, 0.6].map((f) => `<ellipse cx="${(cx + r * f).toFixed(0)}" cy="${cy}" rx="${(r * 0.16).toFixed(0)}" ry="${r}"/>`).join('') +
+    `</g>` +
+    `<g clip-path="url(#globeclip)">${dots.join('')}</g>` +
+    `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#FFFFFF" stroke-opacity="0.25" stroke-width="3"/>` +
+    `<ellipse cx="${(cx - r * 0.3).toFixed(0)}" cy="${(cy - r * 0.34).toFixed(0)}" rx="${(r * 0.36).toFixed(0)}" ry="${(r * 0.22).toFixed(0)}" fill="#FFFFFF" opacity="0.14" filter="url(#blur12)"/>`
+  );
+}
+
+/** Topographic contour lines — cartographic adventure covers. */
+export function contours(seed = 8, col = '#FFFFFF', op = 0.12): string {
+  const r = rng(seed);
+  const out: string[] = [];
+  const cx = 512, cy = 460;
+  for (let i = 1; i <= 7; i++) {
+    const rad = i * 66 + r() * 12;
+    const wob = 0.06 + r() * 0.05;
+    out.push(
+      `<path d="M${(cx - rad).toFixed(0)},${cy} C${(cx - rad).toFixed(0)},${(cy - rad * (1 - wob)).toFixed(0)} ${(cx + rad).toFixed(0)},${(cy - rad * (1 + wob)).toFixed(0)} ${(cx + rad).toFixed(0)},${cy} C${(cx + rad).toFixed(0)},${(cy + rad * (1 + wob)).toFixed(0)} ${(cx - rad).toFixed(0)},${(cy + rad * (1 - wob)).toFixed(0)} ${(cx - rad).toFixed(0)},${cy} Z" fill="none" stroke="${col}" stroke-width="2.5" opacity="${op}"/>`,
+    );
+  }
+  return out.join('');
+}
+
+/** An acacia (savanna) tree silhouette. */
+export function acacia(x: number, y: number, s: number, col = '#1C130B'): string {
+  return (
+    `<g transform="translate(${x},${y}) scale(${s})">` +
+    `<path d="M-6,0 C-14,-90 -40,-120 -70,-134 M-6,0 C-2,-96 20,-128 64,-140 M-6,0 L-2,0" fill="none" stroke="${col}" stroke-width="10" stroke-linecap="round"/>` +
+    `<path d="M-150,-150 C-90,-186 90,-186 158,-150 C120,-172 -110,-172 -150,-150 Z" fill="${col}"/>` +
+    `<rect x="-8" y="-6" width="12" height="10" fill="${col}"/></g>`
+  );
+}

@@ -452,4 +452,34 @@ test('cover engine: every theme is complete and well-formed', () => {
   }
 });
 
+// ---- Passport Cover Catalogue -----------------------------------------------
+import { CATALOGUE, shippedCovers } from '../covers-engine/src/catalogue';
+import { COVER_THEMES as CATALOGUE_THEMES } from '../src/lib/coverThemes.gen';
+
+test('catalogue: every shipped cover has a theme + valid metadata', () => {
+  const rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+  const tiers = ['core', 'seasonal', 'lifestyle', 'achievement', 'premium', 'limited'];
+  const shipped = shippedCovers();
+  assert.ok(shipped.length >= 40, `expected 40+ shipped covers, got ${shipped.length}`);
+  for (const c of CATALOGUE) {
+    assert.ok(tiers.includes(c.tier), `bad tier ${c.tier}`);
+    for (const cover of c.covers) {
+      assert.ok(rarities.includes(cover.rarity), `${cover.icon} bad rarity`);
+      if (cover.shipped) {
+        assert.ok(CATALOGUE_THEMES[cover.icon], `${cover.icon} shipped but has no theme`);
+      }
+    }
+  }
+});
+
+test('catalogue: achievement covers are never for sale', () => {
+  for (const c of CATALOGUE) {
+    for (const cover of c.covers) {
+      if (cover.unlock.kind === 'achievement' || cover.unlock.kind === 'achievement-special') {
+        assert.equal(cover.monetisation, 'earned', `${cover.icon} is earned-only`);
+      }
+    }
+  }
+});
+
 console.log(`✓ all ${passed} tests passed`);

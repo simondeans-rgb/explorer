@@ -321,6 +321,126 @@
               "foregroundImage": "./assets/images/android-icon-foreground.png",
               "backgroundColor": "#7A3A55"
             }
+          },
+          {
+            "name": "Linen",
+            "ios": "./assets/icons/covers/linen.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#DCCFB2"
+            }
+          },
+          {
+            "name": "Explorer",
+            "ios": "./assets/icons/covers/explorer.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#0C2A2E"
+            }
+          },
+          {
+            "name": "Spring",
+            "ios": "./assets/icons/covers/spring.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#A6D48A"
+            }
+          },
+          {
+            "name": "Summer",
+            "ios": "./assets/icons/covers/summer.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#37C0E8"
+            }
+          },
+          {
+            "name": "Autumn",
+            "ios": "./assets/icons/covers/autumn.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#8C3A24"
+            }
+          },
+          {
+            "name": "LunarNewYear",
+            "ios": "./assets/icons/covers/lunar-new-year.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#5E0E14"
+            }
+          },
+          {
+            "name": "Gold",
+            "ios": "./assets/icons/covers/gold.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#0B0F1C"
+            }
+          },
+          {
+            "name": "Marble",
+            "ios": "./assets/icons/covers/marble.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#DEDBD1"
+            }
+          },
+          {
+            "name": "Galaxy",
+            "ios": "./assets/icons/covers/galaxy.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#080512"
+            }
+          },
+          {
+            "name": "ArtDeco",
+            "ios": "./assets/icons/covers/art-deco.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#08131F"
+            }
+          },
+          {
+            "name": "Nordic",
+            "ios": "./assets/icons/covers/nordic.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#1B3A5C"
+            }
+          },
+          {
+            "name": "Safari",
+            "ios": "./assets/icons/covers/safari.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#7A3524"
+            }
+          },
+          {
+            "name": "Mediterranean",
+            "ios": "./assets/icons/covers/mediterranean.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#2E9BD6"
+            }
+          },
+          {
+            "name": "EveryContinent",
+            "ios": "./assets/icons/covers/every-continent.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#060D1F"
+            }
+          },
+          {
+            "name": "WorldlyLegend",
+            "ios": "./assets/icons/covers/worldly-legend.png",
+            "android": {
+              "foregroundImage": "./assets/images/android-icon-foreground.png",
+              "backgroundColor": "#050301"
+            }
           }
         ]
       ],

@@ -14,6 +14,18 @@ import { type CoverSeason, seasonActive, lockProgress } from './coverRules';
 
 export { seasonActive, lockProgress, type CoverSeason };
 
+/** Collectible rarity — shown as a badge; drives the unlock celebration. */
+export type CoverRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
+
+export const RARITY_META: Record<CoverRarity, { label: string; color: string }> = {
+  common: { label: 'Common', color: '#8A90A6' },
+  uncommon: { label: 'Uncommon', color: '#2FA36B' },
+  rare: { label: 'Rare', color: '#2E86C4' },
+  epic: { label: 'Epic', color: '#9B5CFF' },
+  legendary: { label: 'Legendary', color: '#F0A020' },
+  mythic: { label: 'Mythic', color: '#E0245E' },
+};
+
 export interface CoverDef {
   /** Plugin icon name (PascalCase); null = the default Worldly icon. */
   name: string | null;
@@ -24,6 +36,8 @@ export interface CoverDef {
   unlock?: { countries?: number; level?: number };
   /** Highlight as a fresh addition to the collection. */
   isNew?: boolean;
+  /** Collectible rarity (defaults to common when omitted). */
+  rarity?: CoverRarity;
 }
 
 export interface CoverSection {
@@ -31,8 +45,9 @@ export interface CoverSection {
   /** Editorial line under the section header (packs get one). */
   tagline?: string;
   /** Who gets this section once billing is live. 'earned' = achievement covers
-   *  (free once unlocked — never sold); 'explorer' = included with Explorer. */
-  access?: 'free' | 'explorer' | 'earned';
+   *  (free once unlocked — never sold); 'explorer' = included with Explorer;
+   *  'premium' = a purchasable pack (locked, preview-only, until bought). */
+  access?: 'free' | 'explorer' | 'earned' | 'premium';
   /** Present on calendar-gated packs; absent = available year-round. */
   season?: CoverSeason;
   covers: CoverDef[];
@@ -50,6 +65,8 @@ export const COVER_SECTIONS: CoverSection[] = [
       { name: 'Earth', title: 'Earth', tagline: 'Rolling hills & open air', preview: require('../../assets/icons/covers/previews/earth.png') },
       { name: 'Sunset', title: 'Sunset', tagline: 'Golden-hour glow', preview: require('../../assets/icons/covers/previews/sunset.png') },
       { name: 'Ocean', title: 'Ocean', tagline: 'Waves & sea air', preview: require('../../assets/icons/covers/previews/ocean.png') },
+      { name: 'Linen', title: 'Linen', tagline: 'Woven & understated', preview: require('../../assets/icons/covers/previews/linen.png'), isNew: true },
+      { name: 'Explorer', title: 'Explorer', tagline: 'Contours & compass', preview: require('../../assets/icons/covers/previews/explorer.png'), rarity: 'uncommon', isNew: true },
     ],
   },
   {
@@ -60,6 +77,9 @@ export const COVER_SECTIONS: CoverSection[] = [
       { name: 'Tropical', title: 'Tropical', tagline: 'Palms & paradise', preview: require('../../assets/icons/covers/previews/tropical.png') },
       { name: 'Winter', title: 'Winter', tagline: 'First-snow quiet', preview: require('../../assets/icons/covers/previews/winter.png') },
       { name: 'Coffee', title: 'Coffee', tagline: 'Beans, steam & mornings', preview: require('../../assets/icons/covers/previews/coffee.png') },
+      { name: 'Nordic', title: 'Nordic', tagline: 'Fjord & midnight sun', preview: require('../../assets/icons/covers/previews/nordic.png'), rarity: 'rare', isNew: true },
+      { name: 'Safari', title: 'Safari', tagline: 'Savanna at golden hour', preview: require('../../assets/icons/covers/previews/safari.png'), rarity: 'rare', isNew: true },
+      { name: 'Mediterranean', title: 'Mediterranean', tagline: 'Whitewashed & blue', preview: require('../../assets/icons/covers/previews/mediterranean.png'), isNew: true },
     ],
   },
   {
@@ -67,10 +87,12 @@ export const COVER_SECTIONS: CoverSection[] = [
     tagline: 'Earned by travelling — yours free forever once unlocked.',
     access: 'earned',
     covers: [
-      { name: 'Aurora', title: 'Aurora', tagline: 'Northern lights, bottled', preview: require('../../assets/icons/covers/previews/aurora.png'), unlock: { level: 5 } },
-      { name: 'FrequentFlyer', title: 'Frequent Flyer', tagline: 'Contrails & departures', preview: require('../../assets/icons/covers/previews/frequent-flyer.png'), unlock: { countries: 10 } },
-      { name: 'Luxury', title: 'Luxury', tagline: 'Gold dust & midnight', preview: require('../../assets/icons/covers/previews/luxury.png'), unlock: { level: 8 } },
-      { name: 'Neon', title: 'Neon', tagline: 'Synthwave nights', preview: require('../../assets/icons/covers/previews/neon.png'), unlock: { countries: 25 } },
+      { name: 'Aurora', title: 'Aurora', tagline: 'Northern lights, bottled', preview: require('../../assets/icons/covers/previews/aurora.png'), unlock: { level: 5 }, rarity: 'rare' },
+      { name: 'FrequentFlyer', title: 'Frequent Flyer', tagline: 'Contrails & departures', preview: require('../../assets/icons/covers/previews/frequent-flyer.png'), unlock: { countries: 10 }, rarity: 'rare' },
+      { name: 'Luxury', title: 'Luxury', tagline: 'Gold dust & midnight', preview: require('../../assets/icons/covers/previews/luxury.png'), unlock: { level: 8 }, rarity: 'epic' },
+      { name: 'Neon', title: 'Neon', tagline: 'Synthwave nights', preview: require('../../assets/icons/covers/previews/neon.png'), unlock: { countries: 25 }, rarity: 'epic' },
+      { name: 'EveryContinent', title: 'Every Continent', tagline: 'A world, completed', preview: require('../../assets/icons/covers/previews/every-continent.png'), unlock: { countries: 40 }, rarity: 'legendary', isNew: true },
+      { name: 'WorldlyLegend', title: 'Worldly Legend', tagline: 'The rarest cover of all', preview: require('../../assets/icons/covers/previews/worldly-legend.png'), unlock: { countries: 50 }, rarity: 'mythic', isNew: true },
     ],
   },
   {
@@ -114,6 +136,60 @@ export const COVER_SECTIONS: CoverSection[] = [
       { name: 'Pride', title: 'Pride', tagline: 'The full flag, full volume', preview: require('../../assets/icons/covers/previews/pride.png') },
       { name: 'PrideNeon', title: 'Pride Neon', tagline: 'Glowing after dark', preview: require('../../assets/icons/covers/previews/pride-neon.png'), isNew: true },
       { name: 'PrideNight', title: 'Quiet Pride', tagline: 'Subtle rainbow, navy calm', preview: require('../../assets/icons/covers/previews/pride-night.png'), isNew: true },
+    ],
+  },
+  {
+    title: 'Spring',
+    tagline: 'Blossom & fresh light — the world waking up.',
+    access: 'explorer',
+    season: { months: [3, 4, 5], returns: 'Returns in March' },
+    covers: [
+      { name: 'Spring', title: 'Spring', tagline: 'Petals on a soft breeze', preview: require('../../assets/icons/covers/previews/spring.png'), rarity: 'uncommon', isNew: true },
+    ],
+  },
+  {
+    title: 'Summer',
+    tagline: 'Sun, sea & palms — peak wandering.',
+    access: 'explorer',
+    season: { months: [6, 7, 8], returns: 'Returns in June' },
+    covers: [
+      { name: 'Summer', title: 'Summer', tagline: 'Sea, sand & sunshine', preview: require('../../assets/icons/covers/previews/summer.png'), rarity: 'uncommon', isNew: true },
+    ],
+  },
+  {
+    title: 'Autumn',
+    tagline: 'Amber light & falling leaves.',
+    access: 'explorer',
+    season: { months: [9, 10, 11], returns: 'Returns in September' },
+    covers: [
+      { name: 'Autumn', title: 'Autumn', tagline: 'The golden season', preview: require('../../assets/icons/covers/previews/autumn.png'), rarity: 'uncommon', isNew: true },
+    ],
+  },
+  {
+    title: 'Lunar New Year',
+    tagline: 'Lanterns & gold — a new year of journeys.',
+    access: 'explorer',
+    season: { months: [1, 2], returns: 'Returns in late January' },
+    covers: [
+      { name: 'LunarNewYear', title: 'Lunar New Year', tagline: 'Red & gold, lanterns lit', preview: require('../../assets/icons/covers/previews/lunar-new-year.png'), rarity: 'rare', isNew: true },
+    ],
+  },
+  {
+    title: 'Materials',
+    tagline: 'Precious finishes on the Worldly mark.',
+    access: 'premium',
+    covers: [
+      { name: 'Gold', title: 'Gold', tagline: '18-karat, midnight ground', preview: require('../../assets/icons/covers/previews/gold.png'), rarity: 'epic', isNew: true },
+      { name: 'Marble', title: 'Marble', tagline: 'Carrara & gold veining', preview: require('../../assets/icons/covers/previews/marble.png'), rarity: 'epic', isNew: true },
+    ],
+  },
+  {
+    title: 'Atmosphere',
+    tagline: 'Statement covers for collectors.',
+    access: 'premium',
+    covers: [
+      { name: 'Galaxy', title: 'Galaxy', tagline: 'Nebula & starlight', preview: require('../../assets/icons/covers/previews/galaxy.png'), rarity: 'legendary', isNew: true },
+      { name: 'ArtDeco', title: 'Art Deco', tagline: 'The golden age of travel', preview: require('../../assets/icons/covers/previews/art-deco.png'), rarity: 'epic', isNew: true },
     ],
   },
 ];

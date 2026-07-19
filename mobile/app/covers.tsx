@@ -7,7 +7,7 @@ import { BackButton } from '../components/BackButton';
 import { COLORS } from '../src/lib/theme';
 import { goBack } from '../src/lib/nav';
 import { useWorldly } from '../src/hooks/useWorldly';
-import { getCoverState, applyCover, lockReason, lockProgress, seasonActive, COVER_SECTIONS, type CoverDef, type CoverState } from '../src/lib/covers';
+import { getCoverState, applyCover, lockReason, lockProgress, seasonActive, COVER_SECTIONS, RARITY_META, type CoverDef, type CoverState } from '../src/lib/covers';
 import { billingEnabled } from '../src/lib/billing';
 import { COVER_PRICE_PACK } from '../src/lib/limits';
 import { track } from '../src/lib/analytics';
@@ -121,6 +121,11 @@ export default function CoversScreen() {
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.5, color: '#3D4CC9' }}>PACK {COVER_PRICE_PACK} · FREE WITH EXPLORER</Text>
                 </View>
               ) : null}
+              {section.access === 'premium' ? (
+                <View className="rounded-full" style={{ paddingHorizontal: 9, paddingVertical: 3, backgroundColor: 'rgba(240,160,32,0.16)' }}>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.5, color: '#9A6410' }}>{billingEnabled() ? 'PREMIUM' : 'PREMIUM · FREE FOR NOW'}</Text>
+                </View>
+              ) : null}
             </View>
             {section.tagline ? (
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 2 }}>{section.tagline}</Text>
@@ -157,6 +162,11 @@ export default function CoversScreen() {
                         {!locked && cover.isNew && !selected ? (
                           <View className="rounded-full" style={{ position: 'absolute', top: 7, left: 7, paddingHorizontal: 7, paddingVertical: 2.5, backgroundColor: COLORS.coral }}>
                             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 8.5, fontWeight: '800', letterSpacing: 0.6, color: '#fff' }}>NEW</Text>
+                          </View>
+                        ) : null}
+                        {cover.rarity && cover.rarity !== 'common' && cover.rarity !== 'uncommon' ? (
+                          <View className="rounded-full" style={{ position: 'absolute', top: 7, right: 7, paddingHorizontal: 7, paddingVertical: 2.5, backgroundColor: RARITY_META[cover.rarity].color }}>
+                            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 8, fontWeight: '800', letterSpacing: 0.5, color: '#fff' }}>{RARITY_META[cover.rarity].label.toUpperCase()}</Text>
                           </View>
                         ) : null}
                       </View>

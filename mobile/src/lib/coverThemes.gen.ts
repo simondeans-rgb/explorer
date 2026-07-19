@@ -375,5 +375,193 @@ export const COVER_THEMES: Record<string, CoverTheme> = {
       "#FFE9B8"
     ],
     "androidBg": "#7A3A55"
+  },
+  "Linen": {
+    "icon": "Linen",
+    "accent": "#C4552F",
+    "gradient": [
+      "#F4EEE0",
+      "#DCCFB2"
+    ],
+    "particles": "none",
+    "particleColors": [],
+    "androidBg": "#DCCFB2"
+  },
+  "Explorer": {
+    "icon": "Explorer",
+    "accent": "#24D1C3",
+    "gradient": [
+      "#155E5A",
+      "#0C2A2E"
+    ],
+    "particles": "none",
+    "particleColors": [],
+    "androidBg": "#0C2A2E"
+  },
+  "Spring": {
+    "icon": "Spring",
+    "accent": "#FF8FB3",
+    "gradient": [
+      "#BFE8F2",
+      "#A6D48A"
+    ],
+    "particles": "petals",
+    "particleColors": [
+      "#FFD7E4",
+      "#FFFFFF"
+    ],
+    "androidBg": "#A6D48A"
+  },
+  "Summer": {
+    "icon": "Summer",
+    "accent": "#FFB84D",
+    "gradient": [
+      "#37C0E8",
+      "#F4C56B"
+    ],
+    "particles": "none",
+    "particleColors": [],
+    "androidBg": "#37C0E8"
+  },
+  "Autumn": {
+    "icon": "Autumn",
+    "accent": "#DC7A3C",
+    "gradient": [
+      "#F0B25A",
+      "#8C3A24"
+    ],
+    "particles": "petals",
+    "particleColors": [
+      "#E8912F",
+      "#D2542B",
+      "#F2B84B"
+    ],
+    "androidBg": "#8C3A24"
+  },
+  "LunarNewYear": {
+    "icon": "LunarNewYear",
+    "accent": "#F3CE6A",
+    "gradient": [
+      "#C4222A",
+      "#5E0E14"
+    ],
+    "particles": "sparkle",
+    "particleColors": [
+      "#F3D27A"
+    ],
+    "androidBg": "#5E0E14"
+  },
+  "Gold": {
+    "icon": "Gold",
+    "accent": "#F0C25C",
+    "gradient": [
+      "#2A2418",
+      "#0B0F1C"
+    ],
+    "particles": "sparkle",
+    "particleColors": [
+      "#F0C25C"
+    ],
+    "androidBg": "#0B0F1C"
+  },
+  "Marble": {
+    "icon": "Marble",
+    "accent": "#B08D2E",
+    "gradient": [
+      "#FBFAF6",
+      "#DEDBD1"
+    ],
+    "particles": "none",
+    "particleColors": [],
+    "androidBg": "#DEDBD1"
+  },
+  "Galaxy": {
+    "icon": "Galaxy",
+    "accent": "#9B7CFF",
+    "gradient": [
+      "#2A1A54",
+      "#080512"
+    ],
+    "particles": "stars",
+    "particleColors": [
+      "#FFFFFF",
+      "#9B7CFF"
+    ],
+    "androidBg": "#080512"
+  },
+  "ArtDeco": {
+    "icon": "ArtDeco",
+    "accent": "#D9B45A",
+    "gradient": [
+      "#123049",
+      "#08131F"
+    ],
+    "particles": "sparkle",
+    "particleColors": [
+      "#D9B45A"
+    ],
+    "androidBg": "#08131F"
+  },
+  "Nordic": {
+    "icon": "Nordic",
+    "accent": "#4DA6FF",
+    "gradient": [
+      "#3E6E92",
+      "#E7C9B0"
+    ],
+    "particles": "snow",
+    "particleColors": [
+      "#FFFFFF"
+    ],
+    "androidBg": "#1B3A5C"
+  },
+  "Safari": {
+    "icon": "Safari",
+    "accent": "#E88A3C",
+    "gradient": [
+      "#F4C05A",
+      "#7A3524"
+    ],
+    "particles": "none",
+    "particleColors": [],
+    "androidBg": "#7A3524"
+  },
+  "Mediterranean": {
+    "icon": "Mediterranean",
+    "accent": "#2E9BD6",
+    "gradient": [
+      "#2E9BD6",
+      "#BFE6F2"
+    ],
+    "particles": "none",
+    "particleColors": [],
+    "androidBg": "#2E9BD6"
+  },
+  "EveryContinent": {
+    "icon": "EveryContinent",
+    "accent": "#FFD36B",
+    "gradient": [
+      "#123A6B",
+      "#060D1F"
+    ],
+    "particles": "stars",
+    "particleColors": [
+      "#FFFFFF",
+      "#FFD36B"
+    ],
+    "androidBg": "#060D1F"
+  },
+  "WorldlyLegend": {
+    "icon": "WorldlyLegend",
+    "accent": "#E8C25A",
+    "gradient": [
+      "#231B08",
+      "#050301"
+    ],
+    "particles": "sparkle",
+    "particleColors": [
+      "#E8C25A"
+    ],
+    "androidBg": "#050301"
   }
 };
