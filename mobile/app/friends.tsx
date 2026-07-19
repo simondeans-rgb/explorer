@@ -74,6 +74,11 @@ export default function FriendsScreen() {
     });
   }
   const inviteLink = profile ? `https://stickynotes-sand.vercel.app/add/${profile.code}` : '';
+  // The QR encodes the app deep link so scanning it in person opens Worldly
+  // straight to the connect flow (no web hop, whose custom-scheme redirect
+  // browsers block). The share link below stays https for people who don't
+  // have the app yet. Worldly's own scanner reads either.
+  const inviteDeep = profile ? `mobile://add/${profile.code}` : '';
   const inviteText = profile
     ? `Join me on Worldly, my travel archive — add me with code ${profile.code}: ${inviteLink}`
     : '';
@@ -155,9 +160,9 @@ export default function FriendsScreen() {
         <View style={{ paddingHorizontal: 20, marginTop: 14 }}>
           <View className="bg-white dark:bg-card rounded-3xl items-center" style={{ padding: 20, ...SHADOW.card }}>
             <View style={{ padding: 14, backgroundColor: COLORS.card, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(20,33,61,0.06)' }}>
-              <QRCode value={inviteLink} size={148} color={COLORS.navy} backgroundColor="#fff" />
+              <QRCode value={inviteDeep} size={148} color={COLORS.navy} backgroundColor="#fff" />
             </View>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 12, textAlign: 'center' }}>Scan to add me on Worldly</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 12, textAlign: 'center' }}>Have a friend point their camera here to connect</Text>
             <View className="flex-row" style={{ gap: 10, marginTop: 14, alignSelf: 'stretch' }}>
               <Pressable onPress={() => inviteVia('sms')} className="flex-1 flex-row items-center justify-center rounded-full" style={{ paddingVertical: 12, gap: 7, backgroundColor: COLORS.coral }}>
                 <MessageSquare size={16} color="#fff" />

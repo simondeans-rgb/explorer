@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import type { ComponentType } from 'react';
-import { UserPlus, ArrowRight, MapPin, Star, Plus, Sparkles, Settings2, Gem, BookmarkCheck, Check, HeartHandshake, Heart, MessageCircle } from 'lucide-react-native';
+import { UserPlus, ArrowRight, MapPin, Star, Plus, Sparkles, Settings2, Gem, BookmarkCheck, Check, HeartHandshake, Heart, MessageCircle, X } from 'lucide-react-native';
 import { useLikes } from '../../src/hooks/useLikes';
 import { useReplies } from '../../src/hooks/useReplies';
 import { ReplySheet } from '../../components/ReplySheet';
@@ -22,6 +22,8 @@ import { useAuth } from '../../src/store/auth';
 import { useData } from '../../src/store/data';
 import { useToast } from '../../src/store/toast';
 import { useFriends } from '../../src/hooks/useFriends';
+import { acceptConnection, removeConnection } from '../../src/lib/connections';
+import { track } from '../../src/lib/analytics';
 import { recentVisits, wishlists, circleRecommendations, mostVisitedCountry, travelCompatibility, type CircleRec } from '../../src/lib/circle';
 import type { RecommendationVerdict } from '../../src/types';
 
@@ -122,10 +124,26 @@ function CirclePreview() {
 export default function CircleScreen() {
   const { user } = useAuth();
   const myName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
-  const { friends, friendsData } = useFriends(user?.uid, myName);
+  const { friends, friendsData, connections } = useFriends(user?.uid, myName);
   const { places: myPlaces, discoveries: myDiscoveries, addPlace } = useData();
   const { toast } = useToast();
   const [rec, setRec] = useState<CircleRec | null>(null);
+
+  // People who added you — pending requests where someone else is the requester.
+  // Accepting is how you add them back. Shown even before you have any friends.
+  const incoming = useMemo(
+    () => connections.filter((c) => c.status === 'pending' && c.requestedBy !== user?.uid),
+    [connections, user?.uid],
+  );
+  function acceptRequest(id: string, name: string) {
+    acceptConnection(id).catch(() => toast.error('Couldn’t add them just now — try again.'));
+    track('circle_request_accepted', { via: 'circle' });
+    toast.success(`You’re now connected with ${name}`);
+  }
+  function declineRequest(id: string) {
+    removeConnection(id).catch(() => {});
+    track('circle_request_declined', { via: 'circle' });
+  }
 
   const recs = useMemo(() => circleRecommendations(friendsData.discoveries, friends), [friendsData.discoveries, friends]);
   const mostVisited = useMemo(() => mostVisitedCountry(friendsData.places, friends), [friendsData.places, friends]);
@@ -224,6 +242,41 @@ export default function CircleScreen() {
         motion
         minHeight={HERO_HEIGHT}
       />
+
+      {/* Incoming requests — promoted to the top of Circle so being added never
+          goes unnoticed. Accepting adds them back. */}
+      {incoming.length > 0 ? (
+        <View style={{ paddingHorizontal: 20, marginTop: 14 }}>
+          <View className="flex-row items-center" style={{ gap: 8, marginBottom: 10 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 21, color: COLORS.navy }}>Requests</Text>
+            <View className="rounded-full items-center justify-center" style={{ minWidth: 22, height: 22, paddingHorizontal: 6, backgroundColor: COLORS.coral }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', color: '#fff' }}>{incoming.length}</Text>
+            </View>
+          </View>
+          <View style={{ gap: 10 }}>
+            {incoming.map((c) => {
+              const other = c.members.find((m) => m !== user?.uid) ?? '';
+              const name = c.names[other] || 'A traveller';
+              return (
+                <View key={c.id} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 14, gap: 12, ...SHADOW.card }}>
+                  <Avatar name={name} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>{name}</Text>
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 1 }}>added you to their Circle</Text>
+                  </View>
+                  <Pressable onPress={() => declineRequest(c.id)} hitSlop={6} accessibilityLabel={`Decline ${name}`} className="rounded-full items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
+                    <X size={18} color={COLORS.ink3} />
+                  </Pressable>
+                  <Pressable onPress={() => acceptRequest(c.id, name)} hitSlop={6} accessibilityLabel={`Add ${name} back`} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 14, height: 38, gap: 6, backgroundColor: COLORS.coral }}>
+                    <Check size={16} color="#fff" />
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '700', color: '#fff' }}>Add back</Text>
+                  </Pressable>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
 
       {!hasCircle ? (
         /* ── Exceptional empty state — an invitation, not an absence ── */
