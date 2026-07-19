@@ -223,6 +223,30 @@ private struct BrandLockup: View {
     HStack(spacing: 6) {
       BrandMark(height: 20)
       Text("Worldly").font(.system(size: 15, weight: .heavy)).foregroundColor(.white)
+        .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
+    }
+  }
+}
+
+private extension View {
+  /// A frosted-glass pill behind text for legibility over busy photography.
+  /// A real material blur (glass) tinted a touch darker so white text stays
+  /// crisp. A no-op on gradient covers, where contrast is already clean and a
+  /// box would only clutter the airy look.
+  @ViewBuilder func glassPill(_ on: Bool, padH: CGFloat = 11, padV: CGFloat = 8, radius: CGFloat = 15) -> some View {
+    if on {
+      self
+        .padding(.horizontal, padH)
+        .padding(.vertical, padV)
+        .background(
+          RoundedRectangle(cornerRadius: radius, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Color.black.opacity(0.22)))
+            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).stroke(Color.white.opacity(0.14), lineWidth: 0.5))
+        )
+        .environment(\.colorScheme, .dark)
+    } else {
+      self
     }
   }
 }
@@ -351,7 +375,7 @@ private struct MomentView: View {
         AddBadge(tint: d.accent, size: 38)
       }
       Spacer()
-      content
+      content.glassPill(d.heroImage != nil)
       Spacer()
     }
   }
@@ -421,8 +445,9 @@ private struct MediumView: View {
               .font(.system(size: 11.5, weight: .semibold)).foregroundColor(d.accent).lineLimit(1).padding(.top, 2)
           }
         }
+        .glassPill(d.heroImage != nil)
         Spacer(minLength: 0)
-        rightPanel.frame(maxWidth: 130, alignment: .trailing)
+        rightPanel.glassPill(d.heroImage != nil).frame(maxWidth: 138, alignment: .trailing)
       }
     }
   }
@@ -483,13 +508,17 @@ private struct LargeView: View {
           Spacer()
         }
       }
+      .glassPill(d.heroImage != nil, padH: 14, padV: 12, radius: 20)
       Spacer(minLength: 12)
       // Prominent next-trip / memory band.
       band
       Spacer(minLength: 12)
       if !d.recentFlags.isEmpty {
-        Text("RECENTLY VISITED").font(.system(size: 10, weight: .heavy)).kerning(1.6).foregroundColor(.white.opacity(0.6))
-        FlagRow(flags: d.recentFlags, maxCount: 8, clickable: true, size: 30, showOverflow: false).padding(.top, 6)
+        VStack(alignment: .leading, spacing: 6) {
+          Text("RECENTLY VISITED").font(.system(size: 10, weight: .heavy)).kerning(1.6).foregroundColor(.white.opacity(0.72))
+          FlagRow(flags: d.recentFlags, maxCount: 8, clickable: true, size: 30, showOverflow: false)
+        }
+        .glassPill(d.heroImage != nil, padH: 12, padV: 9, radius: 18)
       }
     }
   }
