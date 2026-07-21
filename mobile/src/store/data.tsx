@@ -69,6 +69,11 @@ interface DataApi extends DataShape {
   loaded: boolean;
   /** True while reading from Firestore for a signed-in member. */
   cloud: boolean;
+  /** Cloud only: true once the live Firestore data has been confirmed by the
+   *  server this session. While false, any data shown is the on-device cache
+   *  (we're offline or still connecting) — surface a "showing saved data" hint
+   *  rather than an empty state. Always true in guest mode. */
+  synced: boolean;
   addPlace: (input: {
     kind: PlaceKind;
     countryCode: string;
@@ -201,6 +206,10 @@ interface DataApi extends DataShape {
 }
 
 const KEY = 'worldly:data:v1';
+/** On-device mirror of a signed-in member's last server-synced cloud data,
+ *  keyed per account so it shows instantly (and offline) on cold start and can
+ *  never leak between accounts. Photos are URLs, so this stays small. */
+const cloudCacheKey = (uid: string) => `worldly:cloudcache:v1:${uid}`;
 type Coll = 'places' | 'discoveries' | 'expeditions' | 'captures' | 'trips';
 
 const noop = () => {};
@@ -212,6 +221,7 @@ const DataContext = createContext<DataApi>({
   trips: [],
   loaded: false,
   cloud: false,
+  synced: false,
   addPlace: noop,
   removePlace: noop,
   updatePlace: async () => {},
@@ -372,6 +382,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const [data, setData] = useState<DataShape>(SEED);
   const [loaded, setLoaded] = useState(false);
+  // Cloud: false until the server confirms the live data this session. Guest
+  // mode has no server, so it's forced true below.
+  const [synced, setSynced] = useState(false);
   // Keep the latest local snapshot for functional updates without re-subscribing.
   const localRef = useRef<DataShape>(SEED);
 
@@ -380,6 +393,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (cloud) return;
     let active = true;
     setLoaded(false);
+    setSynced(true); // guest mode reads from disk — nothing to wait on
     (async () => {
       try {
         const raw = await AsyncStorage.getItem(KEY);
@@ -416,8 +430,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!cloud || !uid || !db) return;
     const fdb = db;
+    let cancelled = false;
+    let unsubs: (() => void)[] = [];
     setLoaded(false);
-    setData(EMPTY);
+    setSynced(false);
+
     const ready: Record<Coll, boolean> = {
       places: false,
       discoveries: false,
@@ -432,8 +449,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
           setLoaded(true);
         }
       }
+      // The server has now answered at least one query → live data is confirmed.
+      setSynced(true);
     };
     const q = (c: Coll) => query(collection(fdb, c), where('userId', '==', uid));
+
+    // Show the last server-synced snapshot from disk immediately — so a cold
+    // start (especially on poor signal) shows your world at once instead of a
+    // blank screen, then reconciles with the live cloud data when it arrives.
+    // Listeners are attached only after this, so they always win over the cache.
+    const hydrateThenSubscribe = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(cloudCacheKey(uid));
+        if (!cancelled && raw) {
+          const parsed = JSON.parse(raw) as Partial<DataShape>;
+          const cached: DataShape = {
+            places: parsed.places ?? [],
+            discoveries: parsed.discoveries ?? [],
+            expeditions: parsed.expeditions ?? [],
+            captures: parsed.captures ?? [],
+            trips: parsed.trips ?? [],
+          };
+          localRef.current = cached;
+          setData(cached);
+          setLoaded(true); // we have something real to show; not a blank spinner
+        } else if (!cancelled) {
+          setData(EMPTY);
+        }
+      } catch {
+        if (!cancelled) setData(EMPTY);
+      }
+      if (cancelled) return;
+      unsubs = subscribe();
+    };
+    const subscribe = (): (() => void)[] => {
     // Own + shared trips are kept separately and merged (deduped by id).
     const ownTrips = { current: [] as Trip[] };
     const sharedTrips = { current: [] as Trip[] };
@@ -450,7 +499,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const syncRef = (patch: Partial<DataShape>) => {
       localRef.current = { ...localRef.current, ...patch };
     };
-    const unsubs = [
+    const subs = [
       onSnapshot(q('places'), (snap) => {
         const places = snap.docs.map((d) => placeFromDoc(d.id, d.data()));
         syncRef({ places });
@@ -493,8 +542,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
         },
       ),
     ];
-    return () => unsubs.forEach((u) => u());
+    return subs;
+    };
+
+    hydrateThenSubscribe();
+    return () => {
+      cancelled = true;
+      unsubs.forEach((u) => u());
+    };
   }, [cloud, uid]);
+
+  // Mirror the live cloud data to disk once the server has confirmed it, so the
+  // next cold start can show it instantly (and offline). Debounced; guarded on
+  // `synced` so the transient empty/pre-hydration state never overwrites a good
+  // cache. Guest data uses its own `persistLocal` path.
+  useEffect(() => {
+    if (!cloud || !uid || !synced) return;
+    const t = setTimeout(() => {
+      AsyncStorage.setItem(cloudCacheKey(uid), JSON.stringify(data)).catch(() => {});
+    }, 800);
+    return () => clearTimeout(t);
+  }, [cloud, uid, synced, data]);
 
   function persistLocal(next: DataShape) {
     localRef.current = next;
@@ -535,6 +603,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       ...data,
       loaded,
       cloud,
+      synced,
       addPlace: (input) => {
         const name =
           input.kind === 'country'
@@ -1156,7 +1225,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return rows.length;
       },
     };
-  }, [data, loaded, cloud, uid]);
+  }, [data, loaded, cloud, synced, uid]);
 
   // One-time repair: older Flighty imports were named after the home country.
   // Recompute destination-first titles + country order once data has loaded.

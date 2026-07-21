@@ -29,6 +29,7 @@ import { WidgetSync } from '../components/WidgetSync';
 import { CircleRequestPrompt } from '../components/CircleRequestPrompt';
 import { onOpenAddMenu } from '../src/lib/addMenu';
 import { GlobalTabBar } from '../components/GlobalTabBar';
+import { SyncBanner } from '../components/SyncBanner';
 import { ActionMenu, type ActionKind } from '../components/ActionMenu';
 import { AddPlaceSheet } from '../components/AddPlaceSheet';
 import { AddDiscoverySheet } from '../components/AddDiscoverySheet';
@@ -144,6 +145,9 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
       <NotificationScheduler />
       <WidgetSync />
       <CircleRequestPrompt />
+
+      {/* Quiet "offline — showing saved data" pill while the cloud reconnects. */}
+      <SyncBanner />
 
       {/* Global, always-visible navigation bar + its action menu / sheets. */}
       <GlobalTabBar onFab={() => setMenuOpen(true)} />
