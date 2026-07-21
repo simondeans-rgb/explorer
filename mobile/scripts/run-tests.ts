@@ -22,6 +22,7 @@ import {
   WORLD_TOTAL,
 } from '../src/lib/widgetPayload';
 import { searchCities } from '../src/lib/cityLookup';
+import { countryMilestone } from '../src/lib/milestone';
 import type { Discovery } from '../src/types';
 import type { Expedition, Trip } from '../src/types';
 import type { Badge } from '../src/lib/explorer';
@@ -598,6 +599,16 @@ test('searchCities: needs 2+ chars; unscoped finds the city + its country', () =
   assert.deepEqual(searchCities('p'), []);
   const paris = searchCities('paris');
   assert.ok(paris.some((c) => c.name === 'Paris' && c.countryCode === 'FR'));
+});
+
+// ---- Country milestones ----------------------------------------------------
+
+test('countryMilestone: first, tenth, new continent, and none', () => {
+  assert.match(countryMilestone(new Set(), 'FR')?.title ?? '', /first country/i);
+  const nine = new Set(['FR', 'DE', 'IT', 'ES', 'PT', 'NL', 'BE', 'AT', 'CH']); // all Europe
+  assert.match(countryMilestone(nine, 'GR')?.title ?? '', /10 countries/);
+  assert.match(countryMilestone(new Set(['FR']), 'JP')?.title ?? '', /new continent/i); // Europe → Asia
+  assert.equal(countryMilestone(new Set(['FR']), 'FR'), null); // already have it
 });
 
 console.log(`✓ all ${passed} tests passed`);

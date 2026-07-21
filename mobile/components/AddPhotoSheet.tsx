@@ -8,7 +8,7 @@ import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES, countryName } from '../src/data/countries';
 import { useData } from '../src/store/data';
 import { useToast } from '../src/store/toast';
-import { pickPhotoWithMeta } from '../src/lib/photo';
+import { pickPhotoWithMeta, pickMultiplePhotosWithMeta } from '../src/lib/photo';
 import { countryAt } from '../src/lib/geoLookup';
 import { matchExpedition, expeditionLabel } from '../src/lib/tripMatch';
 import { TripPickerField } from './TripPickerField';
@@ -93,6 +93,31 @@ export function AddPhotoSheet({
       setPicking(false);
     }
   }
+  // Batch: import several library photos at once, auto-placed and auto-linked
+  // from each photo's own EXIF (no manual per-photo editing).
+  async function pickMany() {
+    setPicking(true);
+    try {
+      const picks = await pickMultiplePhotosWithMeta();
+      if (!picks.length) return;
+      let saved = 0;
+      for (const p of picks) {
+        const cc = (p.latitude !== undefined && p.longitude !== undefined ? countryAt(p.longitude, p.latitude) : undefined) || undefined;
+        const trip = matchExpedition(expeditions, { countryCode: cc, takenAt: p.takenAt });
+        try {
+          await addCapture({ dataUrl: p.dataUrl, countryCode: cc, caption: '', expeditionId: trip?.id, takenAt: p.takenAt });
+          saved++;
+        } catch {
+          /* skip a single failure, keep importing the rest */
+        }
+      }
+      track('photos_batch_added', { count: saved });
+      if (saved > 0) toast.success(`${saved} ${saved === 1 ? 'memory' : 'memories'} saved`);
+      close();
+    } finally {
+      setPicking(false);
+    }
+  }
   async function save() {
     if (!photo || saving) return;
     setSaving(true);
@@ -141,6 +166,13 @@ export function AddPhotoSheet({
               </Pressable>
             </View>
           )}
+          {/* Batch import — several at once, auto-placed from each photo's EXIF. */}
+          {!photo ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Add several photos at once" onPress={pickMany} disabled={picking} className="flex-row items-center justify-center" style={{ marginTop: 12, gap: 6, opacity: picking ? 0.5 : 1 }}>
+              <ImagePlus size={15} color={COLORS.coral} />
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '700', color: COLORS.coral }}>Add several at once</Text>
+            </Pressable>
+          ) : null}
           {picking ? (
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 8, textAlign: 'center' }}>Preparing photo…</Text>
           ) : null}

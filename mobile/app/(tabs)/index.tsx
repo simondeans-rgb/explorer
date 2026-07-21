@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-na
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Camera, ChevronRight, UserPlus, MapPin, CloudUpload, CalendarHeart, Sparkles, X } from 'lucide-react-native';
+import { Camera, ChevronRight, UserPlus, MapPin, CloudUpload, CalendarHeart, Sparkles, X, Search as SearchIcon } from 'lucide-react-native';
 import { Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { todaysMemories } from '../../src/lib/memories';
@@ -107,6 +107,17 @@ export default function StoryScreen() {
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 110 }}>
       {/* Hero */}
       <DestinationImage code={heroCodes[0]} codes={heroCodes} scrim motion onActiveCode={setActiveHero} style={{ position: 'relative', paddingTop: 64, paddingBottom: 40, minHeight: HERO_HEIGHT }}>
+        {/* Glass search button — quick access to global search */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Search your world"
+          onPress={() => router.push('/search')}
+          hitSlop={8}
+          className="items-center justify-center rounded-full"
+          style={{ position: 'absolute', top: 60, right: 16, height: 40, width: 40, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)' }}
+        >
+          <SearchIcon size={20} color="#fff" />
+        </Pressable>
         <View style={{ paddingHorizontal: 20 }}>
           <View style={{ alignItems: 'center' }}>
             <WorldlyLogo white={logoWhite} height={50} />

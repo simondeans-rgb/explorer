@@ -16,6 +16,7 @@ import { useToast } from '../src/store/toast';
 import { useConfirm } from '../src/store/confirm';
 import { useCelebration } from '../src/store/celebration';
 import { hImpact, hSelection } from '../src/lib/haptics';
+import { countryMilestone } from '../src/lib/milestone';
 
 const REL_OPTIONS = RELATIONSHIPS.filter((r) => r !== 'aspiring');
 // Reach back ~96 years so birth / long-ago residence years are selectable.
@@ -99,17 +100,7 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
     const isNewCountry = kind === 'country' && !priorCodes.has(code);
     if (isNewCountry) {
       const count = priorCodes.size + 1;
-      const contOf = (cc: string) => COUNTRIES.find((c) => c.code === cc)?.continent;
-      const priorConts = new Set([...priorCodes].map(contOf).filter(Boolean));
-      const newCont = contOf(code);
-      const isNewContinent = !!newCont && !priorConts.has(newCont);
-      const contsAfter = new Set(priorConts);
-      if (newCont) contsAfter.add(newCont);
-      let cel: { emoji: string; title: string; subtitle?: string } | null = null;
-      if (count === 1) cel = { emoji: '🌍', title: 'Your first country!', subtitle: `${countryName(code)} — the adventure begins` };
-      else if (isNewContinent && contsAfter.size === 7) cel = { emoji: '🌏', title: 'Every continent!', subtitle: "You've now set foot on all seven" };
-      else if (count % 10 === 0 || count === 25 || count === 75) cel = { emoji: '🎉', title: `${count} countries!`, subtitle: `${countryName(code)} makes ${count}` };
-      else if (isNewContinent) cel = { emoji: '🗺️', title: 'A new continent', subtitle: `Welcome to ${newCont}` };
+      const cel = countryMilestone(priorCodes, code);
       if (cel) {
         celebrate(cel); // the provider fires a success haptic on show
       } else {
