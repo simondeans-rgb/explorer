@@ -21,6 +21,7 @@ import {
   isoDaysBetween,
   WORLD_TOTAL,
 } from '../src/lib/widgetPayload';
+import { searchCities } from '../src/lib/cityLookup';
 import type { Discovery } from '../src/types';
 import type { Expedition, Trip } from '../src/types';
 import type { Badge } from '../src/lib/explorer';
@@ -582,6 +583,21 @@ test('widget legible accent: a dark accent is lifted to a readable luminance', (
   assert.ok(relLuminance(lifted) >= 0.45, `expected lifted luminance, got ${relLuminance(lifted)}`);
   // A colour already bright enough is left essentially as-is.
   assert.equal(legibleAccentOnDark('#FFFFFF'), '#FFFFFF');
+});
+
+// ---- City autocomplete ----------------------------------------------------
+
+test('searchCities: prefix match scoped to a country', () => {
+  const jp = searchCities('toky', 'JP');
+  assert.ok(jp.some((c) => c.name === 'Tokyo' && c.countryCode === 'JP'), 'expected Tokyo in JP');
+  // Scoping excludes other countries.
+  assert.ok(jp.every((c) => c.countryCode === 'JP'));
+});
+
+test('searchCities: needs 2+ chars; unscoped finds the city + its country', () => {
+  assert.deepEqual(searchCities('p'), []);
+  const paris = searchCities('paris');
+  assert.ok(paris.some((c) => c.name === 'Paris' && c.countryCode === 'FR'));
 });
 
 console.log(`✓ all ${passed} tests passed`);

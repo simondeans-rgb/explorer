@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { Celebration, type CelebrationItem } from '../../components/Celebration';
+import { hSuccess } from '../lib/haptics';
 
 interface CelebrationApi {
   celebrate: (item: CelebrationItem) => void;
@@ -46,6 +47,7 @@ export function CelebrationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!current) return;
+    hSuccess(); // a success buzz the moment any celebration appears
     timer.current = setTimeout(() => showNext(), 3600);
     return () => {
       if (timer.current) clearTimeout(timer.current);

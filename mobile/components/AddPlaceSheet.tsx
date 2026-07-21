@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { Check, Search } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
 import { DateField } from './DateField';
+import { CityField } from './CityField';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES, countryName } from '../src/data/countries';
@@ -13,6 +14,8 @@ import { shouldGate } from '../src/lib/billing';
 import { maybeAskForRating } from '../src/lib/rating';
 import { useToast } from '../src/store/toast';
 import { useConfirm } from '../src/store/confirm';
+import { useCelebration } from '../src/store/celebration';
+import { hImpact, hSelection } from '../src/lib/haptics';
 
 const REL_OPTIONS = RELATIONSHIPS.filter((r) => r !== 'aspiring');
 // Reach back ~96 years so birth / long-ago residence years are selectable.
@@ -24,6 +27,7 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
   const { addPlace, places, expeditions, recalculateJourneys } = useData();
   const { toast } = useToast();
   const confirm = useConfirm();
+  const { celebrate } = useCelebration();
   const [kind, setKind] = useState<Kind>('country');
   const [query, setQuery] = useState('');
   const [code, setCode] = useState('');
@@ -59,7 +63,7 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
     reset();
     onClose();
   }
-  function save() {
+  function save(keepOpen = false) {
     if (!ready) return;
     // Paywall trigger — the 26th country. Inert until billing goes live.
     if (kind === 'country' && shouldGate('countries', new Set(places.filter((p) => p.kind === 'country').map((p) => p.countryCode)).size)) {
@@ -87,19 +91,53 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
       livedTo,
       residencePeriods,
     });
-    toast.success(kind === 'city' ? 'City added' : 'Country added');
-    // Milestone countries are a high note — the right moment to ask for a
-    // rating (no-op on binaries without the store-review module).
-    if (kind === 'country') {
-      const count = new Set(places.filter((p) => p.kind === 'country').map((p) => p.countryCode)).size + 1;
+
+    // Delight: a haptic on every add, a full confetti celebration on milestones
+    // (first country, every tenth, a new continent, all seven). The core action
+    // should feel like something, not just a toast.
+    const priorCodes = new Set(places.filter((p) => p.kind === 'country').map((p) => p.countryCode));
+    const isNewCountry = kind === 'country' && !priorCodes.has(code);
+    if (isNewCountry) {
+      const count = priorCodes.size + 1;
+      const contOf = (cc: string) => COUNTRIES.find((c) => c.code === cc)?.continent;
+      const priorConts = new Set([...priorCodes].map(contOf).filter(Boolean));
+      const newCont = contOf(code);
+      const isNewContinent = !!newCont && !priorConts.has(newCont);
+      const contsAfter = new Set(priorConts);
+      if (newCont) contsAfter.add(newCont);
+      let cel: { emoji: string; title: string; subtitle?: string } | null = null;
+      if (count === 1) cel = { emoji: '🌍', title: 'Your first country!', subtitle: `${countryName(code)} — the adventure begins` };
+      else if (isNewContinent && contsAfter.size === 7) cel = { emoji: '🌏', title: 'Every continent!', subtitle: "You've now set foot on all seven" };
+      else if (count % 10 === 0 || count === 25 || count === 75) cel = { emoji: '🎉', title: `${count} countries!`, subtitle: `${countryName(code)} makes ${count}` };
+      else if (isNewContinent) cel = { emoji: '🗺️', title: 'A new continent', subtitle: `Welcome to ${newCont}` };
+      if (cel) {
+        celebrate(cel); // the provider fires a success haptic on show
+      } else {
+        hImpact('medium');
+      }
       if (count === 10 || count === 25 || count === 50) maybeAskForRating(`country_${count}`);
+    } else {
+      hImpact('light');
     }
+
+    toast.success(kind === 'city' ? 'City added' : 'Country added');
     const wasResidence = isResidence;
     const newCode = code;
-    close();
+    if (keepOpen) {
+      // Stay open for rapid batch entry — reset the pick, keep the sheet.
+      setCode('');
+      setQuery('');
+      setCity('');
+      setRels(new Set(['visited']));
+      setWhen('');
+      setPresent(true);
+      setUntil('');
+    } else {
+      close();
+    }
     // Adding somewhere you've lived can change which trips are "from home", so
     // offer to re-resolve imported journeys against the new home set.
-    if (wasResidence && expeditions.some((e) => e.journeys.some((j) => j.id?.startsWith('imp_')))) {
+    if (!keepOpen && wasResidence && expeditions.some((e) => e.journeys.some((j) => j.id?.startsWith('imp_')))) {
       confirm({
         title: 'Recalculate journeys?',
         message: 'You added a place you’ve lived. Re-resolve your imported trips so they lead with the destination rather than home?',
@@ -119,6 +157,7 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
     }
   }
   function toggleRel(r: Relationship) {
+    hSelection();
     setRels((prev) => {
       const next = new Set(prev);
       if (next.has(r)) next.delete(r);
@@ -137,17 +176,17 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
           {(['country', 'city'] as Kind[]).map((k) => {
             const active = kind === k;
             return (
-              <Pressable key={k} onPress={() => setKind(k)} className="items-center justify-center rounded-xl" style={{ flex: 1, paddingVertical: 9, backgroundColor: active ? COLORS.navySolid : 'transparent' }}>
+              <Pressable key={k} onPress={() => { hSelection(); setKind(k); }} className="items-center justify-center rounded-xl" style={{ flex: 1, paddingVertical: 9, backgroundColor: active ? COLORS.navySolid : 'transparent' }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontWeight: '700', fontSize: 13, color: active ? '#fff' : COLORS.ink3 }}>{k === 'country' ? 'Country' : 'City'}</Text>
               </Pressable>
             );
           })}
         </View>
 
-        {/* City name */}
+        {/* City name — type-ahead over the cities dataset, scoped to the country. */}
         {kind === 'city' ? (
-          <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 10 }}>
-            <TextInput value={city} onChangeText={setCity} placeholder="City name, e.g. Kyoto" placeholderTextColor={COLORS.ink3} style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />
+          <View style={{ marginHorizontal: 20, marginTop: 10 }}>
+            <CityField value={city} onChangeText={setCity} countryCode={code || undefined} onPick={(s) => { if (!code) setCode(s.countryCode); }} />
           </View>
         ) : null}
 
@@ -212,10 +251,15 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
           </>
         ) : null}
 
-        <Pressable onPress={save} disabled={!ready} className="rounded-2xl items-center justify-center flex-row" style={{ marginHorizontal: 20, marginTop: 18, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: ready ? 1 : 0.4, gap: 8 }}>
+        <Pressable onPress={() => save(false)} disabled={!ready} className="rounded-2xl items-center justify-center flex-row" style={{ marginHorizontal: 20, marginTop: 18, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: ready ? 1 : 0.4, gap: 8 }}>
           <Check size={18} color="#fff" />
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Add to your world</Text>
         </Pressable>
+        {kind === 'country' && !isResidence ? (
+          <Pressable onPress={() => save(true)} disabled={!ready} className="items-center justify-center" style={{ marginTop: 10, paddingVertical: 8, opacity: ready ? 1 : 0.4 }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.coral }}>Save & add another</Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
     </SheetShell>
   );
