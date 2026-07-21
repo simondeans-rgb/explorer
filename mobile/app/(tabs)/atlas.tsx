@@ -74,6 +74,10 @@ export default function AtlasScreen() {
   const { celebrate } = useCelebration();
   const { toast } = useToast();
 
+  // Bumped whenever a country is added on the globe, so the map replays its
+  // west→east light-up with the new country colouring in last — the reward.
+  const [addFlash, setAddFlash] = useState(0);
+
   // Tap an undiscovered country on the globe to add it — the map becomes the
   // way you fill the map. Discovered countries still open their page.
   async function onGlobeCountry(code: string) {
@@ -91,6 +95,7 @@ export default function AtlasScreen() {
     });
     if (!yes) return;
     addPlace({ kind: 'country', countryCode: code, relationships: ['visited'] });
+    setAddFlash((n) => n + 1); // replay the globe light-up as the reward
     const cel = countryMilestone(discoveredCodes, code);
     if (cel) celebrate(cel);
     else hImpact('medium');
@@ -243,7 +248,7 @@ export default function AtlasScreen() {
             <JourneyGlobe
               segments={[]}
               maxSize={360}
-              resetKey={String(scope)}
+              resetKey={`${scope}:${addFlash}`}
               scrollRef={scrollRef}
               places={{ visited, wishlist, order: visitOrder, onPressCountry: onGlobeCountry }}
             />
