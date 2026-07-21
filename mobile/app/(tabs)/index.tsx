@@ -282,7 +282,27 @@ export default function StoryScreen() {
             </LinearGradient>
           </Pressable>
         </View>
-      ) : null}
+      ) : (places.length + captures.length >= 6 ? (
+        /* Year-round: a subtle way back into your story, any month. */
+        <View style={{ paddingHorizontal: 20, paddingTop: 18 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`See your ${new Date().getFullYear()} in travel`}
+            onPress={() => { track('wrapped_card_tap'); router.push('/wrapped'); }}
+            className="flex-row items-center bg-white dark:bg-card rounded-3xl"
+            style={{ padding: 14, gap: 13 }}
+          >
+            <LinearGradient colors={['#FF6B9A', '#9B7CFF', '#24D1C3']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="items-center justify-center rounded-2xl" style={{ height: 44, width: 44 }}>
+              <Sparkles size={20} color="#fff" />
+            </LinearGradient>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>Your {new Date().getFullYear()} in travel</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 2 }}>The year so far, told back to you.</Text>
+            </View>
+            <ChevronRight size={18} color={COLORS.ink3} />
+          </Pressable>
+        </View>
+      ) : null)}
 
       {/* Memories */}
       <View style={{ marginTop: 24 }}>

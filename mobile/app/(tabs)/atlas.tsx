@@ -207,6 +207,9 @@ export default function AtlasScreen() {
     [expeditions, scope],
   );
   const [journeyLimit, setJourneyLimit] = useState(40);
+  // Cap the rendered country cards; heavy travellers can have ~195. "Show more"
+  // reveals the rest, mirroring the journeys list.
+  const [placeLimit, setPlaceLimit] = useState(60);
   const shownJourneys = useMemo(() => {
     let list = scopedJourneys;
     if (!showDomestic) list = list.filter((e) => new Set(e.countryCodes).size > 1);
@@ -370,7 +373,7 @@ export default function AtlasScreen() {
         ) : null}
 
         {tab === 'places'
-          ? listPlaces.map((a) => (
+          ? listPlaces.slice(0, placeLimit).map((a) => (
               <AtlasCountryCard key={a.code} aggregate={a} discoveries={discCount[a.code] ?? 0} onScorePress={() => setScoreAgg(a)} />
             ))
           : shownJourneys.slice(0, journeyLimit).map((e) => (
@@ -399,6 +402,13 @@ export default function AtlasScreen() {
           <Pressable accessibilityRole="button" onPress={() => setJourneyLimit((n) => n + 40)} className="items-center rounded-2xl bg-white dark:bg-card" style={{ marginHorizontal: 20, marginTop: 10, paddingVertical: 12 }}>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.coral }}>
               Show more ({shownJourneys.length - journeyLimit} remaining)
+            </Text>
+          </Pressable>
+        ) : null}
+        {tab === 'places' && listPlaces.length > placeLimit ? (
+          <Pressable accessibilityRole="button" onPress={() => setPlaceLimit((n) => n + 60)} className="items-center rounded-2xl bg-white dark:bg-card" style={{ marginHorizontal: 20, marginTop: 10, paddingVertical: 12 }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.coral }}>
+              Show more ({listPlaces.length - placeLimit} remaining)
             </Text>
           </Pressable>
         ) : null}

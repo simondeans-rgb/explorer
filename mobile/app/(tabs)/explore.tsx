@@ -378,7 +378,13 @@ export default function ExploreScreen() {
             </View>
 
             {discoveries.length === 0 ? (
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 10 }}>Tap + to keep the first place worth remembering.</Text>
+              <View style={{ alignItems: 'center', paddingHorizontal: 40, paddingTop: 22, paddingBottom: 10 }}>
+                <Text style={{ fontSize: 36 }}>💎</Text>
+                <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: COLORS.navy, marginTop: 10 }}>No discoveries yet</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, color: COLORS.ink3, marginTop: 4, textAlign: 'center' }}>
+                  The restaurants, views and hidden gems worth remembering. Tap + to save your first.
+                </Text>
+              </View>
             ) : (
               <>
                 {/* category filters */}
