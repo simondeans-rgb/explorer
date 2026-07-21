@@ -10,9 +10,12 @@ import { flagEmoji } from '../src/lib/flags';
 import { countryName, COUNTRIES } from '../src/data/countries';
 import { JOURNEY_MODE_META } from '../src/types';
 import { useWorldly } from '../src/hooks/useWorldly';
+import { useData } from '../src/store/data';
+import { MapPin, CalendarClock } from 'lucide-react-native';
 
 export default function SearchScreen() {
   const { aggregates, discoveries, expeditions } = useWorldly();
+  const { trips } = useData();
   const [q, setQ] = useState('');
   const query = q.trim().toLowerCase();
 
@@ -47,7 +50,33 @@ export default function SearchScreen() {
       .slice(0, 10);
   }, [query, expeditions]);
 
-  const nothing = query && countryHits.length === 0 && discoveryHits.length === 0 && journeyHits.length === 0;
+  // Cities you've been to (from the aggregates), deduped by name + country.
+  const cityHits = useMemo(() => {
+    if (!query) return [];
+    const seen = new Set<string>();
+    const out: { name: string; code: string }[] = [];
+    for (const a of aggregates) {
+      for (const c of a.cities) {
+        if (!c.name || !c.name.toLowerCase().includes(query)) continue;
+        const key = `${c.name}|${a.code}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({ name: c.name, code: a.code });
+        if (out.length >= 10) return out;
+      }
+    }
+    return out;
+  }, [query, aggregates]);
+
+  // Upcoming trips / plans.
+  const tripHits = useMemo(() => {
+    if (!query) return [];
+    return trips
+      .filter((t) => [t.title, t.countryCode ? countryName(t.countryCode) : ''].some((s) => s.toLowerCase().includes(query)))
+      .slice(0, 8);
+  }, [query, trips]);
+
+  const nothing = query && countryHits.length === 0 && discoveryHits.length === 0 && journeyHits.length === 0 && cityHits.length === 0 && tripHits.length === 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
@@ -121,13 +150,58 @@ export default function SearchScreen() {
             <Text style={H}>YOUR JOURNEYS</Text>
             <View style={{ paddingHorizontal: 20, gap: 10 }}>
               {journeyHits.map((e) => (
-                <Pressable key={e.id} onPress={() => e.countryCodes[0] && router.push(`/country/${e.countryCodes[0]}`)} className="bg-white dark:bg-card rounded-3xl" style={{ padding: 16 }}>
+                <Pressable key={e.id} onPress={() => router.push(`/journey/${e.id}`)} className="bg-white dark:bg-card rounded-3xl" style={{ padding: 16 }}>
                   <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy }}>{e.title}</Text>
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2 }}>
                     {e.countryCodes.map((c) => flagEmoji(c)).join(' ')}
                     {e.startDate ? ` · ${e.startDate.slice(0, 4)}` : ''}
                     {e.journeys[0] ? ` · ${JOURNEY_MODE_META[e.journeys[0].mode].label}` : ''}
                   </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Cities */}
+        {cityHits.length > 0 ? (
+          <View style={{ marginTop: 18 }}>
+            <Text style={H}>CITIES YOU'VE VISITED</Text>
+            <View style={{ paddingHorizontal: 20, gap: 8 }}>
+              {cityHits.map((c) => (
+                <Pressable key={`${c.name}|${c.code}`} onPress={() => router.push(`/country/${c.code}`)} className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ padding: 12, gap: 12 }}>
+                  <View className="items-center justify-center rounded-full" style={{ height: 40, width: 40, backgroundColor: COLORS.card }}>
+                    <MapPin size={18} color={COLORS.coral} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>{c.name}</Text>
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{countryName(c.code)}</Text>
+                  </View>
+                  <Text style={{ fontSize: 18, marginRight: 4 }}>{flagEmoji(c.code)}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Trips */}
+        {tripHits.length > 0 ? (
+          <View style={{ marginTop: 18 }}>
+            <Text style={H}>YOUR TRIPS</Text>
+            <View style={{ paddingHorizontal: 20, gap: 8 }}>
+              {tripHits.map((t) => (
+                <Pressable key={t.id} onPress={() => router.push(`/trip/${t.id}`)} className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ padding: 12, gap: 12 }}>
+                  <View className="items-center justify-center rounded-full" style={{ height: 40, width: 40, backgroundColor: COLORS.card }}>
+                    <CalendarClock size={18} color={COLORS.coral} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: 'Fraunces', fontSize: 16, color: COLORS.navy }}>{t.title}</Text>
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>
+                      {countryName(t.countryCode)}
+                      {t.startDate ? ` · ${t.startDate.slice(0, 4)}` : ''}
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 18, marginRight: 4 }}>{flagEmoji(t.countryCode)}</Text>
                 </Pressable>
               ))}
             </View>

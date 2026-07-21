@@ -70,13 +70,16 @@ export async function pickPhotoWithMeta(
 
   const asset = result.canceled ? undefined : result.assets[0];
   if (!asset) return null;
+  return assetToPicked(asset, maxWidth);
+}
 
+/** Turn one picked asset into a compact captured photo + its recovered EXIF
+ *  location/timestamp. Shared by the single- and multi-photo pickers. */
+async function assetToPicked(asset: ImagePicker.ImagePickerAsset, maxWidth: number): Promise<PickedPhoto | null> {
   let meta = metaFromExif(asset.exif as Record<string, unknown> | null | undefined);
-
   // The in-picker crop step often strips GPS from the returned EXIF. When the
-  // library asset id is available, best-effort recover location + timestamp
-  // from the photo library itself.
-  if (meta.latitude === undefined && source === 'library' && asset.assetId) {
+  // library asset id is available, best-effort recover location + timestamp.
+  if (meta.latitude === undefined && asset.assetId) {
     try {
       const MediaLibrary = await import('expo-media-library');
       const info = await MediaLibrary.getAssetInfoAsync(asset.assetId);
@@ -86,14 +89,31 @@ export async function pickPhotoWithMeta(
       /* limited permissions or missing asset — geotag stays unknown */
     }
   }
-
-  const out = await manipulateAsync(
-    asset.uri,
-    [{ resize: { width: maxWidth } }],
-    { compress: 0.6, format: SaveFormat.JPEG, base64: true },
-  );
+  const out = await manipulateAsync(asset.uri, [{ resize: { width: maxWidth } }], { compress: 0.6, format: SaveFormat.JPEG, base64: true });
   if (!out.base64) return null;
   return { dataUrl: `data:image/jpeg;base64,${out.base64}`, ...meta };
+}
+
+/** Pick several library photos at once — each keeps its own EXIF location +
+ *  timestamp so callers can auto-place and auto-link them per photo. Library
+ *  only (no crop step for a batch). Returns [] on cancel / denied permission. */
+export async function pickMultiplePhotosWithMeta(maxWidth = 1280, limit = 30): Promise<PickedPhoto[]> {
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) return [];
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsMultipleSelection: true,
+    selectionLimit: limit,
+    quality: 1,
+    exif: true,
+  });
+  if (result.canceled) return [];
+  const out: PickedPhoto[] = [];
+  for (const asset of result.assets) {
+    const p = await assetToPicked(asset, maxWidth);
+    if (p) out.push(p);
+  }
+  return out;
 }
 
 /** Downscale any local/library image uri into a compact JPEG data URL —

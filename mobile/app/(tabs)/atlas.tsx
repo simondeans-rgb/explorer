@@ -30,6 +30,11 @@ import type { CountryAggregate } from '../../src/lib/stats';
 import { HERO_CODES } from '../../src/lib/heroImages';
 import { useAuth } from '../../src/store/auth';
 import { useData } from '../../src/store/data';
+import { useConfirm } from '../../src/store/confirm';
+import { useCelebration } from '../../src/store/celebration';
+import { useToast } from '../../src/store/toast';
+import { countryMilestone } from '../../src/lib/milestone';
+import { hImpact } from '../../src/lib/haptics';
 
 type SortBy = 'az' | 'found' | 'recent';
 
@@ -64,7 +69,33 @@ function ScopeChips({ scope, years, onChange }: { scope: Scope; years: number[];
 
 export default function AtlasScreen() {
   const { aggregates, discoveries, expeditions, stats } = useWorldly();
-  const { updateExpedition } = useData();
+  const { updateExpedition, addPlace } = useData();
+  const confirm = useConfirm();
+  const { celebrate } = useCelebration();
+  const { toast } = useToast();
+
+  // Tap an undiscovered country on the globe to add it — the map becomes the
+  // way you fill the map. Discovered countries still open their page.
+  async function onGlobeCountry(code: string) {
+    const discoveredCodes = new Set(discovered.map((a) => a.code));
+    if (discoveredCodes.has(code)) {
+      router.push(`/country/${code}`);
+      return;
+    }
+    const name = countryName(code);
+    if (!name) return;
+    const yes = await confirm({
+      title: `Add ${name}?`,
+      message: `Mark ${flagEmoji(code)}  ${name} as somewhere you've been?`,
+      confirmLabel: 'Add to my world',
+    });
+    if (!yes) return;
+    addPlace({ kind: 'country', countryCode: code, relationships: ['visited'] });
+    const cel = countryMilestone(discoveredCodes, code);
+    if (cel) celebrate(cel);
+    else hImpact('medium');
+    toast.success(`${name} added`);
+  }
   // Flights logged ahead of time refresh their actual times/delays once flown.
   useFlightAutoRefresh(expeditions, updateExpedition);
   const [tab, setTab] = useState<Tab>('places');
@@ -211,7 +242,7 @@ export default function AtlasScreen() {
               maxSize={360}
               resetKey={String(scope)}
               scrollRef={scrollRef}
-              places={{ visited, wishlist, order: visitOrder, onPressCountry: (code) => router.push(`/country/${code}`) }}
+              places={{ visited, wishlist, order: visitOrder, onPressCountry: onGlobeCountry }}
             />
           </View>
           <View className="flex-row items-center" style={{ marginTop: 10, gap: 16, paddingHorizontal: 4 }}>
@@ -225,7 +256,7 @@ export default function AtlasScreen() {
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{wishlist.size} wish-listed</Text>
               </View>
             ) : null}
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginLeft: 'auto' }}>Drag to spin · tap a country ›</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginLeft: 'auto' }}>Drag to spin · tap to add ›</Text>
           </View>
 
           {/* Your world — overview stats + continent progress (all-time) */}
