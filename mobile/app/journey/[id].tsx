@@ -27,6 +27,7 @@ import { countryName, COUNTRIES } from '../../src/data/countries';
 import { goBack } from '../../src/lib/nav';
 import { JOURNEY_MODES, JOURNEY_MODE_META, type JourneyMode, type Journey } from '../../src/types';
 import { useData } from '../../src/store/data';
+import { DetailSkeleton } from '../../components/DetailSkeleton';
 import { useToast } from '../../src/store/toast';
 
 let idc = 0;
@@ -104,7 +105,7 @@ const LBL = { fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700' as cons
 
 export default function JourneyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { expeditions, updateExpedition, removeExpedition, captures } = useData();
+  const { expeditions, updateExpedition, removeExpedition, captures, loaded } = useData();
   const { toast } = useToast();
   const { unit } = useUnits();
   const confirm = useConfirm();
@@ -266,6 +267,7 @@ export default function JourneyScreen() {
     }
   }
 
+  if (!expedition && !loaded) return <DetailSkeleton />;
   if (!expedition) {
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.warmwhite, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
@@ -281,7 +283,7 @@ export default function JourneyScreen() {
         {/* Hero */}
         <DestinationImage code={codes[0] ?? 'WW'} scrim style={{ position: 'relative', paddingTop: 60, paddingBottom: 46, minHeight: 180, justifyContent: 'flex-end' }}>
           <BackButton onPress={goBack} style={{ position: 'absolute', top: 60, left: 20, zIndex: 20 }} />
-          <Pressable onPress={confirmDelete} hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, right: 20, zIndex: 20 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Delete journey" onPress={confirmDelete} hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, right: 20, zIndex: 20 }}>
             <Trash2 size={18} color="#fff" />
           </Pressable>
           <View style={{ paddingHorizontal: 20 }}>
@@ -429,7 +431,7 @@ export default function JourneyScreen() {
               <View className="flex-row items-center justify-between">
                 <Text style={{ fontFamily: 'Fraunces', fontSize: 15, color: COLORS.navy }}>Leg {i + 1}</Text>
                 {legs.length > 1 ? (
-                  <Pressable onPress={() => removeLeg(leg.id)} hitSlop={8}><Trash2 size={18} color={COLORS.ink3} /></Pressable>
+                  <Pressable accessibilityRole="button" accessibilityLabel="Remove leg" onPress={() => removeLeg(leg.id)} hitSlop={8}><Trash2 size={18} color={COLORS.ink3} /></Pressable>
                 ) : null}
               </View>
               <View className="flex-row flex-wrap" style={{ gap: 6 }}>

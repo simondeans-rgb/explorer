@@ -26,10 +26,11 @@ import { useToast } from '../../src/store/toast';
 import { useAuth } from '../../src/store/auth';
 import { useFriends } from '../../src/hooks/useFriends';
 import { goBack } from '../../src/lib/nav';
+import { DetailSkeleton } from '../../components/DetailSkeleton';
 
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { trips, places, addPlace, addItineraryItem, removeItineraryItem, reorderItinerary, setDayNote, setTripTracking, addTripCollaborator, removeTripCollaborator, removeTrip } = useData();
+  const { trips, places, loaded, addPlace, addItineraryItem, removeItineraryItem, reorderItinerary, setDayNote, setTripTracking, addTripCollaborator, removeTripCollaborator, removeTrip } = useData();
   const { toast } = useToast();
   const confirm = useConfirm();
   const { user } = useAuth();
@@ -117,6 +118,7 @@ export default function TripScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip?.id, trip?.autoTrack, tripActive]);
 
+  if (!trip && !loaded) return <DetailSkeleton />;
   if (!trip) {
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.warmwhite, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
@@ -260,7 +262,7 @@ export default function TripScreen() {
         <DestinationImage code={trip.countryCode} scrim motion style={{ position: 'relative', paddingTop: 60, paddingBottom: 52, minHeight: 230, justifyContent: 'flex-end' }}>
           <BackButton onPress={goBack} style={{ position: 'absolute', top: 60, left: 20, zIndex: 20 }} />
           {canDelete ? (
-            <Pressable onPress={confirmDelete} hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, right: 20, zIndex: 20 }}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Delete trip" onPress={confirmDelete} hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, right: 20, zIndex: 20 }}>
               <Trash2 size={18} color="#fff" />
             </Pressable>
           ) : null}
@@ -320,7 +322,7 @@ export default function TripScreen() {
                       {owner ? (
                         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.ink3 }}>OWNER</Text>
                       ) : isOwner ? (
-                        <Pressable onPress={() => removeTripCollaborator(trip.id, m)} hitSlop={8}><X size={16} color={COLORS.ink3} /></Pressable>
+                        <Pressable accessibilityRole="button" accessibilityLabel="Remove collaborator" onPress={() => removeTripCollaborator(trip.id, m)} hitSlop={8}><X size={16} color={COLORS.ink3} /></Pressable>
                       ) : null}
                     </View>
                   );

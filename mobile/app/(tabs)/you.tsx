@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Animated } from 'react-native';
+import { View, Text, ScrollView, Pressable, Animated, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
@@ -16,6 +16,9 @@ import { useWorldly } from '../../src/hooks/useWorldly';
 import { useAuth } from '../../src/store/auth';
 import { XpDetailSheet } from '../../components/XpDetailSheet';
 import { HeroWave } from '../../components/HeroWave';
+import { CoverParticles } from '../../components/CoverParticles';
+import { getCoverState } from '../../src/lib/covers';
+import { COVER_THEMES } from '../../src/lib/coverThemes.gen';
 import { pickPhotoDataUrl } from '../../src/lib/photo';
 import { ensureProfile, loadProfilePhoto, saveProfilePhoto } from '../../src/lib/profile';
 
@@ -54,6 +57,15 @@ export default function YouScreen() {
   const [xpOpen, setXpOpen] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  // A whisper of your active Passport cover's ambient particles over the hero.
+  const [coverName, setCoverName] = useState<string | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    getCoverState().then((s) => { if (mounted) setCoverName(s?.current ?? null); });
+    return () => { mounted = false; };
+  }, []);
+  const coverTheme = COVER_THEMES[coverName ?? 'Classic'] ?? COVER_THEMES.Classic;
   const scrollY = useRef(new Animated.Value(0)).current;
   const scrimOpacity = scrollY.interpolate({ inputRange: [HERO_HEIGHT - 130, HERO_HEIGHT - 50], outputRange: [0, 1], extrapolate: 'clamp' });
 
@@ -121,6 +133,9 @@ export default function YouScreen() {
     >
       {/* Identity hero */}
       <DestinationImage code={HERO_CODES.you[0]} codes={HERO_CODES.you} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 56, minHeight: HERO_HEIGHT, alignItems: 'center' }}>
+        {/* Ambient whisper of the active cover's particles — half the usual
+            density so it stays a subtle sparkle over the photo. */}
+        <CoverParticles profile={coverTheme.particles} colors={coverTheme.particleColors} width={width} height={HERO_HEIGHT} />
         {/* Gear, not hamburger: settings live behind the profile, iOS-style. */}
         <Pressable
           accessibilityRole="button"

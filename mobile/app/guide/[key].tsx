@@ -8,6 +8,7 @@ import { goBack } from '../../src/lib/nav';
 import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { buildCityGuides } from '../../src/lib/cityGuides';
+import { DetailSkeleton } from '../../components/DetailSkeleton';
 import { DISCOVERY_CATEGORY_META, VERDICT_META, type RecommendationVerdict } from '../../src/types';
 import { useData } from '../../src/store/data';
 import { useAuth } from '../../src/store/auth';
@@ -25,7 +26,7 @@ const VERDICT_STYLE: Record<RecommendationVerdict, { tint: string; icon: Compone
  *  strongest verdicts first. */
 export default function GuideScreen() {
   const { key } = useLocalSearchParams<{ key: string }>();
-  const { discoveries } = useData();
+  const { discoveries, loaded } = useData();
   const { user } = useAuth();
   const myName = user?.displayName?.split(' ')[0] || 'You';
   const { friends, friendsData } = useFriends(user?.uid, myName);
@@ -35,6 +36,7 @@ export default function GuideScreen() {
     [discoveries, friendsData.discoveries, friends, key],
   );
 
+  if (!guide && !loaded) return <DetailSkeleton />;
   if (!guide) {
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.warmwhite, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
