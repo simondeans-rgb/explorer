@@ -84,3 +84,49 @@ export function cityAt(lng: number, lat: number, countryCode?: string): CityMatc
   }
   return best ? { name: best.name, countryCode: best.country } : null;
 }
+
+let flat: City[] | null = null;
+function allCities(): City[] {
+  if (flat) return flat;
+  const g = load();
+  flat = [];
+  for (const bucket of g.values()) flat.push(...bucket);
+  return flat;
+}
+
+export interface CitySuggestion {
+  name: string;
+  countryCode: string;
+}
+
+/** City-name type-ahead over the bundled dataset. Exact → prefix → substring,
+ *  scoped to `countryCode` when given, larger cities ranked a touch higher.
+ *  (The dataset is GeoNames ≥50k population, so tiny towns won't appear — the
+ *  caller keeps free-text as a fallback.) Returns up to `limit` suggestions. */
+export function searchCities(query: string, countryCode?: string, limit = 8): CitySuggestion[] {
+  const q = query.trim().toLowerCase();
+  if (q.length < 2) return [];
+  const scored: { c: City; score: number }[] = [];
+  for (const c of allCities()) {
+    if (countryCode && c.country !== countryCode) continue;
+    const n = c.name.toLowerCase();
+    let score: number;
+    if (n === q) score = 0;
+    else if (n.startsWith(q)) score = 1;
+    else if (n.includes(q)) score = 2;
+    else continue;
+    score += 1 - Math.min(1, c.radiusKm / 40); // nudge bigger cities up within a tier
+    scored.push({ c, score });
+  }
+  scored.sort((a, b) => a.score - b.score || b.c.radiusKm - a.c.radiusKm);
+  const seen = new Set<string>();
+  const out: CitySuggestion[] = [];
+  for (const { c } of scored) {
+    const key = `${c.name}|${c.country}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ name: c.name, countryCode: c.country });
+    if (out.length >= limit) break;
+  }
+  return out;
+}

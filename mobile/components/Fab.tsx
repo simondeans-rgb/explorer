@@ -2,12 +2,15 @@ import type { ReactNode } from 'react';
 import { Pressable } from 'react-native';
 import { Plus } from 'lucide-react-native';
 import { COLORS } from '../src/lib/theme';
+import { hImpact } from '../src/lib/haptics';
 
 /** The coral floating action button shared across screens that can add an item. */
-export function Fab({ onPress, bottom = 28, icon }: { onPress: () => void; bottom?: number; icon?: ReactNode }) {
+export function Fab({ onPress, bottom = 28, icon, label = 'Add' }: { onPress: () => void; bottom?: number; icon?: ReactNode; label?: string }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => { hImpact('light'); onPress(); }}
+      accessibilityRole="button"
+      accessibilityLabel={label}
       className="absolute items-center justify-center rounded-full"
       style={{
         right: 20,

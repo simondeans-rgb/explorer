@@ -8,6 +8,7 @@ import { useEffect, type ComponentType } from 'react';
 import { useColorScheme } from 'react-native';
 import { COLORS, SECTION } from '../src/lib/theme';
 import { track } from '../src/lib/analytics';
+import { hSelection, hImpact } from '../src/lib/haptics';
 
 const ICONS = {
   story: require('../assets/images/nav/story.png') as ImageSource,
@@ -72,6 +73,7 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
         accessibilityState={{ selected: active }}
         onPress={() => {
           if (active) return;
+          hSelection();
           // Pop any pushed screen (country/import/etc.) before switching tab.
           if (router.canDismiss()) router.dismissAll();
           router.navigate(def.path as never);
@@ -141,7 +143,7 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Add to your world"
-          onPress={onFab}
+          onPress={() => { hImpact('light'); onFab(); }}
           className="items-center justify-center rounded-full"
           style={{
             position: 'absolute',

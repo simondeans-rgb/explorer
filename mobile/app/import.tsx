@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { readAsStringAsync } from 'expo-file-system/legacy';
@@ -21,6 +22,17 @@ import type { PlaceRow } from '../src/lib/flightyImport';
 
 export default function ImportScreen() {
   const { importPlaces, importExpeditions, places, expeditions, removeExpedition, addDiscovery, discoveries } = useData();
+  // Onboarding's "Scan your photos" deep-links here with ?start=scan so the scan
+  // begins straight away instead of dropping the user on the import menu.
+  const params = useLocalSearchParams<{ start?: string }>();
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (params.start === 'scan' && !autoStarted.current) {
+      autoStarted.current = true;
+      scanPhotos(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.start]);
   const [takeoutBusy, setTakeoutBusy] = useState(false);
   const [takeoutMsg, setTakeoutMsg] = useState<string | null>(null);
   const [takeoutProgress, setTakeoutProgress] = useState<{ done: number; total: number } | null>(null);

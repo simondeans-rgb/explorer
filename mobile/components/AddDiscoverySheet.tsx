@@ -15,6 +15,7 @@ import {
 } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { SheetShell } from './SheetShell';
+import { CityField } from './CityField';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES } from '../src/data/countries';
@@ -337,16 +338,10 @@ export function AddDiscoverySheet({
           })}
         </ScrollView>
 
-        {/* city */}
+        {/* city — type-ahead over the cities dataset, scoped to the country. */}
         <SectionLabel>CITY (OPTIONAL)</SectionLabel>
-        <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
-          <TextInput
-            value={city}
-            onChangeText={setCity}
-            placeholder="e.g. Tokyo"
-            placeholderTextColor={COLORS.ink3}
-            style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }}
-          />
+        <View style={{ marginHorizontal: 20, marginTop: 8 }}>
+          <CityField value={city} onChangeText={setCity} countryCode={code || undefined} onPick={(s) => { if (!code) setCode(s.countryCode); }} placeholder="e.g. Tokyo" />
         </View>
 
         {/* landmark — only when a country is chosen and it has known landmarks */}

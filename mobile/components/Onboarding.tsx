@@ -135,8 +135,8 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 function QuickStart({ onPick }: { onPick: (route?: string) => void }) {
   const options: { icon: typeof DownloadCloud; title: string; body: string; route: string }[] = [
     { icon: DownloadCloud, title: 'Import your travels', body: 'From flights, Polarsteps, Google Maps, TripIt & more.', route: '/import' },
-    { icon: Images, title: 'Scan your photos', body: 'Find the countries you’ve been to automatically.', route: '/import' },
-    { icon: MapPin, title: 'Add a place', body: 'Tell us somewhere you’ve been to get going.', route: '/search' },
+    { icon: Images, title: 'Scan your photos', body: 'Find the countries you’ve been to automatically.', route: '/import?start=scan' },
+    { icon: MapPin, title: 'Add a place', body: 'Tell us somewhere you’ve been to get going.', route: '/add' },
   ];
   return (
     <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: COLORS.warmwhite }}>
