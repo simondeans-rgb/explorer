@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { View, Text, Pressable, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Ellipse, Path } from 'react-native-svg';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -17,9 +18,13 @@ export interface CelebrationItem {
   emoji: string;
   title: string;
   subtitle?: string;
+  /** Which overlay effect to play. Defaults to the confetti burst; level-ups
+   *  use 'balloons' for a distinct, gentler rise. */
+  variant?: 'confetti' | 'balloons';
 }
 
 const CONFETTI_COLORS = ['#FF6B9A', '#9B7CFF', '#24D1C3', '#FFB84D', '#FF7A66', '#4DA6FF', '#FFD23F'];
+const BALLOON_COLORS = ['#FF6A55', '#FF6B9A', '#9B7CFF', '#5B6CFF', '#24D1C3', '#4DA6FF', '#FFB84D'];
 
 // When the card reveals, in ms — the confetti gets a head start so it fills the
 // screen first and the achievement is revealed behind it (iMessage-style).
@@ -85,12 +90,70 @@ function Piece({ index, width, height, originY }: { index: number; width: number
   );
 }
 
-/** A full-screen celebratory overlay: a dense confetti shower fills the screen,
- *  then the achievement card reveals behind it. Tap (or auto-dismiss) closes. */
+/** A single balloon that drifts up from below the screen with a gentle sideways
+ *  sway and a little tilt, its string trailing behind — then fades as it clears
+ *  the top. Used for the level-up celebration to feel distinct from confetti. */
+function Balloon({ index, width, height }: { index: number; width: number; height: number }) {
+  const p = useSharedValue(0);
+  const s = useMemo(() => 0.82 + Math.random() * 0.5, []); // size variance
+  const bw = 40 * s;
+  const bodyH = 50 * s;
+  const stringH = 40 * s;
+  const bh = bodyH + stringH;
+  const cx = bw / 2;
+  const x0 = useMemo(() => 10 + Math.random() * Math.max(1, width - 20 - bw), [width, bw]);
+  const sway = useMemo(() => 12 + Math.random() * 22, []);
+  const freq = useMemo(() => 1.4 + Math.random() * 1.1, []);
+  const phase = useMemo(() => Math.random() * Math.PI * 2, []);
+  const delay = useMemo(() => Math.random() * 380, []);
+  const duration = useMemo(() => 2300 + Math.random() * 800, []);
+  const startY = useMemo(() => height + 40 + Math.random() * 90, [height]);
+  const endY = -bh - 40;
+  const color = BALLOON_COLORS[index % BALLOON_COLORS.length];
+
+  useEffect(() => {
+    p.value = withDelay(delay, withTiming(1, { duration, easing: Easing.out(Easing.quad) }));
+  }, [p, delay, duration]);
+
+  const style = useAnimatedStyle(() => {
+    const t = p.value;
+    const wobble = Math.sin(t * Math.PI * freq + phase);
+    return {
+      transform: [
+        { translateX: x0 + wobble * sway },
+        { translateY: startY + (endY - startY) * t },
+        { rotate: `${wobble * 6}deg` },
+      ],
+      opacity: interpolate(t, [0, 0.06, 0.86, 1], [0, 1, 1, 0], Extrapolation.CLAMP),
+    };
+  });
+
+  return (
+    <Animated.View pointerEvents="none" style={[{ position: 'absolute', top: 0, left: 0, width: bw, height: bh }, style]}>
+      <Svg width={bw} height={bh}>
+        {/* trailing string */}
+        <Path d={`M ${cx} ${bodyH - 2} Q ${cx + 6} ${bodyH + stringH * 0.5} ${cx} ${bodyH + stringH}`} stroke="rgba(255,255,255,0.4)" strokeWidth={1} fill="none" />
+        {/* balloon body */}
+        <Ellipse cx={cx} cy={bodyH / 2} rx={bw / 2 - 1.5} ry={bodyH / 2 - 1.5} fill={color} />
+        {/* knot */}
+        <Path d={`M ${cx - 3.2} ${bodyH - 4} L ${cx + 3.2} ${bodyH - 4} L ${cx} ${bodyH + 3} Z`} fill={color} />
+        {/* gloss highlight */}
+        <Ellipse cx={cx - bw * 0.16} cy={bodyH / 2 - bodyH * 0.16} rx={bw * 0.1} ry={bodyH * 0.16} fill="rgba(255,255,255,0.4)" />
+      </Svg>
+    </Animated.View>
+  );
+}
+
+/** A full-screen celebratory overlay: confetti (default) or rising balloons
+ *  (level-ups) fills the screen, then the achievement card reveals behind it.
+ *  Tap (or auto-dismiss) closes. */
 export function Celebration({ item, onDismiss }: { item: CelebrationItem; onDismiss: () => void }) {
   const { width, height } = useWindowDimensions();
+  const variant = item.variant ?? 'confetti';
   // Scale piece count to the screen so it reads as full regardless of device.
   const pieces = useMemo(() => Math.min(300, Math.max(210, Math.round((width * height) / 1350))), [width, height]);
+  // Fewer, larger balloons — enough to fill the width without crowding.
+  const balloons = useMemo(() => Math.min(22, Math.max(12, Math.round(width / 26))), [width]);
   // Burst origin — the centre of the card, so the explosion erupts from behind
   // the achievement as it reveals.
   const originY = height / 2;
@@ -113,9 +176,13 @@ export function Celebration({ item, onDismiss }: { item: CelebrationItem; onDism
     <Pressable onPress={onDismiss} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
       <Animated.View style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(14,16,24,0.55)' }, scrimStyle]} />
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        {Array.from({ length: pieces }).map((_, i) => (
-          <Piece key={i} index={i} width={width} height={height} originY={originY} />
-        ))}
+        {variant === 'balloons'
+          ? Array.from({ length: balloons }).map((_, i) => (
+              <Balloon key={i} index={i} width={width} height={height} />
+            ))
+          : Array.from({ length: pieces }).map((_, i) => (
+              <Piece key={i} index={i} width={width} height={height} originY={originY} />
+            ))}
         <Animated.View style={cardStyle}>
           <LinearGradient
             colors={BRAND_GRADIENT}

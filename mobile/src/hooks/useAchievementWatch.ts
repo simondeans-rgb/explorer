@@ -60,7 +60,7 @@ export function useAchievementWatch(
     const base = baseline.current;
     const events: CelebrationItem[] = [];
     if (level.level > base.level) {
-      events.push({ emoji: '✨', title: `Level ${level.level}`, subtitle: level.title });
+      events.push({ emoji: '🎈', title: `Level ${level.level}`, subtitle: level.title, variant: 'balloons' });
     }
     for (const b of badges) {
       if (b.earned && !base.earned.includes(b.id)) {
