@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Switch, ActivityIndicator, Share, Modal } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Share, Modal } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useConfirm } from '../../src/store/confirm';
 import { useLocalSearchParams } from 'expo-router';
@@ -9,7 +9,6 @@ import { DestinationImage } from '../../components/DestinationImage';
 import { AddItinerarySheet } from '../../components/AddItinerarySheet';
 import { ItineraryPlanner, itineraryMeta, type Suggestion } from '../../components/ItineraryPlanner';
 import { LandmarkDetailSheet, type LandmarkPerson } from '../../components/LandmarkDetailSheet';
-import { LocationPrimingSheet } from '../../components/LocationPrimingSheet';
 import { COLORS } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
@@ -20,7 +19,6 @@ import { buildItineraryHtml, saveItineraryDoc } from '../../src/lib/itineraryDoc
 import { shareItineraryPdf, buildItineraryText } from '../../src/lib/itineraryPdf';
 import { track } from '../../src/lib/analytics';
 import { detectLocation } from '../../src/lib/checkIn';
-import { backgroundTrackingAvailable, startTripTracking, stopTripTracking } from '../../src/lib/tracking';
 import { useData } from '../../src/store/data';
 import { useToast } from '../../src/store/toast';
 import { useAuth } from '../../src/store/auth';
@@ -30,7 +28,7 @@ import { DetailSkeleton } from '../../components/DetailSkeleton';
 
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { trips, places, loaded, addPlace, addItineraryItem, removeItineraryItem, reorderItinerary, setDayNote, setTripTracking, addTripCollaborator, removeTripCollaborator, removeTrip } = useData();
+  const { trips, places, loaded, addPlace, addItineraryItem, removeItineraryItem, reorderItinerary, setDayNote, addTripCollaborator, removeTripCollaborator, removeTrip } = useData();
   const { toast } = useToast();
   const confirm = useConfirm();
   const { user } = useAuth();
@@ -41,7 +39,6 @@ export default function TripScreen() {
   const [exporting, setExporting] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [primeOpen, setPrimeOpen] = useState(false);
   const [detail, setDetail] = useState<{ name: string; city?: string; photo?: string; own?: { verdict?: RecommendationVerdict; note?: string } | null; friends: LandmarkPerson[] } | null>(null);
 
   const trip = trips.find((t) => t.id === id);
@@ -54,16 +51,6 @@ export default function TripScreen() {
       .filter((d) => d.countryCode === trip.countryCode)
       .map((d) => ({ id: d.id, name: d.name, city: d.city, verdict: d.verdict, category: d.category, subcategory: d.subcategory, note: d.note, photo: d.photo, friend: nameByUid.get(d.userId) ?? 'Friend' }));
   }, [trip, friends, friendsData.discoveries]);
-
-  // Is today within the trip's date window? (Foreground auto check-in only runs
-  // while a tracked trip is live, so it effectively stops itself at trip's end.)
-  const tripActive = useMemo(() => {
-    if (!trip) return false;
-    const today = new Date().toISOString().slice(0, 10);
-    if (trip.startDate && today < trip.startDate) return false;
-    if (trip.endDate && today > trip.endDate) return false;
-    return true;
-  }, [trip]);
 
   // Read the live places via a ref so the check-in callback stays stable and
   // always dedupes against the latest map.
@@ -111,12 +98,6 @@ export default function TripScreen() {
     },
     [addPlace, toast],
   );
-
-  // When a tracked trip is open and live, quietly check in on entry.
-  useEffect(() => {
-    if (trip?.autoTrack && tripActive) runCheckIn(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trip?.id, trip?.autoTrack, tripActive]);
 
   if (!trip && !loaded) return <DetailSkeleton />;
   if (!trip) {
@@ -212,36 +193,6 @@ export default function TripScreen() {
       toast.error("Couldn't export the plan.");
     } finally {
       setExporting(false);
-    }
-  }
-
-  // Toggle location tracking for this trip. In a real build this starts/stops
-  // background tracking (auto-adds places as you move, even when the app is
-  // closed); in Expo Go it falls back to a one-off foreground check-in.
-  async function onToggleTracking(on: boolean) {
-    if (!trip) return;
-    setTripTracking(trip.id, on);
-    if (!on) {
-      await stopTripTracking();
-      return;
-    }
-    if (backgroundTrackingAvailable()) {
-      const res = await startTripTracking({ id: trip.id, title: trip.title, endDate: trip.endDate });
-      if (res === 'started') {
-        toast.success('Tracking on — places will be added as you travel ✓');
-        runCheckIn(true);
-      } else if (res === 'denied-background') {
-        toast.error('Choose “Always Allow” for location so Worldly can log places in the background.');
-      } else if (res === 'denied-foreground') {
-        toast.error('Turn on location access for Worldly to track this trip.');
-      } else if (res === 'unsupported') {
-        runCheckIn(false);
-      } else {
-        toast.error("Couldn't start tracking — try again.");
-      }
-    } else {
-      toast.info('Background tracking needs the installed app — using single check-ins for now.');
-      runCheckIn(false);
     }
   }
 
@@ -367,21 +318,13 @@ export default function TripScreen() {
                 <Navigation size={19} color={COLORS.aqua} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>Auto-add places I visit</Text>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{trip.autoTrack ? (tripActive ? 'On — logging places while you travel' : 'On — resumes during your trip dates') : 'Off'}</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>Log where you are</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Tap to add the city & country you&apos;re in</Text>
               </View>
-              <Switch
-                value={!!trip.autoTrack}
-                onValueChange={(v) => (v ? setPrimeOpen(true) : onToggleTracking(false))}
-                trackColor={{ false: 'rgba(20,33,61,0.12)', true: COLORS.aqua }}
-                thumbColor="#fff"
-              />
             </View>
 
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, lineHeight: 18 }}>
-              {backgroundTrackingAvailable()
-                ? 'Worldly adds the cities & countries you pass through to your map automatically — even with the app closed. It stops on its own once the trip ends, and samples sparingly to stay easy on your battery. Choose “Always Allow” when prompted.'
-                : "Open Worldly while you're travelling and we'll add the city & country you're in to your map. (Hands-free background tracking needs the installed app.)"}
+              Open Worldly while you&apos;re travelling and we&apos;ll add the city &amp; country you&apos;re in to your map.
             </Text>
 
             <Pressable
@@ -475,13 +418,6 @@ export default function TripScreen() {
         photo={detail?.photo}
         own={detail?.own}
         friends={detail?.friends ?? []}
-      />
-
-      <LocationPrimingSheet
-        visible={primeOpen}
-        background={backgroundTrackingAvailable()}
-        onClose={() => setPrimeOpen(false)}
-        onContinue={() => { setPrimeOpen(false); onToggleTracking(true); }}
       />
 
       <AddItinerarySheet tripId={trip.id} visible={addOpen} onClose={() => setAddOpen(false)} />

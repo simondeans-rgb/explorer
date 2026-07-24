@@ -11,9 +11,6 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.simmyd23.worldly",
       "infoPlist": {
-        "UIBackgroundModes": [
-          "location"
-        ],
         "ITSAppUsesNonExemptEncryption": false
       },
       "appleTeamId": "PR99YSXB7G",
@@ -53,10 +50,9 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "Worldly uses your location to add the city and country you're visiting to your travel map.",
-          "locationAlwaysAndWhenInUsePermission": "Worldly uses your location in the background during a trip to automatically add the cities and countries you visit to your map.",
-          "isIosBackgroundLocationEnabled": true,
-          "isAndroidBackgroundLocationEnabled": true,
-          "isAndroidForegroundServiceEnabled": true
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false
         }
       ],
       [
