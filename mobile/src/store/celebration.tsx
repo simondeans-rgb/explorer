@@ -48,7 +48,9 @@ export function CelebrationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!current) return;
     hSuccess(); // a success buzz the moment any celebration appears
-    timer.current = setTimeout(() => showNext(), 3600);
+    // Balloons rise more slowly, so give them longer on screen to finish.
+    const holdMs = current.variant === 'balloons' ? 4700 : 3600;
+    timer.current = setTimeout(() => showNext(), holdMs);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
