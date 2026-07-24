@@ -176,13 +176,12 @@ export function Celebration({ item, onDismiss }: { item: CelebrationItem; onDism
     <Pressable onPress={onDismiss} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
       <Animated.View style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(14,16,24,0.55)' }, scrimStyle]} />
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        {variant === 'balloons'
-          ? Array.from({ length: balloons }).map((_, i) => (
-              <Balloon key={i} index={i} width={width} height={height} />
-            ))
-          : Array.from({ length: pieces }).map((_, i) => (
+        {/* Confetti bursts from *behind* the card (iMessage-style reveal). */}
+        {variant === 'confetti'
+          ? Array.from({ length: pieces }).map((_, i) => (
               <Piece key={i} index={i} width={width} height={height} originY={originY} />
-            ))}
+            ))
+          : null}
         <Animated.View style={cardStyle}>
           <LinearGradient
             colors={BRAND_GRADIENT}
@@ -202,6 +201,12 @@ export function Celebration({ item, onDismiss }: { item: CelebrationItem; onDism
             </View>
           </LinearGradient>
         </Animated.View>
+        {/* Balloons drift up in *front* of the card, passing over it. */}
+        {variant === 'balloons'
+          ? Array.from({ length: balloons }).map((_, i) => (
+              <Balloon key={i} index={i} width={width} height={height} />
+            ))
+          : null}
       </View>
     </Pressable>
   );
