@@ -105,8 +105,8 @@ function Balloon({ index, width, height }: { index: number; width: number; heigh
   const sway = useMemo(() => 12 + Math.random() * 22, []);
   const freq = useMemo(() => 1.4 + Math.random() * 1.1, []);
   const phase = useMemo(() => Math.random() * Math.PI * 2, []);
-  const delay = useMemo(() => Math.random() * 380, []);
-  const duration = useMemo(() => 2300 + Math.random() * 800, []);
+  const delay = useMemo(() => Math.random() * 420, []);
+  const duration = useMemo(() => 2900 + Math.random() * 950, []);
   const startY = useMemo(() => height + 40 + Math.random() * 90, [height]);
   const endY = -bh - 40;
   const color = BALLOON_COLORS[index % BALLOON_COLORS.length];
