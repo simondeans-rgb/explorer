@@ -1,3 +1,4 @@
+import { auth } from './firebase';
 import { countryName } from '../data/countries';
 import {
   DISCOVERY_CATEGORY_META,
@@ -117,9 +118,20 @@ export async function streamStory(
   onDelta: (text: string) => void,
   signal?: AbortSignal,
 ): Promise<void> {
+  // The endpoint requires a Firebase ID token — usage is tied to the signed-in
+  // Member (and rate-limited per account), so anonymous callers can't run up
+  // the AI bill.
+  const idToken = await auth?.currentUser?.getIdToken();
+  if (!idToken) {
+    throw new Error('Please sign in to summon the Travel Historian.');
+  }
+
   const res = await fetch('/api/historian', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${idToken}`,
+    },
     body: JSON.stringify({ context }),
     signal,
   });
@@ -135,6 +147,12 @@ export async function streamStory(
       throw new Error(
         'The Travel Historian isn’t configured yet — the server needs a GEMINI_API_KEY.',
       );
+    }
+    if (res.status === 401) {
+      throw new Error('Please sign in to summon the Travel Historian.');
+    }
+    if (res.status === 429 || code === 'rate_limited') {
+      throw new Error('You’ve reached today’s Historian limit — try again tomorrow.');
     }
     throw new Error('The Travel Historian is unavailable right now.');
   }
