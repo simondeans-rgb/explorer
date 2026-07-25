@@ -95,7 +95,7 @@ function Piece({ index, width, height, originY }: { index: number; width: number
  *  the top. Used for the level-up celebration to feel distinct from confetti. */
 function Balloon({ index, width, height }: { index: number; width: number; height: number }) {
   const p = useSharedValue(0);
-  const s = useMemo(() => 1.1 + Math.random() * 0.55, []); // size variance (larger)
+  const s = useMemo(() => 1.5 + Math.random() * 0.7, []); // size variance (larger)
   const bw = 40 * s;
   const bodyH = 50 * s;
   const stringH = 40 * s;
@@ -153,7 +153,7 @@ export function Celebration({ item, onDismiss }: { item: CelebrationItem; onDism
   // Scale piece count to the screen so it reads as full regardless of device.
   const pieces = useMemo(() => Math.min(300, Math.max(210, Math.round((width * height) / 1350))), [width, height]);
   // Fewer, larger balloons — enough to fill the width without crowding.
-  const balloons = useMemo(() => Math.min(18, Math.max(9, Math.round(width / 34))), [width]);
+  const balloons = useMemo(() => Math.min(14, Math.max(7, Math.round(width / 44))), [width]);
   // Burst origin — the centre of the card, so the explosion erupts from behind
   // the achievement as it reveals.
   const originY = height / 2;
