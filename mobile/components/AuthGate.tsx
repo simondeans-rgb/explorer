@@ -11,7 +11,7 @@ import {
   Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, EyeOff, ArrowRight } from 'lucide-react-native';
+import { Eye, EyeOff, ArrowRight, Check } from 'lucide-react-native';
 import { DestinationImage } from './DestinationImage';
 import { WorldlyLogo } from './WorldlyLogo';
 import { SocialAuthButtons } from './SocialAuthButtons';
@@ -36,6 +36,18 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [agreed, setAgreed] = useState(false);
+
+  // Guideline 1.2: require agreement to the terms (incl. zero-tolerance for
+  // objectionable content and abusive behaviour) before any sign-in path.
+  function ensureAgreed(): boolean {
+    if (!agreed) {
+      setNotice(null);
+      setError('Please agree to the Terms & zero-tolerance policy to continue.');
+      return false;
+    }
+    return true;
+  }
 
   async function forgot() {
     setError(null);
@@ -63,6 +75,7 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
       setError('Enter an email and a password of at least 6 characters.');
       return;
     }
+    if (!ensureAgreed()) return;
     setBusy(true);
     try {
       if (mode === 'in') await signIn(email, password);
@@ -178,7 +191,32 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
                 </LinearGradient>
               </Pressable>
 
-              <SocialAuthButtons onError={setError} onBusyChange={setBusy} />
+              <SocialAuthButtons onError={setError} onBusyChange={setBusy} guard={ensureAgreed} />
+
+              {/* Guideline 1.2: explicit terms + zero-tolerance agreement, shown
+                  before any sign-in path and required to proceed. */}
+              <Pressable
+                onPress={() => { setAgreed((a) => !a); setError(null); }}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: agreed }}
+                accessibilityLabel="Agree to the Terms of Use and zero-tolerance policy"
+                className="flex-row"
+                style={{ marginTop: 18, gap: 10, alignItems: 'flex-start' }}
+              >
+                <View
+                  className="items-center justify-center rounded-md"
+                  style={{ height: 22, width: 22, marginTop: 1, borderWidth: 1.5, borderColor: agreed ? COLORS.coral : 'rgba(255,255,255,0.6)', backgroundColor: agreed ? COLORS.coral : 'transparent' }}
+                >
+                  {agreed ? <Check size={15} color="#fff" /> : null}
+                </View>
+                <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 12, lineHeight: 17, color: 'rgba(255,255,255,0.92)' }}>
+                  I agree to the{' '}
+                  <Text style={{ fontWeight: '800', textDecorationLine: 'underline' }} onPress={() => Linking.openURL(TERMS_URL)}>Terms of Use (EULA)</Text>
+                  {' '}and{' '}
+                  <Text style={{ fontWeight: '800', textDecorationLine: 'underline' }} onPress={() => Linking.openURL(PRIVACY_URL)}>Privacy Policy</Text>
+                  , and understand that Worldly has zero tolerance for objectionable content or abusive behaviour.
+                </Text>
+              </Pressable>
 
               <Pressable onPress={switchMode} style={{ marginTop: 16, alignItems: 'center' }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, color: COLORS.ink2 }}>
@@ -187,14 +225,6 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
                 </Text>
               </Pressable>
             </View>
-
-            {/* Legal */}
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11.5, lineHeight: 17, color: 'rgba(255,255,255,0.82)', textAlign: 'center', marginTop: 20, paddingHorizontal: 8 }}>
-              By continuing you agree to our{' '}
-              <Text style={{ fontWeight: '700', textDecorationLine: 'underline' }} onPress={() => Linking.openURL(TERMS_URL)}>Terms</Text>
-              {' '}and{' '}
-              <Text style={{ fontWeight: '700', textDecorationLine: 'underline' }} onPress={() => Linking.openURL(PRIVACY_URL)}>Privacy Policy</Text>.
-            </Text>
 
             {/* Escape hatch — the app works fully offline on this device. */}
             <Pressable onPress={onContinueWithout} hitSlop={8} style={{ alignItems: 'center', marginTop: 22 }}>

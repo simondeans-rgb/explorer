@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import type { ComponentType } from 'react';
-import { UserPlus, ArrowRight, MapPin, Star, Plus, Sparkles, Settings2, Gem, BookmarkCheck, Check, HeartHandshake, Heart, MessageCircle, X, ChevronRight } from 'lucide-react-native';
+import { UserPlus, ArrowRight, MapPin, Star, Plus, Sparkles, Settings2, Gem, BookmarkCheck, Check, HeartHandshake, Heart, MessageCircle, X, ChevronRight, Flag } from 'lucide-react-native';
+import { loadBlockedUids, blockedUidsSync, blockUser, reportContent } from '../../src/lib/moderation';
 import { useLikes } from '../../src/hooks/useLikes';
 import { useReplies } from '../../src/hooks/useReplies';
 import { ReplySheet } from '../../components/ReplySheet';
@@ -219,19 +220,54 @@ export default function CircleScreen() {
     return items.sort((a, b) => (a.kind === b.kind ? (a.start ?? '').localeCompare(b.start ?? '') : a.kind === 'now' ? -1 : 1));
   }, [friends, friendsData.expeditions]);
 
+  // Blocked members + snaps this member has reported — hidden from the feed at
+  // once (Guideline 1.2). `blocked` also drives an immediate local filter while
+  // the severed friendship propagates through the security rules.
+  const [blocked, setBlocked] = useState<Set<string>>(() => blockedUidsSync());
+  const [hiddenSnaps, setHiddenSnaps] = useState<Set<string>>(new Set());
+  useEffect(() => { loadBlockedUids().then((s) => setBlocked(new Set(s))); }, []);
+
   // Recent photos shared by your circle, newest first.
   const snaps = useMemo(() => {
     const nameByUid = new Map(friends.map((f) => [f.uid, f.name]));
     return [...friendsData.captures]
-      .filter((c) => c.dataUrl)
+      .filter((c) => c.dataUrl && !blocked.has(c.userId) && !hiddenSnaps.has(c.id))
       .sort((a, b) => b.createdAt - a.createdAt)
       .slice(0, 12)
       .map((c) => ({ ...c, friend: nameByUid.get(c.userId) ?? 'A friend' }));
-  }, [friendsData.captures, friends]);
+  }, [friendsData.captures, friends, blocked, hiddenSnaps]);
   const snapIds = useMemo(() => snaps.map((s) => s.id), [snaps]);
   const { likes, toggle } = useLikes(snapIds, user?.uid);
   const replies = useReplies(snapIds, !!user?.uid);
   const [replySnap, setReplySnap] = useState<(typeof snaps)[number] | null>(null);
+
+  // Report or block on a shared snap. Reporting hides it immediately and queues
+  // it for moderation; blocking also severs the friendship and hides everything
+  // from that member.
+  function moderateSnap(s: { id: string; userId: string; friend: string }) {
+    if (!user?.uid) return;
+    const me = user.uid;
+    Alert.alert('Report this photo?', `Flag ${s.friend}'s photo for our moderation team, or block ${s.friend}.`, [
+      {
+        text: 'Report photo',
+        style: 'destructive',
+        onPress: () => {
+          reportContent({ reporterUid: me, type: 'capture', targetId: s.id, ownerUid: s.userId, reason: 'objectionable photo' }).catch(() => {});
+          setHiddenSnaps((h) => new Set(h).add(s.id));
+        },
+      },
+      {
+        text: `Block ${s.friend}`,
+        style: 'destructive',
+        onPress: () => {
+          reportContent({ reporterUid: me, type: 'user', targetId: s.userId, ownerUid: s.userId, reason: 'blocked from snap' }).catch(() => {});
+          blockUser(me, s.userId).catch(() => {});
+          setBlocked((b) => new Set(b).add(s.userId));
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
 
   const hasContent = activity.length > 0 || snaps.length > 0 || recs.length > 0 || !!mostVisited || recents.length > 0 || wishes.length > 0 || compat.length > 0;
   const savedMostVisited = mostVisited ? myPlaces.some((p) => p.kind === 'country' && p.countryCode === mostVisited.countryCode) : false;
@@ -392,6 +428,9 @@ export default function CircleScreen() {
                         <Pressable accessibilityLabel={`Reply to ${s.friend}`} onPress={() => setReplySnap(s)} hitSlop={8} className="absolute flex-row items-center rounded-full" style={{ top: 8, left: 8, gap: 4, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: 'rgba(0,0,0,0.4)' }}>
                           <MessageCircle size={14} color="#fff" />
                           {(replies[s.id]?.length ?? 0) > 0 ? <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700' }}>{replies[s.id].length}</Text> : null}
+                        </Pressable>
+                        <Pressable accessibilityLabel={`Report or block ${s.friend}`} onPress={() => moderateSnap(s)} hitSlop={8} className="absolute items-center justify-center rounded-full" style={{ bottom: 8, right: 8, padding: 6, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                          <Flag size={13} color="#fff" />
                         </Pressable>
                       </View>
                     );

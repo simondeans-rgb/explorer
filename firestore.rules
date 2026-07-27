@@ -201,6 +201,25 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Moderation reports (Guideline 1.2). Any signed-in member may flag content
+    // or another member; reports are write-only from the client and read only by
+    // the moderation team (Admin SDK / console), never by other users.
+    match /reports/{reportId} {
+      allow create: if signedIn() && request.resource.data.reporterUid == request.auth.uid;
+      allow read, update, delete: if false;
+    }
+
+    // Blocks. A member records the accounts they've blocked; only they can read
+    // or manage their own block records.
+    match /blocks/{id} {
+      allow read: if signedIn() && resource.data.blocker == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.blocker == request.auth.uid
+        && id == request.auth.uid + '__' + request.resource.data.blocked;
+      allow delete: if signedIn() && resource.data.blocker == request.auth.uid;
+      allow update: if false;
+    }
+
     // Per-user, per-day AI usage counter enforcing the Historian quota. The doc
     // id is `${uid}_${yyyymmdd}`, so it resets daily. It is tamper-resistant:
     // a member can only create it at 1 or increment it by exactly 1, and can

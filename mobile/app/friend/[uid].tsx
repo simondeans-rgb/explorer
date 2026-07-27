@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { MapPin, Star, Gem, Users } from 'lucide-react-native';
+import { MapPin, Star, Gem, Users, MoreVertical } from 'lucide-react-native';
+import { blockUser, reportContent } from '../../src/lib/moderation';
 import { DestinationImage } from '../../components/DestinationImage';
 import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
@@ -40,6 +41,35 @@ export default function FriendProfileScreen() {
   const initial = name.charAt(0).toUpperCase();
 
   const [selected, setSelected] = useState<string | null>(null);
+
+  // Report or block this member (Guideline 1.2). Blocking severs the friendship
+  // (their content becomes inaccessible), records the block, and returns you to
+  // the Circle. Both actions notify the moderation team.
+  function moderate() {
+    const me = user?.uid;
+    if (!me) return;
+    Alert.alert(name, 'Report or block this member.', [
+      {
+        text: `Report ${name}`,
+        style: 'destructive',
+        onPress: () => {
+          reportContent({ reporterUid: me, type: 'user', targetId: uid, ownerUid: uid, reason: 'reported member' }).catch(() => {});
+          Alert.alert('Thanks — reported', 'Our moderation team will review this within 24 hours.');
+        },
+      },
+      {
+        text: `Block ${name}`,
+        style: 'destructive',
+        onPress: () => {
+          reportContent({ reporterUid: me, type: 'user', targetId: uid, ownerUid: uid, reason: 'blocked member' }).catch(() => {});
+          blockUser(me, uid).catch(() => {});
+          router.back();
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+
   const data = useFriendsData(uid ? [uid] : []);
   const places = useMemo(() => data.places.filter((p) => p.userId === uid), [data.places, uid]);
   const discoveries = useMemo(() => data.discoveries.filter((d) => d.userId === uid), [data.discoveries, uid]);
@@ -111,6 +141,17 @@ export default function FriendProfileScreen() {
         {/* Identity hero — their recent destinations behind their name + level. */}
         <DestinationImage code={heroCodes[0]} codes={heroCodes} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 40, minHeight: HERO_HEIGHT, alignItems: 'center' }}>
           <BackButton onPress={() => router.back()} style={{ position: 'absolute', top: 58, left: 18, zIndex: 20 }} />
+          {!isSelf ? (
+            <Pressable
+              onPress={moderate}
+              accessibilityLabel={`Report or block ${name}`}
+              hitSlop={8}
+              className="absolute items-center justify-center rounded-full"
+              style={{ top: 58, right: 18, zIndex: 20, height: 38, width: 38, backgroundColor: 'rgba(0,0,0,0.35)' }}
+            >
+              <MoreVertical size={20} color="#fff" />
+            </Pressable>
+          ) : null}
           <View className="rounded-full items-center justify-center bg-white/20" style={{ height: 88, width: 88, borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)' }}>
             <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38 }}>{initial}</Text>
           </View>
