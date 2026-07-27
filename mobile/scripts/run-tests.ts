@@ -23,6 +23,7 @@ import {
 } from '../src/lib/widgetPayload';
 import { searchCities } from '../src/lib/cityLookup';
 import { countryMilestone } from '../src/lib/milestone';
+import { isObjectionable } from '../src/lib/textFilter';
 import type { Discovery } from '../src/types';
 import type { Expedition, Trip } from '../src/types';
 import type { Badge } from '../src/lib/explorer';
@@ -609,6 +610,20 @@ test('countryMilestone: first, tenth, new continent, and none', () => {
   assert.match(countryMilestone(nine, 'GR')?.title ?? '', /10 countries/);
   assert.match(countryMilestone(new Set(['FR']), 'JP')?.title ?? '', /new continent/i); // Europe → Asia
   assert.equal(countryMilestone(new Set(['FR']), 'FR'), null); // already have it
+});
+
+// ---- Content moderation filter (Guideline 1.2) -----------------------------
+
+test('isObjectionable: flags slurs/objectionable terms, case-insensitive', () => {
+  assert.equal(isObjectionable('you are a RETARD'), true);
+  assert.equal(isObjectionable('kys'), true);
+  assert.equal(isObjectionable('threats of rape'), true);
+});
+
+test('isObjectionable: passes ordinary travel text and empty input', () => {
+  assert.equal(isObjectionable('Loved the beaches in Portugal!'), false);
+  assert.equal(isObjectionable('Scunthorpe is a lovely town'), false); // no false-positive substring match
+  assert.equal(isObjectionable(''), false);
 });
 
 console.log(`✓ all ${passed} tests passed`);

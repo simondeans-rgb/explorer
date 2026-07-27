@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, ActivityIndicator, Linking } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
 import { SocialAuthButtons } from './SocialAuthButtons';
 import { COLORS } from '../src/lib/theme';
 import { useAuth } from '../src/store/auth';
+
+const TERMS_URL = 'https://www.worldly-explorer.com/terms.html';
+const PRIVACY_URL = 'https://www.worldly-explorer.com/privacy.html';
 
 type Mode = 'in' | 'up';
 
@@ -17,6 +20,16 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [agreed, setAgreed] = useState(false);
+
+  // Guideline 1.2: agreement (incl. zero-tolerance policy) required before sign-in.
+  function ensureAgreed(): boolean {
+    if (!agreed) {
+      setError('Please agree to the Terms & zero-tolerance policy to continue.');
+      return false;
+    }
+    return true;
+  }
 
   async function forgot() {
     setError(null);
@@ -51,6 +64,7 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
       setError('Enter an email and a password of at least 6 characters.');
       return;
     }
+    if (!ensureAgreed()) return;
     setBusy(true);
     try {
       if (mode === 'in') await signIn(email, password);
@@ -142,7 +156,31 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
           )}
         </Pressable>
 
-        <SocialAuthButtons onError={setError} onBusyChange={setBusy} />
+        <SocialAuthButtons onError={setError} onBusyChange={setBusy} guard={ensureAgreed} />
+
+        {/* Guideline 1.2: terms + zero-tolerance agreement, required to proceed. */}
+        <Pressable
+          onPress={() => { setAgreed((a) => !a); setError(null); }}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: agreed }}
+          accessibilityLabel="Agree to the Terms of Use and zero-tolerance policy"
+          className="flex-row"
+          style={{ marginTop: 16, gap: 10, alignItems: 'flex-start' }}
+        >
+          <View
+            className="items-center justify-center rounded-md"
+            style={{ height: 22, width: 22, marginTop: 1, borderWidth: 1.5, borderColor: agreed ? COLORS.coral : 'rgba(20,33,61,0.3)', backgroundColor: agreed ? COLORS.coral : 'transparent' }}
+          >
+            {agreed ? <Check size={15} color="#fff" /> : null}
+          </View>
+          <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 12, lineHeight: 17, color: COLORS.ink2 }}>
+            I agree to the{' '}
+            <Text style={{ fontWeight: '800', textDecorationLine: 'underline', color: COLORS.coral }} onPress={() => Linking.openURL(TERMS_URL)}>Terms of Use (EULA)</Text>
+            {' '}and{' '}
+            <Text style={{ fontWeight: '800', textDecorationLine: 'underline', color: COLORS.coral }} onPress={() => Linking.openURL(PRIVACY_URL)}>Privacy Policy</Text>
+            , and understand Worldly has zero tolerance for objectionable content or abusive behaviour.
+          </Text>
+        </Pressable>
 
         <Pressable
           onPress={() => {

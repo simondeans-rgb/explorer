@@ -44,9 +44,13 @@ const SOCIAL_AVAILABLE =
 export function SocialAuthButtons({
   onError,
   onBusyChange,
+  guard,
 }: {
   onError: (msg: string | null) => void;
   onBusyChange?: (busy: boolean) => void;
+  /** Called before a provider runs; return false to block (e.g. terms not yet
+   *  agreed). The guard is responsible for messaging why. */
+  guard?: () => boolean;
 }) {
   const { signInWithGoogle, signInWithApple } = useAuth();
   const [busy, setBusy] = useState<Busy>(null);
@@ -54,6 +58,7 @@ export function SocialAuthButtons({
   if (!SOCIAL_AVAILABLE) return null;
 
   async function run(which: Exclude<Busy, null>, fn: () => Promise<void>) {
+    if (guard && !guard()) return;
     onError(null);
     setBusy(which);
     onBusyChange?.(true);
