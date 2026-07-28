@@ -24,6 +24,8 @@ import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
 import { useWorldly } from '../../src/hooks/useWorldly';
+import { FlightLiveTile } from '../../components/FlightLiveTile';
+import { findTodaysFlight } from '../../src/lib/liveFlight';
 import { HERO_CODES } from '../../src/lib/heroImages';
 import { heroLogoIsWhite } from '../../src/lib/heroLuminance';
 import { useData } from '../../src/store/data';
@@ -137,6 +139,21 @@ export default function StoryScreen() {
 
         <HeroWave />
       </DestinationImage>
+
+      {/* Live flight — the first thing you see on a flight day: gate, delays,
+          and (in the air) a live map of the aircraft's progress home. */}
+      {(() => {
+        const d = new Date();
+        const todayISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const nowMin = d.getHours() * 60 + d.getMinutes();
+        const flight = findTodaysFlight(expeditions, todayISO, nowMin);
+        if (!flight) return null;
+        return (
+          <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
+            <FlightLiveTile flight={flight} />
+          </View>
+        );
+      })()}
 
       {/* Backup nudge — a guest with a real archive is one lost phone from
           losing it all; ask exactly once they have something worth keeping. */}

@@ -24,6 +24,17 @@ import {
 import { searchCities } from '../src/lib/cityLookup';
 import { countryMilestone } from '../src/lib/milestone';
 import { isObjectionable } from '../src/lib/textFilter';
+import {
+  iataFromLabel,
+  coordForLabel,
+  normFlightNumber,
+  findTodaysFlight,
+  flightProgress,
+  positionAt,
+  minutesRemaining,
+  formatDuration,
+  derivePhase,
+} from '../src/lib/liveFlight';
 import type { Discovery } from '../src/types';
 import type { Expedition, Trip } from '../src/types';
 import type { Badge } from '../src/lib/explorer';
@@ -624,6 +635,50 @@ test('isObjectionable: passes ordinary travel text and empty input', () => {
   assert.equal(isObjectionable('Loved the beaches in Portugal!'), false);
   assert.equal(isObjectionable('Scunthorpe is a lovely town'), false); // no false-positive substring match
   assert.equal(isObjectionable(''), false);
+});
+
+// ---- Live flight (day-of tracking) -----------------------------------------
+
+test('iataFromLabel / coordForLabel: extract code and resolve coordinates', () => {
+  assert.equal(iataFromLabel('London (LHR)'), 'LHR');
+  assert.equal(iataFromLabel('nope'), undefined);
+  const lhr = coordForLabel('London (LHR)');
+  assert.ok(lhr && Math.abs(lhr[0] - -0.46) < 1 && Math.abs(lhr[1] - 51.47) < 1); // ~[-0.46, 51.47]
+});
+
+test('normFlightNumber: uppercases and strips spaces', () => {
+  assert.equal(normFlightNumber('ba 31'), 'BA31');
+});
+
+test('findTodaysFlight: picks today\'s flight, prefers the not-yet-landed one', () => {
+  const exp: any = {
+    id: 'e1', title: 'Singapore', journeys: [
+      { id: 'j1', mode: 'flight', reference: 'BA11', date: '2026-07-28', from: 'London (LHR)', to: 'Singapore (SIN)', departTime: '08:00', arriveTime: '10:00' },
+      { id: 'j2', mode: 'flight', reference: 'BA31', date: '2026-07-28', from: 'London (LHR)', to: 'Singapore (SIN)', departTime: '20:00', arriveTime: '23:00' },
+      { id: 'j3', mode: 'rail', reference: 'x', date: '2026-07-28' },
+    ],
+  };
+  const f = findTodaysFlight([exp], '2026-07-28', 12 * 60); // noon: first has landed, second upcoming
+  assert.equal(f?.flightNumber, 'BA31');
+  assert.equal(findTodaysFlight([exp], '2026-07-29', 0), null); // nothing tomorrow
+});
+
+test('flightProgress / positionAt / remaining / duration', () => {
+  assert.equal(flightProgress(1000, 3000, 2000), 0.5);
+  assert.equal(flightProgress(1000, 3000, 500), 0); // clamped before departure
+  const mid = positionAt([0, 0], [0, 10], 0.5); // due-north leg
+  assert.ok(Math.abs(mid[1] - 5) < 0.6 && Math.abs(mid[0]) < 0.01);
+  assert.equal(minutesRemaining(3_600_000, 0), 60);
+  assert.equal(formatDuration(135), '2h 15m');
+  assert.equal(formatDuration(45), '45m');
+});
+
+test('derivePhase: status text + timeline fallback', () => {
+  assert.equal(derivePhase('Landed', 1, 2, 3), 'landed');
+  assert.equal(derivePhase('EnRoute', 1, 10, 5), 'enroute');
+  assert.equal(derivePhase('Boarding', 10, 20, 5), 'boarding');
+  assert.equal(derivePhase(undefined, 10, 20, 15), 'enroute'); // no status → timeline
+  assert.equal(derivePhase(undefined, 10, 20, 25), 'landed');
 });
 
 console.log(`✓ all ${passed} tests passed`);
