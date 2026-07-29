@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import { Plane, PlaneTakeoff, PlaneLanding, DoorOpen, Clock, Wifi } from 'lucide-react-native';
 import { COLORS, SHADOW } from '../src/lib/theme';
-import { iataFromLabel, formatDuration, type TodaysFlight } from '../src/lib/liveFlight';
+import { iataFromLabel, formatDuration, airportTz, destinationClock, type TodaysFlight } from '../src/lib/liveFlight';
 import { useLiveFlight } from '../src/hooks/useLiveFlight';
+import { fetchWeather, type Weather } from '../src/lib/weather';
 import { FlightRouteMap } from './FlightRouteMap';
 
 function city(label?: string): string {
@@ -31,6 +32,18 @@ export function FlightLiveTile({ flight }: { flight: TodaysFlight }) {
 
   const fromIata = iataFromLabel(flight.fromLabel) ?? '—';
   const toIata = iataFromLabel(flight.toLabel) ?? '—';
+
+  // Destination weather (Open-Meteo, cached) + local time / offset.
+  const [weather, setWeather] = useState<Weather | null>(null);
+  const destLng = flight.toCoord?.[0];
+  const destLat = flight.toCoord?.[1];
+  useEffect(() => {
+    if (destLat == null || destLng == null) return;
+    let active = true;
+    fetchWeather(destLat, destLng).then((w) => { if (active) setWeather(w); });
+    return () => { active = false; };
+  }, [destLat, destLng]);
+  const clock = useMemo(() => destinationClock(airportTz(toIata), new Date(now)), [toIata, now]);
   const depDelay = status?.departDelayMin ?? 0;
   const arrDelay = status?.arriveDelayMin ?? 0;
 
@@ -60,6 +73,19 @@ export function FlightLiveTile({ flight }: { flight: TodaysFlight }) {
         </View>
         {delayBadge ? <Chip icon={Clock} label={delayBadge.label} tint={delayBadge.tint} color={delayBadge.color} /> : null}
       </View>
+
+      {/* Destination strip — local weather + current time & offset */}
+      {(weather || clock) ? (
+        <View className="flex-row items-center" style={{ gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+          {weather ? (
+            <View className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(20,33,61,0.06)', paddingHorizontal: 10, paddingVertical: 6, gap: 5 }}>
+              <Text style={{ fontSize: 13 }}>{weather.emoji}</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.ink2 }}>{weather.tempC}° · {weather.label}</Text>
+            </View>
+          ) : null}
+          {clock ? <Chip icon={Clock} label={`${city(flight.toLabel) || toIata} ${clock.localTime} · ${clock.diffLabel}`} /> : null}
+        </View>
+      ) : null}
 
       {/* In the air — live route map + progress */}
       {phase === 'enroute' && canMap ? (

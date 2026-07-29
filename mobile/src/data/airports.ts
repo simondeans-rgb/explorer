@@ -25,7 +25,7 @@ export interface AirportInfo {
   city: string;
   country: string; // ISO 3166-1 alpha-2
 }
-export interface AirportRow extends Airport {}
+export type AirportRow = Airport;
 
 function parse(): Airport[] {
   const out: Airport[] = [];
@@ -70,6 +70,10 @@ export function airportInfo(code?: string): Airport | undefined {
 /** IATA → [lng, lat], for the route map + endpoint resolution. */
 export const AIRPORT_COORDS: Record<string, [number, number]> = {};
 for (const a of ALL_AIRPORTS) if (!AIRPORT_COORDS[a.iata]) AIRPORT_COORDS[a.iata] = [a.lng, a.lat];
+
+/** IATA → IANA timezone (e.g. "Asia/Singapore"), for destination local time. */
+export const AIRPORT_TZ: Record<string, string> = {};
+for (const a of ALL_AIRPORTS) if (a.tz && !AIRPORT_TZ[a.iata]) AIRPORT_TZ[a.iata] = a.tz;
 
 /** "ISO|city" (lowercased) → [lng, lat], so a bare city name still resolves. */
 export const CITY_COORDS: Record<string, [number, number]> = {};

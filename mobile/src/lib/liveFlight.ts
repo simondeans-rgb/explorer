@@ -2,7 +2,7 @@
 // the member's trips, and the great-circle progress / position maths. No
 // network or native deps, so it's fully unit-tested (see scripts/run-tests.ts).
 import { geoInterpolate } from 'd3-geo';
-import { AIRPORT_COORDS } from '../data/airports';
+import { AIRPORT_COORDS, AIRPORT_TZ } from '../data/airports';
 import type { Expedition } from '../types';
 
 export interface TodaysFlight {
@@ -106,6 +106,66 @@ export function formatDuration(mins: number): string {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+// ── Destination clock + time difference ─────────────────────────────────────
+
+/** IANA timezone for an airport IATA code (e.g. "Asia/Singapore"), or ''. */
+export function airportTz(iata?: string): string {
+  return (iata && AIRPORT_TZ[iata]) || '';
+}
+
+/** A timezone's offset from UTC in minutes at `date`, via Intl. Returns null if
+ *  the runtime can't resolve the zone (older Hermes without full tz data). */
+export function tzOffsetMinutes(tz: string, date: Date): number | null {
+  try {
+    const dtf = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, hour12: false,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    });
+    const p: Record<string, string> = {};
+    for (const part of dtf.formatToParts(date)) p[part.type] = part.value;
+    const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, +(p.hour === '24' ? '0' : p.hour), +p.minute, +p.second);
+    return Math.round((asUTC - date.getTime()) / 60000);
+  } catch {
+    return null;
+  }
+}
+
+/** "HH:MM" wall-clock time in a timezone, or '' if unresolvable. */
+export function tzLocalTime(tz: string, date: Date): string {
+  try {
+    return new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
+  } catch {
+    return '';
+  }
+}
+
+/** Format a minute offset as a signed, compact difference: "+7h", "-3h30", "0h". */
+export function formatTimeDiff(diffMin: number): string {
+  if (diffMin === 0) return 'same time';
+  const sign = diffMin > 0 ? '+' : '−';
+  const abs = Math.abs(diffMin);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return m === 0 ? `${sign}${h}h` : `${sign}${h}h${String(m).padStart(2, '0')}`;
+}
+
+export interface DestinationClock {
+  localTime: string; // "HH:MM" at the destination
+  diffLabel: string; // vs the device, e.g. "+7h"
+}
+
+/** Destination local time + difference from the device's timezone. Null when
+ *  the zone can't be resolved (so callers just omit it). */
+export function destinationClock(tz: string, now: Date): DestinationClock | null {
+  if (!tz) return null;
+  const local = tzLocalTime(tz, now);
+  const destOff = tzOffsetMinutes(tz, now);
+  if (!local || destOff == null) return null;
+  const deviceOff = -now.getTimezoneOffset(); // minutes east of UTC
+  return { localTime: local, diffLabel: formatTimeDiff(destOff - deviceOff) };
 }
 
 export type FlightPhase = 'scheduled' | 'boarding' | 'departed' | 'enroute' | 'landed' | 'unknown';

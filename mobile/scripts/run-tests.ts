@@ -34,7 +34,11 @@ import {
   minutesRemaining,
   formatDuration,
   derivePhase,
+  formatTimeDiff,
+  tzOffsetMinutes,
+  destinationClock,
 } from '../src/lib/liveFlight';
+import { wmoMeta } from '../src/lib/weather';
 import type { Discovery } from '../src/types';
 import type { Expedition, Trip } from '../src/types';
 import type { Badge } from '../src/lib/explorer';
@@ -679,6 +683,28 @@ test('derivePhase: status text + timeline fallback', () => {
   assert.equal(derivePhase('Boarding', 10, 20, 5), 'boarding');
   assert.equal(derivePhase(undefined, 10, 20, 15), 'enroute'); // no status → timeline
   assert.equal(derivePhase(undefined, 10, 20, 25), 'landed');
+});
+
+// ---- Destination time + weather --------------------------------------------
+
+test('formatTimeDiff: signed compact offsets', () => {
+  assert.equal(formatTimeDiff(0), 'same time');
+  assert.equal(formatTimeDiff(420), '+7h');
+  assert.equal(formatTimeDiff(-210), '−3h30');
+});
+
+test('tzOffsetMinutes / destinationClock: resolve a known zone', () => {
+  // Singapore is a fixed +08:00 (no DST) → +480 minutes from UTC.
+  const off = tzOffsetMinutes('Asia/Singapore', new Date('2026-07-01T00:00:00Z'));
+  assert.equal(off, 480);
+  const clock = destinationClock('Asia/Singapore', new Date('2026-07-01T00:00:00Z'));
+  assert.ok(clock && /^\d{2}:\d{2}$/.test(clock.localTime)); // "08:00"
+});
+
+test('wmoMeta: maps weather codes to labels', () => {
+  assert.equal(wmoMeta(0).label, 'Clear');
+  assert.equal(wmoMeta(63).label, 'Rain');
+  assert.equal(wmoMeta(95).label, 'Thunderstorm');
 });
 
 console.log(`✓ all ${passed} tests passed`);
