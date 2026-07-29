@@ -20,6 +20,7 @@ export function FlightRouteMap({
   progress,
   width,
   height,
+  radius = 16,
 }: {
   from: [number, number];
   to: [number, number];
@@ -27,6 +28,7 @@ export function FlightRouteMap({
   progress: number; // 0→1
   width: number;
   height: number;
+  radius?: number;
 }) {
   const { landPath, donePath, todoPath, fromXY, toXY, planeXY, planeAngle } = useMemo(() => {
     const interp = geoInterpolate(from, to);
@@ -63,7 +65,7 @@ export function FlightRouteMap({
   }, [from, to, position, progress, width, height]);
 
   return (
-    <View style={{ width, height, borderRadius: 16, overflow: 'hidden' }}>
+    <View style={{ width, height, borderRadius: radius, overflow: 'hidden' }}>
       <Svg width={width} height={height}>
         <Defs>
           <SvgGradient id="fr-ocean" x1="0" y1="0" x2="0" y2="1">

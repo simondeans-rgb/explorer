@@ -2,8 +2,13 @@
 // the member's trips, and the great-circle progress / position maths. No
 // network or native deps, so it's fully unit-tested (see scripts/run-tests.ts).
 import { geoInterpolate } from 'd3-geo';
-import { AIRPORT_COORDS, AIRPORT_TZ } from '../data/airports';
+import { AIRPORT_COORDS, AIRPORT_TZ, AIRPORT_COUNTRY } from '../data/airports';
 import type { Expedition } from '../types';
+
+/** ISO alpha-2 country for an airport IATA code — for the destination hero. */
+export function airportCountry(iata?: string): string | undefined {
+  return iata ? AIRPORT_COUNTRY[iata] : undefined;
+}
 
 export interface TodaysFlight {
   /** Stable id `${expeditionId}:${journeyId}` for React keys + polling. */

@@ -75,6 +75,10 @@ for (const a of ALL_AIRPORTS) if (!AIRPORT_COORDS[a.iata]) AIRPORT_COORDS[a.iata
 export const AIRPORT_TZ: Record<string, string> = {};
 for (const a of ALL_AIRPORTS) if (a.tz && !AIRPORT_TZ[a.iata]) AIRPORT_TZ[a.iata] = a.tz;
 
+/** IATA → ISO alpha-2 country, for the destination hero image. */
+export const AIRPORT_COUNTRY: Record<string, string> = {};
+for (const a of ALL_AIRPORTS) if (a.country && !AIRPORT_COUNTRY[a.iata]) AIRPORT_COUNTRY[a.iata] = a.country;
+
 /** "ISO|city" (lowercased) → [lng, lat], so a bare city name still resolves. */
 export const CITY_COORDS: Record<string, [number, number]> = {};
 for (const a of ALL_AIRPORTS) {
