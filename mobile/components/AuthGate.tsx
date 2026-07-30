@@ -205,15 +205,15 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
               >
                 <View
                   className="items-center justify-center rounded-md"
-                  style={{ height: 22, width: 22, marginTop: 1, borderWidth: 1.5, borderColor: agreed ? COLORS.coral : 'rgba(255,255,255,0.6)', backgroundColor: agreed ? COLORS.coral : 'transparent' }}
+                  style={{ height: 22, width: 22, marginTop: 1, borderWidth: 1.5, borderColor: agreed ? COLORS.coral : COLORS.ink3, backgroundColor: agreed ? COLORS.coral : 'transparent' }}
                 >
                   {agreed ? <Check size={15} color="#fff" /> : null}
                 </View>
-                <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 12, lineHeight: 17, color: 'rgba(255,255,255,0.92)' }}>
+                <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 12, lineHeight: 17, color: COLORS.ink2 }}>
                   I agree to the{' '}
-                  <Text style={{ fontWeight: '800', textDecorationLine: 'underline' }} onPress={() => Linking.openURL(TERMS_URL)}>Terms of Use (EULA)</Text>
+                  <Text style={{ fontWeight: '800', textDecorationLine: 'underline', color: COLORS.coral }} onPress={() => Linking.openURL(TERMS_URL)}>Terms of Use (EULA)</Text>
                   {' '}and{' '}
-                  <Text style={{ fontWeight: '800', textDecorationLine: 'underline' }} onPress={() => Linking.openURL(PRIVACY_URL)}>Privacy Policy</Text>
+                  <Text style={{ fontWeight: '800', textDecorationLine: 'underline', color: COLORS.coral }} onPress={() => Linking.openURL(PRIVACY_URL)}>Privacy Policy</Text>
                   , and understand that Worldly has zero tolerance for objectionable content or abusive behaviour.
                 </Text>
               </Pressable>
