@@ -9,6 +9,7 @@ import { flagEmoji } from '../src/lib/flags';
 import { RECOMMENDATION_VERDICTS, VERDICT_META, type RecommendationVerdict } from '../src/types';
 import { useData } from '../src/store/data';
 import { useToast } from '../src/store/toast';
+import { useAuth } from '../src/store/auth';
 import { track } from '../src/lib/analytics';
 
 // The Quick Log — capture first, enrich later. One place + one verdict, saved
@@ -55,6 +56,7 @@ const VERDICT_STYLE: Record<RecommendationVerdict, { tint: string; icon: Compone
 export function QuickLogSheet({ visible, onClose, onExpand }: { visible: boolean; onClose: () => void; onExpand?: () => void }) {
   const { addDiscovery, discoveries } = useData();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [where, setWhere] = useState('');
   const [countryCode, setCountryCode] = useState<string | undefined>();
   const [city, setCity] = useState<string | undefined>();
@@ -125,10 +127,12 @@ export function QuickLogSheet({ visible, onClose, onExpand }: { visible: boolean
             <Check size={30} color={VERDICT_STYLE[saved.verdict].tint} />
           </View>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Logged!</Text>
-          <View className="flex-row items-center rounded-full" style={{ gap: 6, backgroundColor: 'rgba(30,107,255,0.08)', paddingHorizontal: 12, paddingVertical: 6 }}>
-            <Users size={13} color="#1E6BFF" />
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '600', color: '#1E6BFF' }}>Your Circle can see this</Text>
-          </View>
+          {user ? (
+            <View className="flex-row items-center rounded-full" style={{ gap: 6, backgroundColor: 'rgba(30,107,255,0.08)', paddingHorizontal: 12, paddingVertical: 6 }}>
+              <Users size={13} color="#1E6BFF" />
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '600', color: '#1E6BFF' }}>Your Circle can see this</Text>
+            </View>
+          ) : null}
           <View className="flex-row items-center" style={{ gap: 6 }}>
             <Sparkles size={15} color="#F5A623" />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.ink2 }}>
@@ -185,10 +189,12 @@ export function QuickLogSheet({ visible, onClose, onExpand }: { visible: boolean
             })}
           </View>
 
-          <View className="flex-row items-center justify-center" style={{ gap: 6, marginTop: 2 }}>
-            <Users size={13} color={COLORS.ink3} />
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>Your verdict will be visible to your Circle</Text>
-          </View>
+          {user ? (
+            <View className="flex-row items-center justify-center" style={{ gap: 6, marginTop: 2 }}>
+              <Users size={13} color={COLORS.ink3} />
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>Your verdict will be visible to your Circle</Text>
+            </View>
+          ) : null}
 
           {onExpand ? (
             <Pressable accessibilityRole="button" accessibilityLabel="Add full details — photo, category and notes" onPress={onExpand} hitSlop={8} style={{ alignItems: 'center', paddingVertical: 4 }}>

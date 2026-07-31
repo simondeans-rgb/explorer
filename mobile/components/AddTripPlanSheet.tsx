@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { Check, Search, CalendarDays, X } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
@@ -24,6 +24,7 @@ export function AddTripPlanSheet({ visible, onClose }: { visible: boolean; onClo
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [note, setNote] = useState('');
+  const busy = useRef(false);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -44,7 +45,11 @@ export function AddTripPlanSheet({ visible, onClose }: { visible: boolean; onClo
     onClose();
   }
   function save() {
-    if (!ready) return;
+    // Guard against a same-frame double-tap creating two identical trips
+    // (addTrip is synchronous, so `ready`/close can't gate the second tap).
+    if (!ready || busy.current) return;
+    busy.current = true;
+    setTimeout(() => { busy.current = false; }, 700);
     // Paywall trigger — the 2nd planned trip. Inert until billing goes live.
     const today = new Date().toISOString().slice(0, 10);
     const planned = expeditions.filter((e) => e.startDate && e.startDate >= today).length;

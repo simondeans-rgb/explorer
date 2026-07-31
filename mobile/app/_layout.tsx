@@ -9,7 +9,7 @@ import {
   PlusJakartaSans_700Bold,
 } from '@expo-google-fonts/plus-jakarta-sans';
 import { Caveat_600SemiBold } from '@expo-google-fonts/caveat';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
@@ -28,6 +28,7 @@ import { NotificationScheduler } from '../components/NotificationScheduler';
 import { WidgetSync } from '../components/WidgetSync';
 import { CircleRequestPrompt } from '../components/CircleRequestPrompt';
 import { onOpenAddMenu } from '../src/lib/addMenu';
+import { takePendingRoute } from '../src/lib/nav';
 import { GlobalTabBar } from '../components/GlobalTabBar';
 import { SyncBanner } from '../components/SyncBanner';
 import { ActionMenu, type ActionKind } from '../components/ActionMenu';
@@ -115,6 +116,15 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
   useEffect(() => {
     if (user?.uid) identify(user.uid);
   }, [user?.uid]);
+
+  // Replay a route an onboarding QuickStart button chose while the sign-in wall
+  // was up, once the user has authenticated (or continued as guest) — so those
+  // buttons honour what they say instead of being silently swallowed.
+  useEffect(() => {
+    if (needsAuth || !appReady) return;
+    const route = takePendingRoute();
+    if (route) router.push(route);
+  }, [needsAuth, appReady]);
 
   if (!appReady) return null;
 
