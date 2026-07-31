@@ -110,7 +110,12 @@ export function LandmarkDetailSheet({
                 accessibilityRole="link"
                 accessibilityLabel="Read more on Wikipedia"
                 hitSlop={8}
-                onPress={() => Linking.openURL(info?.url ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(name ?? '')}`)}
+                onPress={() => {
+                  // Only open https links — the url comes from a third-party API
+                  // response, so guard against a non-web scheme being handed back.
+                  const u = info?.url ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(name ?? '')}`;
+                  if (u.startsWith('https://')) Linking.openURL(u);
+                }}
                 style={{ alignSelf: 'flex-start', marginTop: 8 }}
               >
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11.5, fontWeight: '600', color: COLORS.ink3 }}>via Wikipedia ›</Text>

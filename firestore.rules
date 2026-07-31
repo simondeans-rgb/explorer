@@ -79,7 +79,11 @@ service cloud.firestore {
     // member can like a capture once. Readable only by members who can see the
     // underlying capture (owner or accepted friend), never enumerable globally.
     match /likes/{likeId} {
-      allow read: if signedIn() && captureVisible(resource.data.captureId);
+      // Readable by anyone who can see the underlying capture, OR by the author
+      // of the like (so a member can enumerate + delete their own on account
+      // deletion, even for captures they can no longer see).
+      allow read: if signedIn()
+        && (captureVisible(resource.data.captureId) || resource.data.uid == request.auth.uid);
       allow create: if signedIn()
         && request.resource.data.uid == request.auth.uid
         && likeId == request.resource.data.captureId + '__' + request.auth.uid
@@ -91,7 +95,11 @@ service cloud.firestore {
     // underlying capture; authors write their own, short, text on captures they
     // are allowed to view.
     match /replies/{replyId} {
-      allow read: if signedIn() && captureVisible(resource.data.captureId);
+      // Readable by anyone who can see the underlying capture, OR by the author
+      // (so a member can enumerate + delete their own replies on account
+      // deletion — their name and text must not outlive their account).
+      allow read: if signedIn()
+        && (captureVisible(resource.data.captureId) || resource.data.uid == request.auth.uid);
       allow create: if signedIn()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.captureId is string

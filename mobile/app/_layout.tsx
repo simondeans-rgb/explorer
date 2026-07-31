@@ -171,7 +171,7 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
 
       {/* Sign-in gate sits above the app; onboarding (first run) sits above that. */}
       {needsAuth ? <AuthGate onContinueWithout={() => setGuest(true)} /> : null}
-      {visible ? <Onboarding onDone={finish} /> : null}
+      {visible ? <Onboarding onDone={finish} blockRoute={needsAuth} /> : null}
     </View>
   );
 }

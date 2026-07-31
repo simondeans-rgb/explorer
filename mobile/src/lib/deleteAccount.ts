@@ -38,6 +38,24 @@ async function deleteFirestoreData(uid: string): Promise<void> {
   } catch {
     /* ignore */
   }
+  // Social content this member authored elsewhere — their likes, their replies
+  // (which carry their display name + text and would otherwise outlive the
+  // account in friends' feeds), and any block records. The security rules let a
+  // member read/delete their own such docs by author uid.
+  for (const [name, field] of [
+    ['likes', 'uid'],
+    ['replies', 'uid'],
+    ['blocks', 'blocker'],
+  ] as const) {
+    try {
+      const snap = await getDocs(query(collection(db, name), where(field, '==', uid)));
+      await Promise.all(snap.docs.map((d) => deleteDoc(d.ref).catch(() => {})));
+    } catch {
+      /* best effort */
+    }
+  }
+  // Stop push delivery to a deleted account (delete by known doc id).
+  await deleteDoc(doc(db, 'pushTokens', uid)).catch(() => {});
 }
 
 async function deleteStorageFolder(uid: string): Promise<void> {

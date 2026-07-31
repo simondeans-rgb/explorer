@@ -18,11 +18,16 @@ import { track } from '../src/lib/analytics';
 // Reverse-geocode the current position to the most granular sensible label —
 // a venue/POI name if the device reports one, else the street, so a restaurant
 // can be captured without typing. Always editable afterwards.
-async function detectPlace(): Promise<{ status: 'ok' | 'denied' | 'error'; countryCode?: string; city?: string; name?: string }> {
+async function detectPlace(prompt: boolean): Promise<{ status: 'ok' | 'denied' | 'error'; countryCode?: string; city?: string; name?: string }> {
   try {
     const Location = await import('expo-location');
     if (!(await Location.hasServicesEnabledAsync())) return { status: 'error' };
-    const perm = await Location.requestForegroundPermissionsAsync();
+    // Only pop the system permission dialog on an explicit user action. On sheet
+    // open we merely *check* (getForegroundPermissionsAsync never prompts), so a
+    // first-time user never gets a location prompt without context (5.1.1).
+    const perm = prompt
+      ? await Location.requestForegroundPermissionsAsync()
+      : await Location.getForegroundPermissionsAsync();
     if (perm.status !== 'granted') return { status: 'denied' };
     const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
     const a = (await Location.reverseGeocodeAsync({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }))[0];
@@ -63,7 +68,7 @@ export function QuickLogSheet({ visible, onClose, onExpand }: { visible: boolean
     setWhere(''); setCountryCode(undefined); setCity(undefined); setSaved(null); setSaving(null);
     let cancelled = false;
     setLocating(true);
-    detectPlace()
+    detectPlace(false)
       .then((r) => {
         if (cancelled || r.status !== 'ok') return;
         setCountryCode(r.countryCode);
@@ -76,7 +81,7 @@ export function QuickLogSheet({ visible, onClose, onExpand }: { visible: boolean
 
   async function useLocation() {
     setLocating(true);
-    const r = await detectPlace();
+    const r = await detectPlace(true);
     setLocating(false);
     if (r.status === 'ok') {
       setCountryCode(r.countryCode);
