@@ -118,18 +118,19 @@ export function AddPhotoSheet({
       setPicking(false);
     }
   }
-  async function save() {
+  function save() {
     if (!photo || saving) return;
-    setSaving(true);
-    try {
-      await addCapture({ dataUrl: photo, countryCode: code || undefined, caption, expeditionId: selectedExpId, takenAt });
-      track('photo_added', { geotagged: Boolean(detectedCode), trip_linked: Boolean(selectedExpId), trip_auto: Boolean(selectedExpId && expId === undefined) });
-      toast.success(selectedExp ? `Memory saved to ${expeditionLabel(selectedExp)}` : 'Memory saved');
-      close();
-    } catch {
-      setSaving(false);
-      toast.error("Couldn't save — check your connection and try again.");
-    }
+    // Snapshot everything the upload needs, then dismiss the sheet immediately.
+    // The upload can take several seconds; awaiting it here would freeze the UI
+    // and read as "unresponsive" (App Store 2.1a). Instead we run it in the
+    // background and confirm the result with a toast.
+    const payload = { dataUrl: photo, countryCode: code || undefined, caption, expeditionId: selectedExpId, takenAt };
+    const exp = selectedExp;
+    track('photo_added', { geotagged: Boolean(detectedCode), trip_linked: Boolean(selectedExpId), trip_auto: Boolean(selectedExpId && expId === undefined) });
+    close();
+    void addCapture(payload)
+      .then(() => toast.success(exp ? `Memory saved to ${expeditionLabel(exp)}` : 'Memory saved'))
+      .catch(() => toast.error("Couldn't save — check your connection and try again."));
   }
 
   const takenLabel = takenAt

@@ -1,12 +1,9 @@
 // Permanently delete the signed-in user's account and their data. Required for
-// the App Store (Guideline 5.1.1(v)). Re-authenticates with the password first
-// (Firebase requires a recent login to delete an account), best-effort wipes the
-// user's Firestore documents + Storage folder, then removes the auth account.
-import {
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  deleteUser,
-} from 'firebase/auth';
+// the App Store (Guideline 5.1.1(v)). The caller re-authenticates first (via the
+// auth store's provider-aware `reauthenticate`, since Apple/Google users have no
+// password); this best-effort wipes the user's Firestore documents + Storage
+// folder, then removes the auth account.
+import { deleteUser } from 'firebase/auth';
 import { collection, query, where, getDocs, getDoc, deleteDoc, doc } from 'firebase/firestore';
 import { ref, listAll, deleteObject } from 'firebase/storage';
 import { auth, db, storage } from './firebase';
@@ -58,16 +55,14 @@ async function deleteStorageFolder(uid: string): Promise<void> {
   }
 }
 
-export async function deleteAccountAndData(password: string): Promise<void> {
+/** Wipe the signed-in user's data and delete their auth account. The caller
+ *  MUST have just re-authenticated (Firebase requires a recent login). */
+export async function deleteAccountAndData(): Promise<void> {
   const user = auth?.currentUser;
-  if (!auth || !user || !user.email) throw new Error('Not signed in.');
-  // 1. Re-authenticate (required before a destructive account operation).
-  const cred = EmailAuthProvider.credential(user.email, password);
-  await reauthenticateWithCredential(user, cred);
+  if (!auth || !user) throw new Error('Not signed in.');
   const uid = user.uid;
-  // 2. Best-effort remove the user's data.
+  // Best-effort remove the user's data, then the auth account (signs them out).
   await deleteFirestoreData(uid);
   await deleteStorageFolder(uid);
-  // 3. Remove the auth account (signs the user out).
   await deleteUser(user);
 }
