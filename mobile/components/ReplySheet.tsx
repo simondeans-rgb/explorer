@@ -73,7 +73,7 @@ export function ReplySheet({
         style: 'destructive',
         onPress: () => {
           reportContent({ reporterUid: myUid, type: 'user', targetId: r.uid, ownerUid: r.uid, reason: 'blocked from reply' }).catch(() => {});
-          blockUser(myUid, r.uid).catch(() => {});
+          blockUser(myUid, r.uid, r.name).catch(() => {});
           setHidden((h) => new Set(h).add(r.id));
         },
       },

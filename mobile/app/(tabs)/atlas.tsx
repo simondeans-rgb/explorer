@@ -58,7 +58,7 @@ function ScopeChips({ scope, years, onChange }: { scope: Scope; years: number[];
       {(['all', ...years] as Scope[]).map((s) => {
         const active = scope === s;
         return (
-          <Pressable key={String(s)} onPress={() => onChange(s)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
+          <Pressable key={String(s)} onPress={() => onChange(s)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: active ? COLORS.navySolid : COLORS.card }}>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{s === 'all' ? 'All time' : s}</Text>
           </Pressable>
         );
@@ -332,14 +332,14 @@ export default function AtlasScreen() {
               {MODE_FILTERS.map(({ key, label, Icon }) => {
                 const active = journeyMode === key;
                 return (
-                  <Pressable key={key} onPress={() => setJourneyMode(key)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 7, gap: 5, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
+                  <Pressable key={key} onPress={() => setJourneyMode(key)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 7, gap: 5, backgroundColor: active ? COLORS.navySolid : COLORS.card }}>
                     {Icon ? <Icon size={13} color={active ? '#fff' : COLORS.ink3} /> : null}
                     <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{label}</Text>
                   </Pressable>
                 );
               })}
             </ScrollView>
-            <Pressable onPress={() => setShowDomestic((v) => !v)} className="flex-row items-center self-start rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 7, gap: 6, backgroundColor: showDomestic ? 'rgba(36,209,195,0.16)' : '#fff' }}>
+            <Pressable onPress={() => setShowDomestic((v) => !v)} className="flex-row items-center self-start rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 7, gap: 6, backgroundColor: showDomestic ? 'rgba(36,209,195,0.16)' : COLORS.card }}>
               <Home size={13} color={showDomestic ? '#12A594' : COLORS.ink3} />
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: showDomestic ? '#12A594' : COLORS.ink3 }}>{showDomestic ? 'Domestic trips shown' : 'Domestic trips hidden'}</Text>
             </Pressable>
@@ -356,7 +356,7 @@ export default function AtlasScreen() {
               <Search size={18} color={COLORS.ink3} />
               <TextInput value={query} onChangeText={setQuery} placeholder="Search your countries & cities" placeholderTextColor={COLORS.ink3} style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink }} />
               {query ? (
-                <Pressable onPress={() => setQuery('')} hitSlop={10}>
+                <Pressable onPress={() => setQuery('')} accessibilityRole="button" accessibilityLabel="Clear search" hitSlop={10}>
                   <X size={17} color={COLORS.ink3} />
                 </Pressable>
               ) : null}
@@ -365,7 +365,7 @@ export default function AtlasScreen() {
               {([['az', 'A–Z'], ['found', 'Most found'], ['recent', 'Recent']] as [SortBy, string][]).map(([id, label]) => {
                 const active = sortBy === id;
                 return (
-                  <Pressable key={id} onPress={() => setSortBy(id)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
+                  <Pressable key={id} onPress={() => setSortBy(id)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: active ? COLORS.navySolid : COLORS.card }}>
                     <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? '#fff' : COLORS.ink3 }}>{label}</Text>
                   </Pressable>
                 );

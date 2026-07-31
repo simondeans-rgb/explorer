@@ -261,7 +261,7 @@ export default function CircleScreen() {
         style: 'destructive',
         onPress: () => {
           reportContent({ reporterUid: me, type: 'user', targetId: s.userId, ownerUid: s.userId, reason: 'blocked from snap' }).catch(() => {});
-          blockUser(me, s.userId).catch(() => {});
+          blockUser(me, s.userId, s.friend).catch(() => {});
           setBlocked((b) => new Set(b).add(s.userId));
         },
       },

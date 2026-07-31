@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { fetchWithTimeout } from './net';
 
 // On-demand landmark info (a photo + a one-sentence description) from the
 // Wikipedia REST summary API — content is free to reuse (CC BY-SA / Commons).
@@ -48,7 +49,7 @@ function summaryToInfo(j: {
 
 /** Fetch the REST summary for an exact page title. */
 async function fetchSummary(title: string): Promise<LandmarkInfo | null> {
-  const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, {
+  const res = await fetchWithTimeout(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, {
     headers: { Accept: 'application/json' },
   });
   if (!res.ok) return null;
@@ -58,7 +59,7 @@ async function fetchSummary(title: string): Promise<LandmarkInfo | null> {
 /** Find the best-matching page title via Wikipedia search (country-hinted). */
 async function searchTitle(query: string): Promise<string | null> {
   const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&list=search&srlimit=1&srsearch=${encodeURIComponent(query)}&origin=*`;
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  const res = await fetchWithTimeout(url, { headers: { Accept: 'application/json' } });
   if (!res.ok) return null;
   const j = (await res.json()) as { query?: { search?: { title?: string }[] } };
   return j.query?.search?.[0]?.title ?? null;

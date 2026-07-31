@@ -46,7 +46,7 @@ export function AddItinerarySheet({ tripId, visible, onClose }: { tripId: string
           {DISCOVERY_CATEGORIES.map((c) => {
             const active = category === c;
             return (
-              <Pressable key={c} onPress={() => { setCategory(active ? undefined : c); setSubcategory(undefined); }} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
+              <Pressable key={c} onPress={() => { setCategory(active ? undefined : c); setSubcategory(undefined); }} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : COLORS.card }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{DISCOVERY_CATEGORY_META[c].label}</Text>
               </Pressable>
             );
@@ -60,7 +60,7 @@ export function AddItinerarySheet({ tripId, visible, onClose }: { tripId: string
               {DISCOVERY_SUBCATEGORIES[category].map((s) => {
                 const active = subcategory === s.id;
                 return (
-                  <Pressable key={s.id} onPress={() => setSubcategory(active ? undefined : s.id)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
+                  <Pressable key={s.id} onPress={() => setSubcategory(active ? undefined : s.id)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : COLORS.card }}>
                     <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{s.label}</Text>
                   </Pressable>
                 );

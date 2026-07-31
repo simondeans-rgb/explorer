@@ -52,7 +52,7 @@ const SectionLabel = ({ children }: { children: string }) => (
 
 /** A small pill toggle used for the chip groups. */
 const Chip = ({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) => (
-  <Pressable onPress={onPress} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
+  <Pressable onPress={onPress} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : COLORS.card }}>
     <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{label}</Text>
   </Pressable>
 );
@@ -239,7 +239,7 @@ export function AddDiscoverySheet({
                 key={v}
                 onPress={() => setVerdict(active ? undefined : v)}
                 className="rounded-full"
-                style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.coral : '#fff' }}
+                style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.coral : COLORS.card }}
               >
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>
                   {VERDICT_META[v].label}
@@ -281,7 +281,7 @@ export function AddDiscoverySheet({
                 key={c}
                 onPress={() => chooseCategory(c)}
                 className="flex-row items-center rounded-full"
-                style={{ paddingHorizontal: 14, paddingVertical: 9, gap: 6, backgroundColor: active ? COLORS.navySolid : '#fff' }}
+                style={{ paddingHorizontal: 14, paddingVertical: 9, gap: 6, backgroundColor: active ? COLORS.navySolid : COLORS.card }}
               >
                 <Icon size={14} color={active ? '#fff' : COLORS.coral} />
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>

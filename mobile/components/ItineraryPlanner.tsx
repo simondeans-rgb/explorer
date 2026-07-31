@@ -208,7 +208,7 @@ export function ItineraryPlanner({
         {Array.from({ length: dayCount }, (_, i) => i + 1).map((n) => {
           const active = day === n;
           return (
-            <Pressable key={n} onPress={() => setDay(n)} className="rounded-2xl items-center" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
+            <Pressable key={n} onPress={() => setDay(n)} className="rounded-2xl items-center" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : COLORS.card }}>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: active ? 'rgba(255,255,255,0.7)' : COLORS.ink3 }}>DAY {n}</Text>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.navy }}>{dayLabel(n)}</Text>
             </Pressable>
@@ -276,7 +276,7 @@ export function ItineraryPlanner({
       <View
         ref={(r) => { zoneRefs.current['ideas'] = r; }}
         collapsable={false}
-        style={{ marginTop: 16, backgroundColor: hover === 'ideas' ? 'rgba(155,124,255,0.10)' : '#fff', borderRadius: 20, padding: 12, borderWidth: 1.5, borderColor: hover === 'ideas' ? COLORS.lavender : 'rgba(20,33,61,0.05)' }}
+        style={{ marginTop: 16, backgroundColor: hover === 'ideas' ? 'rgba(155,124,255,0.10)' : COLORS.card, borderRadius: 20, padding: 12, borderWidth: 1.5, borderColor: hover === 'ideas' ? COLORS.lavender : 'rgba(20,33,61,0.05)' }}
       >
         <View className="flex-row items-center" style={{ gap: 6, marginBottom: 10 }}>
           <Sparkles size={15} color={COLORS.lavender} />
