@@ -214,10 +214,13 @@ export function computeTravelStats(expeditions: Expedition[]): TravelStats {
     }
   }
 
-  // Fill year gaps so the line chart has a continuous x-axis.
+  // Fill year gaps so the line chart has a continuous x-axis. Ignore
+  // out-of-range years (a corrupt import date can yield 0 or 9999) so one bad
+  // cell can't balloon the axis into thousands of empty points.
   const perYear: { label: string; count: number }[] = [];
-  if (yearCounts.size) {
-    const years = [...yearCounts.keys()].sort((a, b) => a - b);
+  const CUR_YEAR = new Date().getFullYear();
+  const years = [...yearCounts.keys()].filter((y) => y >= 1900 && y <= CUR_YEAR + 1).sort((a, b) => a - b);
+  if (years.length) {
     const min = years[0];
     const max = years[years.length - 1];
     for (let y = min; y <= max; y++) perYear.push({ label: String(y), count: yearCounts.get(y) ?? 0 });

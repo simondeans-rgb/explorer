@@ -318,7 +318,7 @@ export default function CountryScreen() {
           <BackButton onPress={goBack} style={{ position: 'absolute', top: 60, left: 20, zIndex: 20 }} />
           <View style={{ paddingHorizontal: 20 }}>
             <Text style={{ fontSize: 52 }}>{flagEmoji(code)}</Text>
-            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, marginTop: 6 }}>{name}</Text>
+            <Text numberOfLines={2} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, marginTop: 6 }}>{name}</Text>
             <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95, marginTop: 2 }}>
               {continent ?? 'Somewhere on Earth'}
               {agg?.firstYear ? ` · since ${agg.firstYear}` : ''}

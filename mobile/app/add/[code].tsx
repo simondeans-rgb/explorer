@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -8,11 +8,13 @@ import { COLORS, GRADIENTS } from '../../src/lib/theme';
 import { useAuth } from '../../src/store/auth';
 import { sendRequest } from '../../src/lib/connections';
 
-type Phase = 'working' | 'sent' | 'error' | 'signin';
+type Phase = 'confirm' | 'working' | 'sent' | 'error' | 'signin';
 
 /** Deep-link target for QR/invite links (`mobile://add/CODE`, and the web
- *  `/add/:code` page bounces here). Auto-sends a connection request to the
- *  member that owns `code` when signed in, then routes into the circle. */
+ *  `/add/:code` page bounces here). It asks the member to CONFIRM before sending
+ *  a connection request — a deep link is an untrusted input, and auto-sending on
+ *  open would let a crafted link make someone request a stranger (leaking their
+ *  identity) with a single unintended tap. */
 export default function AddByCodeScreen() {
   const { code: raw } = useLocalSearchParams<{ code: string }>();
   const code = (Array.isArray(raw) ? raw[0] : raw ?? '').trim().toUpperCase();
@@ -22,28 +24,26 @@ export default function AddByCodeScreen() {
 
   const [phase, setPhase] = useState<Phase>('working');
   const [detail, setDetail] = useState('');
-  const ran = useRef(false);
 
   useEffect(() => {
-    if (loading || ran.current) return;
+    if (loading) return;
     if (!code) {
-      ran.current = true;
       setPhase('error');
       setDetail('That invite link is missing a code.');
       return;
     }
-    if (!user) {
-      // Can't connect until they're signed in — point them at the friends tab,
-      // which surfaces the sign-in gate, and pre-fill nothing destructive.
-      setPhase('signin');
-      return;
-    }
-    ran.current = true;
+    // Never send automatically — wait for the member to confirm (or sign in).
+    setPhase(user ? 'confirm' : 'signin');
+  }, [loading, user, code]);
+
+  function submit() {
+    if (!user || !code) return;
+    setPhase('working');
+    setDetail('');
     sendRequest({ uid: user.uid, name: myName }, code)
       .then((res) => {
-        if (res.ok) {
-          setPhase('sent');
-        } else {
+        if (res.ok) setPhase('sent');
+        else {
           setPhase('error');
           setDetail(res.error ?? 'Couldn’t send the request.');
         }
@@ -52,7 +52,7 @@ export default function AddByCodeScreen() {
         setPhase('error');
         setDetail('Couldn’t send the request. Please try again.');
       });
-  }, [loading, user, code, myName]);
+  }
 
   return (
     <LinearGradient
@@ -83,7 +83,9 @@ export default function AddByCodeScreen() {
             ? 'Request sent!'
             : phase === 'signin'
               ? 'Join the circle'
-              : 'Hmm, that didn’t work'}
+              : phase === 'confirm'
+                ? 'Add to your circle'
+                : 'Hmm, that didn’t work'}
       </Text>
 
       <Text
@@ -98,48 +100,65 @@ export default function AddByCodeScreen() {
         }}
       >
         {phase === 'working'
-          ? `Adding ${code} to your circle on Worldly.`
+          ? `Sending your request to ${code}.`
           : phase === 'sent'
             ? 'They’ll appear in your circle as soon as they accept.'
             : phase === 'signin'
               ? `Sign in to add ${code} and start following each other’s travels.`
-              : detail}
+              : phase === 'confirm'
+                ? `Send a connection request to ${code}? They’ll be able to follow your travels once they accept.`
+                : detail}
       </Text>
 
       <View style={{ marginTop: 26, alignSelf: 'stretch', maxWidth: 360, width: '100%' }}>
         <View style={{ flexDirection: 'row', gap: 10 }}>
-          {phase === 'error' ? (
-            <Pressable
-              onPress={() => {
-                ran.current = false;
-                setPhase('working');
-                setDetail('');
-                if (user && code) {
-                  ran.current = true;
-                  sendRequest({ uid: user.uid, name: myName }, code).then((res) => {
-                    if (res.ok) setPhase('sent');
-                    else {
-                      setPhase('error');
-                      setDetail(res.error ?? 'Couldn’t send the request.');
-                    }
-                  });
-                }
-              }}
-              className="flex-1 items-center justify-center rounded-full"
-              style={{ paddingVertical: 14, backgroundColor: 'rgba(255,255,255,0.18)' }}
-            >
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Try again</Text>
-            </Pressable>
-          ) : null}
-          <Pressable
-            onPress={() => router.replace('/friends')}
-            className="flex-1 items-center justify-center rounded-full bg-white dark:bg-card"
-            style={{ paddingVertical: 14 }}
-          >
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.coral }}>
-              {phase === 'signin' ? 'Continue' : 'Go to your circle'}
-            </Text>
-          </Pressable>
+          {phase === 'confirm' ? (
+            <>
+              <Pressable
+                onPress={() => router.replace('/friends')}
+                accessibilityRole="button"
+                accessibilityLabel="Not now"
+                className="flex-1 items-center justify-center rounded-full"
+                style={{ paddingVertical: 14, backgroundColor: 'rgba(255,255,255,0.18)' }}
+              >
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Not now</Text>
+              </Pressable>
+              <Pressable
+                onPress={submit}
+                accessibilityRole="button"
+                accessibilityLabel={`Send a connection request to ${code}`}
+                className="flex-1 items-center justify-center rounded-full bg-white dark:bg-card"
+                style={{ paddingVertical: 14 }}
+              >
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.coral }}>Send request</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              {phase === 'error' ? (
+                <Pressable
+                  onPress={submit}
+                  accessibilityRole="button"
+                  accessibilityLabel="Try again"
+                  className="flex-1 items-center justify-center rounded-full"
+                  style={{ paddingVertical: 14, backgroundColor: 'rgba(255,255,255,0.18)' }}
+                >
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Try again</Text>
+                </Pressable>
+              ) : null}
+              <Pressable
+                onPress={() => router.replace('/friends')}
+                accessibilityRole="button"
+                accessibilityLabel="Go to your circle"
+                className="flex-1 items-center justify-center rounded-full bg-white dark:bg-card"
+                style={{ paddingVertical: 14 }}
+              >
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.coral }}>
+                  {phase === 'signin' ? 'Continue' : 'Go to your circle'}
+                </Text>
+              </Pressable>
+            </>
+          )}
         </View>
       </View>
 

@@ -48,7 +48,7 @@ const SLIDES: Slide[] = [
   },
 ];
 
-export function Onboarding({ onDone }: { onDone: () => void }) {
+export function Onboarding({ onDone, blockRoute = false }: { onDone: () => void; blockRoute?: boolean }) {
   const [index, setIndex] = useState(0);
   const [showStart, setShowStart] = useState(false);
   const scroller = useRef<ScrollView>(null);
@@ -69,7 +69,12 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   function go(route?: string) {
     track('onboarding_completed', { quickstart: route ?? 'skip' });
     onDone();
-    if (route) router.push(route);
+    // When the user still needs to sign in (or choose guest), don't deep-link
+    // into an import flow: it would render behind the sign-in wall and could
+    // fire a permission prompt (e.g. Photos for "Scan") with no visible context
+    // — an App Review 5.1.1 red flag. Dismissing onboarding reveals the sign-in
+    // gate; they reach these flows afterwards.
+    if (route && !blockRoute) router.push(route);
   }
   if (showStart) return <QuickStart onPick={go} />;
 

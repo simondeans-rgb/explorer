@@ -121,9 +121,9 @@ export default function CoversScreen() {
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.5, color: '#3D4CC9' }}>PACK {COVER_PRICE_PACK} · FREE WITH EXPLORER</Text>
                 </View>
               ) : null}
-              {section.access === 'premium' ? (
+              {billingEnabled() && section.access === 'premium' ? (
                 <View className="rounded-full" style={{ paddingHorizontal: 9, paddingVertical: 3, backgroundColor: 'rgba(240,160,32,0.16)' }}>
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.5, color: '#9A6410' }}>{billingEnabled() ? 'PREMIUM' : 'PREMIUM · FREE FOR NOW'}</Text>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.5, color: '#9A6410' }}>PREMIUM</Text>
                 </View>
               ) : null}
             </View>

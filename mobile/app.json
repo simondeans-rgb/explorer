@@ -18,6 +18,17 @@
         "com.apple.security.application-groups": [
           "group.com.simmyd23.worldly"
         ]
+      },
+      "privacyManifests": {
+        "NSPrivacyTracking": false,
+        "NSPrivacyTrackingDomains": [],
+        "NSPrivacyCollectedDataTypes": [],
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": ["1C8F.1"]
+          }
+        ]
       }
     },
     "android": {
