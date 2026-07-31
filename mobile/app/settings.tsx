@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import {
   Cloud, CloudOff, LogOut, Download, Merge, Plane, RotateCcw, FileDown, CircleCheck, ChevronRight,
   BellRing, Sparkles, Users, MapPinned, Sun, Moon, SunMoon, Ruler, Thermometer,
-  ShieldCheck, FileText, Mail, Trash2, Gem,
+  ShieldCheck, ShieldOff, FileText, Mail, Trash2, Gem,
 } from 'lucide-react-native';
 import { BackButton } from '../components/BackButton';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
@@ -503,6 +503,16 @@ export default function SettingsScreen() {
             Worldly v{Constants.expoConfig?.version ?? '1.0.0'}
           </Text>
         </View>
+
+        {/* Safety — manage the people you've blocked (Guideline 1.2). */}
+        {user ? (
+          <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
+            <Text style={LABEL}>SAFETY</Text>
+            <View className="bg-white dark:bg-card rounded-3xl" style={{ paddingHorizontal: 16 }}>
+              <Row first icon={ShieldOff} label="Blocked accounts" sub="Review and unblock people you've blocked." onPress={() => router.push('/blocked')} />
+            </View>
+          </View>
+        ) : null}
 
         {/* 4 — ACCOUNT: last, separated, destructive. Never adjacent to Export. */}
         {user ? (

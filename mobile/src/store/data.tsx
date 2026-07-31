@@ -47,13 +47,6 @@ import type {
 } from '../types';
 import { countryName } from '../data/countries';
 import { repairImportedExpeditions } from '../lib/flightyImport';
-import {
-  SEED_PLACES,
-  SEED_DISCOVERIES,
-  SEED_EXPEDITIONS,
-  SEED_CAPTURES,
-  SEED_TRIPS,
-} from '../lib/seed';
 import { db, storage } from '../lib/firebase';
 import { useAuth } from './auth';
 
@@ -359,14 +352,6 @@ function tripFromDoc(id: string, d: DocumentData): Trip {
   };
 }
 
-const SEED: DataShape = {
-  places: SEED_PLACES,
-  discoveries: SEED_DISCOVERIES,
-  expeditions: SEED_EXPEDITIONS,
-  captures: SEED_CAPTURES,
-  trips: SEED_TRIPS,
-};
-
 const EMPTY: DataShape = {
   places: [],
   discoveries: [],
@@ -380,13 +365,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const uid = user?.uid ?? null;
   const cloud = Boolean(uid && db);
 
-  const [data, setData] = useState<DataShape>(SEED);
+  const [data, setData] = useState<DataShape>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   // Cloud: false until the server confirms the live data this session. Guest
   // mode has no server, so it's forced true below.
   const [synced, setSynced] = useState(false);
   // Keep the latest local snapshot for functional updates without re-subscribing.
-  const localRef = useRef<DataShape>(SEED);
+  const localRef = useRef<DataShape>(EMPTY);
 
   // --- Local (demo / signed-out) persistence -------------------------------
   useEffect(() => {
@@ -411,12 +396,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
           localRef.current = merged;
           setData(merged);
         } else {
-          localRef.current = SEED;
-          setData(SEED);
-          await AsyncStorage.setItem(KEY, JSON.stringify(SEED));
+          // A brand-new guest starts with a genuinely empty archive (the app's
+          // empty states guide them to add their first place/trip) — never a
+          // fabricated demo, which reads as fake content to App Review.
+          localRef.current = EMPTY;
+          setData(EMPTY);
         }
       } catch {
-        /* keep seed */
+        /* keep empty */
       } finally {
         if (active) setLoaded(true);
       }
@@ -495,9 +482,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setData((p) => ({ ...p, trips: merged }));
     };
     // Keep localRef in step with the live cloud data so functional readers
-    // (e.g. importPlaces' dedup) see the real state, not the empty SEED.
+    // (e.g. importPlaces' dedup) see the real state, not the empty initial data.
     const syncRef = (patch: Partial<DataShape>) => {
       localRef.current = { ...localRef.current, ...patch };
+    };
+    // A listener that errors (permission-denied before rules deploy, or a
+    // dropped connection) detaches silently. Without this, markReady() would
+    // never fire for that collection and `loaded` would latch false forever —
+    // leaving detail screens stuck on a skeleton. Treat an error as "answered"
+    // (we keep whatever cache we have) so the UI always resolves.
+    const onErr = (c: Coll) => (e: unknown) => {
+      logWriteError(e);
+      markReady(c);
     };
     const subs = [
       onSnapshot(q('places'), (snap) => {
@@ -505,32 +501,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
         syncRef({ places });
         setData((p) => ({ ...p, places }));
         markReady('places');
-      }),
+      }, onErr('places')),
       onSnapshot(q('discoveries'), (snap) => {
         const discoveries = snap.docs.map((d) => discoveryFromDoc(d.id, d.data()));
         syncRef({ discoveries });
         setData((p) => ({ ...p, discoveries }));
         markReady('discoveries');
-      }),
+      }, onErr('discoveries')),
       onSnapshot(q('expeditions'), (snap) => {
         const expeditions = snap.docs.map((d) => expeditionFromDoc(d.id, d.data()));
         syncRef({ expeditions });
         setData((p) => ({ ...p, expeditions }));
         markReady('expeditions');
-      }),
+      }, onErr('expeditions')),
       onSnapshot(q('captures'), (snap) => {
         const captures = snap.docs.map((d) => captureFromDoc(d.id, d.data()));
         syncRef({ captures });
         setData((p) => ({ ...p, captures }));
         markReady('captures');
-      }),
+      }, onErr('captures')),
       // Trips: your own + trips friends have invited you to collaborate on.
       // Two queries merged (Firestore can't OR), deduped by id.
       onSnapshot(q('trips'), (snap) => {
         ownTrips.current = snap.docs.map((d) => tripFromDoc(d.id, d.data()));
         mergeTrips();
         markReady('trips');
-      }),
+      }, onErr('trips')),
       onSnapshot(
         query(collection(fdb, 'trips'), where('memberIds', 'array-contains', uid)),
         (snap) => {

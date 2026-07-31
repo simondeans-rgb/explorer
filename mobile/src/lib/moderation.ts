@@ -19,7 +19,19 @@ export { isObjectionable, assertClean } from './textFilter';
 
 // ── Blocking ──────────────────────────────────────────────────────────────
 const BLOCKS_KEY = 'worldly.blockedUids';
+const BLOCK_NAMES_KEY = 'worldly.blockedNames';
 let blockedCache: Set<string> | null = null;
+
+/** Remembered display name per blocked uid, so Settings → Blocked accounts can
+ *  show who's blocked (the uid set alone isn't human-readable). Best-effort. */
+async function loadBlockedNames(): Promise<Record<string, string>> {
+  try {
+    const raw = await AsyncStorage.getItem(BLOCK_NAMES_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
 
 /** Deterministic connection id for a member pair (matches the security rules). */
 function connId(a: string, b: string): string {
@@ -43,12 +55,23 @@ export function blockedUidsSync(): Set<string> {
   return blockedCache ?? new Set<string>();
 }
 
+/** The blocked members as {uid, name} for the management screen. */
+export async function loadBlockedList(): Promise<{ uid: string; name: string }[]> {
+  const [set, names] = await Promise.all([loadBlockedUids(), loadBlockedNames()]);
+  return [...set].map((uid) => ({ uid, name: names[uid] || 'Blocked member' }));
+}
+
 /** Block a member: record it, sever the friendship so their shared content is
  *  immediately inaccessible, and hide them locally at once. */
-export async function blockUser(myUid: string, targetUid: string): Promise<void> {
+export async function blockUser(myUid: string, targetUid: string, name?: string): Promise<void> {
   const set = await loadBlockedUids();
   set.add(targetUid);
   await AsyncStorage.setItem(BLOCKS_KEY, JSON.stringify([...set])).catch(() => {});
+  if (name) {
+    const names = await loadBlockedNames();
+    names[targetUid] = name;
+    await AsyncStorage.setItem(BLOCK_NAMES_KEY, JSON.stringify(names)).catch(() => {});
+  }
   if (db) {
     // Record the block (developer signal + prevents silent re-connection).
     await setDoc(doc(db, 'blocks', `${myUid}__${targetUid}`), {
@@ -67,6 +90,11 @@ export async function unblockUser(myUid: string, targetUid: string): Promise<voi
   const set = await loadBlockedUids();
   set.delete(targetUid);
   await AsyncStorage.setItem(BLOCKS_KEY, JSON.stringify([...set])).catch(() => {});
+  const names = await loadBlockedNames();
+  if (names[targetUid]) {
+    delete names[targetUid];
+    await AsyncStorage.setItem(BLOCK_NAMES_KEY, JSON.stringify(names)).catch(() => {});
+  }
   if (db) await deleteDoc(doc(db, 'blocks', `${myUid}__${targetUid}`)).catch(() => {});
 }
 

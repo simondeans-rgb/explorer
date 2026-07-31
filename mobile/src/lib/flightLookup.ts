@@ -7,6 +7,7 @@
 // of the repo). Get one on RapidAPI → AeroDataBox.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { canonicalAirportLabel } from './airportSearch';
+import { fetchWithTimeout } from './net';
 
 const KEY = process.env.EXPO_PUBLIC_AERODATABOX_KEY ?? '';
 const HOST = 'aerodatabox.p.rapidapi.com';
@@ -110,7 +111,7 @@ export async function lookupFlight(rawNumber: string, dateISO: string): Promise<
 
   try {
     const url = `https://${HOST}/flights/number/${encodeURIComponent(number)}/${date}?withAircraftImage=false&withLocation=false`;
-    const res = await fetch(url, { headers: { 'X-RapidAPI-Key': KEY, 'X-RapidAPI-Host': HOST } });
+    const res = await fetchWithTimeout(url, { headers: { 'X-RapidAPI-Key': KEY, 'X-RapidAPI-Host': HOST } });
     if (res.status === 204 || res.status === 404) return { ok: false, reason: 'not-found' };
     // AeroDataBox rejects dates outside its data window (BASIC = last 365 days)
     // with a 400 — surface that distinctly so callers can explain it.

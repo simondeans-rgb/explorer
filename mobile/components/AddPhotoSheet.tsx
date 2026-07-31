@@ -13,6 +13,7 @@ import { countryAt } from '../src/lib/geoLookup';
 import { matchExpedition, expeditionLabel } from '../src/lib/tripMatch';
 import { TripPickerField } from './TripPickerField';
 import { track } from '../src/lib/analytics';
+import { isObjectionable } from '../src/lib/textFilter';
 
 export function AddPhotoSheet({
   visible,
@@ -120,6 +121,11 @@ export function AddPhotoSheet({
   }
   function save() {
     if (!photo || saving) return;
+    // A caption can appear in friends' feeds — filter objectionable text (1.2).
+    if (caption.trim() && isObjectionable(caption)) {
+      toast.error('Please remove offensive language from the caption.');
+      return;
+    }
     // Snapshot everything the upload needs, then dismiss the sheet immediately.
     // The upload can take several seconds; awaiting it here would freeze the UI
     // and read as "unresponsive" (App Store 2.1a). Instead we run it in the

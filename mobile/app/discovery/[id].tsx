@@ -24,11 +24,12 @@ import {
 } from '../../src/types';
 import { useData } from '../../src/store/data';
 import { TripPickerField } from '../../components/TripPickerField';
+import { DetailSkeleton } from '../../components/DetailSkeleton';
 import { useToast } from '../../src/store/toast';
 
 export default function DiscoveryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { discoveries, updateDiscovery, removeDiscovery, expeditions } = useData();
+  const { discoveries, updateDiscovery, removeDiscovery, expeditions, loaded } = useData();
   const { toast } = useToast();
   const confirm = useConfirm();
   const discovery = discoveries.find((d) => d.id === id);
@@ -116,6 +117,10 @@ export default function DiscoveryScreen() {
     }
   }
 
+  // Cold start on the cloud: wait for the first sync before deciding it's
+  // missing, so we show a skeleton instead of flashing "not found".
+  if (!discovery && !loaded) return <DetailSkeleton />;
+
   if (!discovery) {
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.warmwhite, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
@@ -131,7 +136,7 @@ export default function DiscoveryScreen() {
         {/* Hero */}
         <DestinationImage code={code || 'WW'} scrim style={{ position: 'relative', paddingTop: 60, paddingBottom: 46, minHeight: 180, justifyContent: 'flex-end' }}>
           <BackButton onPress={goBack} style={{ position: 'absolute', top: 60, left: 20, zIndex: 20 }} />
-          <Pressable onPress={confirmDelete} hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, right: 20, zIndex: 20 }}>
+          <Pressable onPress={confirmDelete} accessibilityRole="button" accessibilityLabel="Delete discovery" hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, right: 20, zIndex: 20 }}>
             <Trash2 size={18} color="#fff" />
           </Pressable>
           <View style={{ paddingHorizontal: 20 }}>
@@ -153,7 +158,7 @@ export default function DiscoveryScreen() {
           {photo ? (
             <View style={{ position: 'relative' }}>
               <Image source={{ uri: photo }} style={{ width: '100%', height: 160, borderRadius: 18 }} contentFit="cover" />
-              <Pressable onPress={() => setPhoto(null)} className="absolute rounded-full items-center justify-center" style={{ top: 10, right: 10, height: 32, width: 32, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+              <Pressable onPress={() => setPhoto(null)} accessibilityRole="button" accessibilityLabel="Remove photo" hitSlop={10} className="absolute rounded-full items-center justify-center" style={{ top: 10, right: 10, height: 32, width: 32, backgroundColor: 'rgba(0,0,0,0.5)' }}>
                 <X size={16} color="#fff" />
               </Pressable>
             </View>
@@ -177,7 +182,7 @@ export default function DiscoveryScreen() {
           {DISCOVERY_CATEGORIES.map((c) => {
             const active = category === c;
             return (
-              <Pressable key={c} onPress={() => { setCategory(c); setSubcategory(undefined); }} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
+              <Pressable key={c} onPress={() => { setCategory(c); setSubcategory(undefined); }} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : COLORS.card }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{DISCOVERY_CATEGORY_META[c].label}</Text>
               </Pressable>
             );
@@ -190,7 +195,7 @@ export default function DiscoveryScreen() {
           {subcategories.map((s) => {
             const active = subcategory === s.id;
             return (
-              <Pressable key={s.id} onPress={() => setSubcategory(active ? undefined : s.id)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
+              <Pressable key={s.id} onPress={() => setSubcategory(active ? undefined : s.id)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : COLORS.card }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{s.label}</Text>
               </Pressable>
             );
@@ -232,7 +237,7 @@ export default function DiscoveryScreen() {
               {landmarks.map((l) => {
                 const active = landmark === l;
                 return (
-                  <Pressable key={l} onPress={() => setLandmark(active ? '' : l)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
+                  <Pressable key={l} onPress={() => setLandmark(active ? '' : l)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : COLORS.card }}>
                     <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{l}</Text>
                   </Pressable>
                 );
@@ -255,7 +260,7 @@ export default function DiscoveryScreen() {
           {RECOMMENDATION_VERDICTS.map((v) => {
             const active = verdict === v;
             return (
-              <Pressable key={v} onPress={() => setVerdict(active ? undefined : v)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.coral : '#fff' }}>
+              <Pressable key={v} onPress={() => setVerdict(active ? undefined : v)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.coral : COLORS.card }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{VERDICT_META[v].label}</Text>
               </Pressable>
             );

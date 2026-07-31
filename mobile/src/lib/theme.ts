@@ -26,7 +26,9 @@ export const COLORS = {
   card: dyn('#FFFFFF', '#1A2138'),
   ink: dyn('#14213D', '#E6E9F2'),
   ink2: dyn('#48506B', '#AEB5CC'),
-  ink3: dyn('#8A90A6', '#9298B0'),
+  // Light value darkened to #6B7185 so meta/caption text clears WCAG AA (4.5:1)
+  // on white — #8A90A6 was only ~3.16:1 and failed for normal-size copy.
+  ink3: dyn('#6B7185', '#9298B0'),
   white: '#FFFFFF',
   danger: '#F2557D', // brand-aligned destructive (coral-red, not finance red)
   /** Muted tile surface (locked badges etc.) + its glyph colour — a step off

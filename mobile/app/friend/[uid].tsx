@@ -62,7 +62,7 @@ export default function FriendProfileScreen() {
         style: 'destructive',
         onPress: () => {
           reportContent({ reporterUid: me, type: 'user', targetId: uid, ownerUid: uid, reason: 'blocked member' }).catch(() => {});
-          blockUser(me, uid).catch(() => {});
+          blockUser(me, uid, name).catch(() => {});
           router.back();
         },
       },

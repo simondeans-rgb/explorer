@@ -210,7 +210,7 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
           {REL_OPTIONS.map((r) => {
             const active = rels.has(r);
             return (
-              <Pressable key={r} onPress={() => toggleRel(r)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
+              <Pressable key={r} onPress={() => toggleRel(r)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : COLORS.card }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: active ? '#fff' : COLORS.ink2 }}>{RELATIONSHIP_META[r].label}</Text>
               </Pressable>
             );
@@ -230,7 +230,7 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
           <>
             <View className="flex-row items-center justify-between" style={{ paddingHorizontal: 20, marginTop: 16 }}>
               <Text style={{ ...LBL, paddingHorizontal: 0, marginTop: 0 }}>LIVED UNTIL</Text>
-              <Pressable onPress={() => setPresent((v) => !v)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: present ? COLORS.navySolid : '#fff' }}>
+              <Pressable onPress={() => setPresent((v) => !v)} className="rounded-full" style={{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: present ? COLORS.navySolid : COLORS.card }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: present ? '#fff' : COLORS.ink2 }}>{present ? 'Still here ✓' : 'Still here'}</Text>
               </Pressable>
             </View>
