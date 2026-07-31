@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Animated, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, Animated, useWindowDimensions, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
@@ -19,7 +19,8 @@ import { HeroWave } from '../../components/HeroWave';
 import { CoverParticles } from '../../components/CoverParticles';
 import { getCoverState } from '../../src/lib/covers';
 import { COVER_THEMES } from '../../src/lib/coverThemes.gen';
-import { pickPhotoDataUrl } from '../../src/lib/photo';
+import { pickPhotoDataUrl, mediaPermissionDenied } from '../../src/lib/photo';
+import { useConfirm } from '../../src/store/confirm';
 import { ensureProfile, loadProfilePhoto, saveProfilePhoto } from '../../src/lib/profile';
 
 // Badges driven by logging discoveries — the pool for the Discoveries nudge card.
@@ -54,6 +55,7 @@ export default function YouScreen() {
     [visitedPhotoCodes],
   );
   const { configured, user } = useAuth();
+  const confirm = useConfirm();
   const [xpOpen, setXpOpen] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
@@ -105,7 +107,15 @@ export default function YouScreen() {
 
   async function changeAvatar() {
     const data = await pickPhotoDataUrl('library', 512, [1, 1]);
-    if (!data) return;
+    if (!data) {
+      // Distinguish a permission denial from a plain cancel and offer Settings.
+      if (await mediaPermissionDenied('library') && await confirm({
+        title: 'Allow photo access',
+        message: 'To choose a profile photo, turn on photo access for Worldly in Settings.',
+        confirmLabel: 'Open Settings',
+      })) Linking.openSettings();
+      return;
+    }
     setAvatar(data);
     if (user) saveProfilePhoto(user.uid, data).catch(() => {});
     else AsyncStorage.setItem(LOCAL_AVATAR_KEY, data).catch(() => {});

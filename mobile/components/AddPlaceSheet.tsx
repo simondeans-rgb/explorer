@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { Check, Search } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
@@ -41,6 +41,7 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
   // Residence end (when Lived/Based).
   const [present, setPresent] = useState(true);
   const [until, setUntil] = useState('');
+  const busy = useRef(false);
 
   const isResidence = rels.has('lived') || rels.has('based');
 
@@ -65,7 +66,12 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
     onClose();
   }
   function save(keepOpen = false) {
-    if (!ready) return;
+    // Guard a same-frame double-tap from creating a duplicate place (addPlace is
+    // synchronous). The 700ms window is far shorter than a deliberate "add
+    // another", which also has to re-satisfy `ready` first.
+    if (!ready || busy.current) return;
+    busy.current = true;
+    setTimeout(() => { busy.current = false; }, 700);
     // Paywall trigger — the 26th country. Inert until billing goes live.
     if (kind === 'country' && shouldGate('countries', new Set(places.filter((p) => p.kind === 'country').map((p) => p.countryCode)).size)) {
       close();

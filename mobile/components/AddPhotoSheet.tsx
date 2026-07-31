@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import { Camera, ImagePlus, Check, Search, X, MapPin } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
@@ -8,7 +8,8 @@ import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES, countryName } from '../src/data/countries';
 import { useData } from '../src/store/data';
 import { useToast } from '../src/store/toast';
-import { pickPhotoWithMeta, pickMultiplePhotosWithMeta } from '../src/lib/photo';
+import { useConfirm } from '../src/store/confirm';
+import { pickPhotoWithMeta, pickMultiplePhotosWithMeta, mediaPermissionDenied } from '../src/lib/photo';
 import { countryAt } from '../src/lib/geoLookup';
 import { matchExpedition, expeditionLabel } from '../src/lib/tripMatch';
 import { TripPickerField } from './TripPickerField';
@@ -29,6 +30,20 @@ export function AddPhotoSheet({
 }) {
   const { addCapture, expeditions } = useData();
   const { toast } = useToast();
+  const confirm = useConfirm();
+
+  // When a picker returns nothing because the permission is off (not a cancel),
+  // explain it and offer a route to Settings — iOS won't re-prompt after a hard
+  // denial, so without this the button just appears to do nothing.
+  async function offerSettingsIfDenied(source: 'camera' | 'library') {
+    if (!(await mediaPermissionDenied(source))) return;
+    const what = source === 'camera' ? 'camera' : 'photo';
+    if (await confirm({
+      title: `Allow ${what} access`,
+      message: `To ${source === 'camera' ? 'take a photo' : 'add photos'}, turn on ${what} access for Worldly in Settings.`,
+      confirmLabel: 'Open Settings',
+    })) Linking.openSettings();
+  }
   const [photo, setPhoto] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [query, setQuery] = useState('');
@@ -79,7 +94,10 @@ export function AddPhotoSheet({
     setPicking(true);
     try {
       const picked = await pickPhotoWithMeta(source);
-      if (!picked) return;
+      if (!picked) {
+        await offerSettingsIfDenied(source);
+        return;
+      }
       setPhoto(picked.dataUrl);
       setTakenAt(picked.takenAt);
       // Geotag → country, pre-filled but always changeable below.
@@ -100,7 +118,10 @@ export function AddPhotoSheet({
     setPicking(true);
     try {
       const picks = await pickMultiplePhotosWithMeta();
-      if (!picks.length) return;
+      if (!picks.length) {
+        await offerSettingsIfDenied('library');
+        return;
+      }
       let saved = 0;
       for (const p of picks) {
         const cc = (p.latitude !== undefined && p.longitude !== undefined ? countryAt(p.longitude, p.latitude) : undefined) || undefined;

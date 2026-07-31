@@ -73,6 +73,16 @@ export async function pickPhotoWithMeta(
   return assetToPicked(asset, maxWidth);
 }
 
+/** After a picker returns null/[], distinguish a permission denial from a plain
+ *  user cancel — so callers can offer an "Open Settings" recovery only when the
+ *  permission is actually off (iOS won't re-prompt after a hard denial). */
+export async function mediaPermissionDenied(source: 'camera' | 'library'): Promise<boolean> {
+  const p = source === 'camera'
+    ? await ImagePicker.getCameraPermissionsAsync()
+    : await ImagePicker.getMediaLibraryPermissionsAsync();
+  return !p.granted;
+}
+
 /** Turn one picked asset into a compact captured photo + its recovered EXIF
  *  location/timestamp. Shared by the single- and multi-photo pickers. */
 async function assetToPicked(asset: ImagePicker.ImagePickerAsset, maxWidth: number): Promise<PickedPhoto | null> {

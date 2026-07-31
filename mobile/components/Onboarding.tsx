@@ -12,6 +12,7 @@ import {
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { setPendingRoute } from '../src/lib/nav';
 import Svg, { Path } from 'react-native-svg';
 import { DownloadCloud, Images, MapPin, ChevronRight } from 'lucide-react-native';
 import { COLORS } from '../src/lib/theme';
@@ -70,11 +71,15 @@ export function Onboarding({ onDone, blockRoute = false }: { onDone: () => void;
     track('onboarding_completed', { quickstart: route ?? 'skip' });
     onDone();
     // When the user still needs to sign in (or choose guest), don't deep-link
-    // into an import flow: it would render behind the sign-in wall and could
+    // into an import flow now: it would render behind the sign-in wall and could
     // fire a permission prompt (e.g. Photos for "Scan") with no visible context
-    // — an App Review 5.1.1 red flag. Dismissing onboarding reveals the sign-in
-    // gate; they reach these flows afterwards.
-    if (route && !blockRoute) router.push(route);
+    // — an App Review 5.1.1 red flag. Stash the choice and let _layout replay it
+    // the moment they authenticate, so the QuickStart button still honours what
+    // it says instead of silently doing nothing.
+    if (route) {
+      if (blockRoute) setPendingRoute(route);
+      else router.push(route);
+    }
   }
   if (showStart) return <QuickStart onPick={go} />;
 

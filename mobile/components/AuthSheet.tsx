@@ -64,6 +64,10 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
       setError('Enter an email and a password of at least 6 characters.');
       return;
     }
+    if (mode === 'up' && !name.trim()) {
+      setError('What should we call you? Add your name to continue.');
+      return;
+    }
     if (!ensureAgreed()) return;
     setBusy(true);
     try {
