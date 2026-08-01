@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, Linking } from 'react-native';
 import { Image } from 'expo-image';
-import { Camera, ImagePlus, Check, Search, X, MapPin } from 'lucide-react-native';
+import { Camera, ImagePlus, Check, X, MapPin } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
-import { COUNTRIES, countryName } from '../src/data/countries';
+import { countryName } from '../src/data/countries';
 import { useData } from '../src/store/data';
 import { useToast } from '../src/store/toast';
 import { useConfirm } from '../src/store/confirm';
@@ -13,6 +13,7 @@ import { pickPhotoWithMeta, pickMultiplePhotosWithMeta, mediaPermissionDenied } 
 import { countryAt } from '../src/lib/geoLookup';
 import { matchExpedition, expeditionLabel } from '../src/lib/tripMatch';
 import { TripPickerField } from './TripPickerField';
+import { CountryPickerField } from './CountryPickerField';
 import { track } from '../src/lib/analytics';
 import { isObjectionable } from '../src/lib/textFilter';
 
@@ -46,7 +47,6 @@ export function AddPhotoSheet({
   }
   const [photo, setPhoto] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
-  const [query, setQuery] = useState('');
   const [code, setCode] = useState('');
   const [picking, setPicking] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -61,12 +61,6 @@ export function AddPhotoSheet({
     if (visible && initialExpeditionId) setExpId(initialExpeditionId);
   }, [visible, initialCountryCode, initialExpeditionId]);
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const list = q ? COUNTRIES.filter((c) => c.name.toLowerCase().includes(q)) : COUNTRIES;
-    return list.slice(0, 24);
-  }, [query]);
-
   // The trip this photo most plausibly belongs to, from its geotag + timestamp.
   const suggested = useMemo(
     () => (photo ? matchExpedition(expeditions, { countryCode: detectedCode || code || undefined, takenAt }) : undefined),
@@ -78,7 +72,6 @@ export function AddPhotoSheet({
   function reset() {
     setPhoto(null);
     setCaption('');
-    setQuery('');
     setCode('');
     setPicking(false);
     setSaving(false);
@@ -246,36 +239,11 @@ export function AddPhotoSheet({
         </View>
 
         {/* country */}
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 1, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 16 }}>
-          {detectedCode ? 'WHERE (FROM THE PHOTO — TAP TO CHANGE)' : 'WHERE (OPTIONAL)'}
-        </Text>
-        <View className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
-          <Search size={18} color={COLORS.ink3} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search countries"
-            placeholderTextColor={COLORS.ink3}
-            style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }}
-          />
-        </View>
-        <ScrollView style={{ maxHeight: 160, marginTop: 6 }} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
-          {results.map((c) => {
-            const active = code === c.code;
-            return (
-              <Pressable
-                key={c.code}
-                onPress={() => setCode(active ? '' : c.code)}
-                className="flex-row items-center"
-                style={{ paddingHorizontal: 20, paddingVertical: 10, gap: 12, backgroundColor: active ? 'rgba(255,107,154,0.10)' : 'transparent' }}
-              >
-                <Text style={{ fontSize: 22 }}>{flagEmoji(c.code)}</Text>
-                <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.navy }}>{c.name}</Text>
-                {active ? <Check size={18} color={COLORS.coral} /> : null}
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        <CountryPickerField
+          code={code}
+          onChange={setCode}
+          label={detectedCode ? 'WHERE (FROM THE PHOTO — TAP TO CHANGE)' : 'WHERE (OPTIONAL)'}
+        />
 
         <Pressable
           accessibilityRole="button"

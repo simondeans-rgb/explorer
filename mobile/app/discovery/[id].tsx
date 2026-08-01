@@ -4,12 +4,10 @@ import { Image } from 'expo-image';
 import { useConfirm } from '../../src/store/confirm';
 import Svg, { Path } from 'react-native-svg';
 import { useLocalSearchParams } from 'expo-router';
-import { Trash2, Check, Search, Camera, ImagePlus, X } from 'lucide-react-native';
+import { Trash2, Check, Camera, ImagePlus, X } from 'lucide-react-native';
 import { BackButton } from '../../components/BackButton';
 import { DestinationImage } from '../../components/DestinationImage';
 import { COLORS } from '../../src/lib/theme';
-import { flagEmoji } from '../../src/lib/flags';
-import { COUNTRIES, countryName } from '../../src/data/countries';
 import { countryFacts } from '../../src/data/countryFacts';
 import { pickPhotoDataUrl } from '../../src/lib/photo';
 import { goBack } from '../../src/lib/nav';
@@ -24,6 +22,7 @@ import {
 } from '../../src/types';
 import { useData } from '../../src/store/data';
 import { TripPickerField } from '../../components/TripPickerField';
+import { CountryPickerField } from '../../components/CountryPickerField';
 import { DetailSkeleton } from '../../components/DetailSkeleton';
 import { useToast } from '../../src/store/toast';
 
@@ -38,7 +37,6 @@ export default function DiscoveryScreen() {
   const [category, setCategory] = useState<DiscoveryCategory>('food');
   const [subcategory, setSubcategory] = useState<string | undefined>(undefined);
   const [city, setCity] = useState('');
-  const [query, setQuery] = useState('');
   const [code, setCode] = useState('');
   const [landmark, setLandmark] = useState('');
   const [expeditionId, setExpeditionId] = useState('');
@@ -65,12 +63,6 @@ export default function DiscoveryScreen() {
       setHydrated(true);
     }
   }, [discovery, hydrated]);
-
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const list = q ? COUNTRIES.filter((c) => c.name.toLowerCase().includes(q)) : COUNTRIES;
-    return list.slice(0, 24);
-  }, [query]);
 
   const subcategories = DISCOVERY_SUBCATEGORIES[category];
   const landmarks = useMemo(() => (code ? countryFacts(code)?.landmarks ?? [] : []), [code]);
@@ -210,24 +202,7 @@ export default function DiscoveryScreen() {
 
         {/* country */}
         <Text style={LBL}>COUNTRY</Text>
-        <View className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
-          <Search size={18} color={COLORS.ink3} />
-          <TextInput value={query} onChangeText={setQuery} placeholder={code ? `${flagEmoji(code)} ${countryName(code)}` : 'Search countries'} placeholderTextColor={code ? COLORS.ink2 : COLORS.ink3} style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />
-        </View>
-        {query ? (
-          <ScrollView style={{ maxHeight: 160, marginTop: 6 }} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
-            {results.map((c) => {
-              const active = code === c.code;
-              return (
-                <Pressable key={c.code} onPress={() => { setCode(c.code); setQuery(''); setLandmark(''); }} className="flex-row items-center" style={{ paddingHorizontal: 20, paddingVertical: 10, gap: 12, backgroundColor: active ? 'rgba(255,107,154,0.10)' : 'transparent' }}>
-                  <Text style={{ fontSize: 22 }}>{flagEmoji(c.code)}</Text>
-                  <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.navy }}>{c.name}</Text>
-                  {active ? <Check size={18} color={COLORS.coral} /> : null}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        ) : null}
+        <CountryPickerField code={code} onChange={(c) => { setCode(c); setLandmark(''); }} />
 
         {/* landmark — only when the country has known landmarks */}
         {landmarks.length > 0 ? (
