@@ -162,7 +162,7 @@ function QuickStart({ onPick }: { onPick: (route?: string) => void }) {
               key={o.title}
               onPress={() => onPick(o.route)}
               className="bg-white dark:bg-card rounded-3xl flex-row items-center"
-              style={{ padding: 16, gap: 14, shadowColor: '#14213d', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } }}
+              style={{ padding: 16, gap: 14, shadowColor: '#14213D', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } }}
             >
               <View className="rounded-2xl items-center justify-center" style={{ height: 46, width: 46, backgroundColor: COLORS.warmwhite }}>
                 <o.icon size={22} color={COLORS.coral} />

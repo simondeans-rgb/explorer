@@ -37,7 +37,7 @@ export function Toast({ item, onDismiss }: { item: ToastItem; onDismiss: () => v
         accessibilityLabel={item.message}
         accessibilityHint="Double tap to dismiss"
         className="flex-row items-center"
-        style={{ maxWidth: '100%', backgroundColor: 'rgba(20,33,61,0.97)', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12, gap: 10, shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } }}
+        style={{ maxWidth: '100%', backgroundColor: 'rgba(20,33,61,0.97)', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12, gap: 10, shadowColor: '#14213D', shadowOpacity: 0.28, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } }}
       >
         <Icon size={18} color={color} />
         <Text style={{ flexShrink: 1, color: '#fff', fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '600' }}>{item.message}</Text>

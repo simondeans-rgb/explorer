@@ -64,7 +64,10 @@ export const GRADIENTS = {
 export type Gradient = readonly [string, string, ...string[]];
 
 /** Adjusted brand palette (improved colour-vision distinction) mapped to each
- *  main section. Drives the nav-bar icon tints and each hero's wave line. */
+ *  main section. Drives the nav-bar icon tints and each hero's wave line.
+ *  NOTE: these intentionally differ from the same-named COLORS.* entries — the
+ *  section accents are tuned for separation in the tab bar, so do NOT "unify"
+ *  them with COLORS. Use SECTION.* for section-identity tints, COLORS.* elsewhere. */
 export const SECTION = {
   story: '#FF6B9A', // Coral
   atlas: '#00CFAE', // Aqua

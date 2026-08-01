@@ -142,8 +142,11 @@ export function ReplySheet({
             />
             <Pressable
               accessibilityLabel="Send reply"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: sending || !text.trim(), busy: sending }}
               onPress={send}
               disabled={sending || !text.trim()}
+              hitSlop={8}
               className="items-center justify-center rounded-full"
               style={{ height: 38, width: 38, backgroundColor: COLORS.coral, opacity: sending || !text.trim() ? 0.4 : 1 }}
             >

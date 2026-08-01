@@ -52,7 +52,7 @@ export function FriendCountrySheet({
                 <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, opacity: 0.92, marginTop: 1 }}>{first}'s photos & places</Text>
               </View>
             </DestinationImage>
-            <Pressable onPress={onClose} hitSlop={10} className="rounded-full items-center justify-center" style={{ position: 'absolute', top: 14, right: 14, height: 34, width: 34, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+            <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel="Close" className="rounded-full items-center justify-center" style={{ position: 'absolute', top: 14, right: 14, height: 34, width: 34, backgroundColor: 'rgba(0,0,0,0.4)' }}>
               <X size={18} color="#fff" />
             </Pressable>
           </View>

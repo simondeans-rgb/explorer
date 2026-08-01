@@ -82,16 +82,39 @@ function GhostCircle() {
   );
 }
 
-function CirclePreview() {
+/** A small "Example" tag so the preview cards can never be mistaken for a real
+ *  friend's activity (they are illustrative — the user has no circle yet). */
+function ExampleTag() {
   return (
-    <View style={{ marginTop: 14 }}>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, textAlign: 'center', marginBottom: 4, paddingHorizontal: 16 }}>PREVIEW · HOW YOUR CIRCLE WILL LOOK</Text>
-      <Text style={{ fontFamily: 'Fraunces', fontSize: 12, fontStyle: 'italic', color: COLORS.ink3, textAlign: 'center', marginBottom: 10, paddingHorizontal: 24 }}>Invite friends to see their real activity.</Text>
-      <View style={{ gap: 10, opacity: 0.92 }}>
-        <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14 }}>
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      className="absolute rounded-full"
+      style={{ top: 10, right: 10, backgroundColor: 'rgba(20,33,61,0.06)', paddingHorizontal: 8, paddingVertical: 3 }}
+    >
+      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.8, color: COLORS.ink3 }}>EXAMPLE</Text>
+    </View>
+  );
+}
+
+// Illustrative only — clearly labelled sample cards shown before the user has any
+// friends, so the empty state can sell the feature without fabricating real
+// social proof (no card asserts a fact about the user's actual circle).
+function CirclePreview() {
+  const cardStyle = { padding: 14, borderWidth: 1, borderStyle: 'dashed' as const, borderColor: 'rgba(20,33,61,0.14)' };
+  return (
+    <View
+      accessibilityLabel="Example of how your Circle will look once you add friends"
+      style={{ marginTop: 14 }}
+    >
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, textAlign: 'center', marginBottom: 4, paddingHorizontal: 16 }}>FOR EXAMPLE · HOW YOUR CIRCLE WILL LOOK</Text>
+      <Text style={{ fontFamily: 'Fraunces', fontSize: 12, fontStyle: 'italic', color: COLORS.ink3, textAlign: 'center', marginBottom: 10, paddingHorizontal: 24 }}>Sample cards — invite friends to see their real trips here.</Text>
+      <View style={{ gap: 10, opacity: 0.7 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <View className="bg-white dark:bg-card rounded-3xl" style={cardStyle}>
+          <ExampleTag />
           <View className="flex-row items-center" style={{ gap: 10 }}>
-            <Avatar name="Maya" size={38} />
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.navy }}><Text style={{ fontWeight: '700' }}>Maya</Text> recently visited</Text>
+            <Avatar name="A friend" size={38} />
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.navy }}><Text style={{ fontWeight: '700' }}>A friend</Text> recently visited</Text>
           </View>
           <View className="flex-row flex-wrap" style={{ gap: 6, marginTop: 10 }}>
             {['Porto', 'Braga', 'Aveiro'].map((c) => (
@@ -102,7 +125,8 @@ function CirclePreview() {
             ))}
           </View>
         </View>
-        <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14 }}>
+        <View className="bg-white dark:bg-card rounded-3xl" style={cardStyle}>
+          <ExampleTag />
           <View className="flex-row items-center" style={{ gap: 8 }}>
             <View className="rounded-full items-center justify-center" style={{ height: 28, width: 28, backgroundColor: 'rgba(255,184,77,0.18)' }}>
               <Gem size={15} color="#C2871A" />
@@ -110,14 +134,15 @@ function CirclePreview() {
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '700', color: '#B5731A' }}>Hidden Gem</Text>
           </View>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy, marginTop: 8 }}>Sintra, Portugal</Text>
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 1 }}>4 people in your circle say it's worth the trip</Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 1 }}>The kind of place your friends will flag as worth the trip</Text>
         </View>
-        <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14 }}>
+        <View className="bg-white dark:bg-card rounded-3xl" style={cardStyle}>
+          <ExampleTag />
           <View className="flex-row items-center" style={{ gap: 8 }}>
             <Sparkles size={15} color={COLORS.lavender} />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '700', color: COLORS.lavender }}>On their wishlists</Text>
           </View>
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2, marginTop: 8 }}>Colin wants to visit <Text style={{ fontWeight: '700' }}>Kyoto</Text>, <Text style={{ fontWeight: '700' }}>Buenos Aires</Text> & <Text style={{ fontWeight: '700' }}>Cape Town</Text></Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2, marginTop: 8 }}>See where friends dream of going — like <Text style={{ fontWeight: '700' }}>Kyoto</Text>, <Text style={{ fontWeight: '700' }}>Buenos Aires</Text> & <Text style={{ fontWeight: '700' }}>Cape Town</Text></Text>
         </View>
       </View>
     </View>
@@ -424,7 +449,7 @@ export default function CircleScreen() {
                             <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, opacity: 0.9 }}>{s.city ?? (s.countryCode ? countryName(s.countryCode) : '')}</Text>
                           ) : null}
                         </LinearGradient>
-                        <Pressable onPress={() => toggle(s.id, s.userId)} hitSlop={8} className="absolute flex-row items-center rounded-full" style={{ top: 8, right: 8, gap: 4, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                        <Pressable onPress={() => toggle(s.id, s.userId)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`${st.likedByMe ? 'Unlike' : 'Like'} ${s.friend}'s photo`} className="absolute flex-row items-center rounded-full" style={{ top: 8, right: 8, gap: 4, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: 'rgba(0,0,0,0.4)' }}>
                           <Heart size={14} color={st.likedByMe ? COLORS.coral : '#fff'} fill={st.likedByMe ? COLORS.coral : 'transparent'} />
                           {st.count > 0 ? <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700' }}>{st.count}</Text> : null}
                         </Pressable>
