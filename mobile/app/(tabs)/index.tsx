@@ -21,6 +21,7 @@ import { PassportStamp } from '../../components/PassportStamp';
 import { useConfirm } from '../../src/store/confirm';
 import { circleStoryItems, type CircleStoryItem } from '../../src/lib/circle';
 import { COLORS, HERO_HEIGHT, BRAND_GRADIENT } from '../../src/lib/theme';
+import { hSelection } from '../../src/lib/haptics';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
@@ -247,7 +248,14 @@ export default function StoryScreen() {
             {onThisDay.slice(0, 2).map((mem, i) => (
               <Pressable
                 key={`${mem.label}-${i}`}
-                onPress={() => (mem.countryCode ? router.push(`/country/${mem.countryCode}`) : undefined)}
+                onPress={() => {
+                  if (!mem.countryCode) return;
+                  hSelection();
+                  router.push(`/country/${mem.countryCode}`);
+                }}
+                disabled={!mem.countryCode}
+                accessibilityRole={mem.countryCode ? 'button' : undefined}
+                accessibilityLabel={`${mem.yearsAgo === 1 ? 'A year ago today' : `${mem.yearsAgo} years ago today`}, ${mem.kind === 'trip' ? 'you set off to' : 'you were in'} ${mem.label}. Relive it.`}
                 className="bg-white dark:bg-card rounded-3xl flex-row items-center"
                 style={{ padding: 12, gap: 12 }}
               >
@@ -261,7 +269,12 @@ export default function StoryScreen() {
                   {/* Handwritten accent (Caveat) — a warm, personal margin note (R7). */}
                   <Text style={{ fontFamily: 'Caveat', fontSize: 17, color: COLORS.coral, marginTop: 1 }}>Do you remember it?</Text>
                 </View>
-                {mem.countryCode ? <ChevronRight size={17} color={COLORS.ink3} /> : null}
+                {mem.countryCode ? (
+                  <View className="flex-row items-center" style={{ gap: 2 }}>
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>Relive it</Text>
+                    <ChevronRight size={16} color={COLORS.coral} />
+                  </View>
+                ) : null}
               </Pressable>
             ))}
           </View>
