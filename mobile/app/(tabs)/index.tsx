@@ -258,7 +258,8 @@ export default function StoryScreen() {
                   <Text style={{ fontFamily: 'Fraunces', fontSize: 15.5, color: COLORS.navy, lineHeight: 21 }}>
                     {mem.yearsAgo === 1 ? 'A year ago today' : `${mem.yearsAgo} years ago today`}, {mem.kind === 'trip' ? 'you set off to' : 'you were in'} {mem.label}.
                   </Text>
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2 }}>Do you remember it?</Text>
+                  {/* Handwritten accent (Caveat) — a warm, personal margin note (R7). */}
+                  <Text style={{ fontFamily: 'Caveat', fontSize: 17, color: COLORS.coral, marginTop: 1 }}>Do you remember it?</Text>
                 </View>
                 {mem.countryCode ? <ChevronRight size={17} color={COLORS.ink3} /> : null}
               </Pressable>
