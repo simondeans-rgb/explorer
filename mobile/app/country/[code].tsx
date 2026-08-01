@@ -233,6 +233,11 @@ export default function CountryScreen() {
     setDiscOpen(true);
   }
 
+  // Detail-loading convention (R33): stack routes that key off a possibly-not-yet
+  // -hydrated id show <DetailSkeleton/> until `loaded` (trip/discovery/journey/
+  // memory/guide). This screen deliberately shows none — `agg` is derived
+  // synchronously from the already-in-memory aggregates, so there's nothing to
+  // await and an unknown country simply renders its facts-only view.
   const agg = useMemo(() => aggregates.find((a) => a.code === code), [aggregates, code]);
   const facts = countryFacts(code);
   const myDiscoveries = useMemo(
