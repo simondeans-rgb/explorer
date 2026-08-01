@@ -1,84 +1,25 @@
-import { useState } from 'react';
 import { View, Text, TextInput, Pressable, ActivityIndicator, Linking } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
 import { SocialAuthButtons } from './SocialAuthButtons';
 import { COLORS } from '../src/lib/theme';
-import { useAuth } from '../src/store/auth';
+import { useAuthForm } from '../src/hooks/useAuthForm';
 
 const TERMS_URL = 'https://www.worldly-explorer.com/terms.html';
 const PRIVACY_URL = 'https://www.worldly-explorer.com/privacy.html';
 
-type Mode = 'in' | 'up';
-
 export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { signIn, signUp, resetPassword } = useAuth();
-  const [mode, setMode] = useState<Mode>('in');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [agreed, setAgreed] = useState(false);
+  // Shares all form logic with AuthGate via useAuthForm; this is just the sheet
+  // presentation. On success the hook calls onClose to dismiss the sheet.
+  const {
+    mode, name, email, password, busy, error, notice, agreed,
+    setName, setEmail, setPassword, setAgreed, setError, setBusy,
+    ensureAgreed, forgot, submit, switchMode, resetFields,
+  } = useAuthForm(onClose);
 
-  // Guideline 1.2: agreement (incl. zero-tolerance policy) required before sign-in.
-  function ensureAgreed(): boolean {
-    if (!agreed) {
-      setError('Please agree to the Terms & zero-tolerance policy to continue.');
-      return false;
-    }
-    return true;
-  }
-
-  async function forgot() {
-    setError(null);
-    setNotice(null);
-    if (!email.trim()) {
-      setError('Enter your email above, then tap “Forgot password”.');
-      return;
-    }
-    try {
-      await resetPassword(email);
-      setNotice('Check your inbox — we’ve sent a password reset link.');
-    } catch {
-      setNotice('If that email has an account, a reset link is on its way.');
-    }
-  }
-
-  function reset() {
-    setName('');
-    setEmail('');
-    setPassword('');
-    setError(null);
-    setNotice(null);
-    setBusy(false);
-  }
   function close() {
-    reset();
+    resetFields();
     onClose();
-  }
-  async function submit() {
-    setError(null);
-    if (!email.trim() || password.length < 6) {
-      setError('Enter an email and a password of at least 6 characters.');
-      return;
-    }
-    if (mode === 'up' && !name.trim()) {
-      setError('What should we call you? Add your name to continue.');
-      return;
-    }
-    if (!ensureAgreed()) return;
-    setBusy(true);
-    try {
-      if (mode === 'in') await signIn(email, password);
-      else await signUp(email, password, name);
-      close();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Something went wrong.';
-      setError(msg.replace('Firebase: ', '').replace(/\(auth.*\)\.?/, '').trim());
-      setBusy(false);
-    }
   }
 
   const title = mode === 'in' ? 'Welcome back' : 'Create your account';
@@ -187,11 +128,7 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
         </Pressable>
 
         <Pressable
-          onPress={() => {
-            setMode(mode === 'in' ? 'up' : 'in');
-            setError(null);
-            setNotice(null);
-          }}
+          onPress={switchMode}
           style={{ marginTop: 14, alignItems: 'center' }}
         >
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2 }}>
