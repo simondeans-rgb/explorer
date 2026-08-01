@@ -55,7 +55,7 @@ const HIDDEN = new Set(['/wrapped', '/search']);
 /** A floating, frosted-glass navigation bar rendered globally so it stays fixed
  *  and visible on every screen, with the action button floated to the bottom
  *  right within easy thumb reach. */
-export function GlobalTabBar({ onFab }: { onFab: () => void }) {
+export function GlobalTabBar({ onFab, onFabLongPress }: { onFab: () => void; onFabLongPress?: () => void }) {
   const pathname = usePathname();
   const darkUI = useColorScheme() === 'dark';
   const reduce = useReduceMotion();
@@ -159,7 +159,9 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Add to your world"
+            accessibilityHint="Long press to add a photo"
             onPress={() => { hImpact('light'); onFab(); }}
+            onLongPress={onFabLongPress ? () => { hImpact('medium'); onFabLongPress(); } : undefined}
             className="items-center justify-center rounded-full"
             style={{
               height: 58,
