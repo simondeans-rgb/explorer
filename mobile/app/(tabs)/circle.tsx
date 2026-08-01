@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable } from 'react-native';
 import { useTabReselect } from '../../src/hooks/useTabReselect';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,6 +10,7 @@ import { loadBlockedUids, blockedUidsSync, blockUser, reportContent } from '../.
 import { useLikes } from '../../src/hooks/useLikes';
 import { useReplies } from '../../src/hooks/useReplies';
 import { ReplySheet } from '../../components/ReplySheet';
+import { ModerationSheet } from '../../components/ModerationSheet';
 import { PageHero } from '../../components/PageHero';
 import { LandmarkDetailSheet } from '../../components/LandmarkDetailSheet';
 import { COLORS, GRADIENTS, SHADOW, HERO_HEIGHT, tint, MUTED_TINT } from '../../src/lib/theme';
@@ -271,30 +272,24 @@ export default function CircleScreen() {
 
   // Report or block on a shared snap. Reporting hides it immediately and queues
   // it for moderation; blocking also severs the friendship and hides everything
-  // from that member.
-  function moderateSnap(s: { id: string; userId: string; friend: string }) {
-    if (!user?.uid) return;
-    const me = user.uid;
-    Alert.alert('Report this photo?', `Flag ${s.friend}'s photo for our moderation team, or block ${s.friend}.`, [
-      {
-        text: 'Report photo',
-        style: 'destructive',
-        onPress: () => {
-          reportContent({ reporterUid: me, type: 'capture', targetId: s.id, ownerUid: s.userId, reason: 'objectionable photo' }).catch(() => {});
-          setHiddenSnaps((h) => new Set(h).add(s.id));
-        },
-      },
-      {
-        text: `Block ${s.friend}`,
-        style: 'destructive',
-        onPress: () => {
-          reportContent({ reporterUid: me, type: 'user', targetId: s.userId, ownerUid: s.userId, reason: 'blocked from snap' }).catch(() => {});
-          blockUser(me, s.userId, s.friend).catch(() => {});
-          setBlocked((b) => new Set(b).add(s.userId));
-        },
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+  // from that member. Presented via the branded ModerationSheet (R23).
+  const [modSnap, setModSnap] = useState<{ id: string; userId: string; friend: string } | null>(null);
+  function reportSnap() {
+    const s = modSnap;
+    if (!s || !user?.uid) return;
+    reportContent({ reporterUid: user.uid, type: 'capture', targetId: s.id, ownerUid: s.userId, reason: 'objectionable photo' }).catch(() => {});
+    setHiddenSnaps((h) => new Set(h).add(s.id));
+    setModSnap(null);
+    toast.success('Thanks — reported. Our team will review it within 24 hours.');
+  }
+  function blockSnapMember() {
+    const s = modSnap;
+    if (!s || !user?.uid) return;
+    reportContent({ reporterUid: user.uid, type: 'user', targetId: s.userId, ownerUid: s.userId, reason: 'blocked from snap' }).catch(() => {});
+    blockUser(user.uid, s.userId, s.friend).catch(() => {});
+    setBlocked((b) => new Set(b).add(s.userId));
+    setModSnap(null);
+    toast.success(`${s.friend} blocked`);
   }
 
   const hasContent = activity.length > 0 || snaps.length > 0 || recs.length > 0 || !!mostVisited || recents.length > 0 || wishes.length > 0 || compat.length > 0;
@@ -457,7 +452,7 @@ export default function CircleScreen() {
                           <MessageCircle size={14} color="#fff" />
                           {(replies[s.id]?.length ?? 0) > 0 ? <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700' }}>{replies[s.id].length}</Text> : null}
                         </Pressable>
-                        <Pressable accessibilityLabel={`Report or block ${s.friend}`} onPress={() => moderateSnap(s)} hitSlop={8} className="absolute items-center justify-center rounded-full" style={{ bottom: 8, right: 8, padding: 6, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                        <Pressable accessibilityRole="button" accessibilityLabel={`Report or block ${s.friend}`} onPress={() => setModSnap({ id: s.id, userId: s.userId, friend: s.friend })} hitSlop={8} className="absolute items-center justify-center rounded-full" style={{ bottom: 8, right: 8, padding: 6, backgroundColor: 'rgba(0,0,0,0.4)' }}>
                           <Flag size={13} color="#fff" />
                         </Pressable>
                       </View>
@@ -702,6 +697,14 @@ export default function CircleScreen() {
         myUid={user?.uid}
         myName={myName}
         onClose={() => setReplySnap(null)}
+      />
+      <ModerationSheet
+        visible={!!modSnap}
+        name={modSnap?.friend ?? ''}
+        kind="photo"
+        onClose={() => setModSnap(null)}
+        onReport={reportSnap}
+        onBlock={blockSnapMember}
       />
       <LandmarkDetailSheet
         visible={!!rec}
