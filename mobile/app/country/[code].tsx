@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, ScrollView, Pressable, LayoutAnimation, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
@@ -25,6 +25,7 @@ import { DiscoveryCard } from '../../components/DiscoveryCard';
 import { EditCitySheet } from '../../components/EditCitySheet';
 import { LandmarkDetailSheet, type LandmarkPerson } from '../../components/LandmarkDetailSheet';
 import { COLORS, SHADOW } from '../../src/lib/theme';
+import { useReduceMotion } from '../../src/lib/motion';
 import { flagEmoji } from '../../src/lib/flags';
 import { buildCityGuides, guidesForCountry } from '../../src/lib/cityGuides';
 import { countryName, continentOf } from '../../src/data/countries';
@@ -136,6 +137,33 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
       <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, marginBottom: 10 }}>{title}</Text>
       {children}
+    </View>
+  );
+}
+
+/** A Section whose body can be collapsed behind its title (R31). Used to tuck the
+ *  reference material (facts, landmarks) away by default once a country is one
+ *  you've actually visited, so the screen leads with your own memories/picks. */
+function CollapsibleSection({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const reduce = useReduceMotion();
+  return (
+    <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
+      <Pressable
+        onPress={() => {
+          if (Platform.OS === 'ios' && !reduce) LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setOpen((o) => !o);
+        }}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={title}
+        accessibilityHint={open ? 'Collapse' : 'Expand'}
+        className="flex-row items-center justify-between"
+      >
+        <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy }}>{title}</Text>
+        <ChevronRight size={20} color={COLORS.ink3} style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }} />
+      </Pressable>
+      {open ? <View style={{ marginTop: 10 }}>{children}</View> : null}
     </View>
   );
 }
@@ -349,7 +377,8 @@ export default function CountryScreen() {
 
         {/* About */}
         {facts ? (
-          <Section title={`About ${name}`}>
+          // Collapsed by default once you've visited, so your memories/picks lead (R31).
+          <CollapsibleSection title={`About ${name}`} defaultOpen={rels.length === 0}>
             <View className="flex-row flex-wrap" style={{ gap: 10 }}>
               <Fact icon={Building2} label="Capital" value={facts.capital} tint={COLORS.coral} />
               <Fact icon={Coins} label="Currency" value={facts.currency} tint={COLORS.sunburst} />
@@ -361,12 +390,12 @@ export default function CountryScreen() {
                 <TempChart temps={facts.temps} tempUnit={tempUnit} />
               </View>
             ) : null}
-          </Section>
+          </CollapsibleSection>
         ) : null}
 
         {/* Landmarks */}
         {facts?.landmarks && facts.landmarks.length > 0 ? (
-          <Section title="Landmarks & sights">
+          <CollapsibleSection title="Landmarks & sights" defaultOpen={rels.length === 0}>
             <View style={{ gap: 8 }}>
               {facts.landmarks.map((l) => {
                 const recorded = !!myDiscoveries.find((d) => d.landmark === l || d.name.toLowerCase() === l.toLowerCase());
@@ -385,7 +414,7 @@ export default function CountryScreen() {
                 );
               })}
             </View>
-          </Section>
+          </CollapsibleSection>
         ) : null}
 
         {/* Your relationship */}
