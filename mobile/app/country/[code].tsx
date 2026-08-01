@@ -421,14 +421,14 @@ export default function CountryScreen() {
             <View style={{ marginHorizontal: -20 }}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
                 {myPhotos.map((p) => (
-                  <View key={p.id} style={{ width: 150, borderRadius: 20, overflow: 'hidden' }}>
+                  <Pressable key={p.id} onPress={() => router.push(`/memory/${p.id}`)} accessibilityRole="button" accessibilityLabel={`Memory${p.caption ? `: ${p.caption}` : ''} — tap to edit`} style={{ width: 150, borderRadius: 20, overflow: 'hidden' }}>
                     <Image source={{ uri: p.dataUrl }} style={{ width: 150, height: 190 }} contentFit="cover" transition={200} />
                     {p.caption ? (
                       <LinearGradient colors={['transparent', 'rgba(0,0,0,0.55)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 10, paddingTop: 30 }}>
                         <Text numberOfLines={2} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '600' }}>{p.caption}</Text>
                       </LinearGradient>
                     ) : null}
-                  </View>
+                  </Pressable>
                 ))}
               </ScrollView>
             </View>

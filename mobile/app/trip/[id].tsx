@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Share, Modal } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useConfirm } from '../../src/store/confirm';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
+import { Image } from 'expo-image';
 import { Plus, X, UserPlus, LogOut, FileDown, FileText, MessageSquareShare, Navigation, Trash2 } from 'lucide-react-native';
 import { BackButton } from '../../components/BackButton';
 import { DestinationImage } from '../../components/DestinationImage';
@@ -28,7 +29,8 @@ import { DetailSkeleton } from '../../components/DetailSkeleton';
 
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { trips, places, loaded, addPlace, addItineraryItem, removeItineraryItem, reorderItinerary, setDayNote, addTripCollaborator, removeTripCollaborator, removeTrip } = useData();
+  const { trips, places, captures, loaded, addPlace, addItineraryItem, removeItineraryItem, reorderItinerary, setDayNote, addTripCollaborator, removeTripCollaborator, removeTrip } = useData();
+  const tripPhotos = useMemo(() => captures.filter((c) => c.expeditionId === id), [captures, id]);
   const { toast } = useToast();
   const confirm = useConfirm();
   const { user } = useAuth();
@@ -308,6 +310,22 @@ export default function TripScreen() {
             </View>
           );
         })() : null}
+
+        {/* Photos — every memory tagged to this trip (tap to view/edit) */}
+        {tripPhotos.length > 0 ? (
+          <View style={{ marginTop: 22 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, paddingHorizontal: 20 }}>
+              Photos <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink3 }}>{tripPhotos.length}</Text>
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12, gap: 12 }}>
+              {tripPhotos.map((c) => (
+                <Pressable key={c.id} onPress={() => router.push(`/memory/${c.id}`)} accessibilityRole="button" accessibilityLabel={`Memory${c.caption ? `: ${c.caption}` : ''} — tap to edit`}>
+                  <Image source={{ uri: c.dataUrl }} style={{ width: 128, height: 160, borderRadius: 18 }} contentFit="cover" transition={200} />
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
 
         {/* Travel log — auto-add the places you visit (foreground check-in) */}
         <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
