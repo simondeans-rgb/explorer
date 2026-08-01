@@ -23,6 +23,7 @@ import { OnboardingProvider, useOnboarding } from '../src/store/onboarding';
 import { UnitsProvider } from '../src/store/units';
 import { Onboarding } from '../components/Onboarding';
 import { AchievementWatcher } from '../components/AchievementWatcher';
+import { CoverUnlockWatcher } from '../components/CoverUnlockWatcher';
 import { LocationSync } from '../components/LocationSync';
 import { NotificationScheduler } from '../components/NotificationScheduler';
 import { WidgetSync } from '../components/WidgetSync';
@@ -154,6 +155,7 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
       </Stack>
 
       <AchievementWatcher />
+      <CoverUnlockWatcher />
       <LocationSync />
       <NotificationScheduler />
       <WidgetSync />
