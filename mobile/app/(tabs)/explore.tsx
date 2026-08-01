@@ -1,5 +1,6 @@
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, FlatList, useWindowDimensions } from 'react-native';
+import { useTabReselect } from '../../src/hooks/useTabReselect';
 import { router } from 'expo-router';
 import type { ComponentType } from 'react';
 import {
@@ -120,6 +121,8 @@ export default function ExploreScreen() {
   const { addPlace, removePlace } = useData();
   const { unit, tempUnit } = useUnits();
   const { width } = useWindowDimensions();
+  const scrollRef = useRef<ScrollView>(null);
+  useTabReselect('/explore', () => scrollRef.current?.scrollTo({ y: 0, animated: true }));
   const [tab, setTab] = useState<Tab>('browse');
   const [query, setQuery] = useState('');
   const [discCat, setDiscCat] = useState<DiscoveryCategory | 'all'>('all');
@@ -242,7 +245,7 @@ export default function ExploreScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets>
+      <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets>
         <PageHero title="Discover" subtitle={tab === 'browse' ? 'Find your next adventure' : 'Your saved places'} gradient={GRADIENTS.explore} imageCodes={HERO_CODES.explore} motion minHeight={HERO_HEIGHT} />
 
         {/* segmented control */}

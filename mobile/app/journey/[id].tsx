@@ -321,12 +321,12 @@ export default function JourneyScreen() {
               {tripPhotos.length > 0 ? (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 10, marginTop: 8 }}>
                   {tripPhotos.map((c) => (
-                    <View key={c.id} style={{ width: 132 }}>
+                    <Pressable key={c.id} onPress={() => router.push(`/memory/${c.id}`)} accessibilityRole="button" accessibilityLabel={`Memory${c.caption ? `: ${c.caption}` : ''} — tap to edit`} style={{ width: 132 }}>
                       <Image source={{ uri: c.dataUrl }} style={{ width: 132, height: 132, borderRadius: 16 }} contentFit="cover" transition={150} />
                       {c.caption ? (
                         <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, marginTop: 4 }}>{c.caption}</Text>
                       ) : null}
-                    </View>
+                    </Pressable>
                   ))}
                 </ScrollView>
               ) : (

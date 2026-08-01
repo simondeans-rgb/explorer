@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { useTabReselect } from '../../src/hooks/useTabReselect';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -130,6 +131,8 @@ export default function CircleScreen() {
   const worldly = useWorldly();
   const { places: myPlaces, discoveries: myDiscoveries, addPlace } = useData();
   const { toast } = useToast();
+  const scrollRef = useRef<ScrollView>(null);
+  useTabReselect('/circle', () => scrollRef.current?.scrollTo({ y: 0, animated: true }));
   const [rec, setRec] = useState<CircleRec | null>(null);
 
   // People who added you — pending requests where someone else is the requester.
@@ -278,7 +281,7 @@ export default function CircleScreen() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 120 }}>
+    <ScrollView ref={scrollRef} style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 120 }}>
       <PageHero
         title="Your Circle"
         subtitle="Discover what friends loved"
