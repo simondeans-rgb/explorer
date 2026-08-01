@@ -8,6 +8,15 @@ interface Baseline {
   earned: string[];
 }
 
+/** The two "firsts" are the highest-leverage moments in a collection app — the
+ *  "I get it" beat. Give them their own elevated copy instead of the generic
+ *  "Badge unlocked" so the first country / first memory land as real milestones
+ *  (R30). Reuses the existing celebration pipeline — no double-fire. */
+const FIRST_MOMENT: Record<string, { title: string; subtitle: string }> = {
+  'first-steps': { title: 'Your map begins', subtitle: 'Your very first country is on the map' },
+  'moment-capturer': { title: 'Your first memory, kept', subtitle: 'The first of many moments saved forever' },
+};
+
 /** Watches the explorer level + badges and fires a celebration when either
  *  advances. The current state is seeded silently per user on first load, so
  *  pre-existing achievements never re-celebrate. */
@@ -64,7 +73,8 @@ export function useAchievementWatch(
     }
     for (const b of badges) {
       if (b.earned && !base.earned.includes(b.id)) {
-        events.push({ emoji: b.emoji, title: b.title, subtitle: 'Badge unlocked' });
+        const fm = FIRST_MOMENT[b.id];
+        events.push({ emoji: b.emoji, title: fm?.title ?? b.title, subtitle: fm?.subtitle ?? 'Badge unlocked' });
       }
     }
 

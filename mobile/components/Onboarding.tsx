@@ -14,9 +14,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { setPendingRoute } from '../src/lib/nav';
 import Svg, { Path } from 'react-native-svg';
+import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
 import { DownloadCloud, Images, MapPin, ChevronRight } from 'lucide-react-native';
 import { COLORS } from '../src/lib/theme';
 import { track } from '../src/lib/analytics';
+import { useReduceMotion, staggerDelay, DURATION } from '../src/lib/motion';
+import { hSelection, hImpact } from '../src/lib/haptics';
 
 const { width } = Dimensions.get('window');
 
@@ -53,13 +56,18 @@ export function Onboarding({ onDone, blockRoute = false }: { onDone: () => void;
   const [index, setIndex] = useState(0);
   const [showStart, setShowStart] = useState(false);
   const scroller = useRef<ScrollView>(null);
+  const reduce = useReduceMotion();
   const last = SLIDES.length - 1;
 
   function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
     const i = Math.round(e.nativeEvent.contentOffset.x / width);
-    if (i !== index) setIndex(i);
+    if (i !== index) {
+      hSelection(); // a light tick as each slide settles
+      setIndex(i);
+    }
   }
   function next() {
+    hImpact('light');
     if (index >= last) return setShowStart(true);
     scroller.current?.scrollTo({ x: (index + 1) * width, animated: true });
   }
@@ -121,7 +129,7 @@ export function Onboarding({ onDone, blockRoute = false }: { onDone: () => void;
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 28, paddingBottom: 44 }}>
         <View className="flex-row items-center justify-center" style={{ gap: 7, marginBottom: 22 }}>
           {SLIDES.map((_, i) => (
-            <View key={i} style={{ height: 7, borderRadius: 4, width: i === index ? 22 : 7, backgroundColor: i === index ? COLORS.coral : 'rgba(20,33,61,0.18)' }} />
+            <Animated.View key={i} layout={reduce ? undefined : LinearTransition.duration(220)} style={{ height: 7, borderRadius: 4, width: i === index ? 22 : 7, backgroundColor: i === index ? COLORS.coral : 'rgba(20,33,61,0.18)' }} />
           ))}
         </View>
         <Pressable onPress={next} className="rounded-2xl items-center justify-center" style={{ paddingVertical: 16, backgroundColor: COLORS.coral }}>
@@ -143,6 +151,7 @@ export function Onboarding({ onDone, blockRoute = false }: { onDone: () => void;
  *  a new user's first screen is never empty. Each dismisses onboarding and
  *  routes to the matching flow. */
 function QuickStart({ onPick }: { onPick: (route?: string) => void }) {
+  const reduce = useReduceMotion();
   const options: { icon: typeof DownloadCloud; title: string; body: string; route: string }[] = [
     { icon: DownloadCloud, title: 'Import your travels', body: 'From flights, Polarsteps, Google Maps, TripIt & more.', route: '/import' },
     { icon: Images, title: 'Scan your photos', body: 'Find the countries you’ve been to automatically.', route: '/import?start=scan' },
@@ -157,10 +166,15 @@ function QuickStart({ onPick }: { onPick: (route?: string) => void }) {
         </Text>
 
         <View style={{ marginTop: 28, gap: 12 }}>
-          {options.map((o) => (
+          {options.map((o, i) => (
+            <Animated.View key={o.title} entering={reduce ? undefined : FadeInDown.duration(DURATION.base).delay(staggerDelay(i, 70))}>
             <Pressable
-              key={o.title}
-              onPress={() => onPick(o.route)}
+              onPress={() => {
+                hImpact('light');
+                onPick(o.route);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`${o.title}. ${o.body}`}
               className="bg-white dark:bg-card rounded-3xl flex-row items-center"
               style={{ padding: 16, gap: 14, shadowColor: '#14213D', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } }}
             >
@@ -173,6 +187,7 @@ function QuickStart({ onPick }: { onPick: (route?: string) => void }) {
               </View>
               <ChevronRight size={20} color={COLORS.ink3} />
             </Pressable>
+            </Animated.View>
           ))}
         </View>
       </View>

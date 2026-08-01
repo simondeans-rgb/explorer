@@ -21,23 +21,30 @@ export function useCelebration(): CelebrationApi {
 }
 
 /** Shows one celebration at a time; extra ones queue and play in sequence. */
+const keyOf = (i: CelebrationItem) => `${i.variant ?? 'confetti'}:${i.title}`;
+
 export function CelebrationProvider({ children }: { children: ReactNode }) {
   const [current, setCurrent] = useState<CelebrationItem | null>(null);
+  const currentRef = useRef<CelebrationItem | null>(null);
   const queue = useRef<CelebrationItem[]>([]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  currentRef.current = current;
 
   const showNext = useCallback(() => {
     const next = queue.current.shift() ?? null;
     setCurrent(next);
   }, []);
 
-  const celebrate = useCallback(
-    (item: CelebrationItem) => {
-      queue.current.push(item);
-      setCurrent((c) => c ?? queue.current.shift() ?? null);
-    },
-    [],
-  );
+  const celebrate = useCallback((item: CelebrationItem) => {
+    // Coalesce (R38): never stack an identical celebration onto the one showing
+    // or the last queued — a batch unlock shouldn't buzz/confetti N times.
+    const key = keyOf(item);
+    const lastQueued = queue.current[queue.current.length - 1];
+    const against = lastQueued ?? currentRef.current;
+    if (against && keyOf(against) === key) return;
+    queue.current.push(item);
+    setCurrent((c) => c ?? queue.current.shift() ?? null);
+  }, []);
 
   const dismiss = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);

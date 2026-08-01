@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, View, type ViewStyle } from 'react-native';
+import { useEffect, useMemo, useRef } from 'react';
+import { Animated, Easing, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useReduceMotion } from '../src/lib/motion';
 import type { ParticleProfile } from '../src/lib/coverThemes.gen';
 
 /** Ambient particle layer for Passport Covers — falling snow, twinkling
@@ -188,18 +189,7 @@ export function CoverParticles({
   /** Override the profile's default particle count. */
   count?: number;
 }) {
-  const [reduceMotion, setReduceMotion] = useState(false);
-  useEffect(() => {
-    let mounted = true;
-    AccessibilityInfo.isReduceMotionEnabled().then((v) => {
-      if (mounted) setReduceMotion(v);
-    });
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
-    return () => {
-      mounted = false;
-      sub.remove();
-    };
-  }, []);
+  const reduceMotion = useReduceMotion();
 
   const particles = useMemo(
     () => makeParticles(profile, colors, count ?? COUNTS[profile]),
