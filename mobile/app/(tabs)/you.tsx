@@ -11,7 +11,7 @@ import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
 import { HERO_CODES } from '../../src/lib/heroImages';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
-import { COLORS, HERO_HEIGHT } from '../../src/lib/theme';
+import { COLORS, HERO_HEIGHT, SHADOW } from '../../src/lib/theme';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useAuth } from '../../src/store/auth';
 import { XpDetailSheet } from '../../components/XpDetailSheet';
@@ -129,6 +129,12 @@ export default function YouScreen() {
     ['Journeys', journeyStats.total, COLORS.lavender],
     ['Discoveries', discoveryStats.total, COLORS.sunburst],
   ];
+
+  // A guest with real data risks losing it (guest mode is session-scoped). Surface
+  // a prominent, reliably-seen backup prompt here on Passport — not just mid-Story
+  // where a non-scrolling user never sees it (R27).
+  const savedCount = stats.countriesDiscovered + discoveryStats.total + journeyStats.total;
+  const guestWithData = configured && !user && savedCount >= 3;
 
   const syncLabel = !configured
     ? 'Offline demo — saved on this device'
@@ -316,18 +322,38 @@ export default function YouScreen() {
         <ChevronRight size={20} color={COLORS.ink3} />
       </Pressable>
 
-      {/* Sync status — one slim row; everything else lives in Settings. */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Sync status — open settings"
-        onPress={() => router.push('/settings')}
-        className="bg-white dark:bg-card rounded-2xl flex-row items-center"
-        style={{ marginHorizontal: 20, marginTop: 14, paddingHorizontal: 14, paddingVertical: 12, gap: 10 }}
-      >
-        {configured && user ? <Cloud size={16} color={COLORS.aqua} /> : <CloudOff size={16} color={COLORS.ink3} />}
-        <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: COLORS.ink2 }}>{syncLabel}</Text>
-        <ChevronRight size={16} color={COLORS.ink3} />
-      </Pressable>
+      {/* Sync status. For a guest with data, a prominent backup card; otherwise a
+          slim status row. Everything else lives in Settings. */}
+      {guestWithData ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Back up your world. Your ${savedCount} saved items live only on this phone. Set up sync.`}
+          onPress={() => router.push('/settings')}
+          className="rounded-3xl flex-row items-center"
+          style={{ marginHorizontal: 20, marginTop: 14, padding: 16, gap: 12, backgroundColor: COLORS.coral, ...SHADOW.card }}
+        >
+          <CloudOff size={22} color="#fff" />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: '#fff' }}>Back up your world</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: 'rgba(255,255,255,0.92)', marginTop: 2, lineHeight: 18 }}>
+              Your {savedCount} saved {savedCount === 1 ? 'item' : 'items'} live only on this phone. Sign in to keep them safe.
+            </Text>
+          </View>
+          <ChevronRight size={18} color="#fff" />
+        </Pressable>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Sync status — open settings"
+          onPress={() => router.push('/settings')}
+          className="bg-white dark:bg-card rounded-2xl flex-row items-center"
+          style={{ marginHorizontal: 20, marginTop: 14, paddingHorizontal: 14, paddingVertical: 12, gap: 10 }}
+        >
+          {configured && user ? <Cloud size={16} color={COLORS.aqua} /> : <CloudOff size={16} color={COLORS.ink3} />}
+          <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: COLORS.ink2 }}>{syncLabel}</Text>
+          <ChevronRight size={16} color={COLORS.ink3} />
+        </Pressable>
+      )}
 
       <XpDetailSheet visible={xpOpen} onClose={() => setXpOpen(false)} level={level} stats={stats} discovery={discoveryStats} journeys={journeyStats} />
     </Animated.ScrollView>
