@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ShieldCheck, ShieldOff } from 'lucide-react-native';
 import { BackButton } from '../components/BackButton';
@@ -8,6 +8,7 @@ import { goBack } from '../src/lib/nav';
 import { useAuth } from '../src/store/auth';
 import { useToast } from '../src/store/toast';
 import { loadBlockedList, unblockUser } from '../src/lib/moderation';
+import { reconnect } from '../src/lib/connections';
 
 /** Settings → Blocked accounts: review and reverse blocks. Blocking severs the
  *  friendship and hides a member's content (App Store Guideline 1.2); this
@@ -26,6 +27,32 @@ export default function BlockedScreen() {
 
   useEffect(refresh, [refresh]);
 
+  // Blocking deletes the shared connection, so unblocking can't restore the
+  // friendship on its own — offer to send a fresh request instead of leaving the
+  // member silently disconnected.
+  function offerReconnect(uid: string, name: string) {
+    if (!user) return;
+    const me = {
+      uid: user.uid,
+      name: user.displayName || (user.email ? user.email.split('@')[0] : 'You'),
+    };
+    Alert.alert(
+      `Reconnect with ${name}?`,
+      `Blocking removed your connection. Send ${name} a new request so you can see each other's travels again.`,
+      [
+        { text: 'Not now', style: 'cancel' },
+        {
+          text: 'Send request',
+          onPress: async () => {
+            const res = await reconnect(me, uid, name);
+            if (res.ok) toast.success(`Request sent to ${name}`);
+            else toast.error(res.error ?? "Couldn't send the request.");
+          },
+        },
+      ],
+    );
+  }
+
   async function unblock(uid: string, name: string) {
     if (!user || busy) return;
     setBusy(uid);
@@ -33,6 +60,7 @@ export default function BlockedScreen() {
       await unblockUser(user.uid, uid);
       setList((cur) => (cur ? cur.filter((b) => b.uid !== uid) : cur));
       toast.success(`Unblocked ${name}`);
+      offerReconnect(uid, name);
     } catch {
       toast.error("Couldn't unblock — please try again.");
     } finally {
