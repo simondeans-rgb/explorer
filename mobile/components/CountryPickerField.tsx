@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Modal, View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { Search, X, Check } from 'lucide-react-native';
-import { COLORS } from '../src/lib/theme';
+import { COLORS, RADIUS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES, countryName } from '../src/data/countries';
 
@@ -58,7 +58,7 @@ export function CountryPickerField({
 
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
         <Pressable onPress={() => setOpen(false)} accessibilityRole="button" accessibilityLabel="Dismiss" style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-          <Pressable onPress={(e) => e.stopPropagation()} accessible={false} style={{ maxHeight: '78%', backgroundColor: COLORS.warmwhite, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 14, paddingBottom: 20 }}>
+          <Pressable onPress={(e) => e.stopPropagation()} accessible={false} style={{ maxHeight: '78%', backgroundColor: COLORS.warmwhite, borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl, paddingTop: 14, paddingBottom: 20 }}>
             <View style={{ alignSelf: 'center', height: 5, width: 44, borderRadius: 3, backgroundColor: 'rgba(20,33,61,0.15)', marginBottom: 10 }} />
             <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, paddingHorizontal: 20, marginBottom: 10 }}>Choose a country</Text>
             <View className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8 }}>

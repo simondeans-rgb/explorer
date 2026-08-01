@@ -38,7 +38,15 @@ export const COLORS = {
   tileMutedIcon: dyn('#C2C7D6', '#6F79A1'),
 } as const;
 
-/** Shared scales so new/edited components stop hardcoding ad-hoc values. */
+/** Corner-radius scale (R3). Convention so radii stop drifting across screens:
+ *    • pill  (999) — pills, chips, circular buttons/avatars
+ *    • xl   (28)  — bottom sheets and the largest "hero" cards
+ *    • lg   (24)  — standard cards / surfaces (the default card radius)
+ *    • md   (16)  — inner tiles (icon chips inside a card), inputs
+ *    • sm   (12)  — small inset elements
+ *  Rule of thumb when nesting: outer card = lg/xl, inner chip/tile = md, and a
+ *  chip is always `pill`. Prefer these tokens (or Tailwind rounded-2xl/3xl) over
+ *  raw borderRadius literals in new/edited code. */
 export const RADIUS = { sm: 12, md: 16, lg: 24, xl: 28, pill: 999 } as const;
 export const SPACE = { xs: 8, sm: 12, md: 16, lg: 20, xl: 24 } as const;
 

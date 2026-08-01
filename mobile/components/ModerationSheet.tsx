@@ -1,6 +1,6 @@
 import { Modal, View, Text, Pressable } from 'react-native';
 import { Flag, ShieldOff } from 'lucide-react-native';
-import { COLORS, tint, MUTED_TINT } from '../src/lib/theme';
+import { COLORS, RADIUS, tint, MUTED_TINT } from '../src/lib/theme';
 import { hSelection, hWarning } from '../src/lib/haptics';
 
 /** Branded report/block sheet — replaces the OS `Alert.alert` for moderation so
@@ -23,7 +23,7 @@ export function ModerationSheet({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Dismiss" style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-        <Pressable onPress={(e) => e.stopPropagation()} accessible={false} style={{ backgroundColor: COLORS.warmwhite, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 14, paddingBottom: 36 }}>
+        <Pressable onPress={(e) => e.stopPropagation()} accessible={false} style={{ backgroundColor: COLORS.warmwhite, borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl, paddingTop: 14, paddingBottom: 36 }}>
           <View style={{ alignSelf: 'center', height: 5, width: 44, borderRadius: 3, backgroundColor: 'rgba(20,33,61,0.15)', marginBottom: 10 }} />
           <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, paddingHorizontal: 20 }}>{name}</Text>
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 2, marginBottom: 10 }}>
