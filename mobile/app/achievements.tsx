@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
+import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Sparkles } from 'lucide-react-native';
 import { BackButton } from '../components/BackButton';
@@ -7,14 +8,15 @@ import { AchievementBadge } from '../components/AchievementBadge';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
 import { goBack } from '../src/lib/nav';
 import { useWorldly } from '../src/hooks/useWorldly';
-import { useCelebration } from '../src/store/celebration';
 import { ACHIEVEMENT_SECTIONS, type Badge } from '../src/lib/explorer';
+import { useReduceMotion, staggerDelay, DURATION } from '../src/lib/motion';
+import { hSelection } from '../src/lib/haptics';
 
 type Filter = 'all' | 'earned' | 'locked';
 
 export default function AchievementsScreen() {
   const { badges, level } = useWorldly();
-  const { celebrate } = useCelebration();
+  const reduce = useReduceMotion();
   const [filter, setFilter] = useState<Filter>('all');
   const [selected, setSelected] = useState<Badge | null>(null);
 
@@ -28,9 +30,12 @@ export default function AchievementsScreen() {
     return [...locked].sort((a, b) => b.progress - a.progress)[0];
   }, [badges]);
 
+  // Revisiting a badge opens the (animated) detail sheet — NOT the full-screen
+  // confetti celebration, which is reserved for a genuine first unlock (fired by
+  // AchievementWatcher). A quiet selection tick is the right feedback here.
   function open(b: Badge) {
+    hSelection();
     setSelected(b);
-    if (b.earned) celebrate({ emoji: b.emoji, title: b.title, subtitle: 'Earned' });
   }
 
   const visible = (b: Badge) => filter === 'all' || (filter === 'earned' ? b.earned : !b.earned);
@@ -52,7 +57,7 @@ export default function AchievementsScreen() {
         {/* Next up */}
         {nextUp ? (
           <Pressable onPress={() => open(nextUp)} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 16, padding: 14, gap: 14 }}>
-            <AchievementBadge badge={nextUp} tile={52} labeled={false} />
+            <AchievementBadge badge={nextUp} tile={52} labeled={false} animate />
             <View style={{ flex: 1 }}>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.coral }}>NEXT UP</Text>
               <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy, marginTop: 1 }}>{nextUp.title}</Text>
@@ -87,10 +92,17 @@ export default function AchievementsScreen() {
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{got}/{total}</Text>
               </View>
               <View className="flex-row flex-wrap" style={{ paddingHorizontal: 16, marginTop: 14, rowGap: 18 }}>
-                {items.map((b) => (
-                  <Pressable key={b.id} onPress={() => open(b)} style={{ width: '25%', alignItems: 'center' }}>
-                    <AchievementBadge badge={b} tile={62} />
-                  </Pressable>
+                {items.map((b, i) => (
+                  <Animated.View key={b.id} entering={reduce ? undefined : FadeInDown.duration(DURATION.base).delay(staggerDelay(i))} style={{ width: '25%', alignItems: 'center' }}>
+                    <Pressable
+                      onPress={() => open(b)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${b.title}, ${b.earned ? 'earned' : `${Math.min(b.value, b.target)} of ${b.target}`}`}
+                      style={{ alignItems: 'center' }}
+                    >
+                      <AchievementBadge badge={b} tile={62} />
+                    </Pressable>
+                  </Animated.View>
                 ))}
               </View>
             </View>
@@ -100,12 +112,14 @@ export default function AchievementsScreen() {
 
       {/* Detail overlay */}
       {selected ? (
-        <Pressable onPress={() => setSelected(null)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(14,16,24,0.5)', alignItems: 'center', justifyContent: 'center', padding: 30 }}>
-          <Pressable onPress={() => {}} className="bg-white dark:bg-card rounded-3xl items-center" style={{ width: '100%', maxWidth: 340, paddingVertical: 28, paddingHorizontal: 24 }}>
-            <Pressable onPress={() => setSelected(null)} hitSlop={10} style={{ position: 'absolute', top: 14, right: 14 }}>
+        <Pressable onPress={() => setSelected(null)} accessibilityRole="button" accessibilityLabel={`Close ${selected.title}`} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', padding: 30 }}>
+          <Animated.View entering={reduce ? undefined : FadeIn.duration(160)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(14,16,24,0.5)' }} />
+          <Animated.View entering={reduce ? undefined : ZoomIn.springify().damping(15)} style={{ width: '100%', maxWidth: 340 }}>
+          <Pressable onPress={() => {}} accessible={false} className="bg-white dark:bg-card rounded-3xl items-center" style={{ paddingVertical: 28, paddingHorizontal: 24 }}>
+            <Pressable onPress={() => setSelected(null)} hitSlop={10} accessibilityRole="button" accessibilityLabel="Close" style={{ position: 'absolute', top: 14, right: 14 }}>
               <X size={20} color={COLORS.ink3} />
             </Pressable>
-            <AchievementBadge badge={selected} tile={92} labeled={false} />
+            <AchievementBadge badge={selected} tile={92} labeled={false} animate />
             <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, marginTop: 14, textAlign: 'center' }}>{selected.title}</Text>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink2, marginTop: 6, textAlign: 'center' }}>{selected.description}</Text>
             {selected.earned ? (
@@ -125,6 +139,7 @@ export default function AchievementsScreen() {
               </View>
             )}
           </Pressable>
+          </Animated.View>
         </Pressable>
       ) : null}
     </View>

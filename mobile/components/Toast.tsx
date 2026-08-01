@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { Text, Pressable, AccessibilityInfo } from 'react-native';
-import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeOut, FadeOutDown } from 'react-native-reanimated';
 import { Check, TriangleAlert, Info } from 'lucide-react-native';
 import { COLORS } from '../src/lib/theme';
+import { useReduceMotion } from '../src/lib/motion';
 
 export interface ToastItem {
   id: number;
@@ -19,14 +20,16 @@ const META: Record<ToastItem['kind'], { Icon: typeof Check; color: string }> = {
 /** A transient pill that floats above the tab bar. Tap to dismiss. */
 export function Toast({ item, onDismiss }: { item: ToastItem; onDismiss: () => void }) {
   const { Icon, color } = META[item.kind];
+  const reduce = useReduceMotion();
   // Announce the message so VoiceOver users hear success/error feedback too.
   useEffect(() => {
     AccessibilityInfo.announceForAccessibility(item.message);
   }, [item.message]);
   return (
     <Animated.View
-      entering={FadeInDown.springify().damping(18)}
-      exiting={FadeOutDown.duration(180)}
+      // Under Reduce Motion, cross-fade only (opacity) instead of sliding up.
+      entering={reduce ? FadeIn.duration(120) : FadeInDown.springify().damping(18)}
+      exiting={reduce ? FadeOut.duration(120) : FadeOutDown.duration(180)}
       pointerEvents="box-none"
       accessibilityLiveRegion="polite"
       style={{ position: 'absolute', left: 0, right: 0, bottom: 108, alignItems: 'center', paddingHorizontal: 20 }}
