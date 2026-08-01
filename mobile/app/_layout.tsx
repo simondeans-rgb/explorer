@@ -131,9 +131,10 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="light" />
-      {/* gestureEnabled + fullScreenGestureEnabled: swipe left-to-right anywhere
-          on a pushed screen (not just the edge) to go back. iOS native-stack. */}
-      <Stack screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true }}>
+      {/* Edge-swipe back only (not full-screen): a full-screen back gesture
+          fights vertical scrolling — a slightly diagonal scroll would trigger a
+          back navigation. gestureEnabled keeps the standard left-edge swipe. */}
+      <Stack screenOptions={{ headerShown: false, gestureEnabled: true }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="country/[code]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="trip/[id]" options={{ animation: 'slide_from_right' }} />

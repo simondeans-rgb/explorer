@@ -9,6 +9,7 @@ import { useColorScheme } from 'react-native';
 import { COLORS, SECTION } from '../src/lib/theme';
 import { track } from '../src/lib/analytics';
 import { hSelection, hImpact } from '../src/lib/haptics';
+import { emitScrollToTop } from '../src/lib/scrollTop';
 
 const ICONS = {
   story: require('../assets/images/nav/story.png') as ImageSource,
@@ -72,7 +73,12 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
         accessibilityLabel={def.label}
         accessibilityState={{ selected: active }}
         onPress={() => {
-          if (active) return;
+          if (active) {
+            // Re-tapping the current tab scrolls that screen back to the top.
+            hSelection();
+            emitScrollToTop(def.path);
+            return;
+          }
           hSelection();
           // Pop any pushed screen (country/import/etc.) before switching tab.
           if (router.canDismiss()) router.dismissAll();

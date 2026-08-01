@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, type ComponentType } from 'react';
+import { useTabReselect } from '../../src/hooks/useTabReselect';
 import { View, Text, ScrollView, Pressable, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { Globe2, MapPinned, Search, X, Plane, TrainFront, Ship, Car, Anchor, Home } from 'lucide-react-native';
@@ -107,7 +108,8 @@ export default function AtlasScreen() {
   const [scope, setScope] = useState<Scope>('all');
   const [journeyMode, setJourneyMode] = useState<JourneyMode | 'all'>('all');
   const [showDomestic, setShowDomestic] = useState(true);
-  const scrollRef = useRef(null);
+  const scrollRef = useRef<ScrollView>(null);
+  useTabReselect('/atlas', () => scrollRef.current?.scrollTo({ y: 0, animated: true }));
   const [query, setQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('az');
   const [scoreAgg, setScoreAgg] = useState<CountryAggregate | null>(null);

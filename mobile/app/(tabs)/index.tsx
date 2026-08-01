@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
+import { useTabReselect } from '../../src/hooks/useTabReselect';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -40,6 +41,8 @@ const TILE_H = 150;
 export default function StoryScreen() {
   const { aggregates, stats, level } = useWorldly();
   const { captures, removeCapture, trips, places, discoveries, expeditions } = useData();
+  const scrollRef = useRef<ScrollView>(null);
+  useTabReselect('/', () => scrollRef.current?.scrollTo({ y: 0, animated: true }));
   const confirm = useConfirm();
   const { width } = useWindowDimensions();
   const { user } = useAuth();
@@ -104,7 +107,7 @@ export default function StoryScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 110 }}>
+    <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 110 }}>
       {/* Hero */}
       <DestinationImage code={heroCodes[0]} codes={heroCodes} scrim motion onActiveCode={setActiveHero} style={{ position: 'relative', paddingTop: 64, paddingBottom: 40, minHeight: HERO_HEIGHT }}>
         {/* Glass search button — quick access to global search */}

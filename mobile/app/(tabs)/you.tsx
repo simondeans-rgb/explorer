@@ -21,6 +21,7 @@ import { getCoverState } from '../../src/lib/covers';
 import { COVER_THEMES } from '../../src/lib/coverThemes.gen';
 import { pickPhotoDataUrl, mediaPermissionDenied } from '../../src/lib/photo';
 import { useConfirm } from '../../src/store/confirm';
+import { useTabReselect } from '../../src/hooks/useTabReselect';
 import { ensureProfile, loadProfilePhoto, saveProfilePhoto } from '../../src/lib/profile';
 
 // Badges driven by logging discoveries — the pool for the Discoveries nudge card.
@@ -69,6 +70,8 @@ export default function YouScreen() {
   }, []);
   const coverTheme = COVER_THEMES[coverName ?? 'Classic'] ?? COVER_THEMES.Classic;
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<ScrollView>(null);
+  useTabReselect('/you', () => scrollRef.current?.scrollTo({ y: 0, animated: true }));
   const scrimOpacity = scrollY.interpolate({ inputRange: [HERO_HEIGHT - 130, HERO_HEIGHT - 50], outputRange: [0, 1], extrapolate: 'clamp' });
 
   const earned = badges.filter((b) => b.earned).length;
@@ -136,6 +139,7 @@ export default function YouScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
     <Animated.ScrollView
+      ref={scrollRef}
       style={{ flex: 1 }}
       contentContainerStyle={{ paddingBottom: 170 }}
       onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
