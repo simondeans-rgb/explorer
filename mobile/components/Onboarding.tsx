@@ -176,7 +176,9 @@ function QuickStart({ onPick }: { onPick: (route?: string) => void }) {
               accessibilityRole="button"
               accessibilityLabel={`${o.title}. ${o.body}`}
               className="bg-white dark:bg-card rounded-3xl flex-row items-center"
-              style={{ padding: 16, gap: 14, shadowColor: '#14213D', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } }}
+              // Immediate press feedback — the route is deferred behind the sign-in
+              // wall, so the scale confirms the tap registered right away (R25).
+              style={({ pressed }) => ({ padding: 16, gap: 14, shadowColor: '#14213D', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, transform: [{ scale: pressed && !reduce ? 0.97 : 1 }] })}
             >
               <View className="rounded-2xl items-center justify-center" style={{ height: 46, width: 46, backgroundColor: COLORS.warmwhite }}>
                 <o.icon size={22} color={COLORS.coral} />

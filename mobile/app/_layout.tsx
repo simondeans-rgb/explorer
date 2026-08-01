@@ -163,7 +163,13 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
       <SyncBanner />
 
       {/* Global, always-visible navigation bar + its action menu / sheets. */}
-      <GlobalTabBar onFab={() => setMenuOpen(true)} />
+      <GlobalTabBar
+        onFab={() => setMenuOpen(true)}
+        onFabLongPress={() => {
+          setSheet('photo');
+          track('fab_action', { kind: 'photo', via: 'longpress' });
+        }}
+      />
       <ActionMenu
         visible={menuOpen}
         onClose={() => setMenuOpen(false)}
