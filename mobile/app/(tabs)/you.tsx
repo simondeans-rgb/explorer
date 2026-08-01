@@ -236,15 +236,15 @@ export default function YouScreen() {
 
       {/* Wrapped + Almanac */}
       <View className="flex-row" style={{ paddingHorizontal: 20, marginTop: 14, gap: 12 }}>
-        <Pressable onPress={() => router.push('/wrapped')} style={{ flex: 1 }}>
+        <Pressable onPress={() => router.push('/wrapped-lifetime')} style={{ flex: 1 }}>
           <View style={{ borderRadius: 24, shadowColor: '#14213D', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } }}>
             <DestinationImage code={wrappedCodes[0]} codes={wrappedCodes} rotateMs={8000} scrim style={{ borderRadius: 24, minHeight: 150, padding: 16, justifyContent: 'space-between' }}>
               <View className="rounded-2xl items-center justify-center bg-white/25" style={{ height: 40, width: 40 }}>
                 <Sparkles size={20} color="#fff" />
               </View>
               <View>
-                <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 19 }}>Wrapped</Text>
-                <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.95, marginTop: 1 }}>Your travels, told</Text>
+                <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 19 }}>Lifetime Wrapped</Text>
+                <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.95, marginTop: 1 }}>Your life in the world</Text>
               </View>
             </DestinationImage>
           </View>
