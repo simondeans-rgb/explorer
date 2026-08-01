@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { goBack } from '../src/lib/nav';
 import { router } from 'expo-router';
 import { shouldGate } from '../src/lib/billing';
-import { X, Share2, Film } from 'lucide-react-native';
+import { X, Share2, Film, Globe2 } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { DestinationImage } from '../components/DestinationImage';
@@ -242,7 +242,7 @@ export default function WrappedScreen() {
     <View style={{ flex: 1, backgroundColor: COLORS.night }}>
       <ScrollView pagingEnabled showsVerticalScrollIndicator={false} decelerationRate="fast" onScroll={onSlideScroll} scrollEventThrottle={16}>
         {/* Intro */}
-        <Slide code={bg(0)} height={height} active={active === 0} reduce={reduce}>
+        <Slide code={bg(0)} height={height} active={active === 0} reduce={reduce} globe>
           <WorldlyIcon height={66} />
           <Text style={S.eyebrow}>{firstName}, here's</Text>
           <Text style={S.bigTitle}>{isYear ? `Your ${year}, wrapped` : 'Your world, wrapped'}</Text>
@@ -308,7 +308,7 @@ export default function WrappedScreen() {
         </Slide>
 
         {/* Outro */}
-        <Slide code={bg(6)} height={height} active={active === 6} reduce={reduce}>
+        <Slide code={bg(6)} height={height} active={active === 6} reduce={reduce} globe>
           <WorldlyIcon height={58} />
           <Text style={[S.bigTitle, { marginTop: 16 }]}>The world is waiting</Text>
           <Text style={S.sub}>Where will your next story take you?</Text>
@@ -449,7 +449,7 @@ function CountNumber({ value, active, style }: { value: number; active: boolean;
   return <Text style={style}>{n}</Text>;
 }
 
-function Slide({ code, height, active, reduce, children }: { code: string; height: number; active: boolean; reduce: boolean; children: ReactNode }) {
+function Slide({ code, height, active, reduce, globe, children }: { code: string; height: number; active: boolean; reduce: boolean; globe?: boolean; children: ReactNode }) {
   const p = useSharedValue(active && !reduce ? 0 : 1);
   useEffect(() => {
     // Content fades + rises as the slide scrolls into view; static under Reduce Motion.
@@ -460,6 +460,12 @@ function Slide({ code, height, active, reduce, children }: { code: string; heigh
     <DestinationImage code={code} scrim motion style={{ height, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}>
       {/* extra darkening so big text always reads */}
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(14,16,24,0.35)' }} />
+      {/* Signature globe motif behind the opener/closer (R36) — faint + centred. */}
+      {globe ? (
+        <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
+          <Globe2 size={300} color="rgba(255,255,255,0.09)" strokeWidth={0.6} />
+        </View>
+      ) : null}
       <Animated.View style={[{ alignItems: 'center' }, revealStyle]}>{children}</Animated.View>
     </DestinationImage>
   );
