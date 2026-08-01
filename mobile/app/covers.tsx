@@ -5,7 +5,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, Lock, Sparkles } from 'lucide-react-native';
 import { BackButton } from '../components/BackButton';
-import { COLORS } from '../src/lib/theme';
+import { COLORS, tint } from '../src/lib/theme';
 import { useReduceMotion } from '../src/lib/motion';
 import { hImpact, hSuccess, hSelection } from '../src/lib/haptics';
 import { goBack } from '../src/lib/nav';
@@ -107,7 +107,7 @@ export default function CoversScreen() {
         ) : null}
 
         {note ? (
-          <View className="rounded-2xl" style={{ marginHorizontal: 20, marginTop: 14, padding: 12, backgroundColor: 'rgba(255,107,154,0.12)' }}>
+          <View className="rounded-2xl" style={{ marginHorizontal: 20, marginTop: 14, padding: 12, backgroundColor: tint(COLORS.coral, 0.12) }}>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: COLORS.coral, textAlign: 'center' }}>{note}</Text>
           </View>
         ) : null}

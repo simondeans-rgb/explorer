@@ -26,9 +26,10 @@ export const COLORS = {
   card: dyn('#FFFFFF', '#1A2138'),
   ink: dyn('#14213D', '#E6E9F2'),
   ink2: dyn('#48506B', '#AEB5CC'),
-  // Light value darkened to #6B7185 so meta/caption text clears WCAG AA (4.5:1)
-  // on white — #8A90A6 was only ~3.16:1 and failed for normal-size copy.
-  ink3: dyn('#6B7185', '#9298B0'),
+  // Meta/caption text. Darkened again (R19) to ~5.5:1 on white for comfortable
+  // headroom above the 4.5:1 AA floor — the previous #6B7185 sat right on it, so
+  // the app's most common secondary text had no margin. (#8A90A6 was ~3.16:1.)
+  ink3: dyn('#5E6377', '#9BA1B8'),
   white: '#FFFFFF',
   danger: '#F2557D', // brand-aligned destructive (coral-red, not finance red)
   /** Muted tile surface (locked badges etc.) + its glyph colour — a step off
@@ -40,6 +41,23 @@ export const COLORS = {
 /** Shared scales so new/edited components stop hardcoding ad-hoc values. */
 export const RADIUS = { sm: 12, md: 16, lg: 24, xl: 28, pill: 999 } as const;
 export const SPACE = { xs: 8, sm: 12, md: 16, lg: 20, xl: 24 } as const;
+
+/** Build an `rgba()` tint from a solid hex colour + alpha (R2). Use this instead
+ *  of hand-typing `rgba(...)` literals so the same brand hue can't drift across
+ *  opacities. Pass SOLID hex tokens (coral, navySolid, sunburst…) — not the
+ *  DynamicColorIOS `dyn()` tokens, which aren't plain strings. */
+export function tint(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/** The neutral "muted chip/divider" tint at the app's standard strength — the
+ *  one hand-typed at ten different alphas across the codebase. */
+export const MUTED_TINT = tint('#14213D', 0.06);
 
 /** Soft, premium elevation — spread into a `style`. `glow(color)` tints the shadow. */
 export const SHADOW = {

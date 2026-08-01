@@ -12,7 +12,7 @@ import { useReplies } from '../../src/hooks/useReplies';
 import { ReplySheet } from '../../components/ReplySheet';
 import { PageHero } from '../../components/PageHero';
 import { LandmarkDetailSheet } from '../../components/LandmarkDetailSheet';
-import { COLORS, GRADIENTS, SHADOW, HERO_HEIGHT } from '../../src/lib/theme';
+import { COLORS, GRADIENTS, SHADOW, HERO_HEIGHT, tint, MUTED_TINT } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { aggregateByCountry, computeStats } from '../../src/lib/stats';
@@ -90,7 +90,7 @@ function ExampleTag() {
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       className="absolute rounded-full"
-      style={{ top: 10, right: 10, backgroundColor: 'rgba(20,33,61,0.06)', paddingHorizontal: 8, paddingVertical: 3 }}
+      style={{ top: 10, right: 10, backgroundColor: MUTED_TINT, paddingHorizontal: 8, paddingVertical: 3 }}
     >
       <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.8, color: COLORS.ink3 }}>EXAMPLE</Text>
     </View>
@@ -118,7 +118,7 @@ function CirclePreview() {
           </View>
           <View className="flex-row flex-wrap" style={{ gap: 6, marginTop: 10 }}>
             {['Porto', 'Braga', 'Aveiro'].map((c) => (
-              <View key={c} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.10)', paddingHorizontal: 10, paddingVertical: 5, gap: 4 }}>
+              <View key={c} className="flex-row items-center rounded-full" style={{ backgroundColor: tint(COLORS.coral, 0.1), paddingHorizontal: 10, paddingVertical: 5, gap: 4 }}>
                 <MapPin size={12} color={COLORS.coral} />
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '600', color: COLORS.coral }}>{c}</Text>
               </View>
