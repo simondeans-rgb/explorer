@@ -152,6 +152,7 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
         <Stack.Screen name="almanac" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="search" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
         <Stack.Screen name="wrapped" options={{ animation: 'fade', presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="wrapped-lifetime" options={{ animation: 'fade', presentation: 'fullScreenModal' }} />
       </Stack>
 
       <AchievementWatcher />
