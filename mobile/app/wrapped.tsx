@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, useWindowDimensions, type NativeSyntheticEvent, type NativeScrollEvent, type TextStyle, type StyleProp } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { goBack } from '../src/lib/nav';
 import { router } from 'expo-router';
@@ -9,6 +10,7 @@ import { X, Share2, Film } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { DestinationImage } from '../components/DestinationImage';
+import { useReduceMotion, useCountUp } from '../src/lib/motion';
 import { WorldlyIcon } from '../components/WorldlyLogo';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
@@ -27,6 +29,12 @@ export default function WrappedScreen() {
   const { height } = useWindowDimensions();
   const { places, discoveries, expeditions, stats, discoveryStats, journeyStats, level, aggregates } = useWorldly();
   const { user } = useAuth();
+  const reduce = useReduceMotion();
+  const [active, setActive] = useState(0); // which slide is in view — drives per-slide reveals
+  const onSlideScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const i = Math.round(e.nativeEvent.contentOffset.y / height);
+    if (i !== active) setActive(i);
+  };
   const [sharing, setSharing] = useState(false);
   const posterRef = useRef<View>(null);
   const firstName = user?.displayName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Explorer');
@@ -232,9 +240,9 @@ export default function WrappedScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.night }}>
-      <ScrollView pagingEnabled showsVerticalScrollIndicator={false} decelerationRate="fast">
+      <ScrollView pagingEnabled showsVerticalScrollIndicator={false} decelerationRate="fast" onScroll={onSlideScroll} scrollEventThrottle={16}>
         {/* Intro */}
-        <Slide code={bg(0)} height={height}>
+        <Slide code={bg(0)} height={height} active={active === 0} reduce={reduce}>
           <WorldlyIcon height={66} />
           <Text style={S.eyebrow}>{firstName}, here's</Text>
           <Text style={S.bigTitle}>{isYear ? `Your ${year}, wrapped` : 'Your world, wrapped'}</Text>
@@ -242,9 +250,9 @@ export default function WrappedScreen() {
         </Slide>
 
         {/* Countries */}
-        <Slide code={bg(1)} height={height}>
+        <Slide code={bg(1)} height={height} active={active === 1} reduce={reduce}>
           <Text style={S.eyebrow}>{isYear ? `IN ${year} YOU EXPLORED` : "YOU'VE EXPLORED"}</Text>
-          <Text style={S.giant}>{view.countries}</Text>
+          <CountNumber value={view.countries} active={active === 1} style={S.giant} />
           <Text style={S.bigLabel}>{view.countries === 1 ? 'country' : 'countries'}</Text>
           {view.flagCodes.length > 0 ? (
             <View className="flex-row flex-wrap items-center justify-center" style={{ gap: 4, marginTop: 22, maxWidth: 320 }}>
@@ -256,9 +264,9 @@ export default function WrappedScreen() {
         </Slide>
 
         {/* Continents */}
-        <Slide code={bg(2)} height={height}>
+        <Slide code={bg(2)} height={height} active={active === 2} reduce={reduce}>
           <Text style={S.eyebrow}>ACROSS</Text>
-          <Text style={S.giant}>{view.continents.length}</Text>
+          <CountNumber value={view.continents.length} active={active === 2} style={S.giant} />
           <Text style={S.bigLabel}>{view.continents.length === 1 ? 'continent' : 'continents'}</Text>
           {view.continents.length > 0 ? (
             <Text style={[S.sub, { marginTop: 18 }]}>{view.continents.join(' · ')}</Text>
@@ -266,24 +274,24 @@ export default function WrappedScreen() {
         </Slide>
 
         {/* Cities + journeys */}
-        <Slide code={bg(3)} height={height}>
+        <Slide code={bg(3)} height={height} active={active === 3} reduce={reduce}>
           <Text style={S.eyebrow}>ON THE GROUND</Text>
           <View className="flex-row" style={{ gap: 40, marginTop: 10 }}>
             <View style={{ alignItems: 'center' }}>
-              <Text style={S.medium}>{view.cities}</Text>
+              <CountNumber value={view.cities} active={active === 3} style={S.medium} />
               <Text style={S.smallLabel}>{view.cities === 1 ? 'city' : 'cities'}</Text>
             </View>
             <View style={{ alignItems: 'center' }}>
-              <Text style={S.medium}>{view.journeys}</Text>
+              <CountNumber value={view.journeys} active={active === 3} style={S.medium} />
               <Text style={S.smallLabel}>{view.journeys === 1 ? 'journey' : 'journeys'}</Text>
             </View>
           </View>
         </Slide>
 
         {/* Discoveries */}
-        <Slide code={bg(4)} height={height}>
+        <Slide code={bg(4)} height={height} active={active === 4} reduce={reduce}>
           <Text style={S.eyebrow}>YOU KEPT</Text>
-          <Text style={S.giant}>{view.discoveries}</Text>
+          <CountNumber value={view.discoveries} active={active === 4} style={S.giant} />
           <Text style={S.bigLabel}>{view.discoveries === 1 ? 'discovery' : 'discoveries'}</Text>
           {view.topCategory ? (
             <Text style={[S.sub, { marginTop: 18 }]}>
@@ -293,14 +301,14 @@ export default function WrappedScreen() {
         </Slide>
 
         {/* Level */}
-        <Slide code={bg(5)} height={height}>
+        <Slide code={bg(5)} height={height} active={active === 5} reduce={reduce}>
           <Text style={S.eyebrow}>EXPLORER LEVEL {level.level}</Text>
           <Text style={[S.bigTitle, { marginTop: 8 }]}>{level.title}</Text>
           <Text style={[S.sub, { marginTop: 10 }]}>{level.xp.toLocaleString()} XP earned</Text>
         </Slide>
 
         {/* Outro */}
-        <Slide code={bg(6)} height={height}>
+        <Slide code={bg(6)} height={height} active={active === 6} reduce={reduce}>
           <WorldlyIcon height={58} />
           <Text style={[S.bigTitle, { marginTop: 16 }]}>The world is waiting</Text>
           <Text style={S.sub}>Where will your next story take you?</Text>
@@ -434,12 +442,25 @@ export default function WrappedScreen() {
   );
 }
 
-function Slide({ code, height, children }: { code: string; height: number; children: ReactNode }) {
+/** A number that counts up from 0 each time its slide becomes active (instant
+ *  under Reduce Motion — the hook handles that). */
+function CountNumber({ value, active, style }: { value: number; active: boolean; style: StyleProp<TextStyle> }) {
+  const n = useCountUp(value, { enabled: active });
+  return <Text style={style}>{n}</Text>;
+}
+
+function Slide({ code, height, active, reduce, children }: { code: string; height: number; active: boolean; reduce: boolean; children: ReactNode }) {
+  const p = useSharedValue(active && !reduce ? 0 : 1);
+  useEffect(() => {
+    // Content fades + rises as the slide scrolls into view; static under Reduce Motion.
+    p.value = reduce ? 1 : active ? withTiming(1, { duration: 460, easing: Easing.out(Easing.cubic) }) : 0;
+  }, [active, reduce, p]);
+  const revealStyle = useAnimatedStyle(() => ({ opacity: reduce ? 1 : p.value, transform: [{ translateY: reduce ? 0 : (1 - p.value) * 20 }] }));
   return (
     <DestinationImage code={code} scrim motion style={{ height, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}>
       {/* extra darkening so big text always reads */}
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(14,16,24,0.35)' }} />
-      <View style={{ alignItems: 'center' }}>{children}</View>
+      <Animated.View style={[{ alignItems: 'center' }, revealStyle]}>{children}</Animated.View>
     </DestinationImage>
   );
 }
