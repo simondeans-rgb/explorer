@@ -53,6 +53,15 @@ export default function MemoryScreen() {
     ? new Date(capture.takenAt).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })
     : undefined;
 
+  // Only enable "Save changes" when something actually changed — matches the
+  // discovery/journey editors, which gate their save on a dirty/required field (R34).
+  const dirty = !!capture && (
+    caption !== (capture.caption ?? '') ||
+    code !== (capture.countryCode ?? '') ||
+    city !== (capture.city ?? '') ||
+    expId !== capture.expeditionId
+  );
+
   function save() {
     if (!capture) return;
     if (caption.trim() && isObjectionable(caption)) {
@@ -194,10 +203,12 @@ export default function MemoryScreen() {
 
         <Pressable
           onPress={save}
+          disabled={!dirty}
           accessibilityRole="button"
           accessibilityLabel="Save memory"
+          accessibilityState={{ disabled: !dirty }}
           className="rounded-2xl items-center justify-center flex-row"
-          style={{ marginHorizontal: 20, marginTop: 22, paddingVertical: 15, backgroundColor: COLORS.coral, gap: 8 }}
+          style={{ marginHorizontal: 20, marginTop: 22, paddingVertical: 15, backgroundColor: COLORS.coral, gap: 8, opacity: dirty ? 1 : 0.45 }}
         >
           <Check size={18} color="#fff" />
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Save changes</Text>

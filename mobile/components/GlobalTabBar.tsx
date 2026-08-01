@@ -6,7 +6,9 @@ import { router, usePathname } from 'expo-router';
 import { Plus } from 'lucide-react-native';
 import { useEffect, type ComponentType } from 'react';
 import { useColorScheme } from 'react-native';
+import Animated, { ZoomIn, ZoomOut } from 'react-native-reanimated';
 import { COLORS, SECTION } from '../src/lib/theme';
+import { useReduceMotion } from '../src/lib/motion';
 import { track } from '../src/lib/analytics';
 import { hSelection, hImpact } from '../src/lib/haptics';
 import { emitScrollToTop } from '../src/lib/scrollTop';
@@ -56,6 +58,7 @@ const HIDDEN = new Set(['/wrapped', '/search']);
 export function GlobalTabBar({ onFab }: { onFab: () => void }) {
   const pathname = usePathname();
   const darkUI = useColorScheme() === 'dark';
+  const reduce = useReduceMotion();
 
   // This bar renders on every screen, so it's the one cheap place to observe
   // navigation for analytics without touching each route.
@@ -144,31 +147,36 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
 
       {/* Action button — floated to the bottom right, raised above the bar.
           Hidden on Passport: that tab is settings-heavy with right-edge
-          toggles the button would cover, and there's nothing to add from it. */}
+          toggles the button would cover, and there's nothing to add from it.
+          It scales/fades out gracefully on that tab (R20) rather than hard-cutting,
+          so its absence reads as intentional, not a glitch. */}
       {pathname === '/you' ? null : (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Add to your world"
-          onPress={() => { hImpact('light'); onFab(); }}
-          className="items-center justify-center rounded-full"
-          style={{
-            position: 'absolute',
-            right: 2,
-            bottom: 80,
-            height: 58,
-            width: 58,
-            backgroundColor: COLORS.coral,
-            borderWidth: 4,
-            borderColor: 'rgba(255,255,255,0.85)',
-            shadowColor: COLORS.coral,
-            shadowOpacity: 0.4,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: 6 },
-            elevation: 10,
-          }}
+        <Animated.View
+          entering={reduce ? undefined : ZoomIn.springify().damping(14)}
+          exiting={reduce ? undefined : ZoomOut.duration(160)}
+          style={{ position: 'absolute', right: 2, bottom: 80 }}
         >
-          <Plus size={28} color="#fff" strokeWidth={2.6} />
-        </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Add to your world"
+            onPress={() => { hImpact('light'); onFab(); }}
+            className="items-center justify-center rounded-full"
+            style={{
+              height: 58,
+              width: 58,
+              backgroundColor: COLORS.coral,
+              borderWidth: 4,
+              borderColor: 'rgba(255,255,255,0.85)',
+              shadowColor: COLORS.coral,
+              shadowOpacity: 0.4,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 6 },
+              elevation: 10,
+            }}
+          >
+            <Plus size={28} color="#fff" strokeWidth={2.6} />
+          </Pressable>
+        </Animated.View>
       )}
     </View>
   );
