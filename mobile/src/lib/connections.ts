@@ -131,6 +131,71 @@ export async function sendRequest(
   }
 }
 
+/** Re-send a connection request straight to a known uid. Used after unblocking:
+ *  blocking deletes the shared `connections` doc, so unblock alone can't restore
+ *  the friendship — the member has to reconnect. Mirrors {@link sendRequest} but
+ *  skips code resolution since the uid is already in hand. */
+export async function reconnect(
+  me: { uid: string; name: string },
+  otherUid: string,
+  otherName?: string,
+): Promise<RequestResult> {
+  if (!db) return { ok: false, error: 'Connecting requires signing in.' };
+  if (otherUid === me.uid) return { ok: false, error: 'That’s your own account.' };
+  try {
+    const id = pairId(me.uid, otherUid);
+    const ref = doc(db, 'connections', id);
+
+    // A connection may already exist (e.g. the other member re-added you first).
+    // Reading a not-yet-existing doc can be denied by stricter rules, so treat a
+    // failure here as "none yet" and fall through to create the request.
+    try {
+      const existing = await getDoc(ref);
+      if (existing.exists()) {
+        return {
+          ok: false,
+          error:
+            existing.data().status === 'accepted'
+              ? 'You’re already connected.'
+              : 'A request is already pending with this member.',
+        };
+      }
+    } catch {
+      /* fall through and attempt to create the request */
+    }
+
+    let name = otherName || 'Member';
+    if (!otherName) {
+      try {
+        name = await getProfileName(otherUid);
+      } catch {
+        /* name is best-effort */
+      }
+    }
+
+    await setDoc(ref, {
+      members: [me.uid, otherUid],
+      status: 'pending',
+      requestedBy: me.uid,
+      names: { [me.uid]: me.name, [otherUid]: name },
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return { ok: true };
+  } catch (e) {
+    const errCode =
+      typeof e === 'object' && e && 'code' in e ? String(e.code) : '';
+    if (errCode.includes('permission-denied')) {
+      return {
+        ok: false,
+        error:
+          'Couldn’t send the request — the database rules may need updating.',
+      };
+    }
+    return { ok: false, error: 'Couldn’t send the request. Please try again.' };
+  }
+}
+
 export async function acceptConnection(id: string): Promise<void> {
   if (!db) return;
   await updateDoc(doc(db, 'connections', id), {
