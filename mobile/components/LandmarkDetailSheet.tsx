@@ -79,7 +79,7 @@ export function LandmarkDetailSheet({
                 <LinearGradient colors={['rgba(20,33,61,0)', 'rgba(20,33,61,0.18)', 'rgba(20,33,61,0.78)']} locations={[0.25, 0.6, 1]} style={StyleSheet.absoluteFill} />
               </>
             ) : null}
-            <Pressable onPress={onClose} hitSlop={10} className="rounded-full items-center justify-center" style={{ position: 'absolute', top: 14, right: 14, height: 34, width: 34, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+            <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel="Close" className="rounded-full items-center justify-center" style={{ position: 'absolute', top: 14, right: 14, height: 34, width: 34, backgroundColor: 'rgba(0,0,0,0.4)' }}>
               <X size={18} color="#fff" />
             </Pressable>
             <View style={{ position: 'absolute', left: 20, right: 20, bottom: 16 }}>

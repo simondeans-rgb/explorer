@@ -80,7 +80,7 @@ function DragCard({
   const style = useAnimatedStyle(() => ({
     transform: [{ translateX: tx.value }, { translateY: ty.value }, { scale: 1 + lifted.value * 0.04 }],
     zIndex: lifted.value > 0 ? 1000 : 0,
-    shadowColor: '#000',
+    shadowColor: '#14213D',
     shadowOpacity: lifted.value * 0.22,
     shadowRadius: lifted.value * 12,
     shadowOffset: { width: 0, height: lifted.value * 6 },

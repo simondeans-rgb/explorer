@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, Pressable, Modal } from 'react-native';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { COLORS, SHADOW } from '../src/lib/theme';
+import { hSelection } from '../src/lib/haptics';
 
 // A tap-to-pick calendar date field: shows the chosen date and opens a month
 // calendar to pick a day — no typing, no separate year/month/day inputs.
@@ -196,10 +197,22 @@ export function DateField({
                   {cells.map((c, i) => {
                     const isSel = !!sel && c.inMonth && sel.y === c.y && sel.m === c.m && sel.d === c.d;
                     const isToday = c.inMonth && c.y === now.getFullYear() && c.m === now.getMonth() && c.d === now.getDate();
+                    const dayLabel = `${c.d} ${MONTHS[c.m]} ${c.y}${isToday ? ', today' : ''}`;
                     return (
-                      <Pressable key={i} onPress={() => pick(c.y, c.m, c.d)} style={{ width: `${100 / 7}%`, alignItems: 'center', paddingVertical: 3 }}>
+                      <Pressable
+                        key={i}
+                        onPress={() => {
+                          hSelection();
+                          pick(c.y, c.m, c.d);
+                        }}
+                        hitSlop={{ top: 3, bottom: 3 }}
+                        accessibilityRole="button"
+                        accessibilityLabel={dayLabel}
+                        accessibilityState={{ selected: isSel }}
+                        style={{ width: `${100 / 7}%`, alignItems: 'center', paddingVertical: 3 }}
+                      >
                         <View className="items-center justify-center rounded-xl" style={{ height: 38, width: 38, backgroundColor: isSel ? COLORS.navySolid : 'transparent', borderWidth: isToday && !isSel ? 1.5 : 0, borderColor: 'rgba(30,107,255,0.4)' }}>
-                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: isSel ? '800' : '500', color: isSel ? '#fff' : c.inMonth ? COLORS.navySolid : COLORS.ink3 }}>{c.d}</Text>
+                          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: isSel ? '800' : '500', color: isSel ? COLORS.white : c.inMonth ? COLORS.navySolid : COLORS.ink3 }}>{c.d}</Text>
                         </View>
                       </Pressable>
                     );

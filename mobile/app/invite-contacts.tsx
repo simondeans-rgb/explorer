@@ -96,10 +96,10 @@ export default function InviteContactsScreen() {
                     <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 14.5, fontWeight: '600', color: COLORS.navy }}>{c.name}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>{c.phone}</Text>
                   </View>
-                  <Pressable onPress={() => invite(c.phone, 'whatsapp')} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 36, width: 36, backgroundColor: '#25D366' }}>
+                  <Pressable onPress={() => invite(c.phone, 'whatsapp')} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Invite ${c.name} on WhatsApp`} className="rounded-full items-center justify-center" style={{ height: 36, width: 36, backgroundColor: '#25D366' }}>
                     <MessageCircle size={17} color="#fff" />
                   </Pressable>
-                  <Pressable onPress={() => invite(c.phone, 'sms')} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 36, width: 36, backgroundColor: COLORS.coral }}>
+                  <Pressable onPress={() => invite(c.phone, 'sms')} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Invite ${c.name} by text message`} className="rounded-full items-center justify-center" style={{ height: 36, width: 36, backgroundColor: COLORS.coral }}>
                     <MessageSquare size={17} color="#fff" />
                   </Pressable>
                 </View>

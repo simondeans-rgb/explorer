@@ -20,7 +20,7 @@ import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { PassportStamp } from '../../components/PassportStamp';
 import { useConfirm } from '../../src/store/confirm';
 import { circleStoryItems, type CircleStoryItem } from '../../src/lib/circle';
-import { COLORS, HERO_HEIGHT } from '../../src/lib/theme';
+import { COLORS, HERO_HEIGHT, BRAND_GRADIENT } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
@@ -271,7 +271,7 @@ export default function StoryScreen() {
       {isDecember ? (
         <View style={{ paddingHorizontal: 20, paddingTop: 18 }}>
           <Pressable onPress={() => { track('wrapped_card_tap'); router.push('/wrapped'); }} style={{ borderRadius: 26, overflow: 'hidden' }}>
-            <LinearGradient colors={['#FF6B9A', '#9B7CFF', '#24D1C3']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 18 }}>
+            <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 18 }}>
               <View className="flex-row items-center" style={{ gap: 8 }}>
                 <Sparkles size={16} color="#fff" />
                 <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, opacity: 0.95 }}>YEAR IN TRAVEL</Text>
@@ -295,7 +295,7 @@ export default function StoryScreen() {
             className="flex-row items-center bg-white dark:bg-card rounded-3xl"
             style={{ padding: 14, gap: 13 }}
           >
-            <LinearGradient colors={['#FF6B9A', '#9B7CFF', '#24D1C3']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="items-center justify-center rounded-2xl" style={{ height: 44, width: 44 }}>
+            <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="items-center justify-center rounded-2xl" style={{ height: 44, width: 44 }}>
               <Sparkles size={20} color="#fff" />
             </LinearGradient>
             <View style={{ flex: 1 }}>
