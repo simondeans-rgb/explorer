@@ -24,12 +24,8 @@ import {
   where,
   type DocumentData,
 } from 'firebase/firestore';
-import {
-  ref,
-  uploadString,
-  getDownloadURL,
-  deleteObject,
-} from 'firebase/storage';
+import { ref, deleteObject } from 'firebase/storage';
+import { uploadImageDataUrl } from '../lib/uploadImage';
 import type {
   Place,
   Discovery,
@@ -674,15 +670,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
           let photoPath: string | null = null;
           if (storage && input.photo?.startsWith('data:')) {
             const path = `users/${uid}/discoveries/${newId()}.jpg`;
-            const r = ref(storage, path);
             // Best-effort photo: if the upload can't complete (offline), still save
             // the discovery without it rather than hanging the save.
             try {
-              await withTimeout(uploadString(r, input.photo, 'data_url', {
-                contentType: 'image/jpeg',
-                cacheControl: 'public, max-age=31536000, immutable',
-              }));
-              photoUrl = await withTimeout(getDownloadURL(r));
+              photoUrl = await withTimeout(uploadImageDataUrl(storage, path, input.photo));
               photoPath = path;
             } catch {
               photoUrl = null;
@@ -733,9 +724,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           let photoPath: string | null | undefined; // undefined = leave doc field untouched
           if (storage && input.photo && input.photo.startsWith('data:')) {
             const path = `users/${uid}/discoveries/${newId()}.jpg`;
-            const r = ref(storage, path);
-            await uploadString(r, input.photo, 'data_url', { contentType: 'image/jpeg', cacheControl: 'public, max-age=31536000, immutable' });
-            photo = await getDownloadURL(r);
+            photo = await uploadImageDataUrl(storage, path, input.photo);
             photoPath = path;
           } else if (input.photo === null) {
             photoPath = null;
@@ -899,12 +888,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           let storagePath: string | null = null;
           if (storage && input.dataUrl.startsWith('data:')) {
             const path = `users/${uid}/captures/${newId()}.jpg`;
-            const r = ref(storage, path);
-            await withTimeout(uploadString(r, input.dataUrl, 'data_url', {
-              contentType: 'image/jpeg',
-              cacheControl: 'public, max-age=31536000, immutable',
-            }));
-            url = await withTimeout(getDownloadURL(r));
+            url = await withTimeout(uploadImageDataUrl(storage, path, input.dataUrl));
             storagePath = path;
           }
           addDoc(collection(fdb, 'captures'), {
@@ -1268,12 +1252,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       for (const c of legacy) {
         try {
           const path = `users/${uid}/captures/${c.id}.jpg`;
-          const r = ref(storage, path);
-          await timeout(uploadString(r, c.dataUrl, 'data_url', {
-            contentType: 'image/jpeg',
-            cacheControl: 'public, max-age=31536000, immutable',
-          }));
-          const url = await timeout(getDownloadURL(r));
+          const url = await timeout(uploadImageDataUrl(storage, path, c.dataUrl));
           await updateDoc(doc(db, 'captures', c.id), { dataUrl: url, storagePath: path });
         } catch (e) {
           reportError(e, { where: 'capture-migration' });
