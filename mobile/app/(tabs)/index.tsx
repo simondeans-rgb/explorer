@@ -312,7 +312,7 @@ export default function StoryScreen() {
         {captures.length > 0 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
             {captures.slice(0, 24).map((c) => (
-              <Pressable key={c.id} onLongPress={() => confirmRemoveCapture(c.id)} style={{ width: 168 }}>
+              <Pressable key={c.id} onPress={() => router.push(`/memory/${c.id}`)} onLongPress={() => confirmRemoveCapture(c.id)} accessibilityRole="button" accessibilityLabel={`Memory${c.caption ? `: ${c.caption}` : ''} — tap to edit`} style={{ width: 168 }}>
                 <View style={{ borderRadius: 22, overflow: 'hidden' }}>
                   <Image source={{ uri: c.dataUrl }} style={{ width: 168, height: TILE_H }} contentFit="cover" transition={200} />
                   <LinearGradient colors={['transparent', 'rgba(0,0,0,0.55)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 90, justifyContent: 'flex-end', padding: 12 }}>

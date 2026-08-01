@@ -159,6 +159,12 @@ interface DataApi extends DataShape {
     takenAt?: number;
   }) => Promise<void>;
   removeCapture: (id: string) => void;
+  /** Edit a memory's caption, place or linked trip. Pass a field as null to
+   *  clear it, omit it to leave it unchanged. */
+  updateCapture: (
+    id: string,
+    patch: { countryCode?: string | null; city?: string | null; caption?: string | null; expeditionId?: string | null },
+  ) => void;
   addTrip: (input: {
     title: string;
     countryCode: string;
@@ -224,6 +230,7 @@ const DataContext = createContext<DataApi>({
   recalculateJourneys: async () => 0,
   addCapture: async () => {},
   removeCapture: noop,
+  updateCapture: noop,
   addTrip: noop,
   removeTrip: noop,
   addTripCollaborator: noop,
@@ -934,6 +941,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
         } else {
           const cur = localRef.current;
           persistLocal({ ...cur, captures: cur.captures.filter((c) => c.id !== id) });
+        }
+      },
+      updateCapture: (id, patch) => {
+        if (cloud && fdb && uid) {
+          const fields: Record<string, unknown> = {};
+          if ('countryCode' in patch) fields.countryCode = patch.countryCode || null;
+          if ('city' in patch) fields.city = patch.city?.trim() || null;
+          if ('caption' in patch) fields.caption = patch.caption?.trim() || null;
+          if ('expeditionId' in patch) fields.expeditionId = patch.expeditionId || null;
+          updateDoc(doc(fdb, 'captures', id), fields).catch(logWriteError);
+        } else {
+          const cur = localRef.current;
+          persistLocal({
+            ...cur,
+            captures: cur.captures.map((c) =>
+              c.id === id
+                ? {
+                    ...c,
+                    countryCode: 'countryCode' in patch ? patch.countryCode || undefined : c.countryCode,
+                    city: 'city' in patch ? patch.city?.trim() || undefined : c.city,
+                    caption: 'caption' in patch ? patch.caption?.trim() || undefined : c.caption,
+                    expeditionId: 'expeditionId' in patch ? patch.expeditionId || undefined : c.expeditionId,
+                  }
+                : c,
+            ),
+          });
         }
       },
       addTrip: (input) => {
