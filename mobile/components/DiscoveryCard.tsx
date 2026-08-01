@@ -45,7 +45,13 @@ export function DiscoveryCard({ discovery: d, onPress }: { discovery: Discovery;
   const chip = d.verdict ? VERDICT_CHIP[d.verdict] : null;
 
   return (
-    <Pressable onPress={onPress} className="bg-white dark:bg-card rounded-3xl flex-row items-start" style={{ padding: 14, gap: 12, borderLeftWidth: 3, borderLeftColor: cat, ...SHADOW.card }}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={`${d.name}${place ? `, ${place}` : ''} · ${DISCOVERY_CATEGORY_META[d.category].label}${d.verdict ? `, ${VERDICT_META[d.verdict].label}` : ''}`}
+      className="bg-white dark:bg-card rounded-3xl flex-row items-start"
+      style={{ padding: 14, gap: 12, borderLeftWidth: 3, borderLeftColor: cat, ...SHADOW.card }}
+    >
       {d.photo ? (
         <Image source={{ uri: d.photo }} style={{ height: 58, width: 58, borderRadius: 16 }} contentFit="cover" transition={200} cachePolicy="memory-disk" />
       ) : (

@@ -155,7 +155,7 @@ export default function FriendProfileScreen() {
           <View className="rounded-full items-center justify-center bg-white/20" style={{ height: 88, width: 88, borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)' }}>
             <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38 }}>{initial}</Text>
           </View>
-          <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 28, marginTop: 12 }} numberOfLines={1}>{name}</Text>
+          <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 28, marginTop: 12, textAlign: 'center' }} numberOfLines={2}>{name}</Text>
           <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.92, marginTop: 2 }}>
             {hasAnything ? `Level ${level.level} · ${level.title}` : 'In your Circle'}
           </Text>

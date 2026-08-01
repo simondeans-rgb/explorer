@@ -70,11 +70,11 @@ export const AtlasCountryCard = memo(function AtlasCountryCard({ aggregate: a, d
   }
 
   return (
-    <Pressable onPress={() => router.push(`/country/${a.code}`)} className="bg-white dark:bg-card rounded-3xl" style={{ overflow: 'hidden' }}>
+    <Pressable onPress={() => router.push(`/country/${a.code}`)} accessibilityRole="button" accessibilityLabel={`${countryName(a.code)}, ${a.continent}${a.firstYear ? `, since ${a.firstYear}` : ''}`} className="bg-white dark:bg-card rounded-3xl" style={{ overflow: 'hidden' }}>
       <DestinationImage code={a.code} scrim style={{ height: 148, padding: 14, justifyContent: 'flex-end' }}>
         <Text style={{ fontSize: 30, position: 'absolute', top: 12, left: 14 }}>{flagEmoji(a.code)}</Text>
         {a.discoveryScore > 0 ? (
-          <Pressable onPress={onScorePress} hitSlop={10} style={{ position: 'absolute', top: 10, right: 12 }}>
+          <Pressable onPress={onScorePress} hitSlop={10} accessibilityRole="button" accessibilityLabel={`Discovery score ${a.discoveryScore}. See details`} style={{ position: 'absolute', top: 10, right: 12 }}>
             <ScoreRing score={a.discoveryScore} size={40} />
           </Pressable>
         ) : null}
