@@ -6,7 +6,8 @@
   "engines": { "node": "20" },
   "scripts": {
     "build": "tsc",
-    "deploy": "firebase deploy --only functions"
+    "deploy": "firebase deploy --only functions",
+    "seed:demo": "node scripts/seed-demo-accounts.mjs"
   },
   "dependencies": {
     "expo-server-sdk": "^3.10.0",
