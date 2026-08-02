@@ -53,10 +53,12 @@ const B_EMAIL = arg('friend-email', 'friend.demo@worldly-explorer.com');
 const A_NAME = 'Alex Rivera';
 const B_NAME = 'Sam Chen';
 
-// Small gradient JPEGs (data URLs) so memories render without any network.
+// Real destination photos (data URLs), keyed by ISO country code, so every
+// memory and recommendation shows its actual place. These are downscaled copies
+// of the app's own bundled /destinations imagery — the authorised source the app
+// already ships — embedded so playback needs no network. 'WW' is the fallback.
 const PHOTOS = JSON.parse(readFileSync(new URL('./demo-photos.json', import.meta.url), 'utf8'));
-const PHOTO_KEYS = Object.keys(PHOTOS);
-const photo = (i) => PHOTOS[PHOTO_KEYS[i % PHOTO_KEYS.length]];
+const photoFor = (code) => PHOTOS[code] ?? PHOTOS.WW;
 
 const ms = (y, mo = 6, d = 15) => Date.UTC(y, mo - 1, d, 12, 0, 0);
 const ts = (y, mo = 6, d = 15) => Timestamp.fromMillis(ms(y, mo, d));
@@ -117,7 +119,7 @@ function discoveryOp(uid, d) {
     expeditionId: null,
     verdict: d.verdict ?? null,
     note: d.note ?? null,
-    photo: d.photo ?? null,
+    photo: d.photo ?? photoFor(d.countryCode),
     createdAt,
     updatedAt: createdAt,
   } };
@@ -140,7 +142,7 @@ function captureOp(uid, c) {
   const takenAt = ms(c.year, c.mo ?? 6, c.d ?? 15);
   return { coll: 'captures', data: {
     userId: uid,
-    dataUrl: c.photo,
+    dataUrl: c.photo ?? photoFor(c.countryCode),
     countryCode: c.countryCode ?? null,
     city: c.city ?? null,
     expeditionId: null,
@@ -199,14 +201,14 @@ const ALEX = {
     },
   ],
   captures: [
-    { countryCode: 'PT', city: 'Lisbon', caption: 'Golden hour over the Tejo', year: 2017, mo: 5, photo: photo(0) },
-    { countryCode: 'JP', city: 'Kyoto', caption: 'The empty torii at dawn', year: 2019, mo: 4, photo: photo(2) },
-    { countryCode: 'IS', city: 'Reykjavik', caption: 'Somewhere on the ring road', year: 2023, mo: 9, photo: photo(5) },
-    { countryCode: 'MA', city: 'Marrakesh', caption: 'Lost in the medina', year: 2022, mo: 10, photo: photo(3) },
-    { countryCode: 'GR', city: 'Athens', caption: 'Rooftop sunset, last night', year: 2024, mo: 7, photo: photo(0) },
-    { countryCode: 'ES', city: 'Barcelona', caption: 'Gaudí against the blue', year: 2016, mo: 6, photo: photo(1) },
-    { countryCode: 'IT', city: 'Rome', caption: 'Espresso and old stone', year: 2018, mo: 9, photo: photo(7) },
-    { countryCode: 'JP', city: 'Tokyo', caption: 'Shinjuku after the rain', year: 2019, mo: 4, photo: photo(4) },
+    { countryCode: 'PT', city: 'Lisbon', caption: 'Golden hour over the Tejo', year: 2017, mo: 5 },
+    { countryCode: 'JP', city: 'Kyoto', caption: 'The empty torii at dawn', year: 2019, mo: 4 },
+    { countryCode: 'IS', city: 'Reykjavik', caption: 'Somewhere on the ring road', year: 2023, mo: 9 },
+    { countryCode: 'MA', city: 'Marrakesh', caption: 'Lost in the medina', year: 2022, mo: 10 },
+    { countryCode: 'GR', city: 'Athens', caption: 'Rooftop sunset, last night', year: 2024, mo: 7 },
+    { countryCode: 'ES', city: 'Barcelona', caption: 'Gaudí against the blue', year: 2016, mo: 6 },
+    { countryCode: 'IT', city: 'Rome', caption: 'Espresso and old stone', year: 2018, mo: 9 },
+    { countryCode: 'JP', city: 'Tokyo', caption: 'Shinjuku after the rain', year: 2019, mo: 4 },
   ],
 };
 
@@ -256,14 +258,14 @@ const SAM = {
     },
   ],
   captures: [
-    { countryCode: 'PE', city: 'Cusco', caption: 'The climb was worth it', year: 2019, mo: 5, photo: photo(4) },
-    { countryCode: 'AU', city: 'Sydney', caption: 'Coogee, early morning', year: 2020, mo: 1, photo: photo(6) },
-    { countryCode: 'NZ', city: 'Queenstown', caption: 'Milford Sound, glass water', year: 2020, mo: 1, photo: photo(1) },
-    { countryCode: 'MX', city: 'Mexico City', caption: 'Rooftop tacos', year: 2015, mo: 11, photo: photo(3) },
-    { countryCode: 'BR', city: 'Rio de Janeiro', caption: 'Above the clouds', year: 2018, mo: 2, photo: photo(0) },
-    { countryCode: 'US', city: 'San Francisco', caption: 'Fog rolling over the bay', year: 2021, mo: 8, photo: photo(1) },
-    { countryCode: 'VN', city: 'Hanoi', caption: 'Old Quarter, blue hour', year: 2017, mo: 3, photo: photo(4) },
-    { countryCode: 'AR', city: 'Buenos Aires', caption: 'Sunset over San Telmo', year: 2023, mo: 11, photo: photo(7) },
+    { countryCode: 'PE', city: 'Cusco', caption: 'The climb was worth it', year: 2019, mo: 5 },
+    { countryCode: 'AU', city: 'Sydney', caption: 'Coogee, early morning', year: 2020, mo: 1 },
+    { countryCode: 'NZ', city: 'Queenstown', caption: 'Milford Sound, glass water', year: 2020, mo: 1 },
+    { countryCode: 'MX', city: 'Mexico City', caption: 'Rooftop tacos', year: 2015, mo: 11 },
+    { countryCode: 'BR', city: 'Rio de Janeiro', caption: 'Above the clouds', year: 2018, mo: 2 },
+    { countryCode: 'US', city: 'San Francisco', caption: 'Fog rolling over the bay', year: 2021, mo: 8 },
+    { countryCode: 'VN', city: 'Hanoi', caption: 'Old Quarter, blue hour', year: 2017, mo: 3 },
+    { countryCode: 'AR', city: 'Buenos Aires', caption: 'Sunset over San Telmo', year: 2023, mo: 11 },
   ],
 };
 
