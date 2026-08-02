@@ -155,119 +155,184 @@ function captureOp(uid, c) {
 }
 
 // ── the two demo lives ───────────────────────────────────────────────────────
-// Distinct regions so the two maps and the Circle feed clearly differ.
-const ALEX = {
-  countries: [
-    { countryCode: 'GB', name: 'United Kingdom', relationships: ['lived', 'born'], firstYear: 2014 },
-    { countryCode: 'PT', name: 'Portugal', relationships: ['lived'], firstYear: 2015, livedFrom: '2015-03', livedTo: '2018-09' },
-    { countryCode: 'ES', name: 'Spain', relationships: ['visited'], firstYear: 2016 },
-    { countryCode: 'FR', name: 'France', relationships: ['visited'], firstYear: 2017 },
-    { countryCode: 'IT', name: 'Italy', relationships: ['visited'], firstYear: 2018 },
-    { countryCode: 'JP', name: 'Japan', relationships: ['visited'], firstYear: 2019 },
-    { countryCode: 'TH', name: 'Thailand', relationships: ['visited'], firstYear: 2020 },
-    { countryCode: 'MA', name: 'Morocco', relationships: ['visited'], firstYear: 2022 },
-    { countryCode: 'IS', name: 'Iceland', relationships: ['visited'], firstYear: 2023 },
-    { countryCode: 'GR', name: 'Greece', relationships: ['visited'], firstYear: 2024 },
+// Distinct regions so the two maps and the Circle feed clearly differ. Each
+// destination row carries everything for that country: its city, a memory
+// caption (→ a photo capture) and often a recommendation (→ a discovery). The
+// expand() builder below turns these tables into the places/cities/discoveries/
+// captures the app reads. `cap` = a memory; `disc` = a recommendation.
+const ALEX_SRC = {
+  dest: [
+    { cc: 'GB', name: 'United Kingdom', city: 'London', year: 2014, rel: ['lived', 'born'], cap: 'Home, before the world opened up', disc: { n: 'Borough Market', c: 'food', v: 'recommend', note: 'Go on an empty stomach.' } },
+    { cc: 'PT', name: 'Portugal', city: 'Lisbon', year: 2015, rel: ['lived'], livedFrom: '2015-03', livedTo: '2018-09', cap: 'Golden hour over the Tejo', disc: { n: 'Time Out Market', c: 'food', v: 'recommend', note: 'One stall for every mood.' } },
+    { cc: 'ES', name: 'Spain', city: 'Barcelona', year: 2016, cap: 'Gaudí against the blue', disc: { n: 'Park Güell at opening', c: 'culture', v: 'recommend', note: 'Beat the queues.' } },
+    { cc: 'FR', name: 'France', city: 'Paris', year: 2017, cap: 'The city from Montmartre', disc: { n: "Musée d'Orsay", c: 'culture', v: 'recommend' } },
+    { cc: 'IT', name: 'Italy', city: 'Rome', year: 2018, cap: 'Espresso and old stone', disc: { n: 'Trastevere at dusk', c: 'experience', v: 'hidden-gem', note: 'Wander with no plan.' } },
+    { cc: 'JP', name: 'Japan', city: 'Kyoto', year: 2019, cap: 'The empty torii at dawn', disc: { n: 'Fushimi Inari before dawn', c: 'experience', v: 'hidden-gem', note: 'The empty gates are unreal.' } },
+    { cc: 'TH', name: 'Thailand', city: 'Bangkok', year: 2020, cap: 'Longtails on the Chao Phraya', disc: { n: 'A canal-side boat-noodle stall', c: 'food', v: 'hidden-gem' } },
+    { cc: 'MA', name: 'Morocco', city: 'Marrakesh', year: 2022, cap: 'Lost in the medina', disc: { n: 'Jemaa el-Fnaa at night', c: 'culture', v: 'recommend' } },
+    { cc: 'IS', name: 'Iceland', city: 'Reykjavik', year: 2023, cap: 'Somewhere on the ring road', disc: { n: 'The Blue Lagoon', c: 'nature', v: 'worth-visiting', note: 'Touristy but worth it once.' } },
+    { cc: 'GR', name: 'Greece', city: 'Santorini', year: 2024, cap: 'Blue domes and white walls', disc: { n: 'Sunset in Oia', c: 'nature', v: 'recommend' } },
+    { cc: 'IE', name: 'Ireland', city: 'Dublin', year: 2015, cap: 'Green all the way to the cliffs', disc: { n: 'Cliffs of Moher', c: 'nature', v: 'recommend' } },
+    { cc: 'NL', name: 'Netherlands', city: 'Amsterdam', year: 2016, cap: 'Bikes and bridges', disc: { n: 'The canal ring by bike', c: 'experience', v: 'recommend' } },
+    { cc: 'DE', name: 'Germany', city: 'Berlin', year: 2017, cap: 'The wall, still speaking', disc: { n: 'East Side Gallery', c: 'culture', v: 'worth-visiting' } },
+    { cc: 'CH', name: 'Switzerland', city: 'Zürich', year: 2018, cap: 'Still water, big mountains', disc: { n: 'A swim in Lake Zürich', c: 'nature', v: 'hidden-gem' } },
+    { cc: 'AT', name: 'Austria', city: 'Vienna', year: 2018, cap: 'Coffee-and-cake weather', disc: { n: 'A Viennese coffee house', c: 'food', v: 'recommend', note: 'Order the Sachertorte.' } },
+    { cc: 'HR', name: 'Croatia', city: 'Split', year: 2019, cap: 'The Adriatic, impossibly clear', disc: { n: 'Sea-kayaking off the old town', c: 'experience', v: 'hidden-gem' } },
+    { cc: 'CZ', name: 'Czechia', city: 'Prague', year: 2016, cap: 'Spires in the morning mist', disc: { n: 'Prague Castle at dawn', c: 'culture', v: 'recommend' } },
+    { cc: 'HU', name: 'Hungary', city: 'Budapest', year: 2017, cap: 'Steam rising off the baths', disc: { n: 'Széchenyi thermal baths', c: 'experience', v: 'recommend' } },
+    { cc: 'TR', name: 'Türkiye', city: 'Istanbul', year: 2021, cap: 'Where two continents meet' },
+    { cc: 'EG', name: 'Egypt', city: 'Cairo', year: 2021, cap: 'Older than everything' },
+    { cc: 'JO', name: 'Jordan', city: 'Petra', year: 2022, cap: 'Carved out of rose stone' },
+    { cc: 'AE', name: 'United Arab Emirates', city: 'Dubai', year: 2020, cap: 'Desert turned skyline' },
+    { cc: 'IN', name: 'India', city: 'Jaipur', year: 2019, cap: 'Pink city, golden light' },
+    { cc: 'VN', name: 'Vietnam', city: 'Hanoi', year: 2020, cap: 'Old Quarter, blue hour' },
+    { cc: 'ID', name: 'Indonesia', city: 'Bali', year: 2023 },
+    { cc: 'SG', name: 'Singapore', city: 'Singapore', year: 2020 },
+    { cc: 'KR', name: 'South Korea', city: 'Seoul', year: 2019 },
+    { cc: 'PL', name: 'Poland', city: 'Kraków', year: 2017 },
+    { cc: 'NO', name: 'Norway', city: 'Bergen', year: 2022 },
+    { cc: 'SE', name: 'Sweden', city: 'Stockholm', year: 2016 },
   ],
-  cities: [
-    { countryCode: 'GB', name: 'London' }, { countryCode: 'PT', name: 'Lisbon' },
-    { countryCode: 'PT', name: 'Porto' }, { countryCode: 'ES', name: 'Barcelona' },
-    { countryCode: 'FR', name: 'Paris' }, { countryCode: 'IT', name: 'Rome' },
-    { countryCode: 'JP', name: 'Tokyo' }, { countryCode: 'JP', name: 'Kyoto' },
-    { countryCode: 'GR', name: 'Athens' }, { countryCode: 'IS', name: 'Reykjavik' },
-  ],
-  discoveries: [
-    { name: 'Time Out Market', category: 'food', countryCode: 'PT', city: 'Lisbon', verdict: 'recommend', note: 'Go hungry — one stall for every mood.', year: 2017 },
-    { name: 'Park Güell at opening', category: 'culture', countryCode: 'ES', city: 'Barcelona', verdict: 'recommend', year: 2016 },
-    { name: 'Fushimi Inari before dawn', category: 'experience', countryCode: 'JP', city: 'Kyoto', verdict: 'hidden-gem', note: 'Beat the crowds — the empty gates are unreal.', year: 2019 },
-    { name: 'A tiny ramen bar in Shinjuku', category: 'food', countryCode: 'JP', city: 'Tokyo', verdict: 'hidden-gem', year: 2019 },
-    { name: 'Jemaa el-Fnaa at night', category: 'culture', countryCode: 'MA', city: 'Marrakesh', verdict: 'recommend', year: 2022 },
-    { name: 'The Blue Lagoon', category: 'nature', countryCode: 'IS', city: 'Reykjavik', verdict: 'worth-visiting', note: 'Touristy but worth it once.', year: 2023 },
+  extraCities: [
+    { cc: 'PT', name: 'Porto' }, { cc: 'JP', name: 'Tokyo' }, { cc: 'IT', name: 'Florence' },
+    { cc: 'ES', name: 'Granada' }, { cc: 'FR', name: 'Nice' }, { cc: 'HR', name: 'Dubrovnik' },
+    { cc: 'DE', name: 'Munich' }, { cc: 'AT', name: 'Salzburg' },
   ],
   expeditions: [
-    {
-      title: 'Japan, cherry-blossom spring', year: 2019, startDate: '2019-04-02', endDate: '2019-04-16', countryCodes: ['JP'],
-      journeys: [
-        { mode: 'flight', operator: 'British Airways', from: 'LHR', to: 'HND', reference: 'BA007', date: '2019-04-02', distanceKm: 9580, durationMin: 720 },
-        { mode: 'rail', operator: 'JR Shinkansen', from: 'Tokyo', to: 'Kyoto', reference: 'Nozomi', date: '2019-04-08', distanceKm: 452, durationMin: 140 },
-      ],
-    },
-    {
-      title: 'Iberia by rail', year: 2016, startDate: '2016-06-10', endDate: '2016-06-22', countryCodes: ['ES', 'PT'],
-      journeys: [
-        { mode: 'flight', operator: 'easyJet', from: 'LGW', to: 'LIS', reference: 'U28501', date: '2016-06-10', distanceKm: 1585, durationMin: 165 },
-        { mode: 'rail', operator: 'CP', from: 'Lisbon', to: 'Porto', reference: 'AP', date: '2016-06-18', distanceKm: 313, durationMin: 170 },
-      ],
-    },
-  ],
-  captures: [
-    { countryCode: 'PT', city: 'Lisbon', caption: 'Golden hour over the Tejo', year: 2017, mo: 5 },
-    { countryCode: 'JP', city: 'Kyoto', caption: 'The empty torii at dawn', year: 2019, mo: 4 },
-    { countryCode: 'IS', city: 'Reykjavik', caption: 'Somewhere on the ring road', year: 2023, mo: 9 },
-    { countryCode: 'MA', city: 'Marrakesh', caption: 'Lost in the medina', year: 2022, mo: 10 },
-    { countryCode: 'GR', city: 'Athens', caption: 'Rooftop sunset, last night', year: 2024, mo: 7 },
-    { countryCode: 'ES', city: 'Barcelona', caption: 'Gaudí against the blue', year: 2016, mo: 6 },
-    { countryCode: 'IT', city: 'Rome', caption: 'Espresso and old stone', year: 2018, mo: 9 },
-    { countryCode: 'JP', city: 'Tokyo', caption: 'Shinjuku after the rain', year: 2019, mo: 4 },
+    { title: 'Japan, cherry-blossom spring', year: 2019, startDate: '2019-04-02', endDate: '2019-04-16', countryCodes: ['JP'], journeys: [
+      { mode: 'flight', operator: 'British Airways', from: 'LHR', to: 'HND', reference: 'BA007', date: '2019-04-02', distanceKm: 9580, durationMin: 720 },
+      { mode: 'rail', operator: 'JR Shinkansen', from: 'Tokyo', to: 'Kyoto', reference: 'Nozomi', date: '2019-04-08', distanceKm: 452, durationMin: 140 },
+    ] },
+    { title: 'Iberia by rail', year: 2016, startDate: '2016-06-10', endDate: '2016-06-22', countryCodes: ['ES', 'PT'], journeys: [
+      { mode: 'flight', operator: 'easyJet', from: 'LGW', to: 'LIS', reference: 'U28501', date: '2016-06-10', distanceKm: 1585, durationMin: 165 },
+      { mode: 'rail', operator: 'CP', from: 'Lisbon', to: 'Porto', reference: 'AP', date: '2016-06-18', distanceKm: 313, durationMin: 170 },
+    ] },
+    { title: 'Grand tour of Italy', year: 2018, startDate: '2018-09-05', endDate: '2018-09-19', countryCodes: ['IT'], journeys: [
+      { mode: 'flight', operator: 'ITA Airways', from: 'LGW', to: 'FCO', reference: 'AZ205', date: '2018-09-05', distanceKm: 1450, durationMin: 155 },
+      { mode: 'rail', operator: 'Trenitalia', from: 'Rome', to: 'Florence', reference: 'Frecciarossa', date: '2018-09-12', distanceKm: 232, durationMin: 95 },
+    ] },
+    { title: 'Nordic summer', year: 2022, startDate: '2022-07-01', endDate: '2022-07-14', countryCodes: ['NO', 'IS'], journeys: [
+      { mode: 'flight', operator: 'SAS', from: 'LHR', to: 'OSL', reference: 'SK810', date: '2022-07-01', distanceKm: 1160, durationMin: 130 },
+      { mode: 'flight', operator: 'Icelandair', from: 'OSL', to: 'KEF', reference: 'FI319', date: '2022-07-08', distanceKm: 1900, durationMin: 200 },
+    ] },
+    { title: 'Middle East crossing', year: 2021, startDate: '2021-10-02', endDate: '2021-10-18', countryCodes: ['TR', 'JO', 'AE'], journeys: [
+      { mode: 'flight', operator: 'Turkish Airlines', from: 'LHR', to: 'IST', reference: 'TK1980', date: '2021-10-02', distanceKm: 2500, durationMin: 240 },
+      { mode: 'flight', operator: 'Royal Jordanian', from: 'IST', to: 'AMM', reference: 'RJ702', date: '2021-10-09', distanceKm: 1150, durationMin: 140 },
+      { mode: 'flight', operator: 'Emirates', from: 'AMM', to: 'DXB', reference: 'EK904', date: '2021-10-14', distanceKm: 2020, durationMin: 190 },
+    ] },
+    { title: 'Southeast Asia loop', year: 2020, startDate: '2020-01-06', endDate: '2020-01-27', countryCodes: ['TH', 'VN', 'SG'], journeys: [
+      { mode: 'flight', operator: 'Thai Airways', from: 'LHR', to: 'BKK', reference: 'TG917', date: '2020-01-06', distanceKm: 9540, durationMin: 700 },
+      { mode: 'flight', operator: 'Vietnam Airlines', from: 'BKK', to: 'HAN', reference: 'VN610', date: '2020-01-15', distanceKm: 990, durationMin: 110 },
+      { mode: 'flight', operator: 'Singapore Airlines', from: 'HAN', to: 'SIN', reference: 'SQ177', date: '2020-01-22', distanceKm: 2200, durationMin: 180 },
+    ] },
   ],
 };
 
-const SAM = {
-  countries: [
-    { countryCode: 'US', name: 'United States', relationships: ['lived', 'born'], firstYear: 2013 },
-    { countryCode: 'MX', name: 'Mexico', relationships: ['visited'], firstYear: 2015 },
-    { countryCode: 'CA', name: 'Canada', relationships: ['visited'], firstYear: 2016 },
-    { countryCode: 'VN', name: 'Vietnam', relationships: ['visited'], firstYear: 2017 },
-    { countryCode: 'BR', name: 'Brazil', relationships: ['visited'], firstYear: 2018 },
-    { countryCode: 'PE', name: 'Peru', relationships: ['visited'], firstYear: 2019 },
-    { countryCode: 'AU', name: 'Australia', relationships: ['visited'], firstYear: 2020 },
-    { countryCode: 'NZ', name: 'New Zealand', relationships: ['visited'], firstYear: 2022 },
-    { countryCode: 'AR', name: 'Argentina', relationships: ['visited'], firstYear: 2023 },
-    { countryCode: 'CR', name: 'Costa Rica', relationships: ['visited'], firstYear: 2024 },
+const SAM_SRC = {
+  dest: [
+    { cc: 'US', name: 'United States', city: 'San Francisco', year: 2013, rel: ['lived', 'born'], cap: 'Fog rolling over the bay', disc: { n: 'Tartine Bakery', c: 'food', v: 'recommend', note: 'The morning bun is worth the queue.' } },
+    { cc: 'MX', name: 'Mexico', city: 'Mexico City', year: 2015, cap: 'Rooftop tacos at dusk', disc: { n: 'A backstreet taco stand', c: 'food', v: 'hidden-gem', note: 'No sign, all locals, best al pastor of my life.' } },
+    { cc: 'CA', name: 'Canada', city: 'Vancouver', year: 2016, cap: 'Seawall, early light', disc: { n: 'Stanley Park by bike', c: 'experience', v: 'recommend' } },
+    { cc: 'LA', name: 'Laos', city: 'Luang Prabang', year: 2017, cap: 'Waterfalls all to ourselves', disc: { n: 'Kuang Si Falls', c: 'nature', v: 'hidden-gem' } },
+    { cc: 'BR', name: 'Brazil', city: 'Rio de Janeiro', year: 2018, cap: 'Above the clouds', disc: { n: 'Cristo Redentor', c: 'culture', v: 'worth-visiting' } },
+    { cc: 'PE', name: 'Peru', city: 'Cusco', year: 2019, cap: 'The climb was worth it', disc: { n: 'Machu Picchu at sunrise', c: 'nature', v: 'recommend', note: 'Take the first bus up. No regrets.' } },
+    { cc: 'AU', name: 'Australia', city: 'Sydney', year: 2020, cap: 'Coogee, early morning', disc: { n: 'Bondi to Coogee coastal walk', c: 'experience', v: 'recommend' } },
+    { cc: 'NZ', name: 'New Zealand', city: 'Queenstown', year: 2022, cap: 'Milford Sound, glass water', disc: { n: 'Kayaking Milford Sound', c: 'nature', v: 'hidden-gem' } },
+    { cc: 'AR', name: 'Argentina', city: 'Buenos Aires', year: 2023, cap: 'Sunset over San Telmo', disc: { n: 'A late-night parrilla', c: 'food', v: 'recommend' } },
+    { cc: 'CR', name: 'Costa Rica', city: 'Monteverde', year: 2024, cap: 'Cloud-forest mornings', disc: { n: 'The Monteverde cloud forest', c: 'nature', v: 'recommend' } },
+    { cc: 'CL', name: 'Chile', city: 'Valparaíso', year: 2019, cap: 'Colour on every hill', disc: { n: 'Valparaíso street art', c: 'culture', v: 'hidden-gem' } },
+    { cc: 'CO', name: 'Colombia', city: 'Cartagena', year: 2018, cap: 'Old town, warm stone', disc: { n: 'Walled-city Cartagena', c: 'culture', v: 'recommend' } },
+    { cc: 'EC', name: 'Ecuador', city: 'Quito', year: 2019, cap: 'Rooftops of Quito', disc: { n: "Quito's old town", c: 'culture', v: 'worth-visiting' } },
+    { cc: 'BO', name: 'Bolivia', city: 'Uyuni', year: 2019, cap: 'Sky and salt, no horizon', disc: { n: 'Salar de Uyuni', c: 'nature', v: 'recommend', note: 'Go at sunrise, mirror everywhere.' } },
+    { cc: 'UY', name: 'Uruguay', city: 'Montevideo', year: 2023, cap: 'Slow afternoons on the rambla', disc: { n: 'A parrilla in the Mercado', c: 'food', v: 'worth-visiting' } },
+    { cc: 'PA', name: 'Panama', city: 'Panama City', year: 2017, cap: 'Ships stacking up at the locks', disc: { n: 'The canal locks', c: 'culture', v: 'worth-visiting' } },
+    { cc: 'GT', name: 'Guatemala', city: 'Antigua', year: 2016, cap: 'Volcanoes over the rooftops', disc: { n: 'Antigua at golden hour', c: 'experience', v: 'recommend' } },
+    { cc: 'CU', name: 'Cuba', city: 'Havana', year: 2015, cap: 'Classic cars and jazz', disc: { n: 'A Havana jazz bar', c: 'experience', v: 'hidden-gem' } },
+    { cc: 'DO', name: 'Dominican Republic', city: 'Punta Cana', year: 2016, cap: 'Palms and impossible blue' },
+    { cc: 'JM', name: 'Jamaica', city: 'Kingston', year: 2017, cap: 'Hills above the harbour' },
+    { cc: 'PH', name: 'Philippines', city: 'El Nido', year: 2018, cap: 'Turquoise and limestone' },
+    { cc: 'MY', name: 'Malaysia', city: 'Kuala Lumpur', year: 2019, cap: 'Skyline and street food' },
+    { cc: 'KH', name: 'Cambodia', city: 'Siem Reap', year: 2018, cap: 'Sunrise at the temples' },
+    { cc: 'LK', name: 'Sri Lanka', city: 'Ella', year: 2019, cap: 'Tea hills down to the sea' },
+    { cc: 'NP', name: 'Nepal', city: 'Kathmandu', year: 2020 },
+    { cc: 'FJ', name: 'Fiji', city: 'Suva', year: 2022 },
+    { cc: 'ZA', name: 'South Africa', city: 'Cape Town', year: 2021 },
+    { cc: 'KE', name: 'Kenya', city: 'Nairobi', year: 2021 },
+    { cc: 'TZ', name: 'Tanzania', city: 'Zanzibar', year: 2022 },
+    { cc: 'CN', name: 'China', city: 'Shanghai', year: 2019 },
   ],
-  cities: [
-    { countryCode: 'US', name: 'San Francisco' }, { countryCode: 'US', name: 'New York' },
-    { countryCode: 'MX', name: 'Mexico City' }, { countryCode: 'CA', name: 'Vancouver' },
-    { countryCode: 'BR', name: 'Rio de Janeiro' }, { countryCode: 'PE', name: 'Cusco' },
-    { countryCode: 'AU', name: 'Sydney' }, { countryCode: 'NZ', name: 'Queenstown' },
-    { countryCode: 'AR', name: 'Buenos Aires' }, { countryCode: 'VN', name: 'Hanoi' },
-  ],
-  // Recent verdicts — these are what surface on Alex's Circle feed.
-  discoveries: [
-    { name: 'Tartine Bakery', category: 'food', countryCode: 'US', city: 'San Francisco', verdict: 'recommend', note: 'The morning bun is worth the queue.', daysAgo: 8 },
-    { name: 'Machu Picchu at sunrise', category: 'nature', countryCode: 'PE', city: 'Cusco', verdict: 'recommend', note: 'Take the first bus up. No regrets.', daysAgo: 15 },
-    { name: 'Bondi to Coogee coastal walk', category: 'experience', countryCode: 'AU', city: 'Sydney', verdict: 'recommend', daysAgo: 22 },
-    { name: 'A backstreet taco stand', category: 'food', countryCode: 'MX', city: 'Mexico City', verdict: 'hidden-gem', note: 'No sign, all locals, best al pastor of my life.', daysAgo: 30 },
-    { name: 'Cristo Redentor', category: 'culture', countryCode: 'BR', city: 'Rio de Janeiro', verdict: 'worth-visiting', daysAgo: 40 },
-    { name: 'Kayaking Milford Sound', category: 'nature', countryCode: 'NZ', city: 'Queenstown', verdict: 'hidden-gem', daysAgo: 48 },
+  extraCities: [
+    { cc: 'US', name: 'New York' }, { cc: 'MX', name: 'Oaxaca' }, { cc: 'BR', name: 'São Paulo' },
+    { cc: 'PE', name: 'Arequipa' }, { cc: 'AU', name: 'Melbourne' }, { cc: 'NZ', name: 'Auckland' },
+    { cc: 'CO', name: 'Medellín' }, { cc: 'AR', name: 'Mendoza' },
   ],
   expeditions: [
-    {
-      title: 'Peru, the long way', year: 2019, startDate: '2019-05-04', endDate: '2019-05-20', countryCodes: ['PE'],
-      journeys: [
-        { mode: 'flight', operator: 'LATAM', from: 'SFO', to: 'LIM', reference: 'LA2477', date: '2019-05-04', distanceKm: 6790, durationMin: 510 },
-        { mode: 'rail', operator: 'PeruRail', from: 'Cusco', to: 'Aguas Calientes', reference: 'Vistadome', date: '2019-05-12', distanceKm: 75, durationMin: 210 },
-      ],
-    },
-    {
-      title: 'Australia & NZ summer', year: 2020, startDate: '2020-01-08', endDate: '2020-01-28', countryCodes: ['AU', 'NZ'],
-      journeys: [
-        { mode: 'flight', operator: 'Qantas', from: 'LAX', to: 'SYD', reference: 'QF12', date: '2020-01-08', distanceKm: 12050, durationMin: 900 },
-        { mode: 'flight', operator: 'Air New Zealand', from: 'SYD', to: 'ZQN', reference: 'NZ736', date: '2020-01-18', distanceKm: 1997, durationMin: 195 },
-      ],
-    },
-  ],
-  captures: [
-    { countryCode: 'PE', city: 'Cusco', caption: 'The climb was worth it', year: 2019, mo: 5 },
-    { countryCode: 'AU', city: 'Sydney', caption: 'Coogee, early morning', year: 2020, mo: 1 },
-    { countryCode: 'NZ', city: 'Queenstown', caption: 'Milford Sound, glass water', year: 2020, mo: 1 },
-    { countryCode: 'MX', city: 'Mexico City', caption: 'Rooftop tacos', year: 2015, mo: 11 },
-    { countryCode: 'BR', city: 'Rio de Janeiro', caption: 'Above the clouds', year: 2018, mo: 2 },
-    { countryCode: 'US', city: 'San Francisco', caption: 'Fog rolling over the bay', year: 2021, mo: 8 },
-    { countryCode: 'VN', city: 'Hanoi', caption: 'Old Quarter, blue hour', year: 2017, mo: 3 },
-    { countryCode: 'AR', city: 'Buenos Aires', caption: 'Sunset over San Telmo', year: 2023, mo: 11 },
+    { title: 'Peru, the long way', year: 2019, startDate: '2019-05-04', endDate: '2019-05-20', countryCodes: ['PE'], journeys: [
+      { mode: 'flight', operator: 'LATAM', from: 'SFO', to: 'LIM', reference: 'LA2477', date: '2019-05-04', distanceKm: 6790, durationMin: 510 },
+      { mode: 'rail', operator: 'PeruRail', from: 'Cusco', to: 'Aguas Calientes', reference: 'Vistadome', date: '2019-05-12', distanceKm: 75, durationMin: 210 },
+    ] },
+    { title: 'Australia & NZ summer', year: 2020, startDate: '2020-01-08', endDate: '2020-01-28', countryCodes: ['AU', 'NZ'], journeys: [
+      { mode: 'flight', operator: 'Qantas', from: 'LAX', to: 'SYD', reference: 'QF12', date: '2020-01-08', distanceKm: 12050, durationMin: 900 },
+      { mode: 'flight', operator: 'Air New Zealand', from: 'SYD', to: 'ZQN', reference: 'NZ736', date: '2020-01-18', distanceKm: 1997, durationMin: 195 },
+    ] },
+    { title: 'Patagonia overland', year: 2023, startDate: '2023-11-02', endDate: '2023-11-20', countryCodes: ['AR', 'CL'], journeys: [
+      { mode: 'flight', operator: 'LATAM', from: 'SFO', to: 'SCL', reference: 'LA601', date: '2023-11-02', distanceKm: 9600, durationMin: 640 },
+      { mode: 'flight', operator: 'Aerolíneas Argentinas', from: 'SCL', to: 'EZE', reference: 'AR1276', date: '2023-11-12', distanceKm: 1140, durationMin: 130 },
+    ] },
+    { title: 'Central America', year: 2017, startDate: '2017-03-04', endDate: '2017-03-22', countryCodes: ['CR', 'PA', 'GT'], journeys: [
+      { mode: 'flight', operator: 'Alaska', from: 'LAX', to: 'SJO', reference: 'AS230', date: '2017-03-04', distanceKm: 4400, durationMin: 380 },
+      { mode: 'flight', operator: 'Copa', from: 'SJO', to: 'PTY', reference: 'CM401', date: '2017-03-12', distanceKm: 500, durationMin: 75 },
+      { mode: 'flight', operator: 'Copa', from: 'PTY', to: 'GUA', reference: 'CM320', date: '2017-03-17', distanceKm: 1150, durationMin: 130 },
+    ] },
+    { title: 'Southeast Asia', year: 2018, startDate: '2018-06-02', endDate: '2018-06-24', countryCodes: ['KH', 'PH', 'MY'], journeys: [
+      { mode: 'flight', operator: 'Philippine Airlines', from: 'SFO', to: 'MNL', reference: 'PR105', date: '2018-06-02', distanceKm: 11200, durationMin: 850 },
+      { mode: 'flight', operator: 'Cebu Pacific', from: 'MNL', to: 'REP', reference: '5J257', date: '2018-06-11', distanceKm: 1600, durationMin: 170 },
+      { mode: 'flight', operator: 'AirAsia', from: 'REP', to: 'KUL', reference: 'AK1467', date: '2018-06-18', distanceKm: 1050, durationMin: 120 },
+    ] },
+    { title: 'Southern Africa', year: 2021, startDate: '2021-08-03', endDate: '2021-08-23', countryCodes: ['ZA', 'KE', 'TZ'], journeys: [
+      { mode: 'flight', operator: 'Delta', from: 'JFK', to: 'CPT', reference: 'DL200', date: '2021-08-03', distanceKm: 12550, durationMin: 900 },
+      { mode: 'flight', operator: 'Kenya Airways', from: 'CPT', to: 'NBO', reference: 'KQ763', date: '2021-08-13', distanceKm: 3600, durationMin: 260 },
+      { mode: 'flight', operator: 'Precision Air', from: 'NBO', to: 'ZNZ', reference: 'PW471', date: '2021-08-19', distanceKm: 700, durationMin: 90 },
+    ] },
   ],
 };
+
+// How many memories / recommendations each demo life shows (≈3× the originals).
+const CAPTURE_COUNT = 24;
+const DISCOVERY_COUNT = 18;
+
+/** Turn a destination table into the app-shaped arrays the builders consume. */
+function expand(src) {
+  const countries = src.dest.map((d) => ({
+    countryCode: d.cc, name: d.name, relationships: d.rel ?? ['visited'], firstYear: d.year,
+    livedFrom: d.livedFrom, livedTo: d.livedTo,
+  }));
+  const cities = [
+    ...src.dest.map((d) => ({ countryCode: d.cc, name: d.city, firstYear: d.year })),
+    ...(src.extraCities ?? []).map((e) => ({ countryCode: e.cc, name: e.name })),
+  ];
+  const captures = src.dest.filter((d) => d.cap).slice(0, CAPTURE_COUNT).map((d, i) => ({
+    countryCode: d.cc, city: d.city, caption: d.cap, year: d.year, mo: ((i * 5) % 12) + 1,
+  }));
+  const discoveries = src.dest.filter((d) => d.disc).slice(0, DISCOVERY_COUNT).map((d, i) => ({
+    name: d.disc.n, category: d.disc.c, countryCode: d.cc, city: d.city,
+    verdict: d.disc.v, note: d.disc.note, year: d.year, mo: ((i * 7) % 12) + 1,
+  }));
+  return { countries, cities, discoveries, captures, expeditions: src.expeditions };
+}
+
+const ALEX = expand(ALEX_SRC);
+const SAM = expand(SAM_SRC);
+
+/** Country codes that need an embedded photo (every capture + discovery place). */
+function neededPhotoCodes() {
+  const set = new Set(['WW']);
+  for (const data of [ALEX, SAM]) {
+    for (const c of data.captures) if (c.countryCode) set.add(c.countryCode);
+    for (const d of data.discoveries) if (d.countryCode) set.add(d.countryCode);
+  }
+  return [...set];
+}
 
 /** Build every op for one user (excluding auth + the shared connection). */
 function planUser(uid, name, data) {
@@ -449,6 +514,13 @@ async function liveRun() {
   summarize(B_NAME, SAM);
   console.log('   They are accepted friends, so each appears on the other\'s Circle feed.\n');
   printCredentials();
+}
+
+// --photo-codes: print the destinations that need an embedded photo (used by the
+// photo-fetch step). No credentials needed.
+if (has('photo-codes')) {
+  console.log(JSON.stringify(neededPhotoCodes()));
+  process.exit(0);
 }
 
 (DRY_RUN ? dryRun() : liveRun())
