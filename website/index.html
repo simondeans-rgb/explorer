@@ -194,10 +194,17 @@
 
   function render() {
     order.forEach(function (card, i) {
-      card.style.transform = 'translateX(' + (i * 15) + 'px) rotate(' + (i * 6) + 'deg) scale(' + (1 - i * 0.05) + ')';
+      // Symmetric fan around centre: front upright, others alternate left/right.
+      var rank = Math.ceil(i / 2);                 // 0,1,1,2,2,3,3…
+      var side = i === 0 ? 0 : (i % 2 === 1 ? -1 : 1);
+      var rot = side * rank * 7;
+      var tx = side * rank * 24;
+      var ty = rank * 10;
+      var sc = 1 - rank * 0.05;
+      card.style.transform = 'translateX(-50%) translateX(' + tx + 'px) translateY(' + ty + 'px) rotate(' + rot + 'deg) scale(' + sc + ')';
       card.style.zIndex = String(100 - i);
-      card.style.opacity = i > 5 ? '0' : '1';
-      card.style.pointerEvents = i > 5 ? 'none' : 'auto';
+      card.style.opacity = rank > 2 ? '0' : '1';   // show front + 4
+      card.style.pointerEvents = rank > 2 ? 'none' : 'auto';
       card.classList.toggle('is-front', i === 0);
       card.setAttribute('aria-hidden', i === 0 ? 'false' : 'true');
     });
