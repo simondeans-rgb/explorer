@@ -190,11 +190,13 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; }
 
 /* ---- Screenshot fan carousel ------------------------------------------ */
 .fan-stage {
-  position: relative; width: min(300px, 78vw); height: 500px;
-  margin: 48px auto 0; outline: none; touch-action: pan-y;
+  position: relative; width: 100%; max-width: 360px; height: 540px;
+  margin: 44px auto 0; outline: none; touch-action: pan-y;
+  overflow: hidden; /* contain the fanned cards — nothing escapes sideways */
 }
 .fan-card {
-  position: absolute; top: 0; left: 50%; width: 216px; margin-left: -108px;
+  position: absolute; top: 22px; left: 50%; width: min(216px, 60vw);
+  transform: translateX(-50%); /* centred base (pre-JS / no-JS fallback) */
   transform-origin: center bottom; cursor: pointer; will-change: transform;
   transition: transform 0.55s cubic-bezier(0.2, 0.75, 0.2, 1), opacity 0.4s ease, filter 0.4s ease;
 }
