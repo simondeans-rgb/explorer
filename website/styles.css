@@ -30,6 +30,7 @@ body {
   color: var(--navy);
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
+  overflow-x: hidden;
 }
 img { max-width: 100%; display: block; }
 a { color: inherit; text-decoration: none; }
@@ -163,12 +164,67 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; }
 .legal ul { padding-left: 22px; margin-top: 8px; }
 .legal .rule { height: 3px; width: 64px; background-image: var(--grad); border-radius: 2px; margin-top: 22px; }
 
+/* ---- App Store badge -------------------------------------------------- */
+.appstore-badge {
+  display: inline-flex; align-items: center; gap: 11px;
+  background: #000; color: #fff; border-radius: 14px; padding: 9px 18px;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.appstore-badge:hover { transform: translateY(-1px); box-shadow: var(--shadow-float); }
+.appstore-badge .apple { width: 26px; height: 26px; fill: #fff; flex: none; }
+.appstore-badge span { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.08; }
+.appstore-badge small { font-size: 11px; font-weight: 600; opacity: 0.92; }
+.appstore-badge strong { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+
+/* hero QR download prompt */
+.hero-get { display: none; align-items: center; gap: 14px; margin-top: 22px; }
+.qr-card {
+  background: #fff; border-radius: 16px; padding: 9px; flex: none; line-height: 0;
+  box-shadow: var(--shadow-card); transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.qr-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-float); }
+.qr-card .qr { width: 88px; height: 88px; display: block; }
+.qr-label { font-size: 13px; color: #fff; opacity: 0.92; line-height: 1.45; }
+.qr-label strong { font-weight: 800; }
+
+/* ---- Screenshot fan carousel ------------------------------------------ */
+.fan-stage {
+  position: relative; width: min(300px, 78vw); height: 500px;
+  margin: 48px auto 0; outline: none; touch-action: pan-y;
+}
+.fan-card {
+  position: absolute; top: 0; left: 50%; width: 216px; margin-left: -108px;
+  transform-origin: center bottom; cursor: pointer; will-change: transform;
+  transition: transform 0.55s cubic-bezier(0.2, 0.75, 0.2, 1), opacity 0.4s ease, filter 0.4s ease;
+}
+.fan-card:not(.is-front) { filter: brightness(0.9) saturate(0.95); }
+.fan-phone {
+  display: block; border-radius: 30px; overflow: hidden;
+  border: 7px solid #0E1322; background: #0E1322; box-shadow: var(--shadow-float);
+}
+.fan-phone img { width: 100%; aspect-ratio: 216 / 448; object-fit: cover; object-position: top; display: block; }
+.fan-stage:focus-visible { box-shadow: 0 0 0 3px rgba(155, 124, 255, 0.5); border-radius: 34px; }
+
+.fan-controls { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 30px; }
+.fan-nav {
+  width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--line);
+  background: var(--card); color: var(--navy); font-size: 24px; line-height: 1;
+  cursor: pointer; box-shadow: var(--shadow-card); display: grid; place-items: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.fan-nav:hover { transform: translateY(-1px); box-shadow: var(--shadow-float); }
+.fan-caption { min-width: 210px; text-align: center; font-weight: 700; color: var(--ink-2); font-size: 15px; }
+.fan-hint { text-align: center; color: var(--ink-3); font-size: 12.5px; margin-top: 14px; }
+@media (prefers-reduced-motion: reduce) { .fan-card { transition: none; } }
+
 /* ---- Breakpoints ------------------------------------------------------- */
 @media (min-width: 760px) {
   .nav-links { display: flex; }
   .hero-in { flex-direction: row; align-items: flex-end; gap: 20px; padding-top: 84px; }
   .hero-copy { text-align: left; margin: 0; flex: 1; padding-bottom: 84px; }
   .hero-cta { justify-content: flex-start; }
+  .hero-get { display: flex; }
   .phone { margin: 0; }
   .grid { grid-template-columns: repeat(2, 1fr); }
 }
