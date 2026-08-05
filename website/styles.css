@@ -218,6 +218,22 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; }
 .fan-hint { text-align: center; color: var(--ink-3); font-size: 12.5px; margin-top: 14px; }
 @media (prefers-reduced-motion: reduce) { .fan-card { transition: none; } }
 
+/* ---- Print / PDF export ----------------------------------------------- */
+/* Interactive bits (JS-driven fan, decorative sizing) don't survive print
+   rendering, so give print a clean, static fallback. */
+@media print {
+  .appstore-badge .apple { width: 26px !important; height: 26px !important; }
+  .qr-card .qr { width: 96px !important; height: 96px !important; }
+  .hero-get { display: flex !important; }
+  /* Fan → just the front screenshot, static and centred. */
+  .fan-stage { height: auto !important; width: auto !important; }
+  .fan-card { position: static !important; transform: none !important; opacity: 1 !important;
+    filter: none !important; width: 230px !important; margin: 0 auto !important; }
+  .fan-card:not(.is-front) { display: none !important; }
+  .fan-controls, .fan-hint { display: none !important; }
+  nav { position: static !important; }
+}
+
 /* ---- Breakpoints ------------------------------------------------------- */
 @media (min-width: 760px) {
   .nav-links { display: flex; }
