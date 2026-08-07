@@ -165,16 +165,27 @@ with the Firebase CLI (**already deployed** this session).
   `production` in `mobile/eas.json`. **Auto-submit** to TestFlight via the ASC
   API key. Builds are signed with **local credentials** (`credentialsSource:
   local` + `mobile/credentials.json`). Current TestFlight build: **1.0.0 (9)**.
-- **Mobile OTA (the common path):** `eas update --branch main --platform ios`.
+- **Mobile OTA (the common path):**
+  `eas update --branch main --platform ios --environment production`.
   Runtime version policy `sdkVersion` (`exposdk:54.0.0`) — one OTA serves all
   builds 7/8/9. **Use `--platform ios`** (all-platform export hits EMFILE).
+  **Always pass `--environment production`** so EAS-only `EXPO_PUBLIC_*` secrets
+  are inlined by Metro. Without it, secrets that have no public hardcoded
+  fallback resolve to `''` in the bundle — e.g. `EXPO_PUBLIC_AERODATABOX_KEY`,
+  which silently hides the "Look up flight" button (a `flightLookupConfigured()`
+  gate), so flight-number lookup "does nothing." A native EAS Build always loads
+  its profile's environment, so this only bites OTA updates.
 
 ## Environment variables and configuration
 - **Mobile build-time (`EXPO_PUBLIC_*`)** inlined by Metro. Firebase config now
   has **hardcoded fallbacks** in `firebase.ts`, so missing env vars no longer
   break the app. `EXPO_PUBLIC_SENTRY_DSN` is set in the EAS "production"
   environment; Sentry DSN also has a hardcoded fallback in `sentry.ts` so it
-  works in OTA bundles. Google client IDs are hardcoded (public) in `auth.tsx`,
+  works in OTA bundles. `EXPO_PUBLIC_AERODATABOX_KEY` (flight lookup) is a **real
+  secret** with **no** hardcoded fallback — it lives only in the EAS
+  "production" environment, so OTA publishes **must** use `--environment
+  production` (see the OTA command above) or the flight-lookup feature vanishes.
+  Google client IDs are hardcoded (public) in `auth.tsx`,
   overridable via `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` /
   `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`.
 - **Secrets (never commit; provided by the user / live in the sandbox):**
@@ -551,7 +562,10 @@ npx expo export --platform ios   # prod JS bundle sanity check; then: rm -rf dis
 OTA (the usual ship):
 ```bash
 EXPO_TOKEN=<token> npx eas-cli update --branch main --platform ios \
-  --message "<what changed>" --non-interactive
+  --environment production --message "<what changed>" --non-interactive
+# --environment production is REQUIRED: it inlines EAS-only EXPO_PUBLIC_* secrets
+# (e.g. EXPO_PUBLIC_AERODATABOX_KEY, which gates the flight-lookup button). Omit
+# it and those secrets become '' in the OTA bundle.
 ```
 Native build + auto-submit (only when native changes):
 ```bash
