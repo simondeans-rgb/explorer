@@ -49,12 +49,32 @@ service cloud.firestore {
       allow delete: if isOwner();
     }
 
-    // Trips you've recorded are readable by accepted friends (powers Circle's
-    // "on the move" / recently-travelled). Only the owner can edit/delete.
+    // Trips (recorded past journeys AND planned upcoming trips share this one
+    // collection). Readable by accepted friends (powers Circle's "on the move")
+    // OR by an invited crew member. Any crew member may edit the shared content,
+    // but ownership is immutable and only the owner controls the crew — a
+    // collaborator may only remove themselves. Legacy expeditions have no
+    // memberIds; the owner branch keeps them owner-editable exactly as before.
     match /expeditions/{expeditionId} {
-      allow read: if sharedRead(resource.data.userId);
+      function crewMember() {
+        return signedIn() && (
+          resource.data.userId == request.auth.uid
+          || (resource.data.memberIds is list && request.auth.uid in resource.data.memberIds)
+        );
+      }
+      allow read: if sharedRead(resource.data.userId) || crewMember();
       allow create: if createIsOwner();
-      allow update: if isOwner() && ownerUnchanged();
+      allow update: if crewMember()
+        && request.resource.data.userId == resource.data.userId
+        && (
+          resource.data.userId == request.auth.uid
+          || request.resource.data.memberIds == resource.data.memberIds
+          || (
+            !(request.auth.uid in request.resource.data.memberIds)
+            && request.resource.data.memberIds.hasOnly(resource.data.memberIds)
+            && request.resource.data.memberIds.size() == resource.data.memberIds.size() - 1
+          )
+        );
       allow delete: if isOwner();
     }
 
