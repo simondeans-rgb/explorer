@@ -235,7 +235,11 @@ export interface Journey {
   note?: string;
 }
 
-/** A trip. The container for journeys, discoveries, photos and notes. */
+/** A trip — the one container for both recorded past journeys and planned
+ *  upcoming trips (past vs upcoming is derived from the dates, see
+ *  `src/lib/tripPhase.ts`). Holds transport legs, plus optional planning fields
+ *  (itinerary, crew, day-notes) that used to live on the separate `Trip` model.
+ *  Every planning field is optional so pre-merge expeditions stay valid. */
 export interface Expedition {
   id: string;
   userId: string;
@@ -245,6 +249,18 @@ export interface Expedition {
   countryCodes: string[];
   journeys: Journey[];
   note?: string;
+  // ── merged-in planning fields (optional; default on read) ──────────────────
+  /** Day-by-day plan for an upcoming trip. */
+  itinerary?: ItineraryItem[];
+  /** Owner + invited crew (uids). Absent on legacy solo expeditions. */
+  memberIds?: string[];
+  memberNames?: Record<string, string>;
+  dayNotes?: Record<string, string>;
+  /** Foreground check-in while the trip is underway. */
+  autoTrack?: boolean;
+  /** Set on records migrated from the legacy `trips` collection — the source
+   *  trip id — so the migration is idempotent and never double-lists. */
+  sourceTripId?: string;
   createdAt: number;
   updatedAt: number;
 }

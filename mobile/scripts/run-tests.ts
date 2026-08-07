@@ -21,6 +21,7 @@ import {
   isoDaysBetween,
   WORLD_TOTAL,
 } from '../src/lib/widgetPayload';
+import { tripPhase, isUpcoming, daysToGo, primaryCode } from '../src/lib/tripPhase';
 import { searchCities } from '../src/lib/cityLookup';
 import { countryMilestone } from '../src/lib/milestone';
 import { isObjectionable } from '../src/lib/textFilter';
@@ -624,6 +625,40 @@ test('isObjectionable: passes ordinary travel text and empty input', () => {
   assert.equal(isObjectionable('Loved the beaches in Portugal!'), false);
   assert.equal(isObjectionable('Scunthorpe is a lovely town'), false); // no false-positive substring match
   assert.equal(isObjectionable(''), false);
+});
+
+// ---- Unified trip phase (past vs upcoming derived from dates) ---------------
+
+test('tripPhase: classifies upcoming / today / underway / past', () => {
+  const today = '2026-06-15';
+  assert.equal(tripPhase({ startDate: '2026-07-01' }, today), 'upcoming');
+  assert.equal(tripPhase({ startDate: '2026-06-15' }, today), 'today');
+  assert.equal(tripPhase({ startDate: '2026-06-10', endDate: '2026-06-20' }, today), 'underway');
+  assert.equal(tripPhase({ startDate: '2026-06-10', endDate: '2026-06-12' }, today), 'past');
+  assert.equal(tripPhase({ startDate: '2025-01-01' }, today), 'past');
+  assert.equal(tripPhase({}, today), 'past'); // undated logged journey
+});
+
+test('isUpcoming: true for upcoming/today/underway, false for past', () => {
+  const today = '2026-06-15';
+  assert.equal(isUpcoming({ startDate: '2026-07-01' }, today), true);
+  assert.equal(isUpcoming({ startDate: '2026-06-15' }, today), true);
+  assert.equal(isUpcoming({ startDate: '2026-06-10', endDate: '2026-06-20' }, today), true);
+  assert.equal(isUpcoming({ startDate: '2020-05-05' }, today), false);
+  assert.equal(isUpcoming({}, today), false);
+});
+
+test('daysToGo: whole days to departure, 0 once started/undated', () => {
+  assert.equal(daysToGo({ startDate: '2026-06-20' }, '2026-06-15'), 5);
+  assert.equal(daysToGo({ startDate: '2026-06-15' }, '2026-06-15'), 0);
+  assert.equal(daysToGo({ startDate: '2026-06-10' }, '2026-06-15'), 0);
+  assert.equal(daysToGo({}, '2026-06-15'), 0);
+});
+
+test('primaryCode: first country code, WW fallback', () => {
+  assert.equal(primaryCode({ countryCodes: ['PT', 'ES'] }), 'PT');
+  assert.equal(primaryCode({ countryCodes: [] }), 'WW');
+  assert.equal(primaryCode({}), 'WW');
 });
 
 console.log(`✓ all ${passed} tests passed`);

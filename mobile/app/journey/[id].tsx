@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator } from 
 import Svg, { Path } from 'react-native-svg';
 import { useConfirm } from '../../src/store/confirm';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Trash2, Plus, Check, Search, Plane, TrainFront, Ship, Car, Anchor, ImagePlus } from 'lucide-react-native';
+import { Trash2, Plus, Check, Search, Plane, TrainFront, Ship, Car, Anchor, ImagePlus, CalendarDays, ChevronRight } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
 import { BackButton } from '../../components/BackButton';
@@ -337,6 +337,18 @@ export default function JourneyScreen() {
             </>
           );
         })()}
+
+        {/* Plan & crew — the planner view of this same trip record */}
+        <Pressable onPress={() => router.push(`/trip/${id}`)} accessibilityRole="button" accessibilityLabel="Plan this trip's itinerary and crew" className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ marginHorizontal: 20, marginTop: 16, padding: 16, gap: 12 }}>
+          <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(155,124,255,0.14)' }}>
+            <CalendarDays size={19} color={COLORS.lavender} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>Plan &amp; crew</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Day-by-day itinerary, invite friends, countdown</Text>
+          </View>
+          <ChevronRight size={18} color={COLORS.ink3} />
+        </Pressable>
 
         {/* title */}
         <Text style={LBL}>TITLE</Text>

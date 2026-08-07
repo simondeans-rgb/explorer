@@ -4,6 +4,7 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { useWorldly } from '../src/hooks/useWorldly';
 import { useData } from '../src/store/data';
+import { primaryCode } from '../src/lib/tripPhase';
 import { useAuth } from '../src/store/auth';
 import { useCoverTheme } from '../src/hooks/useCoverTheme';
 import { todaysMemories } from '../src/lib/memories';
@@ -81,7 +82,7 @@ async function sourceToBase64(src: string, tag: string): Promise<string | null> 
  *  `widgetPayload`. Renders nothing. */
 export function WidgetSync() {
   const { stats, level, places, expeditions, badges } = useWorldly();
-  const { trips, captures } = useData();
+  const { unifiedTrips, captures } = useData();
   const { user, loading: authLoading } = useAuth();
   const theme = useCoverTheme();
 
@@ -98,7 +99,10 @@ export function WidgetSync() {
     userPhotoFor(code) ?? destinationImage(code).photo ?? null;
 
   const today = new Date().toISOString().slice(0, 10);
-  const trip = pickWidgetTrip(trips, today);
+  const trip = pickWidgetTrip(
+    unifiedTrips.map((e) => ({ title: e.title, countryCode: primaryCode(e), startDate: e.startDate ?? '', endDate: e.endDate })),
+    today,
+  );
 
   // Recent countries — kept only to choose an ambient hero photo for the
   // stats-led focuses (the widget no longer shows a flag strip).
