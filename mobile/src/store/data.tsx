@@ -63,6 +63,11 @@ interface DataApi extends DataShape {
    *  (we're offline or still connecting) — surface a "showing saved data" hint
    *  rather than an empty state. Always true in guest mode. */
   synced: boolean;
+  /** The unified trip list: all expeditions PLUS any legacy `trips` not yet
+   *  migrated (mapped to the Expedition shape). Read this wherever you need
+   *  "all trips, past and upcoming" — Home countdown, widget, notifications,
+   *  the trip detail. Past vs upcoming is derived via src/lib/tripPhase.ts. */
+  unifiedTrips: Expedition[];
   addPlace: (input: {
     kind: PlaceKind;
     countryCode: string;
@@ -217,6 +222,7 @@ const DataContext = createContext<DataApi>({
   loaded: false,
   cloud: false,
   synced: false,
+  unifiedTrips: [],
   addPlace: noop,
   removePlace: noop,
   updatePlace: async () => {},
@@ -317,8 +323,38 @@ function expeditionFromDoc(id: string, d: DocumentData): Expedition {
     countryCodes: (d.countryCodes ?? []) as string[],
     journeys: (d.journeys ?? []) as Journey[],
     note: d.note || undefined,
+    // merged-in planning fields — backfilled so pre-merge expeditions stay valid
+    itinerary: Array.isArray(d.itinerary) ? (d.itinerary as ItineraryItem[]) : [],
+    memberIds: Array.isArray(d.memberIds) ? (d.memberIds as string[]) : [d.userId],
+    memberNames: (d.memberNames as Record<string, string>) ?? {},
+    dayNotes: (d.dayNotes as Record<string, string>) ?? {},
+    autoTrack: !!d.autoTrack,
+    sourceTripId: d.sourceTripId || undefined,
     createdAt: millis(d.createdAt),
     updatedAt: millis(d.updatedAt),
+  };
+}
+
+/** Map a legacy `trips` doc into the unified Expedition shape (no transport
+ *  legs) so both collections can be read through one array during migration. */
+function tripToExpedition(t: Trip): Expedition {
+  return {
+    id: t.id,
+    userId: t.userId,
+    title: t.title,
+    startDate: t.startDate || undefined,
+    endDate: t.endDate || undefined,
+    countryCodes: t.countryCode ? [t.countryCode] : [],
+    journeys: [],
+    note: t.note,
+    itinerary: t.itinerary ?? [],
+    memberIds: t.memberIds ?? [t.userId],
+    memberNames: t.memberNames ?? {},
+    dayNotes: t.dayNotes ?? {},
+    autoTrack: !!t.autoTrack,
+    sourceTripId: t.id,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt,
   };
 }
 function captureFromDoc(id: string, d: DocumentData): Capture {
@@ -484,6 +520,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
       localRef.current = { ...localRef.current, trips: merged };
       setData((p) => ({ ...p, trips: merged }));
     };
+    // Expeditions are now the unified trip collection, so — like trips — they
+    // come from two queries (your own + ones a friend added you to as crew),
+    // merged and deduped by id.
+    const ownExps = { current: [] as Expedition[] };
+    const crewExps = { current: [] as Expedition[] };
+    const mergeExps = () => {
+      const m = new Map<string, Expedition>();
+      for (const e of ownExps.current) m.set(e.id, e);
+      for (const e of crewExps.current) if (!m.has(e.id)) m.set(e.id, e);
+      const merged = [...m.values()];
+      localRef.current = { ...localRef.current, expeditions: merged };
+      setData((p) => ({ ...p, expeditions: merged }));
+    };
     // Keep localRef in step with the live cloud data so functional readers
     // (e.g. importPlaces' dedup) see the real state, not the empty initial data.
     const syncRef = (patch: Partial<DataShape>) => {
@@ -512,11 +561,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
         markReady('discoveries');
       }, onErr('discoveries')),
       onSnapshot(q('expeditions'), (snap) => {
-        const expeditions = snap.docs.map((d) => expeditionFromDoc(d.id, d.data()));
-        syncRef({ expeditions });
-        setData((p) => ({ ...p, expeditions }));
+        ownExps.current = snap.docs.map((d) => expeditionFromDoc(d.id, d.data()));
+        mergeExps();
         markReady('expeditions');
       }, onErr('expeditions')),
+      onSnapshot(
+        query(collection(fdb, 'expeditions'), where('memberIds', 'array-contains', uid)),
+        (snap) => {
+          crewExps.current = snap.docs.map((d) => expeditionFromDoc(d.id, d.data()));
+          mergeExps();
+        },
+        () => {
+          // permission-denied until the widened expeditions rule is deployed — ignore.
+        },
+      ),
       onSnapshot(q('captures'), (snap) => {
         const captures = snap.docs.map((d) => captureFromDoc(d.id, d.data()));
         syncRef({ captures });
@@ -526,14 +584,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Trips: your own + trips friends have invited you to collaborate on.
       // Two queries merged (Firestore can't OR), deduped by id.
       onSnapshot(q('trips'), (snap) => {
-        ownTrips.current = snap.docs.map((d) => tripFromDoc(d.id, d.data()));
+        // Legacy collection during the merge: a trip stamped `migratedTo` has
+        // become an expedition — drop it here so it isn't read twice.
+        ownTrips.current = snap.docs.filter((d) => !d.data().migratedTo).map((d) => tripFromDoc(d.id, d.data()));
         mergeTrips();
         markReady('trips');
       }, onErr('trips')),
       onSnapshot(
         query(collection(fdb, 'trips'), where('memberIds', 'array-contains', uid)),
         (snap) => {
-          sharedTrips.current = snap.docs.map((d) => tripFromDoc(d.id, d.data()));
+          sharedTrips.current = snap.docs.filter((d) => !d.data().migratedTo).map((d) => tripFromDoc(d.id, d.data()));
           mergeTrips();
         },
         () => {
@@ -603,6 +663,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
       loaded,
       cloud,
       synced,
+      unifiedTrips: (() => {
+        // All expeditions + legacy trips not yet mirrored as an expedition
+        // (deduped by sourceTripId so a mid-migration record never doubles).
+        const mirrored = new Set(
+          data.expeditions.map((e) => e.sourceTripId).filter(Boolean) as string[],
+        );
+        return [...data.expeditions, ...data.trips.filter((t) => !mirrored.has(t.id)).map(tripToExpedition)];
+      })(),
       addPlace: (input) => {
         const name =
           input.kind === 'country'
