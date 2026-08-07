@@ -60,6 +60,8 @@ function emptyLeg(mode: JourneyMode = 'flight'): Leg {
 }
 
 const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s.trim());
+/** Pad a partial pick ('2026' / '2026-07') to a full ISO date. */
+const fullISO = (v: string) => (v.length === 4 ? `${v}-01-01` : v.length === 7 ? `${v}-01` : v);
 
 export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { importExpeditions } = useData();
@@ -68,6 +70,9 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
   const [title, setTitle] = useState('');
   const [query, setQuery] = useState('');
   const [codes, setCodes] = useState<Set<string>>(new Set());
+  const [start, setStart] = useState('');
+  const [end, setEnd] = useState('');
+  const [tripNote, setTripNote] = useState('');
   const [legs, setLegs] = useState<Leg[]>([emptyLeg()]);
   const [showRoute, setShowRoute] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -82,6 +87,9 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
     setTitle('');
     setQuery('');
     setCodes(new Set());
+    setStart('');
+    setEnd('');
+    setTripNote('');
     setLegs([emptyLeg()]);
     setSaving(false);
   }
@@ -163,16 +171,21 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
           return j;
         });
       const dates = legs.map((l) => l.date.trim()).filter(isDate).sort();
+      // Explicit trip dates win; otherwise derive the span from the leg dates.
+      // Past vs upcoming is derived from these later (src/lib/tripPhase.ts).
+      const startDate = start ? fullISO(start) : dates[0];
+      const endDate = end ? fullISO(end) : dates[dates.length - 1];
       await importExpeditions([
         {
           title: title.trim(),
           countryCodes: [...codes],
-          startDate: dates[0],
-          endDate: dates[dates.length - 1],
+          startDate,
+          endDate,
           journeys,
+          note: tripNote.trim() || undefined,
         },
       ]);
-      toast.success('Journey saved');
+      toast.success('Trip saved');
       close();
     } catch {
       setSaving(false);
@@ -183,7 +196,7 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
   const ready = title.trim().length > 0 && codes.size > 0;
 
   return (
-    <SheetShell visible={visible} title="Log a journey" onClose={close}>
+    <SheetShell visible={visible} title="Add a trip" onClose={close}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 8 }}>
         {/* title */}
         <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 4 }}>
@@ -221,8 +234,15 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
           </ScrollView>
         ) : null}
 
+        {/* dates — optional; an upcoming date turns this into a countdown trip */}
+        <Text style={LBL}>DATES <Text style={{ color: COLORS.ink3, fontWeight: '400' }}>· optional</Text></Text>
+        <View className="flex-row" style={{ marginHorizontal: 20, marginTop: 8, gap: 10 }}>
+          <View style={{ flex: 1 }}><DateField value={start} label="Start" allowPartial onChange={setStart} /></View>
+          <View style={{ flex: 1 }}><DateField value={end} label="End" allowPartial onChange={setEnd} /></View>
+        </View>
+
         {/* legs */}
-        <Text style={LBL}>YOUR JOURNEY</Text>
+        <Text style={LBL}>FLIGHTS, RAIL &amp; MORE <Text style={{ color: COLORS.ink3, fontWeight: '400' }}>· optional</Text></Text>
         {legs.map((leg, i) => {
           const meta = JOURNEY_MODE_META[leg.mode];
           return (
@@ -320,11 +340,17 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
           <RouteBuilder onAdd={(rl) => { setLegs((prev) => [...prev.filter((l) => l.from || l.to || l.carrier || l.reference || l.date || l.vehicle || l.departTime || l.arriveTime || l.departActual || l.arriveActual || l.fromTerminal || l.toTerminal || l.note), ...rl.map((l) => ({ ...emptyLeg(l.mode), from: l.from, to: l.to }))]); setShowRoute(false); }} />
         ) : null}
 
+        {/* trip note */}
+        <Text style={LBL}>NOTE <Text style={{ color: COLORS.ink3, fontWeight: '400' }}>· optional</Text></Text>
+        <View style={{ marginHorizontal: 20, marginTop: 8 }}>
+          <Field placeholder="Anything to remember about this trip" value={tripNote} onChange={setTripNote} />
+        </View>
+
         <Pressable onPress={save} disabled={!ready || saving} className="rounded-2xl items-center justify-center flex-row" style={{ marginHorizontal: 20, marginTop: 16, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: ready && !saving ? 1 : 0.4, gap: 8 }}>
           {saving ? <ActivityIndicator color="#fff" /> : (
             <>
               <Check size={18} color="#fff" />
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Save journey</Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Save trip</Text>
             </>
           )}
         </Pressable>

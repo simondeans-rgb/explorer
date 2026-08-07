@@ -74,7 +74,7 @@ function Row({ icon: Icon, tint, label, sub, right, onPress, first }: {
 export default function SettingsScreen() {
   const { aggregates } = useWorldly();
   const { configured, user, signOutUser } = useAuth();
-  const { places, discoveries, expeditions, captures, trips, recalculateJourneys, updateExpedition } = useData();
+  const { places, discoveries, expeditions, captures, trips, unifiedTrips, recalculateJourneys, updateExpedition } = useData();
   const { toast } = useToast();
   const confirm = useConfirm();
   const { replay } = useOnboarding();
@@ -139,13 +139,13 @@ export default function SettingsScreen() {
       await setAnniversariesEnabled(true);
       setNotifOn(true);
       track('notification_toggled', { type: 'anniversaries', on: true });
-      await rescheduleNotifications(expeditions, places, trips);
+      await rescheduleNotifications(expeditions, places, unifiedTrips);
       toast.success('Anniversary reminders on ✈️');
     } else {
       await setAnniversariesEnabled(false);
       setNotifOn(false);
       track('notification_toggled', { type: 'anniversaries', on: false });
-      await rescheduleNotifications(expeditions, places, trips);
+      await rescheduleNotifications(expeditions, places, unifiedTrips);
     }
   }
 
@@ -158,13 +158,13 @@ export default function SettingsScreen() {
       await setPostTripRemindersEnabled(true);
       setPostTripOn(true);
       track('notification_toggled', { type: 'post_trip', on: true });
-      await rescheduleNotifications(expeditions, places, trips);
+      await rescheduleNotifications(expeditions, places, unifiedTrips);
       toast.success('Trip discovery reminders on ✨');
     } else {
       await setPostTripRemindersEnabled(false);
       setPostTripOn(false);
       track('notification_toggled', { type: 'post_trip', on: false });
-      await rescheduleNotifications(expeditions, places, trips);
+      await rescheduleNotifications(expeditions, places, unifiedTrips);
     }
   }
 

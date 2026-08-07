@@ -26,6 +26,7 @@ import { countryName, COUNTRIES } from '../../src/data/countries';
 import { routeSegments } from '../../src/lib/journeyGeo';
 import { shareMapPoster } from '../../src/lib/mapPoster';
 import { useWorldly } from '../../src/hooks/useWorldly';
+import { isUpcoming } from '../../src/lib/tripPhase';
 import { useFlightAutoRefresh } from '../../src/hooks/useFlightAutoRefresh';
 import type { CountryAggregate } from '../../src/lib/stats';
 import { HERO_CODES } from '../../src/lib/heroImages';
@@ -209,10 +210,14 @@ export default function AtlasScreen() {
     [aggregates, scope],
   );
 
-  const scopedJourneys = useMemo(
-    () => (scope === 'all' ? expeditions : expeditions.filter((e) => yearOf(e.startDate, e.createdAt) === scope)),
-    [expeditions, scope],
-  );
+  const scopedJourneys = useMemo(() => {
+    // Journeys view = recorded trips. A purely-planned upcoming trip (no legs)
+    // belongs on the Home countdown, not here; an upcoming trip WITH legs still
+    // shows so its future flights stay editable.
+    const today = new Date().toISOString().slice(0, 10);
+    const recorded = expeditions.filter((e) => e.journeys.length > 0 || !isUpcoming(e, today));
+    return scope === 'all' ? recorded : recorded.filter((e) => yearOf(e.startDate, e.createdAt) === scope);
+  }, [expeditions, scope]);
   const [journeyLimit, setJourneyLimit] = useState(40);
   // Cap the rendered country cards; heavy travellers can have ~195. "Show more"
   // reveals the rest, mirroring the journeys list.

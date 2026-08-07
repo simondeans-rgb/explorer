@@ -6,11 +6,12 @@ import { COLORS } from '../src/lib/theme';
 export type ActionKind = 'quicklog' | 'place' | 'discovery' | 'journey' | 'photo' | 'trip' | 'tripentry';
 
 // Kept tight on purpose: the full discovery editor isn't a separate menu item —
-// it's reached from Quick Log ("Add full details") and from country pages —
-// and past + future trips share one "Add a trip" entry with a chooser.
+// it's reached from Quick Log ("Add full details") and from country pages. One
+// "Add a trip" opens the unified sheet for both past and upcoming trips; the app
+// works out which from the dates.
 const OPTIONS: { kind: ActionKind; label: string; hint: string; icon: ComponentType<{ size?: number; color?: string }> }[] = [
   { kind: 'place', label: 'Add a place', hint: 'A country or city you’ve been to', icon: MapPin },
-  { kind: 'tripentry', label: 'Add a trip', hint: 'One you’ve taken, or one coming up', icon: Plane },
+  { kind: 'journey', label: 'Add a trip', hint: 'Past or upcoming — flights, plans and more', icon: Plane },
   { kind: 'photo', label: 'Add a photo', hint: 'A memory from your travels', icon: Camera },
 ];
 

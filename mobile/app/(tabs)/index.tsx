@@ -29,6 +29,7 @@ import { useWorldly } from '../../src/hooks/useWorldly';
 import { HERO_CODES } from '../../src/lib/heroImages';
 import { heroLogoIsWhite } from '../../src/lib/heroLuminance';
 import { useData } from '../../src/store/data';
+import { isUpcoming, daysToGo, primaryCode } from '../../src/lib/tripPhase';
 import { useAuth } from '../../src/store/auth';
 import { useFriends } from '../../src/hooks/useFriends';
 
@@ -41,7 +42,7 @@ const TILE_H = 150;
 
 export default function StoryScreen() {
   const { aggregates, stats, level } = useWorldly();
-  const { captures, removeCapture, trips, places, discoveries, expeditions } = useData();
+  const { captures, removeCapture, unifiedTrips, places, discoveries, expeditions } = useData();
   const scrollRef = useRef<ScrollView>(null);
   useTabReselect('/', () => scrollRef.current?.scrollTo({ y: 0, animated: true }));
   const confirm = useConfirm();
@@ -172,9 +173,9 @@ export default function StoryScreen() {
       {/* Counting Down */}
       {(() => {
         const today = new Date().toISOString().slice(0, 10);
-        const upcoming = trips
-          .filter((t) => (t.startDate || '') >= today)
-          .sort((a, b) => a.startDate.localeCompare(b.startDate));
+        const upcoming = unifiedTrips
+          .filter((t) => isUpcoming(t, today))
+          .sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
         if (upcoming.length === 0) return null;
 
         const seasonLabel = (iso?: string) => {
@@ -184,16 +185,17 @@ export default function StoryScreen() {
           return `${season} ${iso.slice(0, 4)}`;
         };
         const TripCard = ({ t, cardW, height }: { t: (typeof upcoming)[number]; cardW: number; height: number }) => {
-          const days = Math.max(0, Math.ceil((Date.parse(t.startDate) - Date.now()) / 86_400_000));
+          const code = primaryCode(t);
+          const days = daysToGo(t, today);
           const numSize = height > 160 ? 58 : 46; // big, readable countdown number
           const shadow = { textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 7 };
           // Avoid "Iceland · Iceland": if the title is just the country, show the season instead.
-          const country = countryName(t.countryCode);
+          const country = countryName(code);
           const secondary = t.title.trim().toLowerCase() === country.toLowerCase() ? seasonLabel(t.startDate) || country : country;
           return (
             <Pressable onPress={() => router.push(`/trip/${t.id}`)} style={{ width: cardW }}>
-              <DestinationImage code={t.countryCode} scrim style={{ height, borderRadius: 24, padding: 18, justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 22, position: 'absolute', top: 14, right: 16 }}>{flagEmoji(t.countryCode)}</Text>
+              <DestinationImage code={code} scrim style={{ height, borderRadius: 24, padding: 18, justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 22, position: 'absolute', top: 14, right: 16 }}>{flagEmoji(code)}</Text>
                 {/* Top: days-to-go countdown (paddingRight clears the flag) */}
                 <View className="flex-row items-end" style={{ gap: 8, paddingRight: 36 }}>
                   <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: numSize, lineHeight: numSize, ...shadow }}>{days === 0 ? '0' : days}</Text>
