@@ -12,7 +12,7 @@ import { Caveat_600SemiBold } from '@expo-google-fonts/caveat';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import { AuthProvider, useAuth } from '../src/store/auth';
 import { DataProvider } from '../src/store/data';
@@ -92,6 +92,19 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
   const appReady = fontsLoaded && ready && !authLoading;
   const [menuOpen, setMenuOpen] = useState(false);
   const [sheet, setSheet] = useState<ActionKind | null>(null);
+  // iOS can't present a modal while another is still dismissing, so handing off
+  // from the action menu (or the "Add a trip" chooser) straight to a sheet in the
+  // same render silently drops the new sheet — most visibly on "Add a trip →
+  // Already been", which made logging a journey look impossible. Sequence the
+  // handoff: close what's open, let it slide away, then present the next sheet.
+  const sheetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const goToSheet = (kind: ActionKind) => {
+    if (sheetTimer.current) clearTimeout(sheetTimer.current);
+    setMenuOpen(false);
+    setSheet(null);
+    sheetTimer.current = setTimeout(() => setSheet(kind), 320);
+  };
+  useEffect(() => () => { if (sheetTimer.current) clearTimeout(sheetTimer.current); }, []);
   // Lets people explore on-device (offline) without signing in. Session-scoped:
   // the welcome screen returns on the next cold start until they sign in.
   const [guest, setGuest] = useState(false);
@@ -177,18 +190,17 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
         visible={menuOpen}
         onClose={() => setMenuOpen(false)}
         onPick={(kind) => {
-          setMenuOpen(false);
-          setSheet(kind);
+          goToSheet(kind);
           track('fab_action', { kind });
         }}
       />
-      <QuickLogSheet visible={sheet === 'quicklog'} onClose={() => setSheet(null)} onExpand={() => setSheet('discovery')} />
+      <QuickLogSheet visible={sheet === 'quicklog'} onClose={() => setSheet(null)} onExpand={() => goToSheet('discovery')} />
       <AddPlaceSheet visible={sheet === 'place'} onClose={() => setSheet(null)} />
       <AddDiscoverySheet visible={sheet === 'discovery'} onClose={() => setSheet(null)} startExpanded />
       <AddTripSheet visible={sheet === 'journey'} onClose={() => setSheet(null)} />
       <AddPhotoSheet visible={sheet === 'photo'} onClose={() => setSheet(null)} />
       <AddTripPlanSheet visible={sheet === 'trip'} onClose={() => setSheet(null)} />
-      <TripEntryChooser visible={sheet === 'tripentry'} onClose={() => setSheet(null)} onPick={(kind) => setSheet(kind)} />
+      <TripEntryChooser visible={sheet === 'tripentry'} onClose={() => setSheet(null)} onPick={(kind) => goToSheet(kind)} />
 
       {/* Sign-in gate sits above the app; onboarding (first run) sits above that. */}
       {needsAuth ? <AuthGate onContinueWithout={() => setGuest(true)} /> : null}

@@ -16,7 +16,7 @@ export function TripEntryChooser({
   onPick: (kind: 'journey' | 'trip') => void;
 }) {
   const rows = [
-    { kind: 'journey' as const, icon: History, tint: COLORS.coral, title: 'Already been', hint: 'Log a trip you’ve taken and how you travelled' },
+    { kind: 'journey' as const, icon: History, tint: COLORS.coral, title: 'Log a journey', hint: 'A trip you’ve taken — flights, trains and how you travelled' },
     { kind: 'trip' as const, icon: CalendarDays, tint: '#1E6BFF', title: 'Coming up', hint: 'Plan a trip — countdown, dates and itinerary' },
   ];
   return (
