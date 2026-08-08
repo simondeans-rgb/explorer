@@ -90,6 +90,15 @@ function durationMinutes(depUtc?: string, arrUtc?: string): number | undefined {
   return min > 0 && min < 60 * 24 ? min : undefined;
 }
 
+/** True once an event's UTC moment is in the past — so a revised time reflects
+ *  what actually happened, not a forecast for a flight that hasn't left yet.
+ *  Accepts "2026-07-02 18:20Z" or ISO. */
+function eventPassed(utc?: string): boolean {
+  if (!utc) return false;
+  const t = Date.parse(utc.replace(' ', 'T'));
+  return !Number.isNaN(t) && t <= Date.now();
+}
+
 /** Delay in minutes: actual − scheduled (negative = early). Undefined unless
  *  both UTC timestamps parse and they actually differ or match a real time. */
 function delayMinutes(schedUtc?: string, actualUtc?: string): number | undefined {
@@ -128,8 +137,15 @@ export async function lookupFlight(rawNumber: string, dateISO: string): Promise<
 
     const dep = splitLocal(f.departure?.scheduledTime?.local ?? f.departure?.revisedTime?.local);
     const arr = splitLocal(f.arrival?.scheduledTime?.local ?? f.arrival?.revisedTime?.local);
-    const depActual = splitLocal(f.departure?.revisedTime?.local ?? f.departure?.predictedTime?.local);
-    const arrActual = splitLocal(f.arrival?.revisedTime?.local ?? f.arrival?.predictedTime?.local);
+    // "Actual" means a real, confirmed time — the revised value AND only once
+    // the event has happened. AeroDataBox also returns predictedTime (an ML
+    // forecast) and pre-departure revisions; surfacing those as "ACTUAL · 3m
+    // late / flown" on a flight that hasn't taken off yet is misleading, so we
+    // gate each side on whether its scheduled/revised moment is in the past.
+    const hasDeparted = eventPassed(f.departure?.revisedTime?.utc ?? f.departure?.scheduledTime?.utc);
+    const hasArrived = eventPassed(f.arrival?.revisedTime?.utc ?? f.arrival?.scheduledTime?.utc);
+    const depActual = hasDeparted ? splitLocal(f.departure?.revisedTime?.local) : {};
+    const arrActual = hasArrived ? splitLocal(f.arrival?.revisedTime?.local) : {};
     const km = f.greatCircleDistance?.km;
     const info: FlightInfo = {
       flightNumber: number,
@@ -142,14 +158,8 @@ export async function lookupFlight(rawNumber: string, dateISO: string): Promise<
       arriveTimeLocal: arr.time,
       departActualLocal: depActual.time,
       arriveActualLocal: arrActual.time,
-      departDelayMin: delayMinutes(
-        f.departure?.scheduledTime?.utc,
-        f.departure?.revisedTime?.utc ?? f.departure?.predictedTime?.utc,
-      ),
-      arriveDelayMin: delayMinutes(
-        f.arrival?.scheduledTime?.utc,
-        f.arrival?.revisedTime?.utc ?? f.arrival?.predictedTime?.utc,
-      ),
+      departDelayMin: hasDeparted ? delayMinutes(f.departure?.scheduledTime?.utc, f.departure?.revisedTime?.utc) : undefined,
+      arriveDelayMin: hasArrived ? delayMinutes(f.arrival?.scheduledTime?.utc, f.arrival?.revisedTime?.utc) : undefined,
       fromTerminal: typeof f.departure?.terminal === 'string' ? f.departure.terminal : undefined,
       toTerminal: typeof f.arrival?.terminal === 'string' ? f.arrival.terminal : undefined,
       distanceKm: typeof km === 'number' && km > 0 ? Math.round(km) : undefined,
