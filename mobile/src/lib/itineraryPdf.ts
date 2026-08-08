@@ -157,35 +157,81 @@ export interface Assets {
   qr?: string;
   items: Map<string, ItemAsset>;
   inspiration: Map<string, string>;
+  /** TEMPORARY: on-device fetch diagnostics rendered at the foot of the PDF. */
+  debug?: string[];
 }
 
+// TEMPORARY on-device diagnostics — records what happens while fetching remote
+// images so a single exported PDF reveals why photos are blank. Remove once the
+// root cause is fixed.
+let _diag: string[] = [];
+const host = (u: string) => {
+  try {
+    return u.split('/')[2] || u.slice(0, 24);
+  } catch {
+    return '?';
+  }
+};
+
 /** Fetch a remote image and return it as a base64 data URI (null on any
- *  failure). Uses expo-file-system's downloadAsync + base64 read rather than
- *  fetch()+Blob()+FileReader.readAsDataURL — the latter is unreliable in React
- *  Native (the blob's bytes frequently don't survive, yielding empty base64),
- *  which left every landmark/hero photo blank in the exported PDF. */
+ *  failure). Tries expo-file-system's downloadAsync + base64 read first, then
+ *  falls back to fetch()+Blob()+FileReader (each unreliable in RN in different
+ *  ways). Records the outcome to _diag for the temporary in-PDF report. */
 async function toDataUri(url: string): Promise<string | null> {
   if (!url) return null;
   if (url.startsWith('data:')) return url;
+  const h = host(url);
+  // Method 1: downloadAsync → base64.
   try {
     const FS = await import('expo-file-system/legacy');
     const dir = FS.cacheDirectory;
-    if (!dir) return null;
-    const target = `${dir}itin-img-${(hashOf(url) >>> 0).toString(36)}-${url.length}.bin`;
-    // downloadAsync has no timeout of its own; cap it so a stalled image can't
-    // hang the whole export (the dangling download, if any, is harmless).
-    const res = await Promise.race([
-      FS.downloadAsync(url, target),
-      new Promise<null>((r) => setTimeout(() => r(null), 12000)),
-    ]);
-    if (!res || (typeof res.status === 'number' && res.status >= 400)) return null;
-    const b64 = await FS.readAsStringAsync(res.uri, { encoding: 'base64' });
-    FS.deleteAsync(res.uri, { idempotent: true }).catch(() => {});
-    if (!b64) return null;
-    const ct = String(res.headers?.['content-type'] ?? res.headers?.['Content-Type'] ?? '').toLowerCase();
-    const mime = ct.includes('png') ? 'image/png' : ct.includes('webp') ? 'image/webp' : 'image/jpeg';
-    return `data:${mime};base64,${b64}`;
-  } catch {
+    if (!dir) {
+      _diag.push(`${h}: nodir`);
+    } else if (typeof FS.downloadAsync !== 'function') {
+      _diag.push(`${h}: no-dlfn`);
+    } else {
+      const target = `${dir}itin-img-${(hashOf(url) >>> 0).toString(36)}-${url.length}.bin`;
+      const res = await Promise.race([
+        FS.downloadAsync(url, target),
+        new Promise<null>((r) => setTimeout(() => r(null), 12000)),
+      ]);
+      if (!res) {
+        _diag.push(`${h}: dl-timeout`);
+      } else if (typeof res.status === 'number' && res.status >= 400) {
+        _diag.push(`${h}: dl-${res.status}`);
+      } else {
+        const b64 = await FS.readAsStringAsync(res.uri, { encoding: 'base64' });
+        FS.deleteAsync(res.uri, { idempotent: true }).catch(() => {});
+        if (b64) {
+          _diag.push(`${h}: ok-dl-${Math.round(b64.length / 1000)}k`);
+          const ct = String(res.headers?.['content-type'] ?? res.headers?.['Content-Type'] ?? '').toLowerCase();
+          const mime = ct.includes('png') ? 'image/png' : ct.includes('webp') ? 'image/webp' : 'image/jpeg';
+          return `data:${mime};base64,${b64}`;
+        }
+        _diag.push(`${h}: dl-empty`);
+      }
+    }
+  } catch (e) {
+    _diag.push(`${h}: dl-err ${String((e as Error)?.message ?? e).slice(0, 40)}`);
+  }
+  // Method 2 (fallback): fetch → blob → FileReader.
+  try {
+    const res = await fetchWithTimeout(url, {}, 9000);
+    if (!res.ok) {
+      _diag.push(`${h}: fx-${res.status}`);
+      return null;
+    }
+    const blob = await res.blob();
+    const out = await new Promise<string | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+    _diag.push(`${h}: ${out && out.length > 100 ? `ok-fx-${Math.round(out.length / 1000)}k` : 'fx-empty'}`);
+    return out && out.length > 100 ? out : null;
+  } catch (e) {
+    _diag.push(`${h}: fx-err ${String((e as Error)?.message ?? e).slice(0, 40)}`);
     return null;
   }
 }
@@ -233,6 +279,21 @@ async function fetchWiki(name: string, width: number): Promise<ItemAsset> {
 
 /** Gather all remote imagery + fonts before rendering (see toDataUri notes). */
 export async function gatherAssets(input: DocInput, fontCss?: string, brand?: { logo?: string; mark?: string; qr?: string }): Promise<Assets> {
+  _diag = [];
+  // Capability + connectivity probes so a single export shows what's available.
+  try {
+    const FS = await import('expo-file-system/legacy');
+    _diag.push(`fs: dir=${FS.cacheDirectory ? 'y' : 'n'} dl=${typeof FS.downloadAsync} read=${typeof FS.readAsStringAsync}`);
+  } catch (e) {
+    _diag.push(`fs-import-err ${String((e as Error)?.message ?? e).slice(0, 50)}`);
+  }
+  try {
+    const r = await fetchWithTimeout('https://en.wikipedia.org/api/rest_v1/page/summary/Big_Ben', { headers: { accept: 'application/json' } }, 8000);
+    _diag.push(`wiki-api: ${r.status}`);
+  } catch (e) {
+    _diag.push(`wiki-api-err ${String((e as Error)?.message ?? e).slice(0, 50)}`);
+  }
+
   const heroP = toDataUri(input.userHeroUrl || (input.heroCode ? destinationImage(input.heroCode).photo ?? '' : ''));
 
   // Distinct items, in order; the first stop of each day gets a larger crop.
@@ -277,7 +338,7 @@ export async function gatherAssets(input: DocInput, fontCss?: string, brand?: { 
   });
 
   const hero = await heroP;
-  return { hero: hero ?? undefined, fontCss, logo: brand?.logo, mark: brand?.mark, qr: brand?.qr, items, inspiration };
+  return { hero: hero ?? undefined, fontCss, logo: brand?.logo, mark: brand?.mark, qr: brand?.qr, items, inspiration, debug: [..._diag] };
 }
 
 // ── Render helpers ───────────────────────────────────────────────────────────
@@ -583,6 +644,7 @@ export function buildItineraryPdfHtml(input: DocInput, assets: Assets): string {
       </div>
       ${metaItems.length ? `<div class="meta">${metaItems.map((m, i) => `${i ? '<div class="meta-div"></div>' : ''}<div><p class="meta-l">${esc(m.l)}</p><p class="meta-v">${esc(m.v)}</p></div>`).join('')}</div>` : ''}
       ${body}
+      ${assets.debug?.length ? `<div style="margin-top:18pt;padding:10pt;border:1px solid ${LINE};border-radius:8pt;background:${PAPER};font-family:ui-monospace,Menlo,monospace;font-size:7pt;line-height:1.5;color:${INK3}"><div style="font-weight:700;color:${NAVY};margin-bottom:4pt">DIAGNOSTICS (temporary)</div>${assets.debug.map((d) => esc(d)).join('<br>')}</div>` : ''}
     </div>
 
     <div class="closing">
