@@ -1,22 +1,24 @@
 // Export a trip itinerary as an art-directed, keepsake-quality A4 PDF via
 // expo-print, then hand it to the native share sheet. This is the ONLY itinerary
-// export. The goal is a document that feels like Worldly made a personal travel
-// guide — premium travel-magazine meets travel journal — not a data dump.
+// export. The layout follows the "Feature Spread" design handoff: a cover banner
+// (not a full cover page), an editorial masthead + meta strip, day blocks with
+// time-of-day bands and alternating photo/text stops, an "open days" +
+// inspiration block, a navy closing band with the App Store QR, and a running
+// footer that repeats on every page.
 //
-// Design is built from the real Worldly design system (src/lib/theme.ts, the
-// Almanac book, PageHero/HeroWave, DiscoveryCard): coral→lavender→aqua brand
-// gradient, Fraunces display + Plus Jakarta UI (embedded as @font-face), the
-// full-bleed photo cover with a navy scrim + coral rule, the signature HeroWave
-// "W-scallop" edge, category/verdict colours, and the gold Society seal.
+// Built from the real Worldly design system (src/lib/theme.ts): coral →
+// lavender → aqua palette, Fraunces display + Plus Jakarta UI (embedded as
+// @font-face), the HeroWave "W-scallop" edge, category/verdict colours, and the
+// bundled brand lockups.
 //
 // Print-renderer constraints (from the Almanac book, almanacBook.ts):
-// - Photos are CSS background-images, never <img> (iOS prints <img> as black
-//   boxes) and are inlined as base64 data URIs (the renderer snapshots before
+// - Photos + logos are CSS background-images with base64 data URIs, never <img>
+//   (iOS prints <img> as black boxes) and inlined (the renderer snapshots before
 //   remote images load).
 // - The A4 page size is passed to printToFileAsync explicitly (CSS @page is
 //   ignored; iOS otherwise falls back to US Letter).
-// Everything degrades gracefully offline: no photos → on-brand gradient panels,
-// no embedded fonts → Georgia / system stack. Never a black box; always exports.
+// Everything degrades gracefully: no photos → the on-brand gradient panel; no
+// embedded fonts → Georgia / system; no brand PNGs → inline SVG marks.
 import { destinationImage } from './destinationImage';
 import { fetchWithTimeout } from './net';
 import { landmarkBlurb } from '../data/landmarkBlurbs';
@@ -26,7 +28,7 @@ const esc = (s: string) =>
     c === '<' ? '&lt;' : c === '>' ? '&gt;' : c === '&' ? '&amp;' : c === "'" ? '&#39;' : '&quot;',
   );
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types (unchanged data model) ─────────────────────────────────────────────
 export type ItinCategory = 'food' | 'accommodation' | 'culture' | 'experience' | 'nature';
 export type ItinVerdict = 'recommend' | 'hidden-gem' | 'worth-visiting' | 'overrated' | 'avoid';
 
@@ -34,16 +36,11 @@ export interface DocItem {
   name: string;
   city?: string;
   category?: ItinCategory;
-  /** Resolved human label (subcategory preferred), e.g. "Historic site". */
   categoryLabel?: string;
-  /** Display name of the friend who recommended this, if any. */
   fromFriend?: string;
   verdict?: ItinVerdict;
-  /** The recommender's own note / quote (already connection-gated in-app). */
   note?: string;
-  /** The recommender's own photo (remote or data URL) — preferred over stock. */
   photo?: string;
-  /** Fallback "London · Café" line when there's nothing richer. */
   meta?: string;
 }
 export interface DocSlot {
@@ -53,7 +50,6 @@ export interface DocSlot {
 export interface DocDay {
   badge?: string;
   label: string;
-  /** "Westminster · South Bank" — only when reliably derived from item cities. */
   subtitle?: string;
   note?: string;
   slots: DocSlot[];
@@ -61,37 +57,34 @@ export interface DocDay {
 export interface DocInput {
   title: string;
   destination?: string;
-  /** Flag emoji for the destination. */
   flag?: string;
-  /** "8–10 August 2026". */
   dateLabel?: string;
   heroCode?: string;
   dayCount?: number;
   cityCount?: number;
   crew?: string[];
-  /** A user's own trip photo (remote/data URL) to prefer for the cover. */
   userHeroUrl?: string;
-  /** Destination ideas (name only) to offer when days are empty — never fabricated. */
   inspiration?: string[];
   days: DocDay[];
 }
 
-// ── Brand tokens (from src/lib/theme.ts) ─────────────────────────────────────
+// ── Brand tokens (src/lib/theme.ts) ──────────────────────────────────────────
 const CORAL = '#FF6B9A';
 const LAV = '#9B7CFF';
 const AQUA = '#24D1C3';
-const SUN = '#FFB84D';
+const SUNBURST = '#FFB84D';
 const SKY = '#4DA6FF';
 const NAVY = '#14213D';
 const INK2 = '#48506B';
 const INK3 = '#5E6377';
 const PAPER = '#FAFAFC';
 const LINE = '#EDEEF4';
-const GOLD = '#C9A84C';
-const DAY_ACCENTS = [CORAL, LAV, AQUA, SUN, SKY];
+const AMBER = '#E09A2B'; // day-time band accent
+const DAY_ACCENTS = [CORAL, LAV, AQUA, SUNBURST, SKY];
+const APP_STORE_URL = 'https://apps.apple.com/gb/app/worldly-explorer/id6782019443';
 
 const CATEGORY = {
-  food: { color: SUN, label: 'Food & Drink' },
+  food: { color: SUNBURST, label: 'Food & Drink' },
   accommodation: { color: LAV, label: 'Stay' },
   culture: { color: AQUA, label: 'Culture' },
   experience: { color: '#FF8A5B', label: 'Experience' },
@@ -106,12 +99,7 @@ const VERDICT = {
 } as const;
 
 const VIVID = 'filter: saturate(1.24) contrast(1.05) brightness(1.02);';
-/** Canonical over-photo navy scrim so white text always reads (hero-scrim). */
-const SCRIM = 'linear-gradient(to top, rgba(20,33,61,0.82) 0%, rgba(20,33,61,0.30) 44%, rgba(20,33,61,0) 78%)';
-/** Cover scrim: darkened at BOTH ends so the top wordmark and the bottom title
- *  each read over any photo (mirrors the Almanac cover's 3-stop wash). */
-const COVER_SCRIM =
-  'linear-gradient(to bottom, rgba(20,33,61,0.55) 0%, rgba(20,33,61,0.10) 30%, rgba(20,33,61,0.34) 58%, rgba(20,33,61,0.88) 100%)';
+const BANNER_SCRIM = 'linear-gradient(to bottom, rgba(20,33,61,0.5) 0%, rgba(20,33,61,0.05) 45%, rgba(20,33,61,0.18) 100%)';
 
 function hashOf(s: string): number {
   let h = 0;
@@ -123,61 +111,37 @@ function panelGradient(name: string): string {
   const s = [
     [CORAL, LAV],
     [LAV, AQUA],
-    [AQUA, SUN],
-    [SUN, CORAL],
+    [AQUA, SUNBURST],
+    [SUNBURST, CORAL],
     [SKY, LAV],
   ][hashOf(name) % 5];
   return `linear-gradient(135deg, ${s[0]}, ${s[1]})`;
 }
 
-// ── SVG marks ────────────────────────────────────────────────────────────────
-/** The Worldly globe mark (coral→lavender→aqua), inline SVG — always print-safe. */
-function mark(px: number, id: string, mono?: string): string {
-  const fill = mono ? mono : `url(#${id})`;
-  const stroke = mono ? '#fff' : '#fff';
-  return `<svg width="${px}" height="${px}" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="display:block">
-    ${mono ? '' : `<defs><linearGradient id="${id}" x1="8" y1="8" x2="56" y2="58" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${CORAL}"/><stop offset="0.5" stop-color="${LAV}"/><stop offset="1" stop-color="${AQUA}"/></linearGradient></defs>`}
-    <rect x="4" y="4" width="56" height="56" rx="16" fill="${fill}"/>
-    <g fill="none" stroke="${stroke}" stroke-width="2.4" stroke-linecap="round">
-      <circle cx="32" cy="32" r="15" opacity="0.95"/><ellipse cx="32" cy="32" rx="6.4" ry="15" opacity="0.85"/>
-      <line x1="17" y1="32" x2="47" y2="32" opacity="0.85"/><path d="M20 24 Q32 30 44 24" opacity="0.7"/><path d="M20 40 Q32 34 44 40" opacity="0.7"/>
-    </g></svg>`;
-}
-/** The signature HeroWave "W-scallop" edge, filled with `color`. Height in pt. */
-const WAVE_CURVE =
-  'M0,93 C12.2,91.3 62.5,77.9 86,81 C109.5,84.1 148.6,113 166,115 C183.4,117 197.7,95 209,95 C220.3,95 229.4,117 246,115 C262.6,113 291.1,85.1 326,81 C360.9,76.9 447.5,86.4 492,86 C536.5,85.6 591.1,82.4 640,78 C688.9,73.6 781.2,62.4 837,55 C892.8,47.6 976.9,33.1 1034,26 C1091.1,18.9 1191,7.8 1240,5 C1289,2.2 1351.7,5.2 1380,6 C1408.3,6.8 1431.5,10.3 1440,11';
-function wave(color: string, h: number, flip = false): string {
-  const d = `${WAVE_CURVE} L1440,121 L0,121 Z`;
-  return `<svg width="100%" height="${h}pt" viewBox="0 0 1440 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="display:block${flip ? ';transform:scaleY(-1)' : ''}"><path d="${d}" fill="${color}"/></svg>`;
-}
-/** A location pin glyph in `color`. */
+const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
+const spell = (n: number) => WORDS[n] ?? String(n);
+const spellUpper = (n: number) => spell(n).toUpperCase();
+
+// ── SVG glyphs ───────────────────────────────────────────────────────────────
 function pin(px: number, color: string): string {
   return `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="${color}" xmlns="http://www.w3.org/2000/svg" style="display:block"><path d="M12 22s7-6.6 7-12A7 7 0 1 0 5 10c0 5.4 7 12 7 12Z"/><circle cx="12" cy="10" r="2.6" fill="#fff"/></svg>`;
 }
-const ICON: Record<string, string> = {
-  calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9h18M8 3v4M16 3v4"/>',
-  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-  map: '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/>',
-  pin: '<path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/>',
-  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 2.6 15.4 0 18M12 3c-2.6 2.6-2.6 15.4 0 18"/>',
-  heart: '<path d="M12 20s-7-4.7-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.3-7 10-7 10Z"/>',
-  compass: '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/>',
-  utensils: '<path d="M4 3v7a2 2 0 0 0 4 0V3M6 10v11M18 3c-2 0-3 2-3 5s1 4 3 4v9"/>',
-  bed: '<path d="M3 8v11M3 13h18v6M21 19v-6a3 3 0 0 0-3-3H8v3"/>',
-  landmark: '<path d="M4 21h16M5 21V10M19 21V10M9 21V10M15 21V10M12 3 4 8h16l-8-5Z"/>',
-  ticket: '<path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 2 2 0 0 0 0-4Z"/>',
-  mountain: '<path d="m3 20 6-11 4 6 2-3 6 8H3Z"/>',
-};
-function icon(name: string, color: string, px = 13, sw = 1.9): string {
-  return `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block">${ICON[name]}</svg>`;
+function sunGlyph(px: number, color: string): string {
+  return `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg" style="display:block"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/></svg>`;
 }
-const CAT_ICON: Record<ItinCategory, string> = {
-  food: 'utensils',
-  accommodation: 'bed',
-  culture: 'landmark',
-  experience: 'ticket',
-  nature: 'mountain',
-};
+function moonGlyph(px: number, color: string): string {
+  return `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></svg>`;
+}
+/** Fallback Worldly globe mark (coral→lavender→aqua) when the PNG is missing. */
+function svgMark(px: number, id: string): string {
+  return `<svg width="${px}" height="${px}" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="display:block"><defs><linearGradient id="${id}" x1="8" y1="8" x2="56" y2="58" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${CORAL}"/><stop offset="0.5" stop-color="${LAV}"/><stop offset="1" stop-color="${AQUA}"/></linearGradient></defs><rect x="4" y="4" width="56" height="56" rx="16" fill="url(#${id})"/><g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><circle cx="32" cy="32" r="15" opacity="0.95"/><ellipse cx="32" cy="32" rx="6.4" ry="15" opacity="0.85"/><line x1="17" y1="32" x2="47" y2="32" opacity="0.85"/><path d="M20 24 Q32 30 44 24" opacity="0.7"/><path d="M20 40 Q32 34 44 40" opacity="0.7"/></g></svg>`;
+}
+
+const WAVE_CURVE =
+  'M0,93 C12.2,91.3 62.5,77.9 86,81 C109.5,84.1 148.6,113 166,115 C183.4,117 197.7,95 209,95 C220.3,95 229.4,117 246,115 C262.6,113 291.1,85.1 326,81 C360.9,76.9 447.5,86.4 492,86 C536.5,85.6 591.1,82.4 640,78 C688.9,73.6 781.2,62.4 837,55 C892.8,47.6 976.9,33.1 1034,26 C1091.1,18.9 1191,7.8 1240,5 C1289,2.2 1351.7,5.2 1380,6 C1408.3,6.8 1431.5,10.3 1440,11';
+function wave(color: string, h: number): string {
+  return `<svg width="100%" height="${h}pt" viewBox="0 0 1440 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="display:block"><path d="${WAVE_CURVE} L1440,121 L0,121 Z" fill="${color}"/></svg>`;
+}
 
 // ── Assets ───────────────────────────────────────────────────────────────────
 export interface ItemAsset {
@@ -187,8 +151,12 @@ export interface ItemAsset {
 export interface Assets {
   hero?: string;
   fontCss?: string;
+  /** Base64 data URIs for the bundled brand lockups (device only). */
+  logo?: string;
+  mark?: string;
+  qr?: string;
   items: Map<string, ItemAsset>;
-  inspiration: Map<string, string>; // name → image data URI
+  inspiration: Map<string, string>;
 }
 
 /** Fetch an image and return it as a base64 data URI (null on any failure). */
@@ -224,11 +192,8 @@ const TITLE_OVERRIDES: Record<string, string> = {
   'Canal Ring': 'Grachtengordel',
   'Bali Rice Terraces': 'Tegallalang',
 };
-
-/** Bump a Wikimedia thumb URL to a target width for higher-res crops. */
 const widen = (url: string, w: number) => url.replace(/\/\d+px-/, `/${w}px-`);
 
-/** Tidy a Wikipedia extract into a single warm-ish sentence (fallback only). */
 function firstSentence(extract?: string): string | undefined {
   if (!extract) return undefined;
   let s = extract.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
@@ -238,7 +203,6 @@ function firstSentence(extract?: string): string | undefined {
   return s;
 }
 
-/** Wikipedia summary → { high-res image data URI, one-line blurb }. */
 async function fetchWiki(name: string, width: number): Promise<ItemAsset> {
   const title = (TITLE_OVERRIDES[name] ?? name).trim();
   try {
@@ -256,10 +220,10 @@ async function fetchWiki(name: string, width: number): Promise<ItemAsset> {
 }
 
 /** Gather all remote imagery + fonts before rendering (see toDataUri notes). */
-export async function gatherAssets(input: DocInput, fontCss?: string): Promise<Assets> {
+export async function gatherAssets(input: DocInput, fontCss?: string, brand?: { logo?: string; mark?: string; qr?: string }): Promise<Assets> {
   const heroP = toDataUri(input.userHeroUrl || (input.heroCode ? destinationImage(input.heroCode).photo ?? '' : ''));
 
-  // Distinct items, in order; the first item of each day gets a larger crop.
+  // Distinct items, in order; the first stop of each day gets a larger crop.
   const seen = new Set<string>();
   const ordered: DocItem[] = [];
   const leadNames = new Set<string>();
@@ -282,8 +246,7 @@ export async function gatherAssets(input: DocInput, fontCss?: string): Promise<A
   const capped = ordered.slice(0, 20);
   const results = await Promise.all(
     capped.map((it) => {
-      const width = leadNames.has(it.name.toLowerCase()) ? 1100 : 640;
-      // Prefer the recommender's own photo; otherwise Wikipedia.
+      const width = leadNames.has(it.name.toLowerCase()) ? 1100 : 720;
       if (it.photo) {
         return toDataUri(it.photo).then((img) => ({ img: img ?? undefined, blurb: landmarkBlurb(it.name) }) as ItemAsset);
       }
@@ -302,165 +265,140 @@ export async function gatherAssets(input: DocInput, fontCss?: string): Promise<A
   });
 
   const hero = await heroP;
-  return { hero: hero ?? undefined, fontCss, items, inspiration };
+  return { hero: hero ?? undefined, fontCss, logo: brand?.logo, mark: brand?.mark, qr: brand?.qr, items, inspiration };
 }
 
-// ── Building blocks ──────────────────────────────────────────────────────────
-function photoLayer(src: string | undefined, seed: string, cls = ''): string {
-  return src
-    ? `<div class="ph ${cls}" style="background-image:url('${src}');${VIVID}"></div>`
-    : `<div class="ph ${cls}" style="background-image:${panelGradient(seed)}"></div>`;
+// ── Render helpers ───────────────────────────────────────────────────────────
+/** A full-cover photo layer or the deterministic on-brand gradient panel. */
+function photoBg(src: string | undefined, seed: string): string {
+  return src ? `background-image:url('${src}');background-size:cover;background-position:center;${VIVID}` : `background-image:${panelGradient(seed)}`;
+}
+/** The full-colour Worldly wordmark in a white pill (PNG data URI, or SVG mark). */
+function logoPill(assets: Assets, padding: string): string {
+  const inner = assets.logo
+    ? `<div style="height:16.5pt;width:68.4pt;background-image:url('${assets.logo}');background-size:contain;background-repeat:no-repeat;background-position:center"></div>`
+    : `<div style="display:flex;align-items:center;gap:5pt">${svgMark(16.5, 'lp')}<span style="font-family:var(--serif);font-size:14pt;color:${NAVY}">worldly</span></div>`;
+  return `<div style="background:#fff;border-radius:999pt;padding:${padding};display:flex;align-items:center;box-shadow:0 3pt 10pt rgba(20,33,61,0.22)">${inner}</div>`;
 }
 
-function categoryChip(it: DocItem): string {
+const timeMeta = (label: string): { accent: string; glyph: (px: number, c: string) => string } => {
+  const l = label.toLowerCase();
+  return /even|dinner|night|supper/.test(l) ? { accent: LAV, glyph: moonGlyph } : { accent: AMBER, glyph: sunGlyph };
+};
+
+function catChip(it: DocItem): string {
   if (!it.category) return '';
   const c = CATEGORY[it.category];
   const label = it.categoryLabel || c.label;
-  return `<span class="chip" style="color:${c.color};background:${c.color}1A"><span class="chipico">${icon(CAT_ICON[it.category], c.color, 10, 2)}</span>${esc(label)}</span>`;
+  return `<span class="pchip" style="color:${c.color};background:${c.color}1F">${esc(label)}</span>`;
 }
 function verdictChip(v?: ItinVerdict): string {
   if (!v) return '';
   const m = VERDICT[v];
-  return `<span class="chip" style="color:${m.color};background:${m.color}1A">${esc(m.label)}</span>`;
+  return `<span class="pchip" style="color:${m.color};background:${m.color}1F">${esc(m.label)}</span>`;
+}
+function recPanel(it: DocItem): string {
+  if (!it.fromFriend || !it.note) return '';
+  return `<div class="rec"><div class="rec-bar"></div><div><p class="rec-quote">“${esc(it.note)}”</p><p class="rec-by">Recommended by ${esc(it.fromFriend)}</p></div></div>`;
 }
 
-/** A friend recommendation ribbon + optional quote. */
-function recBlock(it: DocItem): string {
-  if (!it.fromFriend) return '';
-  const quote = it.note
-    ? `<div class="quote">${icon('heart', CORAL, 11, 0)}<span>“${esc(it.note)}”</span></div>`
-    : '';
-  return `<div class="recline">${icon('heart', CORAL, 11, 2)}<span>Recommended by <b>${esc(it.fromFriend)}</b></span></div>${quote}`;
-}
-
-/** A large landscape feature card: photo with title/overlay + editorial copy. */
-function featureCard(it: DocItem, asset: ItemAsset | undefined, accent: string): string {
-  const img = asset?.img;
+/** One stop: alternating photo/text spread. */
+function stopRow(it: DocItem, dayIndex: number, accent: string, asset: ItemAsset | undefined, isFirstOfDay: boolean, isLastOfDay: boolean): string {
+  const num = String(dayIndex + 1).padStart(2, '0');
+  const photoRight = dayIndex % 2 === 1;
+  const h = isFirstOfDay ? 154.5 : 139.5;
   const blurb = asset?.blurb || it.meta || '';
-  const cityPin = it.city ? `<span class="cpin">${pin(11, '#fff')} ${esc(it.city)}</span>` : '';
-  return `<div class="feature">
-    <div class="feat-photo">${photoLayer(img, it.name, 'feat-ph')}<div class="feat-scrim"></div>
-      <div class="feat-cap">
-        <div class="feat-chips">${it.fromFriend ? `<span class="chip solid" style="background:${CORAL}">${icon('heart', '#fff', 10, 0)}&nbsp;${esc(it.fromFriend)}’s pick</span>` : ''}${it.verdict && !(it.fromFriend && it.verdict === 'recommend') ? verdictChip(it.verdict) : ''}</div>
-        <div class="feat-name">${esc(it.name)}</div>
-        ${cityPin}
-      </div>
-    </div>
-    ${blurb || it.category || it.note ? `<div class="feat-body">
-      <div class="feat-meta">${categoryChip(it)}</div>
-      ${blurb ? `<div class="feat-desc">${esc(blurb)}</div>` : ''}
-      ${it.fromFriend && it.note ? `<div class="quote">${icon('heart', CORAL, 11, 0)}<span>“${esc(it.note)}” — <b>${esc(it.fromFriend)}</b></span></div>` : ''}
-    </div>` : ''}
+  const photo = `<div class="stop-ph" style="height:${h}pt;${photoRight ? 'order:2;' : ''}${photoBg(asset?.img, it.name)}"></div>`;
+  const body = `<div class="stop-body"${photoRight ? ' style="order:1"' : ''}>
+    <div class="stop-title"><span class="stop-num" style="color:${accent}">${num}</span><h3 class="stop-name">${esc(it.name)}</h3></div>
+    <div class="stop-meta">${it.city ? `<span class="stop-city">${pin(8, CORAL)}${esc(it.city)}</span>` : ''}${catChip(it)}${verdictChip(it.verdict)}</div>
+    ${blurb ? `<p class="stop-blurb">${esc(blurb)}</p>` : ''}
+    ${recPanel(it)}
+  </div>`;
+  return `<div class="stop"${isLastOfDay ? ' style="border-bottom:0"' : ''}>${photo}${body}</div>`;
+}
+
+function timeBand(label: string, count: number): string {
+  const { accent, glyph } = timeMeta(label);
+  const hint = `${spell(count)} stop${count === 1 ? '' : 's'}`;
+  return `<div class="timeband">
+    <div class="time-pill" style="background:${accent}1F"><span style="line-height:0">${glyph(10.5, accent)}</span><span class="time-l" style="color:${accent}">${esc(label).toUpperCase()}</span></div>
+    <span class="time-hint">${esc(hint)}</span>
+    <div class="time-rule" style="background:${accent}33"></div>
   </div>`;
 }
 
-/** A standard editorial row: square photo + name + chips + blurb + rec. */
-function standardCard(it: DocItem, asset: ItemAsset | undefined, accent: string): string {
-  const img = asset?.img;
-  const blurb = asset?.blurb || it.meta || '';
-  const cityPin = it.city ? `<span class="cpin ink">${pin(10, accent)} ${esc(it.city)}</span>` : '';
-  return `<div class="card" style="border-left:3pt solid ${it.category ? CATEGORY[it.category].color : accent}">
-    <div class="card-ph-wrap">${photoLayer(img, it.name, 'card-ph')}</div>
-    <div class="card-body">
-      <div class="card-name">${esc(it.name)}</div>
-      <div class="card-meta">${cityPin}${categoryChip(it)}${it.fromFriend ? '' : verdictChip(it.verdict)}</div>
-      ${blurb ? `<div class="card-desc">${esc(blurb)}</div>` : ''}
-      ${recBlock(it)}
-    </div>
-  </div>`;
-}
-
-/** A compact secondary row (name + tiny thumb + one line) for dense days. */
-function compactCard(it: DocItem, asset: ItemAsset | undefined, accent: string): string {
-  const blurb = asset?.blurb || it.meta || '';
-  const line = [it.city, blurb].filter(Boolean).join(' — ');
-  return `<div class="compact">
-    <div class="compact-ph-wrap">${photoLayer(asset?.img, it.name, 'compact-ph')}</div>
-    <div class="compact-body">
-      <div class="compact-name">${esc(it.name)}${it.fromFriend ? ` <span class="rectag">${icon('heart', CORAL, 9, 0)} ${esc(it.fromFriend)}</span>` : ''}</div>
-      ${line ? `<div class="compact-line">${esc(line)}</div>` : ''}
-    </div>
-  </div>`;
-}
-
-/** One stop on the day's route: a rail (pin + connector) + the chosen card. */
-function stopRow(card: string, accent: string, isFirst: boolean, isLast: boolean): string {
-  return `<div class="stop">
-    <div class="rail"><div class="rail-line top" style="background:${isFirst ? 'transparent' : accent}44"></div><div class="dot" style="background:${accent}"></div><div class="rail-line bot" style="background:${isLast ? 'transparent' : accent}44"></div></div>
-    <div class="stop-card">${card}</div>
-  </div>`;
-}
-
-function slotFlag(label: string, accent: string): string {
-  return `<div class="slotflag"><span class="slot-dot" style="background:${accent}"></span><span class="slot-label" style="color:${accent}">${esc(label).toUpperCase()}</span></div>`;
-}
-
-function dayBlock(d: DocDay, idx: number, assets: Assets, isFirstContentDay: boolean): string {
+function dayBlock(d: DocDay, idx: number, assets: Assets): string {
   const accent = DAY_ACCENTS[idx % DAY_ACCENTS.length];
   const filled = d.slots.filter((s) => s.items.length);
-  const flat: { label?: string; it: DocItem }[] = [];
-  filled.forEach((s) => s.items.forEach((it, i) => flat.push({ label: i === 0 ? s.label : undefined, it })));
-
-  const rows = flat.map((row, i) => {
-    const asset = assets.items.get(row.it.name.toLowerCase());
-    // Vary the layout intentionally: a large feature opens the trip and any busy
-    // day (3+ stops); shorter days stay as elegant standard rows; dense tails go
-    // compact. Recommendations get their ribbon + quote in every card type.
-    const useFeature = !!asset?.img && i === 0 && (isFirstContentDay || flat.length >= 3);
-    let card: string;
-    if (useFeature) card = featureCard(row.it, asset, accent);
-    else if (i >= 4) card = compactCard(row.it, asset, accent);
-    else card = standardCard(row.it, asset, accent);
-    const flag = row.label ? slotFlag(row.label, accent) : '';
-    const stop = stopRow(card, accent, i === 0, i === flat.length - 1);
-    return { flag, stop, i };
-  });
-
-  const head = `<div class="day-head">
-      <div class="day-eyebrow" style="color:${accent}">DAY ${esc(d.badge ?? String(idx + 1))}</div>
-      <div class="day-title">${esc(d.label)}</div>
-      ${d.subtitle ? `<div class="day-sub">${esc(d.subtitle)}</div>` : ''}
-      <div class="day-rule" style="background:${accent}"></div>
-    </div>
-    ${d.note ? `<div class="quote day-note">${icon('compass', accent, 11, 2)}<span>${esc(d.note)}</span></div>` : ''}`;
-
-  // Keep the day header glued to its first stop so a heading never orphans at a
-  // page foot; the rest of the stops flow and break naturally.
-  const first = rows[0];
-  const rest = rows.slice(1);
+  const total = filled.reduce((n, s) => n + s.items.length, 0);
+  let dayIndex = 0;
+  const slotsHtml = filled
+    .map((s) => {
+      const band = timeBand(s.label, s.items.length);
+      const stops = s.items
+        .map((it) => {
+          const i = dayIndex++;
+          return stopRow(it, i, accent, assets.items.get(it.name.toLowerCase()), i === 0, i === total - 1);
+        })
+        .join('');
+      return `${band}<div class="stops">${stops}</div>`;
+    })
+    .join('');
+  const pill = d.badge && /^\d+$/.test(d.badge) ? `DAY ${spellUpper(Number(d.badge))}` : `DAY ${esc(d.badge ?? String(idx + 1))}`;
   return `<section class="day">
-    <div class="day-open">${head}<div class="stops">${first ? `${first.flag}${first.stop}` : ''}</div></div>
-    ${rest.length ? `<div class="stops">${rest.map((r) => `${r.flag}${r.stop}`).join('')}</div>` : ''}
-  </section>`;
-}
-
-/** Consecutive empty days collapsed into one compact "more of your trip" card. */
-function emptyGroup(days: { label: string }[]): string {
-  return `<section class="empty-wrap">
-    <div class="empty-eyebrow">MORE OF YOUR TRIP</div>
-    <div class="empty-card">
-      ${days.map((d) => `<div class="empty-row"><span class="empty-day">${esc(d.label)}</span><span class="empty-note">Open — nothing planned yet</span></div>`).join('')}
+    <div class="day-head">
+      <span class="day-pill" style="background:${accent}">${pill}</span>
+      <h2 class="day-h2">${esc(d.label)}</h2>
+      <div class="hrule"></div>
+      ${d.subtitle ? `<span class="day-sub">${esc(d.subtitle)}</span>` : ''}
     </div>
+    ${d.note ? `<p class="day-note">${esc(d.note)}</p>` : ''}
+    ${slotsHtml}
   </section>`;
 }
 
-function inspirationBlock(assets: Assets, destination?: string): string {
+function inspirationPanel(assets: Assets, destination?: string): string {
   if (!assets.inspiration.size) return '';
   const cards = [...assets.inspiration.entries()]
     .map(
-      ([name, img]) => `<div class="insp-card">${photoLayer(img, name, 'insp-ph')}<div class="insp-scrim"></div><div class="insp-name">${esc(name)}</div></div>`,
+      ([name, img]) => `<div class="insp-item"><div class="insp-thumb" style="${photoBg(img, name)}"></div><div><p class="insp-name">${esc(name)}</p></div></div>`,
     )
     .join('');
-  return `<section class="insp">
-    <div class="insp-head"><span class="insp-eyebrow">NEED SOME INSPIRATION?</span><span class="insp-sub">Worldly favourites${destination ? ` in ${esc(destination)}` : ''}</span></div>
+  return `<div class="insp">
+    <div class="insp-head"><span class="insp-eye">NEED SOME INSPIRATION?</span><span class="insp-sub">Worldly favourites${destination ? ` in ${esc(destination)}` : ' nearby'}</span></div>
     <div class="insp-grid">${cards}</div>
+  </div>`;
+}
+
+/** The "Still yours to fill" block for a run of consecutive empty days. */
+function openDaysBlock(days: { label: string; note?: string }[], startBadge: number, assets: Assets, destination?: string): string {
+  const first = startBadge;
+  const last = startBadge + days.length - 1;
+  const pill =
+    days.length === 1
+      ? `DAY ${spellUpper(first)}`
+      : days.length === 2
+        ? `DAYS ${spellUpper(first)} & ${spellUpper(last)}`
+        : `DAYS ${spellUpper(first)}–${spellUpper(last)}`;
+  const cols = days
+    .map((d) => `<div class="openday"><p class="openday-d">${esc(d.label)}</p><p class="openday-s">${esc(d.note || 'Open — nothing planned yet')}</p></div>`)
+    .join('');
+  return `<section class="openday-sec">
+    <div class="day-head">
+      <span class="day-pill" style="background:${LAV}">${pill}</span>
+      <h2 class="day-h2">Still yours to fill</h2>
+      <div class="hrule"></div>
+    </div>
+    <div class="opendays">${cols}</div>
+    ${inspirationPanel(assets, destination)}
   </section>`;
 }
 
-// ── HTML ─────────────────────────────────────────────────────────────────────
+// ── Document ─────────────────────────────────────────────────────────────────
 export function buildItineraryPdfHtml(input: DocInput, assets: Assets): string {
-  // Group days into runs so empty ones collapse instead of eating pages.
-  type Block = { kind: 'day'; d: DocDay; idx: number } | { kind: 'empty'; days: { label: string }[] };
+  // Group days into runs so consecutive empty days collapse.
+  type Block = { kind: 'day'; d: DocDay; idx: number } | { kind: 'empty'; startBadge: number; days: { label: string; note?: string }[] };
   const blocks: Block[] = [];
   input.days.forEach((d, idx) => {
     const hasContent = d.slots.some((s) => s.items.length) || d.note;
@@ -468,205 +406,190 @@ export function buildItineraryPdfHtml(input: DocInput, assets: Assets): string {
     else {
       const last = blocks[blocks.length - 1];
       if (last && last.kind === 'empty') last.days.push({ label: d.label });
-      else blocks.push({ kind: 'empty', days: [{ label: d.label }] });
+      else blocks.push({ kind: 'empty', startBadge: idx + 1, days: [{ label: d.label }] });
     }
   });
+  const lastEmptyAt = blocks.reduce((acc, b, i) => (b.kind === 'empty' ? i : acc), -1);
 
-  const heroPhoto = assets.hero
-    ? `<div class="cover-ph" style="background-image:url('${assets.hero}');${VIVID}"></div>`
-    : `<div class="cover-ph" style="background-image:${panelGradient(input.title)}"></div>`;
+  // Cover title scales down for long trip names (README §2).
+  const tlen = input.title.length;
+  const titleSize = tlen > 46 ? 25 : tlen > 34 ? 29 : tlen > 22 ? 34 : 45.5;
 
-  const overviewChips = [
-    input.destination ? { i: 'globe', l: 'Destination', v: `${input.flag ? input.flag + ' ' : ''}${input.destination}` } : null,
-    input.dateLabel ? { i: 'calendar', l: 'When', v: input.dateLabel } : null,
-    input.dayCount ? { i: 'clock', l: 'Duration', v: `${input.dayCount} day${input.dayCount === 1 ? '' : 's'}` } : null,
-    input.cityCount ? { i: 'pin', l: 'Places', v: `${input.cityCount} ${input.cityCount === 1 ? 'city' : 'cities'}` } : null,
-  ].filter(Boolean) as { i: string; l: string; v: string }[];
+  // Masthead figures.
+  const allItems = input.days.flatMap((d) => d.slots.flatMap((s) => s.items));
+  const totalStops = allItems.length;
+  const openDays = input.days.filter((d) => !d.slots.some((s) => s.items.length) && !d.note).length;
+  const cityCounts = new Map<string, number>();
+  for (const it of allItems) if (it.city) cityCounts.set(it.city, (cityCounts.get(it.city) ?? 0) + 1);
+  const baseCity = [...cityCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || input.destination;
 
-  let firstDaySeen = false;
+  const eyebrow = `${(input.destination || 'Your trip').toUpperCase()}${input.dayCount ? ` · ${input.dayCount} ${input.dayCount === 1 ? 'DAY' : 'DAYS'}` : ''}`;
+  const crewList = input.crew?.length ? input.crew.join(' & ') : '';
+  const standfirst = (() => {
+    const parts: string[] = [];
+    if (totalStops) parts.push(`${spell(totalStops).replace(/^\w/, (c) => c.toUpperCase())} stop${totalStops === 1 ? '' : 's'} to explore${baseCity ? ` around ${baseCity}` : ''}`);
+    else parts.push(`A trip to ${input.destination || 'plan'}`);
+    if (openDays) parts.push(`${spell(openDays)} open day${openDays === 1 ? '' : 's'} to wander`);
+    let s = parts.join(', ') + '.';
+    if (crewList) s += ` Planned with ${crewList}.`;
+    return s;
+  })();
+
+  const metaItems = [
+    input.dateLabel ? { l: 'WHEN', v: input.dateLabel } : null,
+    baseCity ? { l: 'BASE', v: baseCity } : null,
+    totalStops ? { l: 'STOPS', v: `${totalStops} saved place${totalStops === 1 ? '' : 's'}` } : null,
+    crewList ? { l: 'TRAVELLING WITH', v: crewList } : null,
+  ].filter(Boolean) as { l: string; v: string }[];
+
   const body = blocks
-    .map((b) => {
-      if (b.kind === 'day') {
-        const isFirst = !firstDaySeen;
-        firstDaySeen = true;
-        return dayBlock(b.d, b.idx, assets, isFirst);
-      }
-      return emptyGroup(b.days);
+    .map((b, i) => {
+      if (b.kind === 'day') return dayBlock(b.d, b.idx, assets);
+      return openDaysBlock(b.days, b.startBadge, i === lastEmptyAt ? assets : { ...assets, inspiration: new Map() }, input.destination);
     })
     .join('');
 
-  // Scale the cover title down for long trip names so it never collides with the
-  // wordmark or overruns the cover.
-  const tlen = input.title.length;
-  const titleSize = tlen > 46 ? 25 : tlen > 34 ? 29 : tlen > 22 ? 34 : 42;
+  const footerMark = assets.mark
+    ? `<div style="height:10.5pt;width:10.5pt;background-image:url('${assets.mark}');background-size:contain;background-repeat:no-repeat"></div>`
+    : svgMark(10.5, 'fm');
+
+  const qrHtml = assets.qr
+    ? `<div class="qr"><div style="width:39pt;height:39pt;background-image:url('${assets.qr}');background-size:contain;background-repeat:no-repeat"></div></div>`
+    : '';
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
     ${assets.fontCss ?? ''}
     * { box-sizing: border-box; }
     :root { --serif: 'Fraunces', Georgia, 'Times New Roman', serif; --sans: 'PlusJakarta', -apple-system, 'Helvetica Neue', Arial, sans-serif; }
     html, body { margin: 0; padding: 0; }
-    body { font-family: var(--sans); color: ${INK2}; -webkit-print-color-adjust: exact; print-color-adjust: exact; background:
-      radial-gradient(120% 60% at 0% 0%, rgba(255,107,154,0.08), transparent 60%),
-      radial-gradient(120% 60% at 100% 0%, rgba(155,124,255,0.08), transparent 60%),
-      ${PAPER}; }
-    .serif { font-family: var(--serif); }
+    body { font-family: var(--sans); color: ${INK2}; background: #FFFFFF; padding-bottom: 34pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    /* Running footer — repeats on every printed page. */
+    .run-foot { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid ${LINE}; padding: 8pt 30pt; display: flex; align-items: center; justify-content: space-between; }
+    .foot-title { font-family: var(--sans); font-size: 9pt; font-weight: 700; letter-spacing: 0.04em; color: ${INK3}; }
+    .foot-right { display: flex; align-items: center; gap: 8pt; }
+    .foot-made { font-family: var(--sans); font-size: 7.5pt; font-weight: 800; letter-spacing: 0.24em; color: ${INK3}; }
+
+    /* Banner */
+    .banner { position: relative; height: 189pt; overflow: hidden; }
+    .banner-ph { position: absolute; inset: 0; background-size: cover; background-position: center; }
+    .banner-scrim { position: absolute; inset: 0; background: ${BANNER_SCRIM}; }
+    .banner-top { position: absolute; top: 16.5pt; left: 30pt; right: 30pt; display: flex; align-items: center; justify-content: space-between; }
+    .itin-pill { font-family: var(--sans); font-size: 7.5pt; font-weight: 800; letter-spacing: 0.26em; color: #fff; background: rgba(20,33,61,0.32); padding: 5pt 9pt; border-radius: 999pt; }
+    .banner-wave { position: absolute; left: 0; right: 0; bottom: -1pt; line-height: 0; }
+
+    /* Content column */
     .wrap { padding: 0 30pt; }
-    .ph { position: absolute; inset: 0; background-size: cover; background-position: center; }
 
-    /* ── Cover ─────────────────────────────────────────── */
-    .cover { position: relative; height: 250pt; overflow: hidden; }
-    .cover-ph { position: absolute; inset: 0; background-size: cover; background-position: center; }
-    .cover-scrim { position: absolute; inset: 0; background: ${COVER_SCRIM}; }
-    .cover-top { position: absolute; top: 22pt; left: 30pt; right: 30pt; display: flex; align-items: center; justify-content: space-between; }
-    .cover-brand { display: flex; align-items: center; gap: 8pt; }
-    .cover-word { font-family: var(--serif); font-size: 19pt; color: #fff; letter-spacing: 0.3pt; text-shadow: 0 1pt 8pt rgba(0,0,0,0.4); }
-    .cover-tagchip { font-size: 8pt; font-weight: 800; letter-spacing: 2pt; color: #fff; background: rgba(255,255,255,0.16); padding: 5pt 9pt; border-radius: 999pt; }
-    .cover-cap { position: absolute; left: 30pt; right: 30pt; bottom: 26pt; }
-    .cover-eyebrow { font-size: 10pt; font-weight: 800; letter-spacing: 3pt; color: #fff; opacity: 0.94; text-shadow: 0 1pt 8pt rgba(0,0,0,0.5); }
-    .cover-rule { width: 54pt; height: 3.5pt; border-radius: 3pt; background: ${CORAL}; margin: 9pt 0 8pt; }
-    .cover-title { font-family: var(--serif); font-weight: 600; line-height: 0.98; color: #fff; text-shadow: 0 2pt 18pt rgba(0,0,0,0.5); max-width: 94%; }
-    .cover-dates { font-size: 11pt; font-weight: 600; color: #fff; opacity: 0.96; margin-top: 9pt; text-shadow: 0 1pt 8pt rgba(0,0,0,0.5); }
-    .cover-wave { position: absolute; left: 0; right: 0; bottom: -1pt; }
+    /* Masthead */
+    .masthead { padding: 20pt 0 15pt; border-bottom: 1.5pt solid ${NAVY}; break-inside: avoid; }
+    .eyebrow { font-family: var(--sans); font-size: 9pt; font-weight: 800; letter-spacing: 0.32em; color: ${CORAL}; margin: 0; }
+    .h1 { font-family: var(--serif); font-weight: 600; line-height: 0.98; letter-spacing: -0.01em; color: ${NAVY}; max-width: 80%; margin: 7.5pt 0 0; text-wrap: balance; }
+    .standfirst { font-family: var(--serif); font-style: italic; font-weight: 600; font-size: 12.5pt; line-height: 1.5; color: ${INK2}; max-width: 74%; margin: 10.5pt 0 0; }
 
-    /* ── Overview ribbon ──────────────────────────────── */
-    .overview { display: flex; flex-wrap: wrap; gap: 8pt 6pt; padding: 4pt 0 2pt; margin-top: 8pt; }
-    .ochip { display: flex; align-items: center; gap: 7pt; width: 47%; padding: 8pt 4pt; }
-    .oico { width: 27pt; height: 27pt; border-radius: 9pt; background: rgba(20,33,61,0.05); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .olabel { font-size: 7pt; font-weight: 800; letter-spacing: 1.3pt; color: ${INK3}; text-transform: uppercase; }
-    .ovalue { font-size: 11pt; font-weight: 700; color: ${NAVY}; margin-top: 1pt; }
-    .crew { font-size: 9.5pt; color: ${INK3}; font-style: italic; margin: 2pt 4pt 0; }
+    /* Meta strip */
+    .meta { display: flex; flex-wrap: wrap; gap: 19.5pt; padding-top: 10.5pt; break-inside: avoid; }
+    .meta-l { font-family: var(--sans); font-size: 5.5pt; font-weight: 800; letter-spacing: 0.2em; color: ${INK3}; margin: 0; }
+    .meta-v { font-family: var(--sans); font-size: 8.5pt; font-weight: 700; color: ${NAVY}; margin: 3pt 0 0; }
+    .meta-div { width: 1px; background: ${LINE}; align-self: stretch; }
 
-    /* ── Day ──────────────────────────────────────────── */
-    .day { margin-top: 20pt; }
-    .day-open { break-inside: avoid; page-break-inside: avoid; }
-    .day-head { break-after: avoid-page; page-break-after: avoid; }
-    .day-eyebrow { font-size: 9.5pt; font-weight: 800; letter-spacing: 3pt; }
-    .day-title { font-family: var(--serif); font-weight: 600; font-size: 21pt; color: ${NAVY}; line-height: 1.05; margin-top: 1pt; }
-    .day-sub { font-size: 9.5pt; font-weight: 700; letter-spacing: 0.4pt; color: ${INK3}; text-transform: uppercase; margin-top: 3pt; }
-    .day-rule { width: 40pt; height: 3pt; border-radius: 2pt; margin-top: 8pt; }
-    .day-note { margin: 10pt 0 2pt; }
+    /* Day block */
+    .day { margin-top: 22.5pt; }
+    .openday-sec { margin-top: 25.5pt; break-inside: avoid; }
+    .day-head { display: flex; align-items: center; gap: 9pt; break-after: avoid-page; page-break-after: avoid; }
+    .day-pill { font-family: var(--sans); font-size: 6.5pt; font-weight: 800; letter-spacing: 0.28em; color: #fff; border-radius: 999pt; padding: 4.5pt 9pt; white-space: nowrap; }
+    .day-h2 { font-family: var(--serif); font-weight: 600; font-size: 17pt; line-height: 1.05; color: ${NAVY}; margin: 0; white-space: nowrap; }
+    .hrule { flex: 1; height: 1px; background: ${LINE}; }
+    .day-sub { font-family: var(--sans); font-size: 7pt; font-weight: 700; letter-spacing: 0.14em; color: ${INK3}; text-transform: uppercase; white-space: nowrap; }
+    .day-note { font-family: var(--serif); font-style: italic; font-size: 8.5pt; line-height: 1.45; color: ${INK2}; max-width: 78%; margin: 9pt 0 0; }
 
-    .stops { margin-top: 6pt; }
-    .slotflag { display: flex; align-items: center; gap: 6pt; margin: 8pt 0 4pt 8pt; break-after: avoid-page; page-break-after: avoid; }
-    .slot-dot { width: 7pt; height: 7pt; border-radius: 999pt; }
-    .slot-label { font-size: 8pt; font-weight: 800; letter-spacing: 1.8pt; }
+    /* Time-of-day band */
+    .timeband { display: flex; align-items: center; gap: 9pt; margin: 19.5pt 0 12pt; break-after: avoid-page; page-break-after: avoid; }
+    .time-pill { display: flex; align-items: center; gap: 9pt; border-radius: 999pt; padding: 5pt 11pt 5pt 9pt; }
+    .time-l { font-family: var(--sans); font-size: 7pt; font-weight: 800; letter-spacing: 0.24em; }
+    .time-hint { font-family: var(--serif); font-style: italic; font-size: 8.5pt; color: ${INK3}; }
+    .time-rule { flex: 1; height: 1.5pt; }
 
-    .stop { display: flex; gap: 10pt; break-inside: avoid; page-break-inside: avoid; }
-    .rail { width: 16pt; position: relative; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
-    .rail-line { width: 2pt; flex: 1; }
-    .rail-line.top { min-height: 12pt; }
-    .dot { width: 11pt; height: 11pt; border-radius: 999pt; border: 2.5pt solid ${PAPER}; box-shadow: 0 0 0 1pt rgba(20,33,61,0.06); }
-    .stop-card { flex: 1; padding-bottom: 10pt; min-width: 0; }
+    /* Stops */
+    .stops { }
+    .stop { display: flex; gap: 15pt; align-items: flex-start; padding: 15pt 0; border-bottom: 1px solid ${LINE}; break-inside: avoid; page-break-inside: avoid; }
+    .stop-ph { flex: 0 0 201pt; border-radius: 3pt; overflow: hidden; position: relative; }
+    .stop-body { flex: 1; min-width: 0; }
+    .stop-title { display: flex; align-items: baseline; gap: 7.5pt; }
+    .stop-num { font-family: var(--serif); font-weight: 600; font-size: 11pt; }
+    .stop-name { font-family: var(--serif); font-weight: 600; font-size: 15pt; line-height: 1.08; color: ${NAVY}; margin: 0; }
+    .stop-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 7pt; margin-top: 5pt; }
+    .stop-city { display: inline-flex; align-items: center; gap: 5pt; font-family: var(--sans); font-size: 9.5pt; font-weight: 700; color: ${INK2}; }
+    .pchip { font-family: var(--sans); font-size: 6.5pt; font-weight: 700; border-radius: 999pt; padding: 2pt 6pt; }
+    .stop-blurb { font-family: var(--sans); font-size: 8.5pt; line-height: 1.55; color: ${INK2}; margin: 7pt 0 0; text-wrap: pretty; }
+    .rec { display: flex; gap: 9pt; margin-top: 9pt; background: rgba(255,107,154,0.07); border-radius: 7.5pt; padding: 7.5pt 9pt; }
+    .rec-bar { width: 2pt; border-radius: 2pt; background: ${CORAL}; flex: 0 0 2pt; }
+    .rec-quote { font-family: var(--serif); font-style: italic; font-size: 8.5pt; line-height: 1.4; color: ${NAVY}; margin: 0; }
+    .rec-by { font-family: var(--sans); font-size: 7pt; font-weight: 700; color: ${CORAL}; margin: 5pt 0 0; }
 
-    /* Feature card */
-    .feature { border-radius: 18pt; overflow: hidden; background: #fff; box-shadow: 0 4pt 14pt rgba(20,33,61,0.09); }
-    .feat-photo { position: relative; height: 158pt; }
-    .feat-scrim { position: absolute; inset: 0; background: ${SCRIM}; }
-    .feat-cap { position: absolute; left: 15pt; right: 15pt; bottom: 13pt; }
-    .feat-chips { display: flex; gap: 5pt; margin-bottom: 6pt; }
-    .feat-name { font-family: var(--serif); font-weight: 600; font-size: 20pt; color: #fff; line-height: 1.02; text-shadow: 0 2pt 12pt rgba(0,0,0,0.5); }
-    .cpin { display: inline-flex; align-items: center; gap: 4pt; font-size: 9.5pt; font-weight: 700; color: #fff; opacity: 0.95; margin-top: 4pt; text-shadow: 0 1pt 6pt rgba(0,0,0,0.5); }
-    .cpin svg { display: inline-block; vertical-align: middle; }
-    .cpin.ink { color: ${INK2}; opacity: 1; text-shadow: none; }
-    .feat-body { padding: 11pt 15pt 13pt; }
-    .feat-meta { display: flex; gap: 5pt; margin-bottom: 5pt; }
-    .feat-desc { font-size: 10.5pt; line-height: 1.5; color: ${INK2}; }
-
-    /* Standard card */
-    .card { display: flex; gap: 11pt; background: #fff; border-radius: 16pt; padding: 10pt 12pt 10pt 10pt; box-shadow: 0 3pt 10pt rgba(20,33,61,0.06); }
-    .card-ph-wrap { width: 78pt; height: 78pt; border-radius: 12pt; overflow: hidden; position: relative; flex-shrink: 0; box-shadow: 0 2pt 8pt rgba(20,33,61,0.10); }
-    .card-body { flex: 1; min-width: 0; padding-top: 1pt; }
-    .card-name { font-family: var(--serif); font-weight: 600; font-size: 14pt; color: ${NAVY}; line-height: 1.1; }
-    .card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 5pt; margin: 4pt 0 3pt; }
-    .card-desc { font-size: 10pt; line-height: 1.45; color: ${INK2}; }
-
-    /* Compact card */
-    .compact { display: flex; gap: 10pt; align-items: center; background: rgba(255,255,255,0.7); border: 1pt solid ${LINE}; border-radius: 13pt; padding: 7pt 10pt 7pt 7pt; }
-    .compact-ph-wrap { width: 42pt; height: 42pt; border-radius: 9pt; overflow: hidden; position: relative; flex-shrink: 0; }
-    .compact-name { font-family: var(--serif); font-weight: 600; font-size: 12.5pt; color: ${NAVY}; }
-    .compact-line { font-size: 9.5pt; color: ${INK3}; margin-top: 1pt; }
-    .rectag { font-size: 8.5pt; font-weight: 700; color: ${CORAL}; }
-    .rectag svg { display: inline-block; vertical-align: middle; }
-
-    /* Chips + recommendation */
-    .chip { display: inline-flex; align-items: center; gap: 4pt; font-size: 8.5pt; font-weight: 700; padding: 3pt 8pt; border-radius: 999pt; letter-spacing: 0.2pt; }
-    .chip.solid { color: #fff; }
-    .chipico { display: inline-flex; }
-    .recline { display: flex; align-items: center; gap: 5pt; font-size: 9.5pt; color: ${INK2}; margin-top: 6pt; }
-    .recline svg { flex-shrink: 0; }
-    .quote { display: flex; gap: 7pt; font-family: var(--serif); font-style: italic; font-size: 10.5pt; line-height: 1.4; color: ${NAVY}; border-left: 2pt solid ${CORAL}88; padding-left: 9pt; margin-top: 7pt; }
-    .quote svg { flex-shrink: 0; margin-top: 2pt; }
-
-    /* Empty days */
-    .empty-wrap { margin-top: 18pt; break-inside: avoid; page-break-inside: avoid; }
-    .empty-eyebrow { font-size: 9pt; font-weight: 800; letter-spacing: 2.5pt; color: ${INK3}; margin-bottom: 7pt; }
-    .empty-card { background: rgba(255,255,255,0.7); border: 1pt solid ${LINE}; border-radius: 14pt; padding: 4pt 14pt; }
-    .empty-row { display: flex; align-items: center; justify-content: space-between; padding: 9pt 0; border-bottom: 1pt solid ${LINE}; }
-    .empty-row:last-child { border-bottom: 0; }
-    .empty-day { font-family: var(--serif); font-weight: 600; font-size: 12.5pt; color: ${NAVY}; }
-    .empty-note { font-size: 9.5pt; color: ${INK3}; }
+    /* Open days */
+    .opendays { display: flex; gap: 18pt; margin-top: 10.5pt; }
+    .openday { flex: 1; padding: 10.5pt 0; border-top: 1px solid ${LINE}; }
+    .openday-d { font-family: var(--serif); font-weight: 600; font-size: 11pt; color: ${NAVY}; margin: 0; }
+    .openday-s { font-family: var(--sans); font-size: 7.5pt; color: ${INK3}; margin: 5pt 0 0; }
 
     /* Inspiration */
-    .insp { margin-top: 18pt; break-inside: avoid; page-break-inside: avoid; }
-    .insp-head { display: flex; align-items: baseline; gap: 8pt; margin-bottom: 8pt; }
-    .insp-eyebrow { font-size: 9pt; font-weight: 800; letter-spacing: 2.5pt; color: ${CORAL}; }
-    .insp-sub { font-size: 9.5pt; color: ${INK3}; }
-    .insp-grid { display: flex; gap: 9pt; }
-    .insp-card { flex: 1; height: 92pt; border-radius: 14pt; overflow: hidden; position: relative; box-shadow: 0 3pt 10pt rgba(20,33,61,0.10); }
-    .insp-scrim { position: absolute; inset: 0; background: linear-gradient(to top, rgba(20,33,61,0.8), rgba(20,33,61,0) 70%); }
-    .insp-name { position: absolute; left: 9pt; right: 9pt; bottom: 8pt; font-family: var(--serif); font-weight: 600; font-size: 11.5pt; color: #fff; text-shadow: 0 1pt 8pt rgba(0,0,0,0.5); line-height: 1.05; }
+    .insp { margin-top: 15pt; background: ${PAPER}; border-radius: 12pt; padding: 15pt 16.5pt; }
+    .insp-head { display: flex; align-items: baseline; gap: 9pt; }
+    .insp-eye { font-family: var(--sans); font-size: 6.5pt; font-weight: 800; letter-spacing: 0.26em; color: ${CORAL}; }
+    .insp-sub { font-family: var(--sans); font-size: 7pt; color: ${INK3}; }
+    .insp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10.5pt; margin-top: 10.5pt; }
+    .insp-item { display: flex; gap: 8pt; align-items: center; }
+    .insp-thumb { flex: 0 0 48pt; height: 48pt; border-radius: 7.5pt; overflow: hidden; }
+    .insp-name { font-family: var(--serif); font-weight: 600; font-size: 12.5pt; color: ${NAVY}; margin: 0; }
 
-    /* Closing — a proper navy "back cover" so the document ends deliberately. */
-    .closing { margin-top: 26pt; break-inside: avoid; page-break-inside: avoid; }
-    .closing-in { background: ${NAVY}; min-height: 200pt; padding: 34pt 30pt 44pt; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; position: relative; }
-    .closing-mark { margin-bottom: 12pt; }
-    .closing-word { font-family: var(--serif); font-size: 15pt; color: #fff; letter-spacing: 0.3pt; margin-bottom: 14pt; }
-    .closing-tag { font-family: var(--serif); font-style: italic; font-size: 16pt; color: #fff; }
-    .closing-made { font-size: 8.5pt; font-weight: 800; letter-spacing: 3pt; color: rgba(255,255,255,0.65); margin-top: 10pt; }
-    .seal { position: absolute; right: 28pt; bottom: 26pt; width: 36pt; height: 36pt; border-radius: 999pt; border: 1.5pt solid ${GOLD}; color: ${GOLD}; display: flex; align-items: center; justify-content: center; }
+    /* Closing */
+    .closing { background: ${NAVY}; padding: 15pt 30pt; display: flex; align-items: center; justify-content: space-between; gap: 19.5pt; break-inside: avoid; page-break-inside: avoid; }
+    .closing-right { display: flex; align-items: center; gap: 10.5pt; }
+    .avail { font-family: var(--sans); font-size: 7.5pt; font-weight: 800; letter-spacing: 0.26em; color: rgba(255,255,255,0.6); margin: 0; text-align: right; }
+    .appstore { font-family: var(--sans); font-size: 10.5pt; font-weight: 700; color: #fff; margin: 3pt 0 0; text-align: right; }
+    .qr { background: #fff; border-radius: 6pt; padding: 4pt; line-height: 0; }
   </style></head><body>
-    <div class="cover">
-      ${heroPhoto}<div class="cover-scrim"></div>
-      <div class="cover-top">
-        <div class="cover-brand">${mark(24, 'cm')}<span class="cover-word">worldly</span></div>
-        <span class="cover-tagchip">TRAVEL ITINERARY</span>
-      </div>
-      <div class="cover-cap">
-        <div class="cover-eyebrow">${input.flag ? esc(input.flag) + '&nbsp;&nbsp;' : ''}${esc((input.destination || 'YOUR TRIP').toUpperCase())}</div>
-        <div class="cover-rule"></div>
-        <div class="cover-title" style="font-size:${titleSize}pt">${esc(input.title)}</div>
-        ${input.dateLabel || input.dayCount ? `<div class="cover-dates">${esc(input.dateLabel || '')}${input.dateLabel && input.dayCount ? ' · ' : ''}${input.dayCount ? `${input.dayCount} day${input.dayCount === 1 ? '' : 's'}` : ''}</div>` : ''}
-      </div>
-      <div class="cover-wave">${wave(PAPER, 26)}</div>
+
+    <div class="run-foot">
+      <span class="foot-title">${esc(input.title)}</span>
+      <div class="foot-right"><span class="foot-made">MADE WITH WORLDLY</span>${footerMark}</div>
+    </div>
+
+    <div class="banner">
+      <div class="banner-ph" style="${photoBg(assets.hero, input.title)}"></div>
+      <div class="banner-scrim"></div>
+      <div class="banner-top">${logoPill(assets, '7pt 13pt')}<span class="itin-pill">TRAVEL ITINERARY</span></div>
+      <div class="banner-wave">${wave('#FFFFFF', 26)}</div>
     </div>
 
     <div class="wrap">
-      ${overviewChips.length ? `<div class="overview">${overviewChips.map((c) => `<div class="ochip"><div class="oico">${icon(c.i, NAVY, 14)}</div><div><div class="olabel">${esc(c.l)}</div><div class="ovalue">${esc(c.v)}</div></div></div>`).join('')}</div>` : ''}
-      ${input.crew?.length ? `<div class="crew">Travelling with ${esc(input.crew.join(', '))}</div>` : ''}
+      <div class="masthead">
+        <p class="eyebrow">${esc(eyebrow)}</p>
+        <h1 class="h1" style="font-size:${titleSize}pt">${esc(input.title)}</h1>
+        <p class="standfirst">${esc(standfirst)}</p>
+      </div>
+      ${metaItems.length ? `<div class="meta">${metaItems.map((m, i) => `${i ? '<div class="meta-div"></div>' : ''}<div><p class="meta-l">${esc(m.l)}</p><p class="meta-v">${esc(m.v)}</p></div>`).join('')}</div>` : ''}
       ${body}
-      ${inspirationBlock(assets, input.destination)}
     </div>
 
     <div class="closing">
-      ${wave(NAVY, 22)}
-      <div class="closing-in">
-        <div class="closing-mark">${mark(32, 'cm2')}</div>
-        <div class="closing-tag">Your world, beautifully organised.</div>
-        <div class="closing-made">MADE WITH WORLDLY</div>
-        <div class="seal">${icon('compass', GOLD, 17, 1.6)}</div>
+      ${logoPill(assets, '7pt 13.5pt')}
+      <div class="closing-right">
+        <div><p class="avail">AVAILABLE ON THE</p><p class="appstore">App Store</p></div>
+        ${qrHtml}
       </div>
     </div>
   </body></html>`;
 }
 
-// ── Fonts (device only) ──────────────────────────────────────────────────────
+// ── Fonts + brand assets (device only) ───────────────────────────────────────
 /** Read the bundled brand TTFs and build an @font-face block (base64). Best
  *  effort — returns '' if anything fails, so the PDF falls back to Georgia/sys. */
 async function loadFontCss(): Promise<string> {
   try {
     const { Asset } = await import('expo-asset');
     const FS = await import('expo-file-system/legacy');
-    // These weights are already bundled (loaded by app/_layout via useFonts).
     const fonts: { fam: string; weight: number; style: string; mod: number }[] = [
       { fam: 'Fraunces', weight: 600, style: 'normal', mod: require('@expo-google-fonts/fraunces/600SemiBold/Fraunces_600SemiBold.ttf') },
       { fam: 'Fraunces', weight: 600, style: 'italic', mod: require('@expo-google-fonts/fraunces/600SemiBold_Italic/Fraunces_600SemiBold_Italic.ttf') },
@@ -694,14 +617,46 @@ async function loadFontCss(): Promise<string> {
   }
 }
 
+/** Read the bundled brand PNGs (logo, mark, QR) as base64 data URIs. Best effort;
+ *  missing assets fall back to inline SVG marks / an omitted QR. */
+async function loadBrandAssets(): Promise<{ logo?: string; mark?: string; qr?: string }> {
+  try {
+    const { Asset } = await import('expo-asset');
+    const FS = await import('expo-file-system/legacy');
+    const mods: { key: 'logo' | 'mark' | 'qr'; mod: number }[] = [
+      { key: 'logo', mod: require('../../assets/itinerary/worldly-logo.png') },
+      { key: 'mark', mod: require('../../assets/itinerary/worldly-mark.png') },
+      { key: 'qr', mod: require('../../assets/itinerary/appstore-qr.png') },
+    ];
+    const out: { logo?: string; mark?: string; qr?: string } = {};
+    await Promise.all(
+      mods.map(async (m) => {
+        try {
+          const asset = Asset.fromModule(m.mod);
+          await asset.downloadAsync();
+          const uri = asset.localUri || asset.uri;
+          if (!uri) return;
+          const b64 = await FS.readAsStringAsync(uri, { encoding: 'base64' });
+          out[m.key] = `data:image/png;base64,${b64}`;
+        } catch {
+          /* fall back */
+        }
+      }),
+    );
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 // ── Public API ───────────────────────────────────────────────────────────────
 /** Render the itinerary to a designed PDF and hand it to the share sheet.
  *  Returns false when sharing isn't available on the device. */
 export async function shareItineraryPdf(input: DocInput): Promise<boolean> {
   const Print = await import('expo-print');
   const Sharing = await import('expo-sharing');
-  const fontCss = await loadFontCss();
-  const assets = await gatherAssets(input, fontCss);
+  const [fontCss, brand] = await Promise.all([loadFontCss(), loadBrandAssets()]);
+  const assets = await gatherAssets(input, fontCss, brand);
   // A4 in points (72dpi), passed explicitly so iOS doesn't fall back to Letter.
   const { uri } = await Print.printToFileAsync({ html: buildItineraryPdfHtml(input, assets), width: 595, height: 842 });
   if (!(await Sharing.isAvailableAsync())) return false;
