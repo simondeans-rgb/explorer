@@ -159,20 +159,32 @@ export interface Assets {
   inspiration: Map<string, string>;
 }
 
-/** Fetch an image and return it as a base64 data URI (null on any failure). */
+/** Fetch a remote image and return it as a base64 data URI (null on any
+ *  failure). Uses expo-file-system's downloadAsync + base64 read rather than
+ *  fetch()+Blob()+FileReader.readAsDataURL — the latter is unreliable in React
+ *  Native (the blob's bytes frequently don't survive, yielding empty base64),
+ *  which left every landmark/hero photo blank in the exported PDF. */
 async function toDataUri(url: string): Promise<string | null> {
   if (!url) return null;
   if (url.startsWith('data:')) return url;
   try {
-    const res = await fetchWithTimeout(url, {}, 9000);
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    return await new Promise<string | null>((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
+    const FS = await import('expo-file-system/legacy');
+    const dir = FS.cacheDirectory;
+    if (!dir) return null;
+    const target = `${dir}itin-img-${(hashOf(url) >>> 0).toString(36)}-${url.length}.bin`;
+    // downloadAsync has no timeout of its own; cap it so a stalled image can't
+    // hang the whole export (the dangling download, if any, is harmless).
+    const res = await Promise.race([
+      FS.downloadAsync(url, target),
+      new Promise<null>((r) => setTimeout(() => r(null), 12000)),
+    ]);
+    if (!res || (typeof res.status === 'number' && res.status >= 400)) return null;
+    const b64 = await FS.readAsStringAsync(res.uri, { encoding: 'base64' });
+    FS.deleteAsync(res.uri, { idempotent: true }).catch(() => {});
+    if (!b64) return null;
+    const ct = String(res.headers?.['content-type'] ?? res.headers?.['Content-Type'] ?? '').toLowerCase();
+    const mime = ct.includes('png') ? 'image/png' : ct.includes('webp') ? 'image/webp' : 'image/jpeg';
+    return `data:${mime};base64,${b64}`;
   } catch {
     return null;
   }
