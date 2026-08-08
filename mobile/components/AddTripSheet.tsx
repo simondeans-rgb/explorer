@@ -121,7 +121,7 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
     setLookingUp(null);
     if (r.ok) {
       const i = r.info;
-      patchLeg(leg.id, { from: i.from ?? leg.from, to: i.to ?? leg.to, carrier: i.airline ?? leg.carrier, vehicle: i.aircraft ?? leg.vehicle, date: i.date ?? leg.date, departTime: i.departTimeLocal ?? leg.departTime, arriveTime: i.arriveTimeLocal ?? leg.arriveTime, departActual: i.departActualLocal ?? leg.departActual, arriveActual: i.arriveActualLocal ?? leg.arriveActual, departDelayMin: i.departDelayMin ?? leg.departDelayMin, arriveDelayMin: i.arriveDelayMin ?? leg.arriveDelayMin, fromTerminal: i.fromTerminal ?? leg.fromTerminal, toTerminal: i.toTerminal ?? leg.toTerminal, distanceKm: i.distanceKm ?? leg.distanceKm, durationMin: i.durationMin ?? leg.durationMin, reference: i.flightNumber });
+      patchLeg(leg.id, { from: i.from ?? leg.from, to: i.to ?? leg.to, carrier: i.airline ?? leg.carrier, vehicle: i.aircraft ?? leg.vehicle, date: i.date ?? leg.date, departTime: i.departTimeLocal ?? leg.departTime, arriveTime: i.arriveTimeLocal ?? leg.arriveTime, departActual: i.departActualLocal ?? '', arriveActual: i.arriveActualLocal ?? '', departDelayMin: i.departDelayMin, arriveDelayMin: i.arriveDelayMin, fromTerminal: i.fromTerminal ?? leg.fromTerminal, toTerminal: i.toTerminal ?? leg.toTerminal, distanceKm: i.distanceKm ?? leg.distanceKm, durationMin: i.durationMin ?? leg.durationMin, reference: i.flightNumber });
       toast.success(i.departTimeLocal && i.arriveTimeLocal ? `Found · ${i.departTimeLocal} → ${i.arriveTimeLocal}` : 'Flight details filled in');
     } else {
       toast.error(
