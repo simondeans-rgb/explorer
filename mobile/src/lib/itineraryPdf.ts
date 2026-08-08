@@ -157,70 +157,43 @@ export interface Assets {
   qr?: string;
   items: Map<string, ItemAsset>;
   inspiration: Map<string, string>;
-  /** TEMPORARY: on-device fetch diagnostics rendered at the foot of the PDF. */
-  debug?: string[];
 }
 
-// TEMPORARY on-device diagnostics — records what happens while fetching remote
-// images so a single exported PDF reveals why photos are blank. Remove once the
-// root cause is fixed.
-let _diag: string[] = [];
-const host = (u: string) => {
-  try {
-    return u.split('/')[2] || u.slice(0, 24);
-  } catch {
-    return '?';
-  }
-};
-
-/** Fetch a remote image and return it as a base64 data URI (null on any
- *  failure). Tries expo-file-system's downloadAsync + base64 read first, then
- *  falls back to fetch()+Blob()+FileReader (each unreliable in RN in different
- *  ways). Records the outcome to _diag for the temporary in-PDF report. */
+/** Fetch a remote image and return it as a base64 data URI (null on failure).
+ *  Tries expo-file-system's downloadAsync + base64 read first, then falls back
+ *  to fetch()+Blob()+FileReader. Callers pass MODEST image sizes (the small
+ *  Wikipedia thumbnail, the destination JPEG) — requesting large/original-size
+ *  images made the on-device download/encode fail and left photos blank. */
 async function toDataUri(url: string): Promise<string | null> {
   if (!url) return null;
   if (url.startsWith('data:')) return url;
-  const h = host(url);
-  // Method 1: downloadAsync → base64.
+  // Method 1: expo-file-system downloadAsync → base64 (most reliable on device).
   try {
     const FS = await import('expo-file-system/legacy');
     const dir = FS.cacheDirectory;
-    if (!dir) {
-      _diag.push(`${h}: nodir`);
-    } else if (typeof FS.downloadAsync !== 'function') {
-      _diag.push(`${h}: no-dlfn`);
-    } else {
+    if (dir && typeof FS.downloadAsync === 'function') {
       const target = `${dir}itin-img-${(hashOf(url) >>> 0).toString(36)}-${url.length}.bin`;
       const res = await Promise.race([
         FS.downloadAsync(url, target),
         new Promise<null>((r) => setTimeout(() => r(null), 12000)),
       ]);
-      if (!res) {
-        _diag.push(`${h}: dl-timeout`);
-      } else if (typeof res.status === 'number' && res.status >= 400) {
-        _diag.push(`${h}: dl-${res.status}`);
-      } else {
+      if (res && !(typeof res.status === 'number' && res.status >= 400)) {
         const b64 = await FS.readAsStringAsync(res.uri, { encoding: 'base64' });
         FS.deleteAsync(res.uri, { idempotent: true }).catch(() => {});
         if (b64) {
-          _diag.push(`${h}: ok-dl-${Math.round(b64.length / 1000)}k`);
           const ct = String(res.headers?.['content-type'] ?? res.headers?.['Content-Type'] ?? '').toLowerCase();
           const mime = ct.includes('png') ? 'image/png' : ct.includes('webp') ? 'image/webp' : 'image/jpeg';
           return `data:${mime};base64,${b64}`;
         }
-        _diag.push(`${h}: dl-empty`);
       }
     }
-  } catch (e) {
-    _diag.push(`${h}: dl-err ${String((e as Error)?.message ?? e).slice(0, 40)}`);
+  } catch {
+    /* fall through to fetch */
   }
   // Method 2 (fallback): fetch → blob → FileReader.
   try {
     const res = await fetchWithTimeout(url, {}, 9000);
-    if (!res.ok) {
-      _diag.push(`${h}: fx-${res.status}`);
-      return null;
-    }
+    if (!res.ok) return null;
     const blob = await res.blob();
     const out = await new Promise<string | null>((resolve) => {
       const reader = new FileReader();
@@ -228,10 +201,8 @@ async function toDataUri(url: string): Promise<string | null> {
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(blob);
     });
-    _diag.push(`${h}: ${out && out.length > 100 ? `ok-fx-${Math.round(out.length / 1000)}k` : 'fx-empty'}`);
     return out && out.length > 100 ? out : null;
-  } catch (e) {
-    _diag.push(`${h}: fx-err ${String((e as Error)?.message ?? e).slice(0, 40)}`);
+  } catch {
     return null;
   }
 }
@@ -250,8 +221,6 @@ const TITLE_OVERRIDES: Record<string, string> = {
   'Canal Ring': 'Grachtengordel',
   'Bali Rice Terraces': 'Tegallalang',
 };
-const widen = (url: string, w: number) => url.replace(/\/\d+px-/, `/${w}px-`);
-
 function firstSentence(extract?: string): string | undefined {
   if (!extract) return undefined;
   let s = extract.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
@@ -261,16 +230,16 @@ function firstSentence(extract?: string): string | undefined {
   return s;
 }
 
-async function fetchWiki(name: string, width: number): Promise<ItemAsset> {
+async function fetchWiki(name: string): Promise<ItemAsset> {
   const title = (TITLE_OVERRIDES[name] ?? name).trim();
   try {
     const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, '_'))}?redirect=true`;
     const res = await fetchWithTimeout(url, { headers: { accept: 'application/json' } }, 8000);
-    if (!res.ok) return {};
-    const j = (await res.json()) as { extract?: string; thumbnail?: { source?: string }; originalimage?: { source?: string } };
-    const raw = j.thumbnail?.source;
-    const src = raw ? widen(raw, width) : j.originalimage?.source;
-    const img = src ? (await toDataUri(src)) ?? undefined : undefined;
+    if (!res.ok) return { blurb: landmarkBlurb(name) };
+    const j = (await res.json()) as { extract?: string; thumbnail?: { source?: string } };
+    // Use the Wikipedia thumbnail as-is (small ~320px). Widening to large images
+    // made the on-device download/encode fail, leaving photos blank.
+    const img = j.thumbnail?.source ? (await toDataUri(j.thumbnail.source)) ?? undefined : undefined;
     return { img, blurb: landmarkBlurb(name) ?? firstSentence(j.extract) };
   } catch {
     return { blurb: landmarkBlurb(name) };
@@ -279,36 +248,15 @@ async function fetchWiki(name: string, width: number): Promise<ItemAsset> {
 
 /** Gather all remote imagery + fonts before rendering (see toDataUri notes). */
 export async function gatherAssets(input: DocInput, fontCss?: string, brand?: { logo?: string; mark?: string; qr?: string }): Promise<Assets> {
-  _diag = [];
-  // Capability + connectivity probes so a single export shows what's available.
-  try {
-    const FS = await import('expo-file-system/legacy');
-    _diag.push(`fs: dir=${FS.cacheDirectory ? 'y' : 'n'} dl=${typeof FS.downloadAsync} read=${typeof FS.readAsStringAsync}`);
-  } catch (e) {
-    _diag.push(`fs-import-err ${String((e as Error)?.message ?? e).slice(0, 50)}`);
-  }
-  try {
-    const r = await fetchWithTimeout('https://en.wikipedia.org/api/rest_v1/page/summary/Big_Ben', { headers: { accept: 'application/json' } }, 8000);
-    _diag.push(`wiki-api: ${r.status}`);
-  } catch (e) {
-    _diag.push(`wiki-api-err ${String((e as Error)?.message ?? e).slice(0, 50)}`);
-  }
-
   const heroP = toDataUri(input.userHeroUrl || (input.heroCode ? destinationImage(input.heroCode).photo ?? '' : ''));
 
-  // Distinct items, in order; the first stop of each day gets a larger crop.
+  // Distinct items in order.
   const seen = new Set<string>();
   const ordered: DocItem[] = [];
-  const leadNames = new Set<string>();
   for (const d of input.days) {
-    let first = true;
     for (const s of d.slots) {
       for (const it of s.items) {
         const key = it.name.toLowerCase();
-        if (first) {
-          leadNames.add(key);
-          first = false;
-        }
         if (!seen.has(key)) {
           seen.add(key);
           ordered.push(it);
@@ -319,11 +267,10 @@ export async function gatherAssets(input: DocInput, fontCss?: string, brand?: { 
   const capped = ordered.slice(0, 20);
   const results = await Promise.all(
     capped.map((it) => {
-      const width = leadNames.has(it.name.toLowerCase()) ? 1100 : 720;
       if (it.photo) {
         return toDataUri(it.photo).then((img) => ({ img: img ?? undefined, blurb: landmarkBlurb(it.name) }) as ItemAsset);
       }
-      return fetchWiki(it.name, width);
+      return fetchWiki(it.name);
     }),
   );
   const items = new Map<string, ItemAsset>();
@@ -331,14 +278,14 @@ export async function gatherAssets(input: DocInput, fontCss?: string, brand?: { 
 
   const inspiration = new Map<string, string>();
   const insp = (input.inspiration ?? []).filter((n) => !seen.has(n.toLowerCase())).slice(0, 3);
-  const inspResults = await Promise.all(insp.map((n) => fetchWiki(n, 520)));
+  const inspResults = await Promise.all(insp.map((n) => fetchWiki(n)));
   insp.forEach((n, i) => {
     const img = inspResults[i]?.img;
     if (img) inspiration.set(n, img);
   });
 
   const hero = await heroP;
-  return { hero: hero ?? undefined, fontCss, logo: brand?.logo, mark: brand?.mark, qr: brand?.qr, items, inspiration, debug: [..._diag] };
+  return { hero: hero ?? undefined, fontCss, logo: brand?.logo, mark: brand?.mark, qr: brand?.qr, items, inspiration };
 }
 
 // ── Render helpers ───────────────────────────────────────────────────────────
@@ -644,7 +591,6 @@ export function buildItineraryPdfHtml(input: DocInput, assets: Assets): string {
       </div>
       ${metaItems.length ? `<div class="meta">${metaItems.map((m, i) => `${i ? '<div class="meta-div"></div>' : ''}<div><p class="meta-l">${esc(m.l)}</p><p class="meta-v">${esc(m.v)}</p></div>`).join('')}</div>` : ''}
       ${body}
-      ${assets.debug?.length ? `<div style="margin-top:18pt;padding:10pt;border:1px solid ${LINE};border-radius:8pt;background:${PAPER};font-family:ui-monospace,Menlo,monospace;font-size:7pt;line-height:1.5;color:${INK3}"><div style="font-weight:700;color:${NAVY};margin-bottom:4pt">DIAGNOSTICS (temporary)</div>${assets.debug.map((d) => esc(d)).join('<br>')}</div>` : ''}
     </div>
 
     <div class="closing">
