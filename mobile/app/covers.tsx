@@ -40,10 +40,6 @@ export default function CoversScreen() {
 
   const available = state != null;
   const current = state?.current ?? null;
-  // A 3-up grid. Guard the width: if `width` is ever 0/NaN (a transient layout
-  // state), an invalid `width: cell` is dropped by RN and each cover stretches
-  // full-width — so clamp to a sane fallback and never go below a small cell.
-  const cell = Math.max(92, ((width > 0 ? width : 375) - 40 - 24) / 3);
   // The active cover themes this screen: header gradient + ambient particles.
   const theme = COVER_THEMES[current ?? 'Classic'] ?? COVER_THEMES.Classic;
   const HEADER_H = 148;
@@ -140,7 +136,7 @@ export default function CoversScreen() {
             {section.tagline ? (
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 2 }}>{section.tagline}</Text>
             ) : null}
-            <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 14, gap: 12, opacity: inSeason ? 1 : 0.5 }}>
+            <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 14, columnGap: 8, rowGap: 14, opacity: inSeason ? 1 : 0.5 }}>
               {section.covers.map((cover) => {
                 const locked = lockReason(cover, stats.countriesDiscovered, level.level);
                 const progress = lockProgress(cover, stats.countriesDiscovered, level.level);
@@ -152,7 +148,7 @@ export default function CoversScreen() {
                     accessibilityLabel={locked ? `${cover.title}, locked — ${locked}` : `Use the ${cover.title} cover`}
                     accessibilityState={{ selected }}
                     onPress={() => pick(cover, inSeason)}
-                    style={({ pressed }) => ({ width: cell, opacity: busy ? 0.7 : 1, transform: [{ scale: pressed && !reduce ? 0.95 : 1 }] })}
+                    style={({ pressed }) => ({ width: '31.5%', opacity: busy ? 0.7 : 1, transform: [{ scale: pressed && !reduce ? 0.95 : 1 }] })}
                   >
                     <View style={{ borderRadius: 28, padding: 3, borderWidth: 2.5, borderColor: selected ? theme.accent : 'transparent', backgroundColor: selected ? `${theme.accent}14` : 'transparent', shadowColor: '#14213D', shadowOpacity: selected ? 0.22 : 0.1, shadowRadius: selected ? 12 : 8, shadowOffset: { width: 0, height: 5 } }}>
                       <View style={{ borderRadius: 24, overflow: 'hidden' }}>
