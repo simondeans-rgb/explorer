@@ -15,7 +15,7 @@ import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { countryFacts } from '../../src/data/countryFacts';
 import { landmarkCity } from '../../src/data/landmarkCities';
-import { ITINERARY_SLOTS, type RecommendationVerdict } from '../../src/types';
+import { ITINERARY_SLOTS, DISCOVERY_CATEGORY_META, subcategoryLabel, type RecommendationVerdict, type ItineraryItem } from '../../src/types';
 import { shareItineraryPdf } from '../../src/lib/itineraryPdf';
 import { track } from '../../src/lib/analytics';
 import { detectLocation } from '../../src/lib/checkIn';
@@ -149,37 +149,85 @@ export default function TripScreen() {
 
   function buildDocInput() {
     if (!trip) return null;
+    // A friend's note/photo lives on their Discovery — join by name (the same
+    // connection-gated data already shown in the in-app detail sheet).
+    const recByName = new Map<string, { note?: string; photo?: string; friend?: string }>();
+    for (const d of friendDiscoveries) {
+      const k = d.name.toLowerCase();
+      if (!recByName.has(k)) recByName.set(k, { note: d.note, photo: d.photo, friend: d.friend });
+    }
+    const mapItem = (it: ItineraryItem) => {
+      const rec = recByName.get(it.name.toLowerCase());
+      const friend = it.fromFriend ?? rec?.friend;
+      const categoryLabel = it.category ? subcategoryLabel(it.category, it.subcategory) ?? DISCOVERY_CATEGORY_META[it.category].label : undefined;
+      return {
+        name: it.name,
+        city: it.city,
+        category: it.category,
+        categoryLabel,
+        fromFriend: friend,
+        verdict: it.verdict,
+        // Only surface a note when it's an attributed recommendation.
+        note: friend ? rec?.note : undefined,
+        photo: rec?.photo,
+        meta: itineraryMeta(it),
+      };
+    };
+
     const fmt = (n: number) => {
       if (!trip.startDate) return `Day ${n}`;
       const d = new Date(trip.startDate);
       d.setDate(d.getDate() + (n - 1));
-      return d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+      return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
     };
-    const days = Array.from({ length: dayCount }, (_, i) => i + 1).map((n) => ({
-      badge: String(n),
-      label: fmt(n),
-      note: trip.dayNotes?.[String(n)],
-      slots: ITINERARY_SLOTS.map((s) => ({
-        label: s.label,
-        items: tItinerary.filter((it) => it.day === n && (it.slot ?? 'allday') === s.id).map((it) => ({ name: it.name, meta: itineraryMeta(it), city: it.city })),
-      })),
-    }));
+    // Distinct cities visited on a day → a reliable descriptive subtitle.
+    const daySubtitle = (items: ItineraryItem[]) => {
+      const cities = [...new Set(items.map((i) => i.city).filter((c): c is string => !!c))];
+      const list = cities.slice(0, 3).join(' · ');
+      return list && list.toLowerCase() !== (countryName(tCode) || '').toLowerCase() ? list : undefined;
+    };
+
+    const days = Array.from({ length: dayCount }, (_, i) => i + 1).map((n) => {
+      const dayItems = tItinerary.filter((it) => it.day === n);
+      return {
+        badge: String(n),
+        label: fmt(n),
+        subtitle: daySubtitle(dayItems),
+        note: trip.dayNotes?.[String(n)],
+        slots: ITINERARY_SLOTS.map((s) => ({
+          label: s.label,
+          items: dayItems.filter((it) => (it.slot ?? 'allday') === s.id).map(mapItem),
+        })),
+      };
+    });
     const unscheduled = tItinerary.filter((it) => !it.day);
     if (unscheduled.length) {
-      days.push({ badge: '·', label: 'Ideas & wishlist', note: undefined, slots: [{ label: 'Ideas', items: unscheduled.map((it) => ({ name: it.name, meta: itineraryMeta(it), city: it.city })) }] });
+      days.push({ badge: '·', label: 'Ideas & wishlist', subtitle: undefined, note: undefined, slots: [{ label: 'Ideas', items: unscheduled.map(mapItem) }] });
     }
     const crew = tMembers.map((m) => (m === user?.uid ? myName : trip.memberNames?.[m] ?? 'Friend'));
+    // Full dates like "8–10 August 2026".
     const fmtDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '');
     const dateLabel = trip.startDate ? `${fmtDate(trip.startDate)}${trip.endDate ? ` – ${fmtDate(trip.endDate)}` : ''}` : undefined;
     const cityCount = new Set(tItinerary.map((it) => it.city).filter(Boolean)).size;
+
+    // Offer destination ideas only when there are empty days to fill — never to
+    // pad a full itinerary, and only Worldly's own landmark suggestions.
+    const hasEmptyDay = Array.from({ length: dayCount }, (_, i) => i + 1).some((n) => !tItinerary.some((it) => it.day === n));
+    const inspiration = hasEmptyDay
+      ? (countryFacts(tCode)?.landmarks ?? []).filter((l) => !itineraryNames.has(l.toLowerCase())).slice(0, 3)
+      : undefined;
+
     return {
       title: trip.title,
       destination: countryName(tCode),
+      flag: flagEmoji(tCode),
       dateLabel,
       heroCode: tCode,
+      userHeroUrl: tripPhotos[0]?.dataUrl,
       dayCount,
       cityCount: cityCount || undefined,
       crew: tMembers.length > 1 ? crew : undefined,
+      inspiration,
       days,
     };
   }
