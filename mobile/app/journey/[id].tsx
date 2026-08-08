@@ -95,7 +95,7 @@ const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s.trim());
 
 function Field({ value, onChange, placeholder, flex }: { value: string; onChange: (t: string) => void; placeholder: string; flex?: boolean }) {
   return (
-    <View className="bg-white dark:bg-card rounded-2xl" style={[{ paddingHorizontal: 12, paddingVertical: 10 }, flex ? { flex: 1 } : null]}>
+    <View className="rounded-2xl" style={[{ backgroundColor: COLORS.warmwhite, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: 'rgba(20,33,61,0.14)' }, flex ? { flex: 1 } : null]}>
       <TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={COLORS.ink3} style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink }} />
     </View>
   );

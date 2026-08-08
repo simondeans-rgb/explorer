@@ -361,7 +361,7 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
 
 function Field({ placeholder, value, onChange, flex }: { placeholder: string; value: string; onChange: (t: string) => void; flex?: boolean }) {
   return (
-    <View className="rounded-2xl" style={{ flex: flex ? 1 : undefined, backgroundColor: COLORS.warmwhite, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: 'rgba(20,33,61,0.07)' }}>
+    <View className="rounded-2xl" style={{ flex: flex ? 1 : undefined, backgroundColor: COLORS.warmwhite, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: 'rgba(20,33,61,0.14)' }}>
       <TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={COLORS.ink3} style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink }} />
     </View>
   );
