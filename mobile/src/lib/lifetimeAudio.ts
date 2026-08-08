@@ -56,16 +56,34 @@ const SILENT: LifetimePlayer = {
   release() {},
 };
 
-/** Create a player for the bundled soundtrack. Returns a silent no-op player if
- *  expo-audio's native module isn't present (older binary) or setup fails. */
-export function createLifetimePlayer(muted: boolean): LifetimePlayer {
+/** Prepare the bundled soundtrack as a LOCAL file URI before it's played.
+ *  Over an EAS OTA update the .mp3 lives on Expo's CDN; handing that unresolved
+ *  asset straight to the native player crashed on device. Downloading it first
+ *  (expo-asset caches after the first time) gives the player a local file. Returns
+ *  null if it can't be prepared, in which case playback is simply silent. */
+export async function loadLifetimeAudioSource(): Promise<{ uri: string } | null> {
+  try {
+    const { Asset } = await import('expo-asset');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const asset = Asset.fromModule(require('../../assets/audio/lifetime-wrapped.mp3'));
+    if (!asset.localUri) await asset.downloadAsync();
+    const uri = asset.localUri || asset.uri;
+    return uri ? { uri } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Create a player for the (pre-resolved local) soundtrack. Returns a silent
+ *  no-op player if there's no source, expo-audio's native module isn't present
+ *  (older binary), or setup fails. */
+export function createLifetimePlayer(muted: boolean, source: { uri: string } | null): LifetimePlayer {
+  if (!source) return SILENT;
   try {
     // Lazy — never evaluated at import time, so the bundle is safe on binaries
     // without the native module.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const audio = require('expo-audio') as typeof import('expo-audio');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const source = require('../../assets/audio/lifetime-wrapped.mp3');
     const player = audio.createAudioPlayer(source, { updateInterval: 100 });
     player.muted = muted;
     return {

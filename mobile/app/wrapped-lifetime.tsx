@@ -16,7 +16,7 @@ import { useAuth } from '../src/store/auth';
 import { useCoverTheme } from '../src/hooks/useCoverTheme';
 import { COVER_SECTIONS, lockReason } from '../src/lib/covers';
 import { buildLifetimeStory, beatAt, BEATS, type LifetimeStory, type PlaceCard, type Metric, type Line } from '../src/lib/lifetimeWrapped';
-import { createLifetimePlayer, TRACK_MS, type LifetimePlayer } from '../src/lib/lifetimeAudio';
+import { createLifetimePlayer, loadLifetimeAudioSource, TRACK_MS, type LifetimePlayer } from '../src/lib/lifetimeAudio';
 import type { PhotoRef } from '../src/lib/lifetimePhotos';
 import { shareViewAsPng } from '../src/lib/shareImage';
 import { track } from '../src/lib/analytics';
@@ -366,24 +366,35 @@ export default function LifetimeWrappedScreen() {
   async function start() {
     setPhase('preparing');
     hImpact('light');
-    // Preload the opening backdrops so playback begins on ready assets.
+    // Preload the opening backdrops + resolve the soundtrack to a local file so
+    // playback begins on ready assets (and the native audio player never gets an
+    // unresolved remote OTA asset — that crashed on device).
+    let source: { uri: string } | null = null;
     try {
       const codes = [story.backdropCodes[0], story.backdropCodes[1]].filter(Boolean);
-      await Promise.race([
-        Promise.all(codes.map((c) => destinationImage(c).photo).filter(Boolean).map((u) => Image.prefetch(u as string))),
-        new Promise((r) => setTimeout(r, 1400)),
+      const [src] = await Promise.race([
+        Promise.all([
+          loadLifetimeAudioSource(),
+          ...codes.map((c) => destinationImage(c).photo).filter(Boolean).map((u) => Image.prefetch(u as string)),
+        ]),
+        new Promise<[null]>((r) => setTimeout(() => r([null]), 2500)),
       ]);
+      source = src;
     } catch {}
-    player.current = createLifetimePlayer(muted);
+    try {
+      player.current = createLifetimePlayer(muted, source);
+    } catch {
+      player.current = null;
+    }
     base.current = 0;
     anchor.current = Date.now();
     lastFrame.current = 0;
-    player.current.play();
+    player.current?.play();
     setPhase('playing');
     setTMs(0);
     raf.current = requestAnimationFrame(tick);
     scheduleHideControls();
-    track('lifetime_wrapped_played', { audio: player.current.available });
+    track('lifetime_wrapped_played', { audio: player.current?.available ?? false });
   }
 
   function pause() {
