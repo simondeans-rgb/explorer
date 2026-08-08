@@ -40,7 +40,10 @@ export default function CoversScreen() {
 
   const available = state != null;
   const current = state?.current ?? null;
-  const cell = (width - 40 - 24) / 3;
+  // A 3-up grid. Guard the width: if `width` is ever 0/NaN (a transient layout
+  // state), an invalid `width: cell` is dropped by RN and each cover stretches
+  // full-width — so clamp to a sane fallback and never go below a small cell.
+  const cell = Math.max(92, ((width > 0 ? width : 375) - 40 - 24) / 3);
   // The active cover themes this screen: header gradient + ambient particles.
   const theme = COVER_THEMES[current ?? 'Classic'] ?? COVER_THEMES.Classic;
   const HEADER_H = 148;
