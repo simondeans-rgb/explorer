@@ -37,7 +37,8 @@ The web app predates the mobile app. **All recent work has been on `mobile/`.**
 - Launch-ready for the App Store.
 
 ## Current development status
-- Mobile app is **feature-rich and on TestFlight** (current build **1.0.0 (9)**).
+- Mobile app is **feature-rich and on TestFlight** (current build **1.0.0 (61)**;
+  the next native build will be **62+** — see "Next native build" in Dev Notes).
 - Actively iterating on **UI polish** and **launch readiness**.
 - Email/password + **Google** sign-in work. **Apple sign-in is built but the
   button is currently hidden** (Apple-side authorization failure — see Known
@@ -582,6 +583,55 @@ Firebase (run from repo root; needs Firebase CLI + login/CI token + Blaze):
 firebase deploy --only firestore:rules,functions
 ```
 
+## Next native build (≥ build 62): Lifetime Wrapped audio + Sentry dSYMs
+Two things were staged in code (PR #427) but only take effect in a **new native
+build**, not an OTA. Do these before/at the next `eas build ... --profile
+production`:
+
+**1. Sentry symbol (dSYM + source-map) upload — one-time EAS env setup.**
+The production build now runs `sentry-cli` to upload debug symbols, so future
+native crashes symbolicate (exact frame instead of `?`). It needs one **secret**
+(org + project are already hardcoded in `app.json`'s Sentry plugin —
+`organization: simon-deans`, `project: worldly`, `url: https://de.sentry.io/`):
+```bash
+cd mobile
+# Create a token at https://de.sentry.io → Settings → Auth Tokens
+#   scopes: project:releases + project:write (dSYM upload). Revocable anytime.
+eas env:create --environment production --name SENTRY_AUTH_TOKEN \
+  --value "<token>" --type secret --visibility secret
+```
+- `eas.json` production profile **no longer sets `SENTRY_DISABLE_AUTO_UPLOAD`**
+  (upload is on); it sets `SENTRY_ALLOW_FAILURE: "true"` as a forward-compatible
+  guard. **dev/preview** profiles keep `SENTRY_DISABLE_AUTO_UPLOAD: "true"`.
+- If the token/scopes are wrong, the **build fails on the Sentry upload step**
+  with a clear `sentry-cli` error — fix the env and rebuild. (This `@sentry/
+  react-native` 7.2.0 emits `error:` on upload failure regardless of
+  `SENTRY_ALLOW_FAILURE`, so the token must be valid before building.)
+- To temporarily skip upload for a one-off build, re-add
+  `"SENTRY_DISABLE_AUTO_UPLOAD": "true"` to the production `env`.
+
+**2. Lifetime Wrapped audio is re-enabled, gated on the native build number.**
+`mobile/src/lib/lifetimeAudio.ts` no longer hard-disables audio. It reads the
+running binary's build number (`Constants.platform.ios.buildNumber`):
+- **build ≤ 61** → audio stays **silent** (the confirmed `EXC_BAD_ACCESS` on
+  Play is never reached, even though this JS ships OTA to build 61). Behaviour
+  matches the PR #426 hotfix.
+- **build ≥ 62** → audio **on**. Before any player is created it calls
+  `setAudioModeAsync({ playsInSilentMode: true })` to configure the iOS audio
+  session (the likely fix + plays with the ringer on silent).
+- `FIRST_AUDIO_BUILD = 62` is the toggle. If the next production build lands as a
+  number other than 62 (autoIncrement), **bump `FIRST_AUDIO_BUILD` to match** so
+  the new binary actually enables audio.
+- Net effect: the next TestFlight build attempts audio **and** uploads dSYMs, so
+  if any native fault remains it arrives in Sentry symbolicated — then we fix the
+  real frame. If it's clean, audio just works.
+
+Build + submit (needs the user's Apple sign-in; can't be run headless here):
+```bash
+eas build --platform ios --profile production
+eas submit --platform ios --profile production --latest
+```
+
 ## Git / ship workflow (AUTO-merge)
 1. Work on branch **`claude/explorers-passport-product-2My8o`**.
 2. `git add -A && git commit` (end body with the Co-Authored-By + Claude-Session
@@ -726,5 +776,7 @@ firebase deploy --only firestore:rules,functions
    end-to-end; decide the Apple-sign-in / Guideline-4.8 path before App Store
    submission; bump `firebase-functions` + Node runtime; continue UI polish.
 
-> Current TestFlight build: **1.0.0 (9)**. Most things ship as OTA — reload the
-> app (force-quit + reopen, twice if needed) to see updates.
+> Current TestFlight build: **1.0.0 (61)**. Most things ship as OTA — reload the
+> app (force-quit + reopen, twice if needed) to see updates. A new native build
+> (62+) is staged to re-enable Lifetime Wrapped audio and upload Sentry dSYMs —
+> see "Next native build" in Development Notes.
