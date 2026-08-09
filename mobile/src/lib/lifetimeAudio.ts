@@ -44,6 +44,15 @@ export interface LifetimePlayer {
   release(): void;
 }
 
+// Native audio is temporarily DISABLED. A confirmed native crash (Sentry:
+// EXC_BAD_ACCESS / KERN_INVALID_ADDRESS, mechanism "mach", on Play) originates
+// in expo-audio's native player — the only native call made when playback
+// starts — and can't be caught from JS. Until it's fixed and verified in a
+// native build (with dSYMs uploaded so the frame symbolicates), Lifetime Wrapped
+// runs its visual timeline silently rather than crashing. Flip back to true to
+// re-enable once the native path is proven safe.
+const NATIVE_AUDIO_ENABLED = false;
+
 const SILENT: LifetimePlayer = {
   available: false,
   play() {},
@@ -62,6 +71,7 @@ const SILENT: LifetimePlayer = {
  *  (expo-asset caches after the first time) gives the player a local file. Returns
  *  null if it can't be prepared, in which case playback is simply silent. */
 export async function loadLifetimeAudioSource(): Promise<{ uri: string } | null> {
+  if (!NATIVE_AUDIO_ENABLED) return null;
   try {
     const { Asset } = await import('expo-asset');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -78,7 +88,7 @@ export async function loadLifetimeAudioSource(): Promise<{ uri: string } | null>
  *  no-op player if there's no source, expo-audio's native module isn't present
  *  (older binary), or setup fails. */
 export function createLifetimePlayer(muted: boolean, source: { uri: string } | null): LifetimePlayer {
-  if (!source) return SILENT;
+  if (!NATIVE_AUDIO_ENABLED || !source) return SILENT;
   try {
     // Lazy — never evaluated at import time, so the bundle is safe on binaries
     // without the native module.
