@@ -27,6 +27,8 @@ export const ONSETS_MS = {
   end: TRACK_MS,
 } as const;
 
+import Constants from 'expo-constants';
+
 // ── Fail-silent audio player ────────────────────────────────────────────────
 // expo-audio's native module only exists in a binary built with it. On an older
 // binary running OTA'd JS the player must no-op (the visual timeline still runs
@@ -44,14 +46,27 @@ export interface LifetimePlayer {
   release(): void;
 }
 
-// Native audio is temporarily DISABLED. A confirmed native crash (Sentry:
-// EXC_BAD_ACCESS / KERN_INVALID_ADDRESS, mechanism "mach", on Play) originates
-// in expo-audio's native player — the only native call made when playback
-// starts — and can't be caught from JS. Until it's fixed and verified in a
-// native build (with dSYMs uploaded so the frame symbolicates), Lifetime Wrapped
-// runs its visual timeline silently rather than crashing. Flip back to true to
-// re-enable once the native path is proven safe.
-const NATIVE_AUDIO_ENABLED = false;
+// Native audio is gated on the NATIVE BINARY's build number, not just a flag —
+// because this JS ships over-the-air to every installed binary. A confirmed
+// native crash (Sentry: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS, mechanism "mach",
+// on Play) was reproduced on build 61, which started playback without first
+// configuring an iOS audio session and couldn't be symbolicated (no dSYMs
+// uploaded). So:
+//   • build ≤ 61  → audio stays OFF (the crashing path is never reached; the
+//     visual timeline still runs, just silent), even after this OTA lands.
+//   • build ≥ 62  → audio is ON again. That binary sets the audio session with
+//     setAudioModeAsync before creating the player (the likely fix) AND uploads
+//     dSYMs, so if any native fault remains it arrives in Sentry symbolicated
+//     with the exact frame instead of a "?".
+// `Constants.platform.ios.buildNumber` is the embedded Info.plist CFBundleVersion
+// of the running binary (null in Expo Go / web → treated as 0 → audio off).
+const FIRST_AUDIO_BUILD = 62;
+function nativeBuildNumber(): number {
+  const raw = Constants.platform?.ios?.buildNumber ?? Constants.nativeBuildVersion;
+  const n = raw ? parseInt(String(raw), 10) : NaN;
+  return Number.isFinite(n) ? n : 0;
+}
+const NATIVE_AUDIO_ENABLED = nativeBuildNumber() >= FIRST_AUDIO_BUILD;
 
 const SILENT: LifetimePlayer = {
   available: false,
@@ -73,6 +88,17 @@ const SILENT: LifetimePlayer = {
 export async function loadLifetimeAudioSource(): Promise<{ uri: string } | null> {
   if (!NATIVE_AUDIO_ENABLED) return null;
   try {
+    // Configure the iOS audio session BEFORE any player is created. Without this
+    // the first playback on a fresh session is what faulted on build 61. Also
+    // lets the soundtrack play when the ringer is on silent (expected for a
+    // full-screen "wrapped" experience). Best-effort — never block playback.
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const audio = require('expo-audio') as typeof import('expo-audio');
+      await audio.setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: false });
+    } catch {
+      /* older binary or session config unavailable — carry on, player is guarded */
+    }
     const { Asset } = await import('expo-asset');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const asset = Asset.fromModule(require('../../assets/audio/lifetime-wrapped.mp3'));

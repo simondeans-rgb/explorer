@@ -97,7 +97,12 @@
           "cameraPermission": "Worldly uses your camera to scan a friend's Worldly QR code and connect with them."
         }
       ],
-      "@sentry/react-native",
+      [
+        "@sentry/react-native",
+        {
+          "url": "https://de.sentry.io/"
+        }
+      ],
       "expo-apple-authentication",
       [
         "@react-native-google-signin/google-signin",
