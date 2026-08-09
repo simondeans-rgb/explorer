@@ -36,6 +36,9 @@ export interface PlacesLayer {
   /** Visited country codes in the order they should colour in (chronological). */
   order?: string[];
   onPressCountry?: (code: string) => void;
+  /** Optional per-country fill override (e.g. one colour per continent). When
+   *  omitted, visited countries use the default coral. Wishlist is unaffected. */
+  fillFor?: (code: string) => string | undefined;
 }
 
 // A coarse 30° graticule reads as a globe without flooding the per-frame path.
@@ -80,16 +83,16 @@ function JourneyGlobeInner({
   // The country polygons to fill, paired with their colour and a reveal index
   // (`ord`) so they colour in one-by-one in visit order (Places mode only).
   const placeFeatures = useMemo(() => {
-    if (!places) return [] as { code: string; feature: GeoJSON.Feature; fill: string; ord: number }[];
+    if (!places) return [] as { code: string; feature: GeoJSON.Feature; fill: string; ord: number; visited: boolean }[];
     const orderIndex = new Map((places.order ?? []).map((c, i) => [c, i]));
     let nextOrd = places.order?.length ?? 0; // wish-listed (and any unordered) reveal after the visited ones
-    const out: { code: string; feature: GeoJSON.Feature; fill: string; ord: number }[] = [];
+    const out: { code: string; feature: GeoJSON.Feature; fill: string; ord: number; visited: boolean }[] = [];
     for (const wf of WORLD_FEATURES) {
       const c = wf.alpha2;
       if (!c) continue;
       const feature = wf.feature as unknown as GeoJSON.Feature;
-      if (places.visited.has(c)) out.push({ code: c, feature, fill: PLACE_VISITED, ord: orderIndex.get(c) ?? nextOrd++ });
-      else if (places.wishlist?.has(c)) out.push({ code: c, feature, fill: PLACE_WISHLIST, ord: nextOrd++ });
+      if (places.visited.has(c)) out.push({ code: c, feature, fill: places.fillFor?.(c) ?? PLACE_VISITED, ord: orderIndex.get(c) ?? nextOrd++, visited: true });
+      else if (places.wishlist?.has(c)) out.push({ code: c, feature, fill: PLACE_WISHLIST, ord: nextOrd++, visited: false });
     }
     return out;
   }, [places]);
@@ -305,7 +308,7 @@ function JourneyGlobeInner({
 
     // Places mode: fill visited/wishlist countries on the near hemisphere.
     const countryFills = placeFeatures
-      .map((f) => ({ code: f.code, d: path(f.feature) ?? '', fill: f.fill, ord: f.ord }))
+      .map((f) => ({ code: f.code, d: path(f.feature) ?? '', fill: f.fill, ord: f.ord, visited: f.visited }))
       .filter((f) => f.d);
 
     return { landPath: path(LAND_GEOMETRY) ?? '', borderPath: path(BORDERS_GEOMETRY) ?? '', gratPath: path(GRATICULE) ?? '', arcs, dots, countryFills, projection };
@@ -357,7 +360,7 @@ function JourneyGlobeInner({
                 d={c.d}
                 fill={c.fill}
                 fillOpacity={op}
-                stroke={c.fill === PLACE_VISITED ? PLACE_VISITED_EDGE : '#FFFFFF'}
+                stroke={c.visited ? PLACE_VISITED_EDGE : '#FFFFFF'}
                 strokeWidth={0.4}
                 strokeOpacity={0.5 * op}
               />
