@@ -115,6 +115,7 @@ export interface LifetimeStory {
   continentsReveal: ContinentsReveal;
   countriesCount: number;
   citiesCount: number;
+  cityNames: string[]; // for the cities that "float up" the screen
   distance: DistanceStat;
   transport: TransportStat;
   routes: JourneyRoutes;
@@ -153,8 +154,8 @@ const MODE_LABEL: Record<JourneyMode, { verb: string; noun: string }> = {
   ferry: { verb: 'crossed by sea', noun: 'ferry crossings' },
 };
 
-// One colour per continent, so the globe reads as distinct regions lighting up.
-const CONTINENT_COLOR: Record<Continent, string> = {
+// One colour per continent, so the map reads as distinct regions lighting up.
+export const CONTINENT_COLOR: Record<Continent, string> = {
   Europe: '#FF6B9A',
   Asia: '#FFB84D',
   Africa: '#34C77B',
@@ -223,9 +224,13 @@ function buildContinentsReveal(discovered: CountryAggregate[], continentNames: C
       colorByCode[a.code] = CONTINENT_COLOR[cont] ?? '#FF6B9A';
     }
   }
+  // Names in chronological reveal order (the order continents colour in), not
+  // the alphabetical stats list — falls back to the stats list if we somehow
+  // resolved no continents from the country codes.
+  const names = (presentContinents.length ? presentContinents : continentNames) as string[];
   return {
-    count: continentNames.length || presentContinents.length,
-    names: (continentNames.length ? continentNames : presentContinents) as string[],
+    count: presentContinents.length || continentNames.length,
+    names,
     visited,
     order,
     colorByCode,
@@ -379,6 +384,22 @@ export function buildLifetimeStory(input: LifetimeInput): LifetimeStory {
 
   const polaroids = gatherPolaroids(topCodes, captures, discoveries, 8);
 
+  // City names for the "float up" card — most-significant countries first.
+  const cityNames: string[] = [];
+  const seenCity = new Set<string>();
+  for (const a of ranked) {
+    for (const c of a.cities) {
+      const name = (c.name ?? '').trim();
+      const key = name.toLowerCase();
+      if (name && !seenCity.has(key)) {
+        seenCity.add(key);
+        cityNames.push(name);
+        if (cityNames.length >= 18) break;
+      }
+    }
+    if (cityNames.length >= 18) break;
+  }
+
   // ── Assemble the deck (drop cards with no data) ─────────────────────────────
   const enabled: Partial<Record<BeatKind, boolean>> = {
     opening: true,
@@ -407,6 +428,7 @@ export function buildLifetimeStory(input: LifetimeInput): LifetimeStory {
     continentsReveal,
     countriesCount: stats.countriesDiscovered,
     citiesCount: stats.citiesDiscovered,
+    cityNames,
     distance,
     transport,
     routes,

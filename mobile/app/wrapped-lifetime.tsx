@@ -15,8 +15,11 @@ import { useData } from '../src/store/data';
 import { useAuth } from '../src/store/auth';
 import { useCoverTheme } from '../src/hooks/useCoverTheme';
 import { COVER_SECTIONS, lockReason } from '../src/lib/covers';
-import { buildLifetimeStory, beatAt, type LifetimeStory, type PlaceCard, type Metric, type Line } from '../src/lib/lifetimeWrapped';
+import { geoNaturalEarth1, geoPath } from 'd3-geo';
+import { buildLifetimeStory, beatAt, CONTINENT_COLOR, type LifetimeStory, type PlaceCard, type Metric, type Line } from '../src/lib/lifetimeWrapped';
 import { JourneyGlobe } from '../components/JourneyGlobe';
+import { CONTINENT_GEOMETRY, LAND_GEOMETRY } from '../src/lib/worldGeo';
+import type { Continent } from '../src/types';
 import { createLifetimePlayer, loadLifetimeAudioSource, TRACK_MS, type LifetimePlayer } from '../src/lib/lifetimeAudio';
 import type { PhotoRef } from '../src/lib/lifetimePhotos';
 import { shareViewAsPng } from '../src/lib/shareImage';
@@ -122,9 +125,9 @@ function Scene({ story, kind, progress, reduce, accent, dims }: { story: Lifetim
     case 'cities':
       return (
         <>
-          <BackdropRotate codes={story.backdropCodes} progress={progress} reduce={reduce} />
-          <Scrim strong />
-          <Polaroids photos={story.polaroids} progress={progress} reduce={reduce} dims={dims} count={3} seed={7} />
+          <BackdropRotate codes={story.backdropCodes} progress={progress} reduce={reduce} dim />
+          {!reduce && story.cityNames.length > 0 ? <CityFloat names={story.cityNames} progress={progress} dims={dims} /> : null}
+          <LinearGradient colors={['rgba(10,12,22,0.15)', 'rgba(10,12,22,0.55)']} style={fill} />
           {wrap({}, <>
             <Text style={T.eyebrow}>CITIES YOU EXPLORED</Text>
             <Text style={[T.giant, { marginTop: 6 }]}>{upTo(story.citiesCount, progress, 0.05, 0.5)}</Text>
@@ -228,23 +231,42 @@ const rnd = (i: number, salt: number) => {
   return x - Math.floor(x);
 };
 
-/** The continents globe — colours visited countries in, tinted by continent, so
- *  the sphere lights up region by region. Uses the shared JourneyGlobe. */
+/** The continents map — a flat world where each visited continent (member
+ *  countries fused into one shape, so no country borders show) colours in one
+ *  after another, in the order they were first reached. */
 function ContinentsScene({ story, progress, reduce, dims }: { story: LifetimeStory; progress: number; reduce: boolean; dims: { width: number; height: number } }) {
   const cr = story.continentsReveal;
-  const places = useMemo(
-    () => ({ visited: new Set(cr.visited), order: cr.order, fillFor: (c: string) => cr.colorByCode[c] }),
-    [cr],
-  );
-  const revealed = Math.max(1, Math.min(cr.names.length, Math.floor(easeOut(progress / 0.85) * cr.names.length) + 1));
-  const globeSize = Math.min(dims.width * 0.92, dims.height * 0.56);
+  const mapW = Math.min(dims.width - 20, 560);
+  const mapH = Math.round(mapW * 0.55);
+  const { landPath, contPaths } = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const proj = geoNaturalEarth1().fitSize([mapW, mapH], LAND_GEOMETRY as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const path = geoPath(proj as any);
+    const contPaths = cr.names
+      .map((name) => {
+        const geom = CONTINENT_GEOMETRY[name as Continent];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return geom ? { name, d: path(geom as any) ?? '', color: CONTINENT_COLOR[name as Continent] } : null;
+      })
+      .filter((c): c is { name: string; d: string; color: string } => !!c && !!c.d);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return { landPath: path(LAND_GEOMETRY as any) ?? '', contPaths };
+  }, [mapW, mapH, cr.names]);
+  const revealF = (reduce ? cr.names.length : easeOut(progress / 0.82) * cr.names.length);
+  const revealed = Math.max(1, Math.min(cr.names.length, Math.floor(revealF) + (progress > 0.02 ? 1 : 0)));
   return (
     <>
       <LinearGradient colors={['#0B1020', '#161E38', '#0B1020']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={fill} />
-      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: dims.height * 0.11, height: globeSize, alignItems: 'center', justifyContent: 'center' }}>
-        <JourneyGlobe segments={[]} places={places} maxSize={globeSize} resetKey="lw-continents" />
+      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: dims.height * 0.17, alignItems: 'center' }}>
+        <Svg width={mapW} height={mapH}>
+          <Path d={landPath} fill="#222C48" />
+          {contPaths.map((c, i) => (
+            <Path key={c.name} d={c.d} fill={c.color} fillOpacity={Math.max(0, Math.min(1, revealF - i))} />
+          ))}
+        </Svg>
       </View>
-      <View pointerEvents="none" style={{ position: 'absolute', left: 26, right: 26, bottom: 96, alignItems: 'center' }}>
+      <View pointerEvents="none" style={{ position: 'absolute', left: 26, right: 26, bottom: 92, alignItems: 'center' }}>
         <Text style={T.eyebrow}>THE CONTINENTS YOU&apos;VE REACHED</Text>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 4 }}>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 72, color: '#fff' }}>{cr.count}</Text>
@@ -356,26 +378,62 @@ function DiscoveriesScene({ story, progress, reduce, accent, dims }: { story: Li
   );
 }
 
-/** Place names raining down — deterministic (seekable) columns of falling text. */
+/** Place names raining down — deterministic (seekable) falling text, each at its
+ *  own tilt and drifting sideways as it falls, so the rain feels uneven and fun. */
 function NameRain({ names, progress, dims }: { names: string[]; progress: number; dims: { width: number; height: number } }) {
   const { width, height } = dims;
   const drops = names.slice(0, 16);
   return (
     <View pointerEvents="none" style={[fill, { overflow: 'hidden' }]}>
       {drops.map((name, i) => {
-        const x = 8 + rnd(i, 1) * Math.max(1, width - 140);
-        const speed = 0.7 + rnd(i, 2) * 0.6; // screens per scene
+        const x = 8 + rnd(i, 1) * Math.max(1, width - 150);
+        const speed = 0.65 + rnd(i, 2) * 0.75; // screens per scene — varied fall rates
         const offset = rnd(i, 3);
-        const fontSize = 15 + Math.round(rnd(i, 4) * 12);
+        const fontSize = 15 + Math.round(rnd(i, 4) * 13);
         const cycle = (progress * speed + offset) % 1;
         const y = cycle * (height + 140) - 90;
+        // Each name tilts a different way and slides sideways as it falls, so no
+        // two drop on the same line or angle.
+        const tilt = (rnd(i, 6) - 0.5) * 46; // ±23°
+        const drift = (rnd(i, 7) - 0.5) * 70 * cycle;
         const edge = Math.min(y + 90, height + 50 - y) / 90;
         const opacity = Math.max(0, Math.min(1, edge)) * (0.5 + rnd(i, 5) * 0.5);
         return (
           <Text
             key={i}
             numberOfLines={1}
-            style={{ position: 'absolute', left: x, top: y, fontFamily: 'Fraunces', fontStyle: 'italic', fontSize, color: '#fff', opacity }}
+            style={{ position: 'absolute', left: x + drift, top: y, fontFamily: 'Fraunces', fontStyle: 'italic', fontSize, color: '#fff', opacity, transform: [{ rotate: `${tilt}deg` }] }}
+          >
+            {name}
+          </Text>
+        );
+      })}
+    </View>
+  );
+}
+
+/** City names drifting UP the screen with a gentle balloon-like sway. */
+function CityFloat({ names, progress, dims }: { names: string[]; progress: number; dims: { width: number; height: number } }) {
+  const { width, height } = dims;
+  const items = names.slice(0, 16);
+  return (
+    <View pointerEvents="none" style={[fill, { overflow: 'hidden' }]}>
+      {items.map((name, i) => {
+        const x = 12 + rnd(i, 1) * Math.max(1, width - 160);
+        const speed = 0.6 + rnd(i, 2) * 0.6; // rises per scene
+        const offset = rnd(i, 3);
+        const fontSize = 16 + Math.round(rnd(i, 4) * 13);
+        const cycle = (progress * speed + offset) % 1;
+        const y = height + 70 - cycle * (height + 160); // bottom → top
+        const sway = Math.sin(cycle * Math.PI * 2 * (1.1 + rnd(i, 5)) + i) * (10 + rnd(i, 6) * 20);
+        const tilt = Math.sin(cycle * Math.PI * 2 + i) * 6;
+        const edge = Math.min(height + 70 - y, y + 80) / 80;
+        const opacity = Math.max(0, Math.min(1, edge)) * (0.55 + rnd(i, 7) * 0.45);
+        return (
+          <Text
+            key={i}
+            numberOfLines={1}
+            style={{ position: 'absolute', left: x + sway, top: y, fontFamily: 'Fraunces', fontSize, color: '#fff', opacity, transform: [{ rotate: `${tilt}deg` }] }}
           >
             {name}
           </Text>
@@ -424,7 +482,7 @@ function Polaroids({ photos, progress, reduce, dims, count, seed }: { photos: Ph
 function Confetti({ progress, dims }: { progress: number; dims: { width: number; height: number } }) {
   const COLORS_C = ['#FF6B9A', '#9B7CFF', '#24D1C3', '#FFB84D', '#FF7A66', '#4DA6FF', '#FFD23F'];
   const { width, height } = dims;
-  const count = Math.min(240, Math.max(150, Math.round((width * height) / 2200)));
+  const count = Math.min(460, Math.max(320, Math.round((width * height) / 1300)));
   const originY = height * 0.42;
   return (
     <View pointerEvents="none" style={[fill, { overflow: 'hidden' }]}>
