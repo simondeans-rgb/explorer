@@ -100,7 +100,9 @@
       [
         "@sentry/react-native",
         {
-          "url": "https://de.sentry.io/"
+          "url": "https://de.sentry.io/",
+          "organization": "simon-deans",
+          "project": "worldly"
         }
       ],
       "expo-apple-authentication",
