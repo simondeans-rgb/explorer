@@ -15,7 +15,8 @@ import { useData } from '../src/store/data';
 import { useAuth } from '../src/store/auth';
 import { useCoverTheme } from '../src/hooks/useCoverTheme';
 import { COVER_SECTIONS, lockReason } from '../src/lib/covers';
-import { buildLifetimeStory, beatAt, BEATS, type LifetimeStory, type PlaceCard, type Metric, type Line } from '../src/lib/lifetimeWrapped';
+import { buildLifetimeStory, beatAt, type LifetimeStory, type PlaceCard, type Metric, type Line } from '../src/lib/lifetimeWrapped';
+import { JourneyGlobe } from '../components/JourneyGlobe';
 import { createLifetimePlayer, loadLifetimeAudioSource, TRACK_MS, type LifetimePlayer } from '../src/lib/lifetimeAudio';
 import type { PhotoRef } from '../src/lib/lifetimePhotos';
 import { shareViewAsPng } from '../src/lib/shareImage';
@@ -71,8 +72,8 @@ const wrap = (style: object, children: ReactNode) => (
   <View pointerEvents="none" style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30, gap: 8 }, style]}>{children}</View>
 );
 
-// ── the nine scenes ──────────────────────────────────────────────────────────
-function Scene({ story, kind, progress, reduce, accent }: { story: LifetimeStory; kind: string; progress: number; reduce: boolean; accent: string }) {
+// ── the card deck ────────────────────────────────────────────────────────────
+function Scene({ story, kind, progress, reduce, accent, dims }: { story: LifetimeStory; kind: string; progress: number; reduce: boolean; accent: string; dims: { width: number; height: number } }) {
   const a = reveal(progress, reduce);
   switch (kind) {
     case 'opening':
@@ -99,54 +100,52 @@ function Scene({ story, kind, progress, reduce, accent }: { story: LifetimeStory
           </>)}
         </>
       );
-    case 'scale': {
-      const stage = Math.min(Math.floor(progress * story.scale.length * 1.05), story.scale.length - 1);
-      const m = story.scale[Math.max(0, stage)] ?? story.scale[0];
-      const localStart = stage / story.scale.length;
+    case 'continents':
+      return <ContinentsScene story={story} progress={progress} reduce={reduce} dims={dims} />;
+    case 'countries':
       return (
         <>
-          <LinearGradient colors={GRADIENTS.story as [string, string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+          <LinearGradient colors={GRADIENTS.story as [string, string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={fill} />
           <BackdropRotate codes={story.backdropCodes} progress={progress} reduce={reduce} dim />
           {wrap({}, <>
-            <Text style={T.eyebrow}>THE SCALE OF YOUR STORY</Text>
-            {m ? (
-              <View style={{ alignItems: 'center', marginTop: 6 }}>
-                <Text style={T.giant}>{upTo(m.value, progress, localStart, 1 / story.scale.length)}</Text>
-                <Text style={T.label}>{m.label}</Text>
-                {m.sub ? <Text style={[T.sub, { marginTop: 8 }]} numberOfLines={2}>{m.sub}</Text> : null}
-              </View>
-            ) : null}
+            <Text style={T.eyebrow}>COUNTRIES ON YOUR MAP</Text>
+            <Text style={[T.giant, { marginTop: 6 }]}>{upTo(story.countriesCount, progress, 0.05, 0.5)}</Text>
+            <Text style={T.label}>{story.countriesCount === 1 ? 'country' : 'countries'}</Text>
             {story.flagCodes.length > 0 ? (
-              <Text numberOfLines={2} style={{ textAlign: 'center', fontSize: 22, marginTop: 18, maxWidth: 320, opacity: easeOut(progress) }}>
+              <Text numberOfLines={2} style={{ textAlign: 'center', fontSize: 22, marginTop: 16, maxWidth: 320, opacity: easeOut((progress - 0.25) / 0.5) }}>
                 {story.flagCodes.slice(0, 16).map((c) => flagEmoji(c)).join(' ')}
               </Text>
             ) : null}
           </>)}
         </>
       );
-    }
-    case 'explored':
+    case 'cities':
       return (
         <>
           <BackdropRotate codes={story.backdropCodes} progress={progress} reduce={reduce} />
-          <Scrim />
-          {wrap(a, <>
-            <Text style={T.eyebrow}>HOW YOU EXPLORED</Text>
-            {story.explored.map((l, i) => (
-              <View key={i} style={{ alignItems: 'center', marginTop: i === 0 ? 10 : 18, opacity: easeOut((progress - (i ? 0.4 : 0.05)) / 0.4) }}>
-                <Text style={[T.label, { fontSize: i === 0 ? 40 : 26 }]}>{l.headline}</Text>
-                {l.sub ? <Text style={[T.sub, { marginTop: 4 }]}>{l.sub}</Text> : null}
-              </View>
-            ))}
+          <Scrim strong />
+          <Polaroids photos={story.polaroids} progress={progress} reduce={reduce} dims={dims} count={3} seed={7} />
+          {wrap({}, <>
+            <Text style={T.eyebrow}>CITIES YOU EXPLORED</Text>
+            <Text style={[T.giant, { marginTop: 6 }]}>{upTo(story.citiesCount, progress, 0.05, 0.5)}</Text>
+            <Text style={T.label}>{story.citiesCount === 1 ? 'city' : 'cities'}</Text>
+            <Text style={[T.sub, { marginTop: 8, opacity: easeOut((progress - 0.3) / 0.4) }]}>Each one a chapter of its own</Text>
           </>)}
         </>
       );
+    case 'distance':
+      return <DistanceScene story={story} progress={progress} reduce={reduce} />;
+    case 'transport':
+      return <TransportScene story={story} progress={progress} reduce={reduce} accent={accent} />;
+    case 'journeys':
+      return <JourneysScene story={story} progress={progress} reduce={reduce} dims={dims} />;
     case 'places': {
       const p: PlaceCard | undefined = story.places[Math.min(Math.floor(progress * Math.max(1, story.places.length)), story.places.length - 1)];
       return (
         <>
-          {p ? <PhotoLayer photo={p.photo} kenBurns={progress} reduce={reduce} /> : <LinearGradient colors={gradientFor('WW')} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />}
+          {p ? <PhotoLayer photo={p.photo} kenBurns={progress} reduce={reduce} /> : <LinearGradient colors={gradientFor('WW')} style={fill} />}
           <Scrim strong />
+          {p ? <Polaroids photos={p.polaroids} progress={progress} reduce={reduce} dims={dims} count={2} seed={p.code.charCodeAt(0)} /> : null}
           {p ? (
             <View pointerEvents="none" style={{ position: 'absolute', left: 26, right: 26, bottom: 120, ...reveal(progress % (1 / Math.max(1, story.places.length)) * story.places.length, reduce) }}>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1.5, color: '#FFD9E5' }}>THE PLACES THAT SHAPED YOU</Text>
@@ -158,36 +157,22 @@ function Scene({ story, kind, progress, reduce, accent }: { story: LifetimeStory
       );
     }
     case 'discoveries':
-      return (
-        <>
-          <LinearGradient colors={['#1B1030', '#3A1E5E', accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-          <BackdropRotate codes={story.backdropCodes} progress={progress} reduce={reduce} dim />
-          {wrap(a, <>
-            <Text style={T.eyebrow}>WHAT YOU FOUND</Text>
-            {story.discoveries.map((l: Line, i) => (
-              <View key={i} style={{ alignItems: 'center', marginTop: i === 0 ? 10 : 16, opacity: easeOut((progress - (i ? 0.4 : 0.05)) / 0.4) }}>
-                <Text style={[T.label, { fontSize: i === 0 ? 40 : 26 }]}>{l.headline}</Text>
-                {l.sub ? <Text style={[T.sub, { marginTop: 4 }]}>{l.sub}</Text> : null}
-              </View>
-            ))}
-          </>)}
-        </>
-      );
+      return <DiscoveriesScene story={story} progress={progress} reduce={reduce} accent={accent} dims={dims} />;
     case 'peak':
       return (
         <>
-          <LinearGradient colors={[accent, '#7A2E8A', '#141026']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-          {!reduce ? <Confetti progress={progress} /> : null}
+          <LinearGradient colors={[accent, '#7A2E8A', '#141026']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={fill} />
+          {!reduce ? <Confetti progress={progress} dims={dims} /> : null}
           {wrap({ justifyContent: 'center' }, <>
-            <View style={{ alignItems: 'center', opacity: easeOut(progress / 0.3) }}>
+            <View style={{ alignItems: 'center', opacity: easeOut(progress / 0.22) }}>
               <Trophy size={30} color="#FFD36E" />
               <Text style={[T.eyebrow, { marginTop: 8 }]}>EXPLORER LEVEL {story.level.level}</Text>
               <Text style={[T.title, { marginTop: 4 }]}>{story.level.title}</Text>
-              <Text style={[T.sub, { marginTop: 4 }]}>{upTo(story.level.xp, progress, 0.1, 0.5).toLocaleString()} XP earned</Text>
+              <Text style={[T.sub, { marginTop: 4 }]}>{upTo(story.level.xp, progress, 0.08, 0.45).toLocaleString()} XP earned</Text>
             </View>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 20, maxWidth: 320 }}>
               {story.badges.map((b, i) => (
-                <View key={i} style={{ opacity: easeOut((progress - 0.3 - i * 0.06) / 0.3) }}>
+                <View key={i} style={{ opacity: easeOut((progress - 0.28 - i * 0.05) / 0.3) }}>
                   <LinearGradient colors={b.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 }}>
                     <Text style={{ fontSize: 15 }}>{b.emoji}</Text>
                     <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '700', color: '#fff' }}>{b.title}</Text>
@@ -196,7 +181,7 @@ function Scene({ story, kind, progress, reduce, accent }: { story: LifetimeStory
               ))}
             </View>
             {story.coversUnlocked > 0 ? (
-              <Text style={[T.sub, { marginTop: 16, opacity: easeOut((progress - 0.6) / 0.3) }]}>
+              <Text style={[T.sub, { marginTop: 16, opacity: easeOut((progress - 0.55) / 0.3) }]}>
                 {story.coversUnlocked} Passport {story.coversUnlocked === 1 ? 'Cover' : 'Covers'} earned along the way
               </Text>
             ) : null}
@@ -209,7 +194,7 @@ function Scene({ story, kind, progress, reduce, accent }: { story: LifetimeStory
       return (
         <>
           <BackdropRotate codes={story.backdropCodes} progress={progress} reduce={reduce} dim />
-          <LinearGradient colors={['rgba(10,12,22,0.4)', 'rgba(10,12,22,0.85)']} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+          <LinearGradient colors={['rgba(10,12,22,0.4)', 'rgba(10,12,22,0.85)']} style={fill} />
           {wrap(a, <>
             <Text style={[T.title, { fontSize: 30 }]}>Your story is still{'\n'}being written</Text>
             <Text style={[T.sub, { marginTop: 12 }]}>There is always more world to discover.</Text>
@@ -222,6 +207,8 @@ function Scene({ story, kind, progress, reduce, accent }: { story: LifetimeStory
   }
 }
 
+const fill = { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0 };
+
 /** A slow cross-fading rotation of stock destination backdrops for stat scenes. */
 function BackdropRotate({ codes, progress, reduce, dim }: { codes: string[]; progress: number; reduce?: boolean; dim?: boolean }) {
   const i = Math.min(Math.floor(progress * codes.length), codes.length - 1);
@@ -229,23 +216,249 @@ function BackdropRotate({ codes, progress, reduce, dim }: { codes: string[]; pro
   return (
     <>
       <PhotoLayer photo={{ kind: 'stock', code }} kenBurns={reduce ? 0 : progress} reduce={reduce} />
-      <LinearGradient colors={dim ? ['rgba(14,14,30,0.72)', 'rgba(14,14,30,0.82)'] : ['rgba(10,12,22,0.3)', 'rgba(10,12,22,0.55)']} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+      <LinearGradient colors={dim ? ['rgba(14,14,30,0.72)', 'rgba(14,14,30,0.82)'] : ['rgba(10,12,22,0.3)', 'rgba(10,12,22,0.55)']} style={fill} />
     </>
   );
 }
 
-/** Lightweight non-physics confetti for the peak (Reduce-Motion callers skip it). */
-function Confetti({ progress }: { progress: number }) {
-  const COLORS_C = ['#FF6B9A', '#9B7CFF', '#24D1C3', '#FFB84D', '#4DA6FF', '#FFD23F'];
-  const { width, height } = useWindowDimensions();
-  const pieces = useMemo(() => Array.from({ length: 46 }, (_, i) => ({
-    x: (i * 97) % width, delay: (i % 10) / 10, sway: ((i * 53) % 40) - 20, color: COLORS_C[i % COLORS_C.length], size: 6 + (i % 4) * 2,
-  })), [width]);
+// Deterministic pseudo-random in [0,1) from an index + salt — stable across the
+// re-renders of a progress-driven scene (no Math.random at render time).
+const rnd = (i: number, salt: number) => {
+  const x = Math.sin((i + 1) * 12.9898 + salt * 78.233) * 43758.5453;
+  return x - Math.floor(x);
+};
+
+/** The continents globe — colours visited countries in, tinted by continent, so
+ *  the sphere lights up region by region. Uses the shared JourneyGlobe. */
+function ContinentsScene({ story, progress, reduce, dims }: { story: LifetimeStory; progress: number; reduce: boolean; dims: { width: number; height: number } }) {
+  const cr = story.continentsReveal;
+  const places = useMemo(
+    () => ({ visited: new Set(cr.visited), order: cr.order, fillFor: (c: string) => cr.colorByCode[c] }),
+    [cr],
+  );
+  const revealed = Math.max(1, Math.min(cr.names.length, Math.floor(easeOut(progress / 0.85) * cr.names.length) + 1));
+  const globeSize = Math.min(dims.width * 0.92, dims.height * 0.56);
   return (
-    <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }}>
-      {pieces.map((p, i) => {
-        const t = Math.max(0, Math.min((progress - p.delay * 0.3) / 0.7, 1));
-        return <View key={i} style={{ position: 'absolute', left: p.x + p.sway * t, top: -20 + t * (height + 40), width: p.size, height: p.size * 1.6, borderRadius: 2, backgroundColor: p.color, opacity: 1 - t * 0.3, transform: [{ rotate: `${t * 360}deg` }] }} />;
+    <>
+      <LinearGradient colors={['#0B1020', '#161E38', '#0B1020']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={fill} />
+      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: dims.height * 0.11, height: globeSize, alignItems: 'center', justifyContent: 'center' }}>
+        <JourneyGlobe segments={[]} places={places} maxSize={globeSize} resetKey="lw-continents" />
+      </View>
+      <View pointerEvents="none" style={{ position: 'absolute', left: 26, right: 26, bottom: 96, alignItems: 'center' }}>
+        <Text style={T.eyebrow}>THE CONTINENTS YOU&apos;VE REACHED</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 4 }}>
+          <Text style={{ fontFamily: 'Fraunces', fontSize: 72, color: '#fff' }}>{cr.count}</Text>
+          <Text style={T.label}>of 7</Text>
+        </View>
+        <Text numberOfLines={2} style={[T.sub, { marginTop: 6 }]}>{cr.names.slice(0, revealed).join('  ·  ')}</Text>
+      </View>
+    </>
+  );
+}
+
+/** The journeys globe — every recorded flight route drawn on in date order,
+ *  reusing the same globe as the Journeys tab. */
+function JourneysScene({ story, progress, reduce, dims }: { story: LifetimeStory; progress: number; reduce: boolean; dims: { width: number; height: number } }) {
+  const globeSize = Math.min(dims.width * 0.94, dims.height * 0.56);
+  return (
+    <>
+      <LinearGradient colors={['#0A0F1F', '#12203A', '#0A0F1F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={fill} />
+      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: dims.height * 0.1, height: globeSize, alignItems: 'center', justifyContent: 'center' }}>
+        <JourneyGlobe segments={story.routes.segments} maxSize={globeSize} resetKey="lw-journeys" />
+      </View>
+      <View pointerEvents="none" style={{ position: 'absolute', left: 26, right: 26, bottom: 96, alignItems: 'center' }}>
+        <Text style={T.eyebrow}>EVERY JOURNEY, DRAWN IN ORDER</Text>
+        <Text style={{ fontFamily: 'Fraunces', fontSize: 56, color: '#fff', marginTop: 4 }}>{story.routes.count}</Text>
+        <Text style={[T.sub, { marginTop: 2 }]}>routes across your travels</Text>
+      </View>
+    </>
+  );
+}
+
+/** Distance travelled, made tangible: laps of the Earth / % of the way to the Moon. */
+function DistanceScene({ story, progress, reduce }: { story: LifetimeStory; progress: number; reduce: boolean }) {
+  const d = story.distance;
+  const mi = upTo(d.mi, progress, 0.05, 0.5);
+  const comparison =
+    d.laps >= 1
+      ? `Around the world ${d.laps.toFixed(d.laps >= 10 ? 0 : 1)} times`
+      : d.moonPct >= 1
+        ? `${d.moonPct.toFixed(d.moonPct >= 10 ? 0 : 1)}% of the way to the Moon`
+        : 'Across your recorded journeys';
+  return (
+    <>
+      <LinearGradient colors={['#101A33', '#1E2A4D', '#0C1226']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={fill} />
+      <BackdropRotate codes={story.backdropCodes} progress={progress} reduce={reduce} dim />
+      {wrap({}, <>
+        <Text style={T.eyebrow}>HOW FAR YOU&apos;VE TRAVELLED</Text>
+        <Text style={[T.giant, { fontSize: 84, lineHeight: 90, marginTop: 6 }]}>{mi.toLocaleString()}</Text>
+        <Text style={T.label}>miles</Text>
+        <Text style={[T.sub, { marginTop: 12, opacity: easeOut((progress - 0.3) / 0.35) }]}>{comparison}</Text>
+        {d.topMode ? (
+          <Text style={[T.caption, { fontSize: 20, marginTop: 14, opacity: easeOut((progress - 0.5) / 0.35) }]}>
+            Mostly {d.topMode.mode === 'flight' ? 'by air' : `by ${d.topMode.mode}`} · {d.topMode.count} {d.topMode.noun}
+          </Text>
+        ) : null}
+      </>)}
+    </>
+  );
+}
+
+/** Airline / aircraft / delays — the texture of how you fly. */
+function TransportScene({ story, progress, reduce, accent }: { story: LifetimeStory; progress: number; reduce: boolean; accent: string }) {
+  const t = story.transport;
+  const rows: { top: string; big: string; sub?: string }[] = [];
+  if (t.airline) rows.push({ top: 'MOST-FLOWN AIRLINE', big: t.airline.label, sub: `${t.airline.count} ${t.airline.count === 1 ? 'flight' : 'flights'}${t.airlines > 1 ? ` · ${t.airlines} airlines in all` : ''}` });
+  if (t.aircraft) rows.push({ top: 'YOUR AIRCRAFT', big: t.aircraft.label, sub: `${t.aircraft.count} ${t.aircraft.count === 1 ? 'flight' : 'flights'} aboard` });
+  if (t.delayMin > 0) {
+    const h = Math.floor(t.delayMin / 60);
+    const m = t.delayMin % 60;
+    rows.push({ top: 'LOST TO DELAYS', big: h > 0 ? `${h}h ${m}m` : `${m}m`, sub: 'Time the airlines owe you back' });
+  }
+  return (
+    <>
+      <LinearGradient colors={['#141026', accent, '#1B1030']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={fill} />
+      <BackdropRotate codes={story.backdropCodes} progress={progress} reduce={reduce} dim />
+      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 }}>
+        <Text style={[T.eyebrow, { marginBottom: 8 }]}>HOW YOU FLY</Text>
+        {rows.map((r, i) => (
+          <View key={i} style={{ alignItems: 'center', marginTop: i === 0 ? 4 : 22, opacity: easeOut((progress - i * 0.16) / 0.4), transform: reduce ? [] : [{ translateY: (1 - easeOut((progress - i * 0.16) / 0.4)) * 16 }] }}>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 2, color: 'rgba(255,255,255,0.7)' }}>{r.top}</Text>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 34, color: '#fff', marginTop: 2, textAlign: 'center' }} numberOfLines={1}>{r.big}</Text>
+            {r.sub ? <Text style={[T.sub, { marginTop: 2, fontSize: 13 }]}>{r.sub}</Text> : null}
+          </View>
+        ))}
+      </View>
+    </>
+  );
+}
+
+/** The discoveries card — the names of saved places fall from the top of the
+ *  screen to the bottom like rain, over a headline count. */
+function DiscoveriesScene({ story, progress, reduce, accent, dims }: { story: LifetimeStory; progress: number; reduce: boolean; accent: string; dims: { width: number; height: number } }) {
+  const names = story.discoveryNames;
+  const a = reveal(progress, reduce);
+  return (
+    <>
+      <LinearGradient colors={['#1B1030', '#3A1E5E', accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={fill} />
+      {!reduce && names.length > 0 ? <NameRain names={names} progress={progress} dims={dims} /> : null}
+      <LinearGradient colors={['rgba(14,10,30,0.15)', 'rgba(14,10,30,0.5)']} style={fill} />
+      {wrap(a, <>
+        <Text style={T.eyebrow}>WHAT YOU FOUND</Text>
+        {story.discoveries.map((l: Line, i) => (
+          <View key={i} style={{ alignItems: 'center', marginTop: i === 0 ? 10 : 16, opacity: easeOut((progress - (i ? 0.4 : 0.05)) / 0.4) }}>
+            <Text style={[T.label, { fontSize: i === 0 ? 40 : 26 }]}>{l.headline}</Text>
+            {l.sub ? <Text style={[T.sub, { marginTop: 4 }]}>{l.sub}</Text> : null}
+          </View>
+        ))}
+      </>)}
+    </>
+  );
+}
+
+/** Place names raining down — deterministic (seekable) columns of falling text. */
+function NameRain({ names, progress, dims }: { names: string[]; progress: number; dims: { width: number; height: number } }) {
+  const { width, height } = dims;
+  const drops = names.slice(0, 16);
+  return (
+    <View pointerEvents="none" style={[fill, { overflow: 'hidden' }]}>
+      {drops.map((name, i) => {
+        const x = 8 + rnd(i, 1) * Math.max(1, width - 140);
+        const speed = 0.7 + rnd(i, 2) * 0.6; // screens per scene
+        const offset = rnd(i, 3);
+        const fontSize = 15 + Math.round(rnd(i, 4) * 12);
+        const cycle = (progress * speed + offset) % 1;
+        const y = cycle * (height + 140) - 90;
+        const edge = Math.min(y + 90, height + 50 - y) / 90;
+        const opacity = Math.max(0, Math.min(1, edge)) * (0.5 + rnd(i, 5) * 0.5);
+        return (
+          <Text
+            key={i}
+            numberOfLines={1}
+            style={{ position: 'absolute', left: x, top: y, fontFamily: 'Fraunces', fontStyle: 'italic', fontSize, color: '#fff', opacity }}
+          >
+            {name}
+          </Text>
+        );
+      })}
+    </View>
+  );
+}
+
+/** The user's own photos, framed as small tilted polaroids that drift in. */
+function Polaroids({ photos, progress, reduce, dims, count, seed }: { photos: PhotoRef[]; progress: number; reduce: boolean; dims: { width: number; height: number }; count: number; seed: number }) {
+  const shots = photos.filter((p) => p.kind === 'user').slice(0, count);
+  if (shots.length === 0) return null;
+  const { width, height } = dims;
+  return (
+    <View pointerEvents="none" style={fill}>
+      {shots.map((photo, i) => {
+        const w = 96 + Math.round(rnd(seed + i, 1) * 26);
+        const left = i % 2 === 0 ? width * 0.06 + rnd(seed + i, 2) * 20 : width * 0.62 - rnd(seed + i, 2) * 20;
+        const top = height * (0.16 + (i % 3) * 0.22) + rnd(seed + i, 3) * 24;
+        const rot = (rnd(seed + i, 4) - 0.5) * 18;
+        const app = easeOut((progress - 0.12 - i * 0.1) / 0.4);
+        const scale = reduce ? 1 : 0.8 + app * 0.2;
+        return (
+          <View
+            key={i}
+            style={{
+              position: 'absolute', left, top, width: w, padding: 6, paddingBottom: 16, backgroundColor: '#fff', borderRadius: 4,
+              opacity: Math.min(1, app), transform: [{ rotate: `${rot}deg` }, { scale }],
+              shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 6 },
+            }}
+          >
+            <View style={{ width: w - 12, height: w - 12, borderRadius: 2, overflow: 'hidden', backgroundColor: 'rgba(0,0,0,0.1)' }}>
+              <Image source={{ uri: photo.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" transition={200} />
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+/** A confetti cannon for the level card: a big radial burst that saturates the
+ *  screen, then gravity drags every piece down into a falling shower. Fully
+ *  progress-driven so it stays in sync when the story is paused or scrubbed. */
+function Confetti({ progress, dims }: { progress: number; dims: { width: number; height: number } }) {
+  const COLORS_C = ['#FF6B9A', '#9B7CFF', '#24D1C3', '#FFB84D', '#FF7A66', '#4DA6FF', '#FFD23F'];
+  const { width, height } = dims;
+  const count = Math.min(240, Math.max(150, Math.round((width * height) / 2200)));
+  const originY = height * 0.42;
+  return (
+    <View pointerEvents="none" style={[fill, { overflow: 'hidden' }]}>
+      {Array.from({ length: count }).map((_, i) => {
+        const angle = rnd(i, 1) * Math.PI * 2;
+        const mag = 0.45 + rnd(i, 2) * 0.85;
+        const reach = Math.cos(angle) * mag * width * 0.6;
+        const rise = Math.sin(angle) * mag * height * 0.5;
+        const fall = height * (1.4 + rnd(i, 3) * 0.7);
+        const delay = rnd(i, 4) * 0.06;
+        const t = Math.max(0, Math.min((progress - delay) / 0.9, 1));
+        const b = Math.min(t / 0.3, 1);
+        const burst = 1 - (1 - b) * (1 - b) * (1 - b);
+        const g = t < 0.22 ? 0 : (t - 0.22) / 0.78;
+        const gravity = g * g;
+        const sway = Math.sin(t * Math.PI * 3 + i) * (6 + rnd(i, 6) * 16);
+        const w = 6 + rnd(i, 7) * 6;
+        const round = rnd(i, 8) < 0.25;
+        return (
+          <View
+            key={i}
+            style={{
+              position: 'absolute',
+              left: width / 2 + reach * burst + sway,
+              top: originY + rise * burst + fall * gravity,
+              width: w,
+              height: round ? w : w * 1.7,
+              borderRadius: round ? w : 2,
+              backgroundColor: COLORS_C[i % COLORS_C.length],
+              opacity: t > 0.9 ? (1 - t) / 0.1 : t < 0.03 ? t / 0.03 : 1,
+              transform: [{ rotate: `${(rnd(i, 9) - 0.5) * 1100 * t}deg` }],
+            }}
+          />
+        );
       })}
     </View>
   );
@@ -342,7 +555,7 @@ export default function LifetimeWrappedScreen() {
     };
   }, []);
 
-  const active = beatAt(tMs);
+  const active = beatAt(tMs, story.beats);
   useEffect(() => {
     // A soft haptic on each new beat while playing.
     if (phase === 'playing') hSelection();
@@ -485,7 +698,7 @@ export default function LifetimeWrappedScreen() {
         <Pressable style={{ flex: 1 }} onPress={() => { setControlsShown((s) => !s); if (!controlsShown && phase === 'playing') scheduleHideControls(); }}>
           {/* the current scene */}
           <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-            <Scene story={story} kind={active.beat.kind} progress={active.progress} reduce={reduce} accent={accent} />
+            <Scene story={story} kind={active.beat.kind} progress={active.progress} reduce={reduce} accent={accent} dims={{ width, height }} />
           </View>
 
           {/* wave-masked bottom edge — Worldly signature */}
@@ -495,7 +708,7 @@ export default function LifetimeWrappedScreen() {
 
           {/* progress bar (beat ticks) */}
           <View style={{ position: 'absolute', top: 54, left: 16, right: 16, flexDirection: 'row', gap: 4, opacity: controlsShown ? 1 : 0.25 }}>
-            {BEATS.map((b, i) => {
+            {story.beats.map((b, i) => {
               const p = tMs <= b.startMs ? 0 : tMs >= b.endMs ? 1 : (tMs - b.startMs) / (b.endMs - b.startMs);
               return (
                 <View key={i} style={{ flex: b.endMs - b.startMs, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.28)', overflow: 'hidden' }}>
@@ -556,8 +769,12 @@ function sceneAnnouncement(kind: string, s: LifetimeStory): string {
   switch (kind) {
     case 'opening': return `${s.firstName}, this is your life in the world.`;
     case 'beginning': return s.origin.label;
-    case 'scale': return s.scale.map((m) => `${m.value} ${m.label}`).join(', ');
-    case 'explored': return s.explored.map((l) => l.headline).join('. ');
+    case 'continents': return `${s.continentsReveal.count} of 7 continents: ${s.continentsReveal.names.join(', ')}.`;
+    case 'countries': return `${s.countriesCount} ${s.countriesCount === 1 ? 'country' : 'countries'} on your map.`;
+    case 'cities': return `${s.citiesCount} ${s.citiesCount === 1 ? 'city' : 'cities'} explored.`;
+    case 'distance': return `${s.distance.mi.toLocaleString()} miles travelled${s.distance.laps >= 1 ? `, around the world ${s.distance.laps.toFixed(1)} times` : ''}.`;
+    case 'transport': return [s.transport.airline && `Most-flown airline ${s.transport.airline.label}`, s.transport.aircraft && `aircraft ${s.transport.aircraft.label}`, s.transport.delayMin > 0 && `${Math.round(s.transport.delayMin / 60)} hours lost to delays`].filter(Boolean).join('. ');
+    case 'journeys': return `Every journey drawn in order: ${s.routes.count} routes.`;
     case 'places': return `The places that shaped you: ${s.places.map((p) => p.name).join(', ')}.`;
     case 'discoveries': return s.discoveries.map((l) => l.headline).join('. ');
     case 'peak': return `Explorer level ${s.level.level}, ${s.level.title}. ${s.badges.length} achievements earned.`;
