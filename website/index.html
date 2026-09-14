@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,400;9..144,0,500;9..144,0,600;9..144,0,700;9..144,1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=8">
+  <link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body class="home">
 
@@ -23,7 +23,7 @@
 <nav>
   <div class="wrap nav-in">
     <a class="nav-logo" href="#" aria-label="Worldly home">
-      <img class="logo-light" src="assets/worldly-lockup-white.png" alt="Worldly">
+      <img src="assets/worldly-lockup.png" alt="Worldly">
     </a>
     <div class="nav-links">
       <a href="#features">Features</a>
@@ -126,8 +126,8 @@
         <h3>Trip planning</h3>
         <p>Day-by-day itineraries with your trip crew, ideas from your Circle, and automatic travel logging while you're away — even with the app closed.</p>
       </div>
-      <div class="feature reveal" style="--accent:#4DA6FF">
-        <div class="feature-icon sky"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4DA6FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></div>
+      <div class="feature reveal" style="--accent:#14213D">
+        <div class="feature-icon navy"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#14213D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></div>
         <h3>The Almanac</h3>
         <p>A beautifully typeset book of your travels — your photos, your routes, your story — exportable as a keepsake PDF that reads like it was written for you. Because it was.</p>
       </div>
@@ -205,7 +205,7 @@
 
 <footer>
   <div class="wrap foot">
-    <img src="assets/worldly-lockup-white.png" alt="Worldly">
+    <img src="assets/worldly-lockup.png" alt="Worldly">
     <div class="foot-links">
       <a href="#features">Features</a>
       <a href="#covers">Passport Covers</a>
@@ -288,23 +288,24 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // atmosphere glow
-      var atm = ctx.createRadialGradient(cx, cy, R * 0.86, cx, cy, R * 1.22);
-      atm.addColorStop(0, 'rgba(155,124,255,0.22)');
-      atm.addColorStop(0.5, 'rgba(255,107,154,0.12)');
+      var atm = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * 1.24);
+      atm.addColorStop(0, 'rgba(255,107,154,0.22)');
+      atm.addColorStop(0.5, 'rgba(155,124,255,0.14)');
       atm.addColorStop(1, 'rgba(155,124,255,0)');
-      ctx.fillStyle = atm; ctx.beginPath(); ctx.arc(cx, cy, R * 1.22, 0, 7); ctx.fill();
+      ctx.fillStyle = atm; ctx.beginPath(); ctx.arc(cx, cy, R * 1.24, 0, 7); ctx.fill();
 
-      // sphere body
-      var sph = ctx.createRadialGradient(cx - R*0.35, cy - R*0.4, R*0.1, cx, cy, R);
-      sph.addColorStop(0, '#1a2340'); sph.addColorStop(0.7, '#0d1327'); sph.addColorStop(1, '#080c18');
+      // sphere body (light)
+      var sph = ctx.createRadialGradient(cx - R*0.32, cy - R*0.4, R*0.1, cx, cy, R);
+      sph.addColorStop(0, '#ffffff'); sph.addColorStop(0.68, '#F3EFFB'); sph.addColorStop(1, '#E6E0F2');
       ctx.fillStyle = sph; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
+      ctx.strokeStyle = 'rgba(20,33,61,0.10)'; ctx.lineWidth = 1 * DPR; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
 
-      // dots
+      // dots (ink)
       for (var i = 0; i < dots.length; i++) {
         var p = project(dots[i]); if (!p.front) continue;
-        var a = 0.18 + p.depth * 0.5;
-        ctx.fillStyle = 'rgba(150,170,220,' + a.toFixed(3) + ')';
-        var s = (0.9 + p.depth * 1.1) * DPR;
+        var a = 0.10 + p.depth * 0.30;
+        ctx.fillStyle = 'rgba(20,33,61,' + a.toFixed(3) + ')';
+        var s = (0.9 + p.depth * 1.0) * DPR;
         ctx.beginPath(); ctx.arc(p.x, p.y, s, 0, 7); ctx.fill();
       }
 
@@ -316,8 +317,8 @@
           var p1 = project(pts[j]), p2 = project(pts[j+1]);
           if (!p1.front || !p2.front) continue;
           var near = 1 - Math.min(1, Math.abs(j - head) / 9);
-          var base = 0.10 + 0.16 * p1.depth;
-          ctx.strokeStyle = near > 0.02 ? 'rgba(255,140,180,' + (base + near*0.85).toFixed(3) + ')' : 'rgba(150,130,255,' + base.toFixed(3) + ')';
+          var base = 0.16 + 0.18 * p1.depth;
+          ctx.strokeStyle = near > 0.02 ? 'rgba(255,80,130,' + (base + near*0.8).toFixed(3) + ')' : 'rgba(150,120,255,' + base.toFixed(3) + ')';
           ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
         }
       }
@@ -330,7 +331,7 @@
         g.addColorStop(0, 'rgba(255,107,154,' + (0.7 * (0.5 + pp.depth/2)).toFixed(3) + ')');
         g.addColorStop(1, 'rgba(255,107,154,0)');
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(pp.x, pp.y, (7 + pulse*3) * DPR, 0, 7); ctx.fill();
-        ctx.fillStyle = 'rgba(255,225,235,' + (0.7 + pp.depth*0.3).toFixed(3) + ')';
+        ctx.fillStyle = 'rgba(255,70,120,' + (0.8 + pp.depth*0.2).toFixed(3) + ')';
         ctx.beginPath(); ctx.arc(pp.x, pp.y, 2 * DPR, 0, 7); ctx.fill();
       }
 
