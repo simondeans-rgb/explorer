@@ -38,9 +38,9 @@ try {
   liquidGlass = false;
 }
 
-// Adjusted brand palette (Coral, Aqua, Sunburst, Lavender, Sky) — the icons are
-// tinted to these exact colours so the nav matches the design system, and each
-// matches its section's hero wave line.
+// Adjusted brand palette (Coral, Aqua, Sunburst, Lavender, Sky) — the ACTIVE
+// tab is tinted to its section's colour (matching that section's hero wave
+// line); inactive tabs stay neutral.
 const TABS: TabDef[] = [
   { path: '/', label: 'Story', icon: ICONS.story, accent: SECTION.story },
   { path: '/atlas', label: 'Atlas', icon: ICONS.atlas, accent: SECTION.atlas },
@@ -59,6 +59,8 @@ export function GlobalTabBar({ onFab, onFabLongPress }: { onFab: () => void; onF
   const pathname = usePathname();
   const darkUI = useColorScheme() === 'dark';
   const reduce = useReduceMotion();
+  // Neutral ink for inactive tabs (static hexes — the image tint needs a plain colour).
+  const idle = darkUI ? '#A6ACC2' : '#5E6377';
 
   // This bar renders on every screen, so it's the one cheap place to observe
   // navigation for analytics without touching each route.
@@ -90,14 +92,15 @@ export function GlobalTabBar({ onFab, onFabLongPress }: { onFab: () => void; onF
         className="items-center justify-center"
         style={{ flex: 1 }}
       >
-        {/* Icons always full-colour (tinted to their palette hue); the active
-            tab is marked by a soft coloured pill behind it. */}
+        {/* A calm resting bar: inactive tabs sit in neutral ink, and only the
+            current tab takes its section colour (icon, label and soft pill) —
+            one accent on screen at a time, so the active tab is unmistakable. */}
         <View
           className="items-center justify-center"
           style={{ gap: 3, paddingVertical: 6, paddingHorizontal: 6, borderRadius: 18, backgroundColor: active ? def.accent + '26' : 'transparent' }}
         >
-          <Image source={def.icon} style={{ width: 32, height: 32 }} contentFit="contain" tintColor={def.accent} />
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: def.accent }}>{def.label}</Text>
+          <Image source={def.icon} style={{ width: 32, height: 32 }} contentFit="contain" tintColor={active ? def.accent : idle} />
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: active ? '800' : '600', color: active ? def.accent : idle }}>{def.label}</Text>
         </View>
       </Pressable>
     );

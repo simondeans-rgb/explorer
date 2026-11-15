@@ -32,6 +32,11 @@ export const COLORS = {
   ink3: dyn('#5E6377', '#9BA1B8'),
   white: '#FFFFFF',
   danger: '#F2557D', // brand-aligned destructive (coral-red, not finance red)
+  /** Small error / success TEXT on a light surface. Deeper than `danger`/`aqua`
+   *  so 12–13px copy clears 4.5:1 — use these for inline messages, and
+   *  `danger`/`aqua` for fills, icons and large type. */
+  errorText: dyn('#E0245E', '#FF7C9C'),
+  successText: dyn('#0E9F8F', '#3FDCCB'),
   /** Muted tile surface (locked badges etc.) + its glyph colour — a step off
    *  the card surface in both themes. */
   tileMuted: dyn('#EEF0F6', '#242C4B'),

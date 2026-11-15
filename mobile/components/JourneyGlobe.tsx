@@ -23,10 +23,10 @@ const OCEAN_DEEP = '#0D1B2E'; // dark navy (not pure black) — within brand pal
 const LAND = '#37836B';
 const LAND_STROKE = '#5FC0A2';
 const GRAT = 'rgba(150,180,255,0.10)';
-const ROUTE = '#FF6A8E';
+const ROUTE = '#FF6B9A'; // brand coral (COLORS.coral) — one coral across globe, charts and CTAs
 const ROUTE_EDGE = '#FFC2D2';
 // Choropleth fills for the Places globe (match the old flat map).
-const PLACE_VISITED = '#FF6A8E';
+const PLACE_VISITED = '#FF6B9A';
 const PLACE_VISITED_EDGE = '#FFC2D2';
 const PLACE_WISHLIST = '#A48BFF';
 

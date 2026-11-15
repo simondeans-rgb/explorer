@@ -230,7 +230,7 @@ export default function FriendsScreen() {
           </Pressable>
         </View>
         {message ? (
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: message.ok ? COLORS.aqua : '#E0245E', marginTop: 8 }}>{message.text}</Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: message.ok ? COLORS.successText : COLORS.errorText, marginTop: 8 }}>{message.text}</Text>
         ) : null}
       </View>
 
