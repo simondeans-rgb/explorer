@@ -168,7 +168,9 @@ function JourneyGlobeInner({
       }
       maxR = Math.max(maxR, Math.sin(th));
     }
-    const scale = maxR < 1e-3 ? MAX_R : Math.max(R, Math.min(MAX_R, (0.72 * R) / maxR));
+    // A lone point: a route map zooms right in, but a single visited country
+    // reads better as a gently enlarged globe than a wall of ocean.
+    const scale = maxR < 1e-3 ? (places ? R * 1.25 : MAX_R) : Math.max(R, Math.min(MAX_R, (0.72 * R) / maxR));
     const lat = Math.max(-72, Math.min(72, c[1]));
     // With zero pitch, screen-y depends only on latitude; this lands the centroid
     // at frame centre while keeping the axis vertical. Then clamp so the disc
@@ -178,7 +180,8 @@ function JourneyGlobeInner({
     const maxTY = scale;
     const translateY = minTY <= maxTY ? Math.max(minTY, Math.min(maxTY, desiredTY)) : CENTER;
     return { lon0: -c[0], globeR: scale, translateY, zoomed: scale > R + 1 };
-  }, [framePts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `places` only toggles the lone-point zoom
+  }, [framePts, !!places]);
 
   const [lon, setLon] = useState(lon0);
   const [lat, setLat] = useState(0); // pitch — 0 keeps north up; user drag tilts it

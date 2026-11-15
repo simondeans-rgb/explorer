@@ -39,6 +39,10 @@ export interface FlightExtreme {
   to: string;
   mi: number;
   date?: string;
+  /** Exact endpoint coordinates [lng, lat], so the route can be shown on the
+   *  globe without re-resolving the (cleaned, ambiguous) city labels. */
+  fromCoord?: [number, number];
+  toCoord?: [number, number];
 }
 
 export interface TravelStats {
@@ -186,7 +190,7 @@ export function computeTravelStats(expeditions: Expedition[]): TravelStats {
             timeInAirMin += Math.round(30 + (mi / 500) * 60);
             timeInAirEstimated = true;
           }
-          const extreme: FlightExtreme = { from: cleanLabel(j.from), to: cleanLabel(j.to), mi, date };
+          const extreme: FlightExtreme = { from: cleanLabel(j.from), to: cleanLabel(j.to), mi, date, fromCoord: from, toCoord: to };
           if (!longest || mi > longest.mi) longest = extreme;
           if (!shortest || mi < shortest.mi) shortest = extreme;
         }

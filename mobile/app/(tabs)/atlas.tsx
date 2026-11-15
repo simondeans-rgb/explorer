@@ -327,8 +327,8 @@ export default function AtlasScreen() {
 
   // Stats → globe: show one flight (longest/shortest) on the sphere.
   function showFlight(f: FlightExtreme) {
-    const from = resolveEndpoint(f.from);
-    const to = resolveEndpoint(f.to);
+    const from = f.fromCoord ?? resolveEndpoint(f.from);
+    const to = f.toCoord ?? resolveEndpoint(f.to);
     if (!from || !to) return;
     hImpact('light');
     const mid = geoInterpolate(from, to)(0.5) as [number, number];
@@ -546,7 +546,7 @@ export default function AtlasScreen() {
             </View>
           )}
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '700', color: '#fff', marginLeft: 'auto' }}>
-            {tab === 'places' ? 'Spin it · tap any country' : 'Spin it · tap a route'}
+            {tab === 'places' ? 'Tap any country' : 'Tap a route'}
           </Text>
         </View>
         <HeroWave />
