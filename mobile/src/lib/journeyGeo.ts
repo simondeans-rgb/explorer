@@ -80,10 +80,15 @@ export interface Segment {
   to: [number, number];
   /** Earliest date this route was flown (ISO), for the draw-on animation order. */
   date?: string;
+  /** Endpoint labels as the Member entered them ("London (LHR)"). */
+  fromLabel?: string;
+  toLabel?: string;
+  /** The (earliest) trip this route belongs to, when built from expeditions. */
+  expeditionId?: string;
 }
 
 /** Add a placeable flight leg into the dedup map (keeping the earliest date). */
-function addLeg(byKey: Map<string, Segment>, j: Pick<Journey, 'mode' | 'from' | 'to' | 'date'>, fallbackDate?: string): void {
+function addLeg(byKey: Map<string, Segment>, j: Pick<Journey, 'mode' | 'from' | 'to' | 'date'>, fallbackDate?: string, expeditionId?: string): void {
   if (j.mode !== 'flight') return;
   const from = resolveEndpoint(j.from);
   const to = resolveEndpoint(j.to);
@@ -93,10 +98,13 @@ function addLeg(byKey: Map<string, Segment>, j: Pick<Journey, 'mode' | 'from' | 
   const date = j.date || fallbackDate || undefined;
   const existing = byKey.get(key);
   if (existing) {
-    if (date && (!existing.date || date < existing.date)) existing.date = date;
+    if (date && (!existing.date || date < existing.date)) {
+      existing.date = date;
+      if (expeditionId) existing.expeditionId = expeditionId;
+    }
     return;
   }
-  byKey.set(key, { from, to, date });
+  byKey.set(key, { from, to, date, fromLabel: j.from, toLabel: j.to, expeditionId });
 }
 
 const byDateFirstFlown = (a: Segment, b: Segment) => (a.date ?? '9999').localeCompare(b.date ?? '9999');
@@ -113,7 +121,19 @@ export function journeyLegSegments(journeys: Pick<Journey, 'mode' | 'from' | 'to
 export function routeSegments(expeditions: Expedition[]): Segment[] {
   const byKey = new Map<string, Segment>();
   for (const e of expeditions) {
-    for (const j of e.journeys) addLeg(byKey, j, e.startDate);
+    for (const j of e.journeys) addLeg(byKey, j, e.startDate, e.id);
   }
   return [...byKey.values()].sort(byDateFirstFlown);
+}
+
+/** Best-effort coordinates [lng, lat] for a city within a country — used to pin
+ *  the cities you've been to on the globe and country maps. */
+export function cityCoord(countryCode: string, name: string): [number, number] | undefined {
+  const city = name.trim().toLowerCase();
+  if (!city) return undefined;
+  const exact = CITY_COORDS[`${countryCode}|${city}`];
+  if (exact) return exact;
+  // Fall back to a name-only match only when it's the same country, so a
+  // namesake abroad (Paris, Texas) never pins in the wrong place.
+  return COUNTRY_BY_CITY[city] === countryCode ? CITY_BY_NAME[city] : undefined;
 }

@@ -13,6 +13,7 @@ import {
   MOON_DISTANCE_MI,
   LONDON_NY_MI,
   type TravelStats,
+  type FlightExtreme,
 } from '../src/lib/travelStats';
 import type { Expedition } from '../src/types';
 import { useUnits } from '../src/store/units';
@@ -142,9 +143,16 @@ function CompareRow({ Icon, tint, multiple, label, frac }: { Icon: ComponentType
   );
 }
 
-function ExtremeRow({ title, f, unit }: { title: string; f: { from: string; to: string; mi: number; date?: string }; unit: DistanceUnit }) {
+function ExtremeRow({ title, f, unit, onPress }: { title: string; f: FlightExtreme; unit: DistanceUnit; onPress?: (f: FlightExtreme) => void }) {
   return (
-    <View className="flex-row items-center" style={{ gap: 8 }}>
+    <Pressable
+      disabled={!onPress}
+      onPress={onPress ? () => onPress(f) : undefined}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={onPress ? `${title.toLowerCase()}: ${f.from} to ${f.to}. Show on the globe` : undefined}
+      className="flex-row items-center"
+      style={{ gap: 8 }}
+    >
       <View style={{ flex: 1 }}>
         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, color: COLORS.ink3, fontWeight: '700' }}>{title}</Text>
         <View className="flex-row items-center" style={{ gap: 5, marginTop: 1 }}>
@@ -154,7 +162,8 @@ function ExtremeRow({ title, f, unit }: { title: string; f: { from: string; to: 
         </View>
       </View>
       <Text style={{ fontFamily: 'Fraunces', fontSize: 15, color: COLORS.navy }}>{group(convertMiles(f.mi, unit))} <Text style={{ fontSize: 11, color: COLORS.ink3 }}>{distanceUnitLabel(unit)}</Text></Text>
-    </View>
+      {onPress ? <Globe2 size={15} color={COLORS.lavender} /> : null}
+    </Pressable>
   );
 }
 
@@ -223,7 +232,17 @@ function PunctRow({ p, label }: { p: { airline: string; avgDelayMin: number; onT
 /** The Flighty-style stats block shown under the Journeys globe: flight counts,
  *  a per-year/month/weekday chart, distance flown with cosmic comparisons, the
  *  longest/shortest flight, and a tally of every other way you've travelled. */
-function JourneyStatsPanelInner({ expeditions }: { expeditions: Expedition[] }) {
+function JourneyStatsPanelInner({
+  expeditions,
+  onSelectYear,
+  onSelectFlight,
+}: {
+  expeditions: Expedition[];
+  /** Tap a year on the chart → the host rescopes the globe to it. */
+  onSelectYear?: (year: number) => void;
+  /** Tap the longest/shortest flight → the host flies the globe to that route. */
+  onSelectFlight?: (f: FlightExtreme) => void;
+}) {
   const stats: TravelStats = useMemo(() => computeTravelStats(expeditions), [expeditions]);
   const { unit } = useUnits();
   const [gran, setGran] = useState<Gran>(stats.yearsCovered.length > 1 ? 'year' : 'month');
@@ -298,7 +317,28 @@ function JourneyStatsPanelInner({ expeditions }: { expeditions: Expedition[] }) 
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11.5, color: COLORS.ink3 }}>Unlock the full dashboard with Explorer</Text>
                 </Pressable>
               ) : hasChartData ? (
-                <Chart values={chart.values} labels={chart.labels} kind={chart.kind} width={chartW} partialLast={chart.partialLast} />
+                <View>
+                  <Chart values={chart.values} labels={chart.labels} kind={chart.kind} width={chartW} partialLast={chart.partialLast} />
+                  {/* Stats ↔ globe: each year on the chart is a tap target that
+                      rescopes the globe above to that year. Mirrors Chart's
+                      x-scale (padL 26, padR 8). */}
+                  {gran === 'year' && onSelectYear && chart.labels.length > 1
+                    ? chart.labels.map((lab, i) => {
+                        const n = chart.labels.length;
+                        const innerW = Math.max(1, chartW - 26 - 8);
+                        const step = innerW / (n - 1);
+                        return (
+                          <Pressable
+                            key={lab}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Show ${lab} on the globe`}
+                            onPress={() => onSelectYear(Number(lab))}
+                            style={{ position: 'absolute', top: 0, bottom: 0, left: 26 + i * step - step / 2, width: step }}
+                          />
+                        );
+                      })
+                    : null}
+                </View>
               ) : (
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, textAlign: 'center', paddingVertical: 24 }}>
                   Add dates to your flights to see this chart.
@@ -306,6 +346,9 @@ function JourneyStatsPanelInner({ expeditions }: { expeditions: Expedition[] }) 
               )
             ) : null}
           </View>
+          {gran === 'year' && onSelectYear && hasChartData && !chartsGated && chart.labels.length > 1 ? (
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11.5, color: COLORS.ink3, textAlign: 'center', marginTop: 6 }}>Tap a year to see it on the globe</Text>
+          ) : null}
         </View>
       ) : null}
 
@@ -327,8 +370,8 @@ function JourneyStatsPanelInner({ expeditions }: { expeditions: Expedition[] }) 
 
           {stats.longest || stats.shortest ? (
             <View style={{ gap: 12, marginTop: 16, borderTopWidth: 1, borderTopColor: COLORS.tileMuted, paddingTop: 14 }}>
-              {stats.longest ? <ExtremeRow title="LONGEST FLIGHT" f={stats.longest} unit={unit} /> : null}
-              {stats.shortest && stats.shortest !== stats.longest ? <ExtremeRow title="SHORTEST FLIGHT" f={stats.shortest} unit={unit} /> : null}
+              {stats.longest ? <ExtremeRow title="LONGEST FLIGHT" f={stats.longest} unit={unit} onPress={onSelectFlight} /> : null}
+              {stats.shortest && stats.shortest !== stats.longest ? <ExtremeRow title="SHORTEST FLIGHT" f={stats.shortest} unit={unit} onPress={onSelectFlight} /> : null}
             </View>
           ) : null}
         </View>
