@@ -3,11 +3,13 @@ import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator } from 
 import { Image } from 'expo-image';
 import { useConfirm } from '../../src/store/confirm';
 import Svg, { Path } from 'react-native-svg';
-import { useLocalSearchParams } from 'expo-router';
-import { Trash2, Check, Camera, ImagePlus, X } from 'lucide-react-native';
+import { useLocalSearchParams, router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Trash2, Check, Camera, ImagePlus, X, Pencil, MapPin, ChevronRight } from 'lucide-react-native';
 import { BackButton } from '../../components/BackButton';
 import { DestinationImage } from '../../components/DestinationImage';
-import { COLORS } from '../../src/lib/theme';
+import { BRAND_GRADIENT, COLORS, SHADOW, tint } from '../../src/lib/theme';
+import { countryName } from '../../src/data/countries';
 import { countryFacts } from '../../src/data/countryFacts';
 import { pickPhotoDataUrl } from '../../src/lib/photo';
 import { goBack } from '../../src/lib/nav';
@@ -27,7 +29,7 @@ import { DetailSkeleton } from '../../components/DetailSkeleton';
 import { useToast } from '../../src/store/toast';
 
 export default function DiscoveryScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
   const { discoveries, updateDiscovery, removeDiscovery, expeditions, loaded } = useData();
   const { toast } = useToast();
   const confirm = useConfirm();
@@ -46,6 +48,8 @@ export default function DiscoveryScreen() {
   const [picking, setPicking] = useState(false);
   const [saving, setSaving] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  // Opens as the discovery itself; the form is behind Edit (?edit=1 opens it directly).
+  const [editing, setEditing] = useState(edit === '1');
 
   // Seed the form once from the loaded discovery.
   useEffect(() => {
@@ -94,7 +98,8 @@ export default function DiscoveryScreen() {
         photo,
       });
       toast.success('Changes saved');
-      goBack();
+      setSaving(false);
+      setEditing(false);
     } catch {
       setSaving(false);
       toast.error("Couldn't save — check your connection and try again.");
@@ -128,11 +133,20 @@ export default function DiscoveryScreen() {
         {/* Hero */}
         <DestinationImage code={code || 'WW'} scrim style={{ position: 'relative', paddingTop: 60, paddingBottom: 46, minHeight: 180, justifyContent: 'flex-end' }}>
           <BackButton onPress={goBack} style={{ position: 'absolute', top: 60, left: 20, zIndex: 20 }} />
-          <Pressable onPress={confirmDelete} accessibilityRole="button" accessibilityLabel="Delete discovery" hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, right: 20, zIndex: 20 }}>
-            <Trash2 size={18} color="#fff" />
-          </Pressable>
+          {editing ? (
+            <Pressable onPress={confirmDelete} accessibilityRole="button" accessibilityLabel="Delete discovery" hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, right: 20, zIndex: 20 }}>
+              <Trash2 size={18} color="#fff" />
+            </Pressable>
+          ) : (
+            <Pressable onPress={() => setEditing(true)} accessibilityRole="button" accessibilityLabel="Edit discovery" hitSlop={10} className="flex-row items-center rounded-full bg-white/20" style={{ position: 'absolute', top: 60, right: 20, zIndex: 20, paddingHorizontal: 13, paddingVertical: 8, gap: 6 }}>
+              <Pencil size={14} color="#fff" />
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: '#fff' }}>Edit</Text>
+            </Pressable>
+          )}
           <View style={{ paddingHorizontal: 20 }}>
-            <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1, opacity: 0.9 }}>EDIT DISCOVERY</Text>
+            <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1, opacity: 0.9 }}>
+              {editing ? 'EDIT DISCOVERY' : DISCOVERY_CATEGORY_META[discovery.category].label.toUpperCase()}
+            </Text>
             <Text numberOfLines={2} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 30, marginTop: 2 }}>{name || discovery.name}</Text>
           </View>
           <Svg width="100%" height={42} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
@@ -140,6 +154,63 @@ export default function DiscoveryScreen() {
           </Svg>
         </DestinationImage>
 
+        {!editing ? (
+          <View style={{ paddingHorizontal: 20, marginTop: 14, gap: 14 }}>
+            {discovery.photo ? (
+              <Image source={{ uri: discovery.photo }} style={{ width: '100%', height: 240, borderRadius: 24 }} contentFit="cover" transition={200} />
+            ) : null}
+            <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+              {discovery.verdict ? (
+                <View className="rounded-full" style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: tint(COLORS.coral, 0.12) }}>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '800', color: COLORS.coral }}>{VERDICT_META[discovery.verdict].label}</Text>
+                </View>
+              ) : null}
+              {discovery.city || discovery.countryCode ? (
+                <Pressable
+                  disabled={!discovery.countryCode}
+                  onPress={() => router.push(`/country/${discovery.countryCode}`)}
+                  accessibilityRole={discovery.countryCode ? 'button' : undefined}
+                  className="flex-row items-center rounded-full bg-white dark:bg-card"
+                  style={{ paddingHorizontal: 12, paddingVertical: 6, gap: 5, ...SHADOW.card }}
+                >
+                  <MapPin size={13} color={COLORS.ink3} />
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '700', color: COLORS.ink2 }}>
+                    {[discovery.city, discovery.countryCode ? countryName(discovery.countryCode) : null].filter(Boolean).join(', ')}
+                  </Text>
+                </Pressable>
+              ) : null}
+              {discovery.landmark ? (
+                <View className="rounded-full" style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: COLORS.tileMuted }}>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '700', color: COLORS.ink2 }}>{discovery.landmark}</Text>
+                </View>
+              ) : null}
+            </View>
+            {discovery.note ? (
+              <View style={{ paddingLeft: 14, borderLeftWidth: 3, borderLeftColor: COLORS.coral }}>
+                <Text style={{ fontFamily: 'Fraunces', fontSize: 19, lineHeight: 28, color: COLORS.ink2 }}>{discovery.note}</Text>
+              </View>
+            ) : (
+              <Pressable onPress={() => setEditing(true)} accessibilityRole="button">
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink3 }}>No note yet — <Text style={{ fontWeight: '700', color: COLORS.coral }}>add a line to remember it by</Text></Text>
+              </Pressable>
+            )}
+            {(() => {
+              const trip = expeditions.find((e) => e.id === discovery.expeditionId);
+              return trip ? (
+                <Pressable onPress={() => router.push(`/journey/${trip.id}`)} accessibilityRole="button" accessibilityLabel={`From the trip ${trip.title}. Open it`} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 14, gap: 12, ...SHADOW.card }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: COLORS.ink3 }}>FROM THE TRIP</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy, marginTop: 1 }}>{trip.title}</Text>
+                  </View>
+                  <ChevronRight size={18} color={COLORS.ink3} />
+                </Pressable>
+              ) : null;
+            })()}
+          </View>
+        ) : null}
+
+        {editing ? (
+        <>
         {/* name */}
         <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 14 }}>
           <TextInput value={name} onChangeText={setName} placeholder="Name" placeholderTextColor={COLORS.ink3} style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />
@@ -248,14 +319,18 @@ export default function DiscoveryScreen() {
           <TextInput value={note} onChangeText={setNote} placeholder="A line to remember it by" placeholderTextColor={COLORS.ink3} multiline style={{ fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink, minHeight: 48 }} />
         </View>
 
-        <Pressable onPress={save} disabled={!name.trim() || saving} className="rounded-2xl items-center justify-center flex-row" style={{ marginHorizontal: 20, marginTop: 18, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: name.trim() && !saving ? 1 : 0.4, gap: 8 }}>
-          {saving ? <ActivityIndicator color="#fff" /> : (
-            <>
-              <Check size={18} color="#fff" />
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Save changes</Text>
-            </>
-          )}
+        <Pressable onPress={save} disabled={!name.trim() || saving} accessibilityRole="button" accessibilityLabel="Save changes" style={{ marginHorizontal: 20, marginTop: 18, borderRadius: 18, overflow: 'hidden', opacity: name.trim() && !saving ? 1 : 0.5 }}>
+          <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, gap: 8 }}>
+            {saving ? <ActivityIndicator color="#fff" /> : (
+              <>
+                <Check size={18} color="#fff" />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Save changes</Text>
+              </>
+            )}
+          </LinearGradient>
         </Pressable>
+        </>
+        ) : null}
       </ScrollView>
     </View>
   );
