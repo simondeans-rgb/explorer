@@ -21,6 +21,8 @@ import { JourneyStatsPanel } from '../../components/JourneyStatsPanel';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AtlasCountryCard } from '../../components/AtlasCountryCard';
 import { AtlasSummary } from '../../components/AtlasSummary';
+import { MapPoster } from '../../components/MapPoster';
+import { shareViewAsPng } from '../../src/lib/shareImage';
 import { DiscoveryScoreSheet } from '../../components/DiscoveryScoreSheet';
 import { COLORS, SHADOW } from '../../src/lib/theme';
 import { WORLD_FEATURES } from '../../src/lib/worldGeo';
@@ -187,10 +189,15 @@ export default function AtlasScreen() {
 
   const { user } = useAuth();
   const [sharing, setSharing] = useState(false);
+  const posterRef = useRef<View>(null);
+  const allVisited = useMemo(() => new Set(discovered.map((a) => a.code)), [discovered]);
   async function shareMap() {
     if (sharing) return;
     setSharing(true);
     try {
+      // Share the globe-styled image (previews inline in Messages/Instagram);
+      // fall back to the PDF poster on binaries without the capture module.
+      if (posterRef.current && (await shareViewAsPng(posterRef.current, 'Share your world'))) return;
       await shareMapPoster({
         firstName: user?.displayName || (user?.email ? user.email.split('@')[0] : 'Explorer'),
         countries: stats.countriesDiscovered,
@@ -693,6 +700,21 @@ export default function AtlasScreen() {
         ) : null}
       </View>
     </ScrollView>
+    {/* Off-screen share poster, captured to a PNG by shareMap(). */}
+    {discovered.length > 0 ? (
+      <View pointerEvents="none" style={{ position: 'absolute', left: -9999, top: 0 }}>
+        <MapPoster
+          ref={posterRef}
+          firstName={user?.displayName || (user?.email ? user.email.split('@')[0] : 'Explorer')}
+          countries={stats.countriesDiscovered}
+          cities={stats.citiesDiscovered}
+          continents={stats.continentsDiscovered}
+          pct={worldPct}
+          visited={allVisited}
+          flagCodes={stats.flagCodes}
+        />
+      </View>
+    ) : null}
     <DiscoveryScoreSheet visible={!!scoreAgg} onClose={() => setScoreAgg(null)} aggregate={scoreAgg} />
     </View>
   );

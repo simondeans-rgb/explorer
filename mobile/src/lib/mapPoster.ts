@@ -72,7 +72,7 @@ export function buildMapPosterHtml(input: MapPosterInput): string {
       <div class="stat"><div class="n">${input.cities}</div><div class="l">CITIES</div></div>
     </div>
     <div class="flags">${flags}</div>
-    <div class="footer">worldly &middot; your travel story</div>
+    <div class="footer">worldly &middot; start your own map at worldly-explorer.com</div>
   </div></body></html>`;
 }
 
