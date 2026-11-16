@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { CtaGradient } from '../components/CtaGradient';
 import { View, Text, ScrollView, Pressable, TextInput, Share, ActivityIndicator, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
@@ -133,7 +134,8 @@ export default function FriendsScreen() {
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink3, marginTop: 6, textAlign: 'center', maxWidth: 300 }}>
               Sign in to get your share code, follow friends, and see their travels.
             </Text>
-            <Pressable onPress={() => setAuthOpen(true)} className="rounded-2xl items-center" style={{ marginTop: 20, paddingVertical: 14, paddingHorizontal: 28, backgroundColor: COLORS.coral }}>
+            <Pressable onPress={() => setAuthOpen(true)} className="rounded-2xl items-center" style={{ marginTop: 20, paddingVertical: 14, paddingHorizontal: 28, backgroundColor: COLORS.coral, overflow: 'hidden' }}>
+              <CtaGradient />
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Sign in</Text>
             </Pressable>
           </View>

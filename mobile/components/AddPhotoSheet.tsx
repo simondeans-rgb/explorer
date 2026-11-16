@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { CtaGradient } from './CtaGradient';
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import { Camera, ImagePlus, Check, X, MapPin } from 'lucide-react-native';
@@ -251,8 +252,9 @@ export function AddPhotoSheet({
           onPress={save}
           disabled={!photo || saving}
           className="rounded-2xl items-center justify-center flex-row"
-          style={{ marginHorizontal: 20, marginTop: 18, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: photo && !saving ? 1 : 0.4, gap: 8 }}
+          style={{ marginHorizontal: 20, marginTop: 18, paddingVertical: 15, backgroundColor: COLORS.coral, overflow: 'hidden', opacity: photo && !saving ? 1 : 0.4, gap: 8 }}
         >
+          <CtaGradient />
           {saving ? (
             <ActivityIndicator color="#fff" />
           ) : (

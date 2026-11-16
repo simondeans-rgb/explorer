@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CtaGradient } from './CtaGradient';
 import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
@@ -72,7 +73,8 @@ export function AddItinerarySheet({ tripId, visible, onClose, day, slot }: { tri
           </>
         ) : null}
 
-        <Pressable onPress={save} disabled={!name.trim()} className="rounded-2xl items-center justify-center flex-row" style={{ marginHorizontal: 20, marginTop: 18, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: name.trim() ? 1 : 0.4, gap: 8 }}>
+        <Pressable onPress={save} disabled={!name.trim()} className="rounded-2xl items-center justify-center flex-row" style={{ marginHorizontal: 20, marginTop: 18, paddingVertical: 15, backgroundColor: COLORS.coral, overflow: 'hidden', opacity: name.trim() ? 1 : 0.4, gap: 8 }}>
+          <CtaGradient />
           <Check size={18} color="#fff" />
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Add to itinerary</Text>
         </Pressable>

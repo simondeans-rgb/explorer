@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { CtaGradient } from './CtaGradient';
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import {
@@ -383,8 +384,9 @@ export function AddDiscoverySheet({
           onPress={save}
           disabled={!name.trim() || saving}
           className="rounded-2xl items-center justify-center flex-row"
-          style={{ marginHorizontal: 20, marginTop: 20, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: name.trim() && !saving ? 1 : 0.4, gap: 8 }}
+          style={{ marginHorizontal: 20, marginTop: 20, paddingVertical: 15, backgroundColor: COLORS.coral, overflow: 'hidden', opacity: name.trim() && !saving ? 1 : 0.4, gap: 8 }}
         >
+          <CtaGradient />
           {saving ? (
             <ActivityIndicator color="#fff" />
           ) : (
