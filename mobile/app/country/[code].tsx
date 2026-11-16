@@ -19,6 +19,8 @@ import type { ComponentType } from 'react';
 import { AddDiscoverySheet } from '../../components/AddDiscoverySheet';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
 import { DestinationImage } from '../../components/DestinationImage';
+import { CountryMap, type CountryMapPin } from '../../components/CountryMap';
+import { cityCoord } from '../../src/lib/journeyGeo';
 import { BackButton } from '../../components/BackButton';
 import { PassportStamp } from '../../components/PassportStamp';
 import { DiscoveryCard } from '../../components/DiscoveryCard';
@@ -97,6 +99,10 @@ function Fact({ icon: Icon, label, value, tint = COLORS.coral }: { icon: Compone
   );
 }
 
+// A warm→cool ramp that deliberately avoids brand coral, which is reserved for
+// actions — so a hot month never reads as a button.
+const TEMP_HOT = '#F0803C';
+
 function TempChart({ temps, tempUnit }: { temps: number[]; tempUnit: TempUnit }) {
   const max = Math.max(...temps, 1);
   const min = Math.min(...temps, 0);
@@ -110,7 +116,7 @@ function TempChart({ temps, tempUnit }: { temps: number[]; tempUnit: TempUnit })
           return (
             <View key={i} style={{ flex: 1, alignItems: 'center' }}>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.ink2, marginBottom: 3 }}>{convertCelsius(t, tempUnit)}°</Text>
-              <View style={{ width: '100%', height: h, borderRadius: 4, backgroundColor: t >= 24 ? COLORS.coral : t >= 12 ? COLORS.sunburst : COLORS.aqua }} />
+              <View style={{ width: '100%', height: h, borderRadius: 4, backgroundColor: t >= 24 ? TEMP_HOT : t >= 12 ? COLORS.sunburst : COLORS.sky }} />
             </View>
           );
         })}
@@ -330,6 +336,40 @@ export default function CountryScreen() {
   const rels = (agg?.relationships ?? []).filter((r) => r !== 'aspiring');
   const cities = agg?.cities ?? [];
 
+  // Your footprint here: each city you've been to (or have a memory from),
+  // placed on the map. A city with photos shows its latest as the marker.
+  const mapPins = useMemo<CountryMapPin[]>(() => {
+    const byCity = new Map<string, CountryMapPin>();
+    for (const c of cities) {
+      const co = cityCoord(code, c.name);
+      if (co) byCity.set(c.name.trim().toLowerCase(), { id: `city:${c.id}`, label: c.name, lon: co[0], lat: co[1] });
+    }
+    for (const ph of myPhotos) {
+      if (!ph.city) continue;
+      const key = ph.city.trim().toLowerCase();
+      let pin = byCity.get(key);
+      if (!pin) {
+        const co = cityCoord(code, ph.city);
+        if (!co) continue;
+        pin = { id: `photo:${key}`, label: ph.city, lon: co[0], lat: co[1] };
+        byCity.set(key, pin);
+      }
+      if (!pin.photo) pin.photo = ph.dataUrl;
+      pin.photoCount = (pin.photoCount ?? 0) + 1;
+    }
+    return [...byCity.values()];
+  }, [cities, myPhotos, code]);
+  function onMapPin(pin: CountryMapPin) {
+    const key = pin.label.trim().toLowerCase();
+    const photo = myPhotos.find((ph) => ph.city?.trim().toLowerCase() === key);
+    if (photo) {
+      router.push(`/memory/${photo.id}`);
+      return;
+    }
+    const city = cities.find((c) => c.name.trim().toLowerCase() === key);
+    if (city) setEditCity(city);
+  }
+
   // Open the rich detail sheet for a landmark — your saved note + any friends'.
   function openLandmarkDetail(landmark: string) {
     const recorded = myDiscoveries.find((d) => d.landmark === landmark || d.name.toLowerCase() === landmark.toLowerCase());
@@ -373,6 +413,18 @@ export default function CountryScreen() {
             <Camera size={16} color={COLORS.coral} />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.navy }}>Photo</Text>
           </Pressable>
+        </View>
+
+        {/* Your footprint — the country on the globe, with your places pinned */}
+        <View style={{ paddingHorizontal: 20, marginTop: 14 }}>
+          <CountryMap code={code} pins={mapPins} discovered={rels.length > 0} onPressPin={onMapPin} />
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 8, paddingHorizontal: 4 }}>
+            {mapPins.length > 0
+              ? `${mapPins.length} ${mapPins.length === 1 ? 'place' : 'places'} on your map — tap a pin to open it`
+              : rels.length > 0
+                ? 'Add the cities you’ve been to and they’ll appear here as pins.'
+                : 'Not on your map yet — add it when you’ve been.'}
+          </Text>
         </View>
 
         {/* About */}

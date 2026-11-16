@@ -5,6 +5,7 @@
 import { AIRPORT_COORDS, CITY_COORDS } from '../data/airportCoords';
 import { ALL_AIRPORTS, airportInfo } from '../data/airports';
 import type { Expedition, Journey } from '../types';
+import { cityCoordinates } from './cityLookup';
 
 /** Pull an IATA code from a label like "London (LHR)" or a bare "LHR". */
 export function iataOf(label?: string): string | undefined {
@@ -135,5 +136,7 @@ export function cityCoord(countryCode: string, name: string): [number, number] |
   if (exact) return exact;
   // Fall back to a name-only match only when it's the same country, so a
   // namesake abroad (Paris, Texas) never pins in the wrong place.
-  return COUNTRY_BY_CITY[city] === countryCode ? CITY_BY_NAME[city] : undefined;
+  if (COUNTRY_BY_CITY[city] === countryCode && CITY_BY_NAME[city]) return CITY_BY_NAME[city];
+  // No airport of its own (Kyoto, Florence…): try the city gazetteer.
+  return cityCoordinates(name, countryCode);
 }
