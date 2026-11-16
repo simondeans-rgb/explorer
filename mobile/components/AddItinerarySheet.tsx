@@ -3,10 +3,13 @@ import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
 import { COLORS } from '../src/lib/theme';
-import { DISCOVERY_CATEGORIES, DISCOVERY_CATEGORY_META, DISCOVERY_SUBCATEGORIES, type DiscoveryCategory } from '../src/types';
+import { DISCOVERY_CATEGORIES, DISCOVERY_CATEGORY_META, DISCOVERY_SUBCATEGORIES, ITINERARY_SLOTS, type DiscoveryCategory, type ItinerarySlot } from '../src/types';
 import { useData } from '../src/store/data';
 
-export function AddItinerarySheet({ tripId, visible, onClose }: { tripId: string; visible: boolean; onClose: () => void }) {
+/** Add something to a trip's itinerary. Pass `day` + `slot` (from tapping a
+ *  time slot in the planner) to drop it straight into that part of the day;
+ *  otherwise it lands in the ideas tray. */
+export function AddItinerarySheet({ tripId, visible, onClose, day, slot }: { tripId: string; visible: boolean; onClose: () => void; day?: number; slot?: ItinerarySlot }) {
   const { addItineraryItem } = useData();
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
@@ -25,12 +28,12 @@ export function AddItinerarySheet({ tripId, visible, onClose }: { tripId: string
   }
   function save() {
     if (!name.trim()) return;
-    addItineraryItem(tripId, { name: name.trim(), city: city.trim() || undefined, category, subcategory });
+    addItineraryItem(tripId, { name: name.trim(), city: city.trim() || undefined, category, subcategory, ...(day && slot ? { day, slot } : {}) });
     close();
   }
 
   return (
-    <SheetShell visible={visible} title="Add to itinerary" onClose={close}>
+    <SheetShell visible={visible} title={day && slot ? `Day ${day} · ${ITINERARY_SLOTS.find((s) => s.id === slot)?.label ?? 'Plan'}` : 'Add to itinerary'} onClose={close}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 8 }}>
         <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 4 }}>
           <TextInput value={name} onChangeText={setName} placeholder="What do you want to do/see?" placeholderTextColor={COLORS.ink3} style={{ fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }} />

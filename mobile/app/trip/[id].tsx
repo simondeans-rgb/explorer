@@ -20,7 +20,7 @@ import { shareItineraryPdf } from '../../src/lib/itineraryPdf';
 import { track } from '../../src/lib/analytics';
 import { detectLocation } from '../../src/lib/checkIn';
 import { useData } from '../../src/store/data';
-import { primaryCode, daysToGo } from '../../src/lib/tripPhase';
+import { primaryCode, daysToGo, tripPhase } from '../../src/lib/tripPhase';
 import { useToast } from '../../src/store/toast';
 import { useAuth } from '../../src/store/auth';
 import { useFriends } from '../../src/hooks/useFriends';
@@ -37,6 +37,8 @@ export default function TripScreen() {
   const myName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
   const { friends, friendsData } = useFriends(user?.uid, myName);
   const [addOpen, setAddOpen] = useState(false);
+  // When adding from a planner slot, drop the new item straight into it.
+  const [addTarget, setAddTarget] = useState<{ day: number; slot: import('../../src/types').ItinerarySlot } | null>(null);
   const [crewOpen, setCrewOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -114,6 +116,7 @@ export default function TripScreen() {
   const tItinerary = trip.itinerary ?? [];
   const tMembers = trip.memberIds ?? [trip.userId];
   const days = daysToGo(trip, new Date().toISOString().slice(0, 10));
+  const phase = tripPhase(trip, new Date().toISOString().slice(0, 10));
   const itineraryNames = new Set(tItinerary.map((i) => i.name.toLowerCase()));
 
   // Number of days in the trip (defaults to 3 when no end date is set).
@@ -276,7 +279,11 @@ export default function TripScreen() {
                 <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 15, letterSpacing: 2, opacity: 0.92, marginBottom: 8, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 7 }}>{days === 1 ? 'DAY TO GO' : 'DAYS TO GO'}</Text>
               </View>
             ) : (
-              <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13, letterSpacing: 2, opacity: 0.92, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 7 }}>HAPPENING NOW</Text>
+              <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13, letterSpacing: 2, opacity: 0.92, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 7 }}>
+                {/* Only a trip that's actually underway is "happening now" — a
+                    finished one says when it was. */}
+                {phase === 'past' ? 'TRAVELLED' : 'HAPPENING NOW'}
+              </Text>
             )}
             <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 34, marginTop: 8 }}>{trip.title}</Text>
             <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95, marginTop: 2 }}>
@@ -437,12 +444,12 @@ export default function TripScreen() {
         <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
           <View className="flex-row items-center justify-between" style={{ marginBottom: 6 }}>
             <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Plan your days</Text>
-            <Pressable onPress={() => setAddOpen(true)} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 12, paddingVertical: 7, gap: 5 }}>
+            <Pressable onPress={() => { setAddTarget(null); setAddOpen(true); }} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 12, paddingVertical: 7, gap: 5 }}>
               <Plus size={14} color={COLORS.coral} />
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>Add idea</Text>
             </Pressable>
           </View>
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginBottom: 14, lineHeight: 17 }}>Long-press a card and drag it onto a day &amp; time. Tap to see details.</Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginBottom: 14, lineHeight: 17 }}>Tap ＋ on any part of the day to add to it, or long-press a card and drag it where it belongs.</Text>
 
           <ItineraryPlanner
             startDate={trip.startDate}
@@ -456,6 +463,7 @@ export default function TripScreen() {
             onDayNote={(d, t) => setDayNote(trip.id, d, t)}
             onOpenItem={(i) => openDetail(i.name, undefined, i.city)}
             onOpenSuggestion={(s) => openDetail(s.name, s.photo, s.city)}
+            onAddToSlot={(d, slot) => { setAddTarget({ day: d, slot }); setAddOpen(true); }}
           />
 
           <Pressable onPress={exportPdf} disabled={exporting} accessibilityRole="button" accessibilityLabel="Export itinerary as PDF" className="flex-row items-center justify-center rounded-full" style={{ alignSelf: 'center', marginTop: 18, paddingHorizontal: 18, paddingVertical: 10, gap: 7, backgroundColor: 'rgba(20,33,61,0.05)', opacity: exporting ? 0.6 : 1 }}>
@@ -478,7 +486,7 @@ export default function TripScreen() {
         friends={detail?.friends ?? []}
       />
 
-      <AddItinerarySheet tripId={trip.id} visible={addOpen} onClose={() => setAddOpen(false)} />
+      <AddItinerarySheet tripId={trip.id} visible={addOpen} onClose={() => setAddOpen(false)} day={addTarget?.day} slot={addTarget?.slot} />
     </View>
   );
 }
