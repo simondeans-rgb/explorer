@@ -109,28 +109,11 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
               ) : null}
 
               {error ? (
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: '#E0245E', marginTop: 14 }}>{error}</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.errorText, marginTop: 14 }}>{error}</Text>
               ) : null}
               {notice ? (
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: '#0E9F8F', marginTop: 14 }}>{notice}</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.successText, marginTop: 14 }}>{notice}</Text>
               ) : null}
-
-              <Pressable onPress={submit} disabled={busy} style={{ marginTop: error || notice || mode === 'in' ? 16 : 18, borderRadius: 18, overflow: 'hidden', opacity: busy ? 0.7 : 1 }}>
-                <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 }}>
-                  {busy ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <>
-                      <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff', flexShrink: 1 }}>
-                        {mode === 'in' ? 'Sign in' : 'Create account'}
-                      </Text>
-                      <ArrowRight size={18} color="#fff" />
-                    </>
-                  )}
-                </LinearGradient>
-              </Pressable>
-
-              <SocialAuthButtons onError={setError} onBusyChange={setBusy} guard={ensureAgreed} />
 
               {/* Guideline 1.2: explicit terms + zero-tolerance agreement, shown
                   before any sign-in path and required to proceed. */}
@@ -140,7 +123,7 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
                 accessibilityState={{ checked: agreed }}
                 accessibilityLabel="Agree to the Terms of Use and zero-tolerance policy"
                 className="flex-row"
-                style={{ marginTop: 18, gap: 10, alignItems: 'flex-start' }}
+                style={{ marginTop: 16, gap: 10, alignItems: 'flex-start' }}
               >
                 <View
                   className="items-center justify-center rounded-md"
@@ -156,6 +139,23 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
                   , and understand that Worldly has zero tolerance for objectionable content or abusive behaviour.
                 </Text>
               </Pressable>
+
+              <Pressable onPress={submit} disabled={busy} accessibilityRole="button" accessibilityLabel={mode === 'in' ? 'Sign in' : 'Create account'} accessibilityState={{ disabled: busy, busy }} style={{ marginTop: 16, borderRadius: 18, overflow: 'hidden', opacity: busy ? 0.7 : agreed ? 1 : 0.55 }}>
+                <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 }}>
+                  {busy ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff', flexShrink: 1 }}>
+                        {mode === 'in' ? 'Sign in' : 'Create account'}
+                      </Text>
+                      <ArrowRight size={18} color="#fff" />
+                    </>
+                  )}
+                </LinearGradient>
+              </Pressable>
+
+              <SocialAuthButtons onError={setError} onBusyChange={setBusy} guard={ensureAgreed} />
 
               <Pressable onPress={switchMode} style={{ marginTop: 16, alignItems: 'center' }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, color: COLORS.ink2 }}>

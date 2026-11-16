@@ -1,5 +1,7 @@
 // Worldly Cloud Functions — push a heads-up to your circle when you log new
-// travel, and to your trip crew when a shared itinerary changes. Triggered on
+// travel, to your trip crew when a shared itinerary changes, and — most
+// importantly — to YOU when a friend responds to you (a reply, a like, a
+// circle request, an accepted request). Triggered on
 // Firestore writes; sent via the Expo push service. Per-key cooldowns keep
 // bursts (imports, drag-reorders) from flooding everyone.
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
@@ -121,4 +123,64 @@ export const onTripUpdated = onDocumentUpdated('trips/{id}', async (event) => {
   const actorName = (actor && names[actor]) || (actor ? await nameOf(actor) : 'A crew member');
   const title = (after.title as string) || 'your trip';
   await sendPush(tokens, '🗺️ Trip updated', `${actorName} updated the “${title}” itinerary.`);
+});
+
+// ── Direct social signals ────────────────────────────────────────────────────
+// These are the notifications that build a circle: someone responded to *you*.
+// They go to one person, so they skip the broadcast cooldown and use a short
+// per-pair throttle instead (so a flurry of likes is one buzz, not ten).
+
+/** Push to a single member (respecting their friend-activity preference). */
+async function notifyUser(uid: string, title: string, body: string): Promise<void> {
+  await sendPush(await tokensFor([uid], 'friendActivity'), title, body);
+}
+
+/** The owner + caption of a capture (photo memory), or null if it's gone. */
+async function captureOwner(captureId: string): Promise<{ uid: string; caption?: string } | null> {
+  const c = (await db.collection('captures').doc(captureId).get()).data();
+  return c?.userId ? { uid: c.userId as string, caption: (c.caption as string) || undefined } : null;
+}
+
+const clip = (text: string, n: number) => (text.length > n ? `${text.slice(0, n - 1).trimEnd()}…` : text);
+
+/** A friend replied to one of your memories. */
+export const onReplyCreated = onDocumentCreated('replies/{id}', async (event) => {
+  const d = event.data?.data();
+  if (!d || typeof d.captureId !== 'string' || typeof d.uid !== 'string') return;
+  const owner = await captureOwner(d.captureId);
+  if (!owner || owner.uid === d.uid) return; // gone, or replying to yourself
+  if (await onCooldown(`reply_${owner.uid}_${d.uid}`, 60 * 1000)) return;
+  const text = typeof d.text === 'string' ? clip(d.text.trim(), 90) : '';
+  await notifyUser(owner.uid, `💬 ${await nameOf(d.uid)} replied`, text ? `“${text}”` : 'Tap to see what they said.');
+});
+
+/** A friend liked one of your memories. */
+export const onLikeCreated = onDocumentCreated('likes/{id}', async (event) => {
+  const d = event.data?.data();
+  if (!d || typeof d.captureId !== 'string' || typeof d.uid !== 'string') return;
+  const owner = await captureOwner(d.captureId);
+  if (!owner || owner.uid === d.uid) return;
+  if (await onCooldown(`like_${owner.uid}_${d.uid}`, 10 * 60 * 1000)) return;
+  const about = owner.caption ? `“${clip(owner.caption, 60)}”` : 'your memory';
+  await notifyUser(owner.uid, '❤️ New love for your memory', `${await nameOf(d.uid)} loved ${about}.`);
+});
+
+/** Someone asked to join your circle. */
+export const onConnectionCreated = onDocumentCreated('connections/{id}', async (event) => {
+  const d = event.data?.data();
+  if (!d || d.status !== 'pending' || typeof d.requestedBy !== 'string') return;
+  const recipient = ((d.members as string[]) || []).find((m) => m !== d.requestedBy);
+  if (!recipient) return;
+  await notifyUser(recipient, '👋 New circle request', `${await nameOf(d.requestedBy)} wants to share travels with you.`);
+});
+
+/** Your circle request was accepted. */
+export const onConnectionAccepted = onDocumentUpdated('connections/{id}', async (event) => {
+  const before = event.data?.before.data();
+  const after = event.data?.after.data();
+  if (!before || !after) return;
+  if (before.status === 'accepted' || after.status !== 'accepted' || typeof after.requestedBy !== 'string') return;
+  const accepter = ((after.members as string[]) || []).find((m) => m !== after.requestedBy);
+  if (!accepter) return;
+  await notifyUser(after.requestedBy, '🎉 You’re connected', `${await nameOf(accepter)} accepted — see where they’ve been.`);
 });

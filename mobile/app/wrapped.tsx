@@ -434,7 +434,7 @@ export default function WrappedScreen() {
 
           <View className="flex-row items-baseline justify-center" style={{ position: 'absolute', left: 0, right: 0, bottom: 15 }}>
             <Text style={{ fontFamily: 'Fraunces', fontSize: 10.5, color: '#9AA3C2' }}>worldly</Text>
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, color: '#6E7794' }}> · your travel story</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, color: '#6E7794' }}> · make yours at worldly-explorer.com</Text>
           </View>
         </View>
       </View>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { CtaGradient } from '../../components/CtaGradient';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { useTabReselect } from '../../src/hooks/useTabReselect';
 import { Image } from 'expo-image';
@@ -357,7 +358,8 @@ export default function CircleScreen() {
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14.5, color: COLORS.ink2, textAlign: 'center', marginTop: 8, lineHeight: 21, maxWidth: 330 }}>
               Your Circle turns your friends' real trips into your next discovery — the places they loved, their hidden gems, and where they're dreaming of going next.
             </Text>
-            <Pressable onPress={() => router.push('/friends')} className="flex-row items-center justify-center rounded-full" style={{ marginTop: 16, paddingHorizontal: 22, paddingVertical: 13, gap: 8, backgroundColor: COLORS.coral }}>
+            <Pressable onPress={() => router.push('/friends')} className="flex-row items-center justify-center rounded-full" style={{ marginTop: 16, paddingHorizontal: 22, paddingVertical: 13, gap: 8, backgroundColor: COLORS.coral, overflow: 'hidden' }}>
+              <CtaGradient />
               <UserPlus size={17} color="#fff" />
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14.5, fontWeight: '700', color: '#fff' }}>Invite someone</Text>
             </Pressable>
