@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Animated, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, Animated, useWindowDimensions, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, Sparkles, ChevronRight, Camera, ScrollText, Settings } from 'lucide-react-native';
+import { CloudOff, Cloud, Sparkles, ChevronRight, Camera, ScrollText, Settings, Share2 } from 'lucide-react-native';
+import { MapPoster } from '../../components/MapPoster';
+import { shareViewAsPng } from '../../src/lib/shareImage';
+import { shareMapPoster } from '../../src/lib/mapPoster';
+import { COUNTRIES } from '../../src/data/countries';
 import { COVER_SECTIONS } from '../../src/lib/covers';
 import { DestinationImage } from '../../components/DestinationImage';
 import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { AchievementBadge } from '../../components/AchievementBadge';
 import { HERO_CODES } from '../../src/lib/heroImages';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
-import { COLORS, HERO_HEIGHT } from '../../src/lib/theme';
+import { COLORS, HERO_HEIGHT, SHADOW } from '../../src/lib/theme';
 import { useWorldly } from '../../src/hooks/useWorldly';
 import { useAuth } from '../../src/store/auth';
 import { XpDetailSheet } from '../../components/XpDetailSheet';
@@ -19,7 +23,9 @@ import { HeroWave } from '../../components/HeroWave';
 import { CoverParticles } from '../../components/CoverParticles';
 import { getCoverState } from '../../src/lib/covers';
 import { COVER_THEMES } from '../../src/lib/coverThemes.gen';
-import { pickPhotoDataUrl } from '../../src/lib/photo';
+import { pickPhotoDataUrl, mediaPermissionDenied } from '../../src/lib/photo';
+import { useConfirm } from '../../src/store/confirm';
+import { useTabReselect } from '../../src/hooks/useTabReselect';
 import { ensureProfile, loadProfilePhoto, saveProfilePhoto } from '../../src/lib/profile';
 
 // Badges driven by logging discoveries — the pool for the Discoveries nudge card.
@@ -54,6 +60,7 @@ export default function YouScreen() {
     [visitedPhotoCodes],
   );
   const { configured, user } = useAuth();
+  const confirm = useConfirm();
   const [xpOpen, setXpOpen] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
@@ -67,6 +74,8 @@ export default function YouScreen() {
   }, []);
   const coverTheme = COVER_THEMES[coverName ?? 'Classic'] ?? COVER_THEMES.Classic;
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<ScrollView>(null);
+  useTabReselect('/you', () => scrollRef.current?.scrollTo({ y: 0, animated: true }));
   const scrimOpacity = scrollY.interpolate({ inputRange: [HERO_HEIGHT - 130, HERO_HEIGHT - 50], outputRange: [0, 1], extrapolate: 'clamp' });
 
   const earned = badges.filter((b) => b.earned).length;
@@ -78,6 +87,44 @@ export default function YouScreen() {
   const nextBadge = [...badges]
     .filter((b) => !b.earned && !(showGems && b.id === 'gem-hunter') && b.id !== nextDiscovery?.id)
     .sort((a, b) => b.progress - a.progress)[0];
+
+  // The hero is YOUR world: it cycles photos of the countries you know best
+  // (deepest Discovery Score first), falling back to the house set until
+  // you've added somewhere.
+  const heroCodes = useMemo(() => {
+    const top = aggregates
+      .filter((a) => a.discovered)
+      .sort((a, b) => b.discoveryScore - a.discoveryScore || (b.firstYear ?? 0) - (a.firstYear ?? 0))
+      .slice(0, 4)
+      .map((a) => a.code);
+    return top.length ? top : HERO_CODES.you;
+  }, [aggregates]);
+  const visitedCodes = useMemo(() => new Set(aggregates.filter((a) => a.discovered).map((a) => a.code)), [aggregates]);
+  const worldPct = (stats.countriesDiscovered / COUNTRIES.length) * 100;
+  const posterRef = useRef<View>(null);
+  const [sharing, setSharing] = useState(false);
+  // Share your passport: the globe-styled "my world" image (PDF poster on
+  // older binaries without view capture).
+  async function sharePassport() {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      if (posterRef.current && (await shareViewAsPng(posterRef.current, 'Share your world'))) return;
+      await shareMapPoster({
+        firstName: displayName,
+        countries: stats.countriesDiscovered,
+        cities: stats.citiesDiscovered,
+        continents: stats.continentsDiscovered,
+        pct: worldPct,
+        visited: visitedCodes,
+        flagCodes: stats.flagCodes,
+      });
+    } catch {
+      // cancelled or unavailable — no-op
+    } finally {
+      setSharing(false);
+    }
+  }
 
   const displayName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'Explorer');
   const initial = displayName.charAt(0).toUpperCase();
@@ -105,7 +152,15 @@ export default function YouScreen() {
 
   async function changeAvatar() {
     const data = await pickPhotoDataUrl('library', 512, [1, 1]);
-    if (!data) return;
+    if (!data) {
+      // Distinguish a permission denial from a plain cancel and offer Settings.
+      if (await mediaPermissionDenied('library') && await confirm({
+        title: 'Allow photo access',
+        message: 'To choose a profile photo, turn on photo access for Worldly in Settings.',
+        confirmLabel: 'Open Settings',
+      })) Linking.openSettings();
+      return;
+    }
     setAvatar(data);
     if (user) saveProfilePhoto(user.uid, data).catch(() => {});
     else AsyncStorage.setItem(LOCAL_AVATAR_KEY, data).catch(() => {});
@@ -117,6 +172,12 @@ export default function YouScreen() {
     ['Discoveries', discoveryStats.total, COLORS.sunburst],
   ];
 
+  // A guest with real data risks losing it (guest mode is session-scoped). Surface
+  // a prominent, reliably-seen backup prompt here on Passport — not just mid-Story
+  // where a non-scrolling user never sees it (R27).
+  const savedCount = stats.countriesDiscovered + discoveryStats.total + journeyStats.total;
+  const guestWithData = configured && !user && savedCount >= 3;
+
   const syncLabel = !configured
     ? 'Offline demo — saved on this device'
     : user
@@ -126,13 +187,14 @@ export default function YouScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
     <Animated.ScrollView
+      ref={scrollRef}
       style={{ flex: 1 }}
       contentContainerStyle={{ paddingBottom: 170 }}
       onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
       scrollEventThrottle={16}
     >
       {/* Identity hero */}
-      <DestinationImage code={HERO_CODES.you[0]} codes={HERO_CODES.you} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 56, minHeight: HERO_HEIGHT, alignItems: 'center' }}>
+      <DestinationImage code={heroCodes[0]} codes={heroCodes} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 56, minHeight: HERO_HEIGHT, alignItems: 'center' }}>
         {/* Ambient whisper of the active cover's particles — half the usual
             density so it stays a subtle sparkle over the photo. */}
         <CoverParticles profile={coverTheme.particles} colors={coverTheme.particleColors} width={width} height={HERO_HEIGHT} />
@@ -147,6 +209,19 @@ export default function YouScreen() {
         >
           <Settings size={20} color="#fff" />
         </Pressable>
+        {stats.countriesDiscovered > 0 ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Share your world"
+            onPress={sharePassport}
+            disabled={sharing}
+            hitSlop={10}
+            className="h-10 w-10 rounded-full items-center justify-center"
+            style={{ position: 'absolute', top: 58, left: 18, zIndex: 20, backgroundColor: 'rgba(20,33,61,0.45)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)', opacity: sharing ? 0.6 : 1 }}
+          >
+            <Share2 size={18} color="#fff" />
+          </Pressable>
+        ) : null}
         <Pressable onPress={changeAvatar}>
           <View className="rounded-full items-center justify-center bg-white/20" style={{ height: 92, width: 92, borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)', overflow: 'hidden' }}>
             {avatar ? (
@@ -216,21 +291,21 @@ export default function YouScreen() {
 
       {/* Wrapped + Almanac */}
       <View className="flex-row" style={{ paddingHorizontal: 20, marginTop: 14, gap: 12 }}>
-        <Pressable onPress={() => router.push('/wrapped')} style={{ flex: 1 }}>
-          <View style={{ borderRadius: 24, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } }}>
+        <Pressable onPress={() => router.push('/wrapped-lifetime')} style={{ flex: 1 }}>
+          <View style={{ borderRadius: 24, shadowColor: '#14213D', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } }}>
             <DestinationImage code={wrappedCodes[0]} codes={wrappedCodes} rotateMs={8000} scrim style={{ borderRadius: 24, minHeight: 150, padding: 16, justifyContent: 'space-between' }}>
               <View className="rounded-2xl items-center justify-center bg-white/25" style={{ height: 40, width: 40 }}>
                 <Sparkles size={20} color="#fff" />
               </View>
               <View>
-                <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 19 }}>Wrapped</Text>
-                <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.95, marginTop: 1 }}>Your travels, told</Text>
+                <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 19 }}>Lifetime Wrapped</Text>
+                <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, opacity: 0.95, marginTop: 1 }}>Your life in the world</Text>
               </View>
             </DestinationImage>
           </View>
         </Pressable>
         <Pressable onPress={() => router.push('/almanac')} style={{ flex: 1 }}>
-          <View style={{ borderRadius: 24, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } }}>
+          <View style={{ borderRadius: 24, shadowColor: '#14213D', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } }}>
             <DestinationImage code={almanacCodes[0]} codes={almanacCodes} rotateMs={9500} scrim style={{ borderRadius: 24, minHeight: 150, padding: 16, justifyContent: 'space-between' }}>
               <View className="rounded-2xl items-center justify-center bg-white/25" style={{ height: 40, width: 40 }}>
                 <ScrollText size={20} color="#fff" />
@@ -302,21 +377,48 @@ export default function YouScreen() {
         <ChevronRight size={20} color={COLORS.ink3} />
       </Pressable>
 
-      {/* Sync status — one slim row; everything else lives in Settings. */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Sync status — open settings"
-        onPress={() => router.push('/settings')}
-        className="bg-white dark:bg-card rounded-2xl flex-row items-center"
-        style={{ marginHorizontal: 20, marginTop: 14, paddingHorizontal: 14, paddingVertical: 12, gap: 10 }}
-      >
-        {configured && user ? <Cloud size={16} color={COLORS.aqua} /> : <CloudOff size={16} color={COLORS.ink3} />}
-        <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: COLORS.ink2 }}>{syncLabel}</Text>
-        <ChevronRight size={16} color={COLORS.ink3} />
-      </Pressable>
+      {/* Sync status. For a guest with data, a prominent backup card; otherwise a
+          slim status row. Everything else lives in Settings. */}
+      {guestWithData ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Back up your world. Your ${savedCount} saved items live only on this phone. Set up sync.`}
+          onPress={() => router.push('/settings')}
+          className="rounded-3xl flex-row items-center"
+          style={{ marginHorizontal: 20, marginTop: 14, padding: 16, gap: 12, backgroundColor: COLORS.coral, ...SHADOW.card }}
+        >
+          <CloudOff size={22} color="#fff" />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 18, color: '#fff' }}>Back up your world</Text>
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: 'rgba(255,255,255,0.92)', marginTop: 2, lineHeight: 18 }}>
+              Your {savedCount} saved {savedCount === 1 ? 'item' : 'items'} live only on this phone. Sign in to keep them safe.
+            </Text>
+          </View>
+          <ChevronRight size={18} color="#fff" />
+        </Pressable>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Sync status — open settings"
+          onPress={() => router.push('/settings')}
+          className="bg-white dark:bg-card rounded-2xl flex-row items-center"
+          style={{ marginHorizontal: 20, marginTop: 14, paddingHorizontal: 14, paddingVertical: 12, gap: 10 }}
+        >
+          {configured && user ? <Cloud size={16} color={COLORS.aqua} /> : <CloudOff size={16} color={COLORS.ink3} />}
+          <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: COLORS.ink2 }}>{syncLabel}</Text>
+          <ChevronRight size={16} color={COLORS.ink3} />
+        </Pressable>
+      )}
 
       <XpDetailSheet visible={xpOpen} onClose={() => setXpOpen(false)} level={level} stats={stats} discovery={discoveryStats} journeys={journeyStats} />
     </Animated.ScrollView>
+
+    {/* Off-screen share poster, captured to a PNG by sharePassport(). */}
+    {stats.countriesDiscovered > 0 ? (
+      <View pointerEvents="none" style={{ position: 'absolute', left: -9999, top: 0 }}>
+        <MapPoster ref={posterRef} firstName={displayName} countries={stats.countriesDiscovered} cities={stats.citiesDiscovered} continents={stats.continentsDiscovered} pct={worldPct} visited={visitedCodes} flagCodes={stats.flagCodes} />
+      </View>
+    ) : null}
 
     {/* Status-bar scrim: fades in once the hero scrolls away so card content
         never collides with the clock. pointerEvents none — purely visual. */}

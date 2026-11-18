@@ -1,5 +1,6 @@
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, FlatList, useWindowDimensions } from 'react-native';
+import { useTabReselect } from '../../src/hooks/useTabReselect';
 import { router } from 'expo-router';
 import type { ComponentType } from 'react';
 import {
@@ -63,7 +64,10 @@ const DISC_LABEL: Record<DiscoveryCategory, string> = {
 function fmtNum(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
   if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
-  return `${n}`;
+  // Small values (Monaco's area in mi²) keep one meaningful decimal, never a
+  // raw float.
+  if (n < 10) return `${Number(n.toFixed(n < 1 ? 2 : 1))}`;
+  return `${Math.round(n)}`;
 }
 
 /** A tappable country tile (image card) used in the continent carousels and
@@ -120,6 +124,8 @@ export default function ExploreScreen() {
   const { addPlace, removePlace } = useData();
   const { unit, tempUnit } = useUnits();
   const { width } = useWindowDimensions();
+  const scrollRef = useRef<ScrollView>(null);
+  useTabReselect('/explore', () => scrollRef.current?.scrollTo({ y: 0, animated: true }));
   const [tab, setTab] = useState<Tab>('browse');
   const [query, setQuery] = useState('');
   const [discCat, setDiscCat] = useState<DiscoveryCategory | 'all'>('all');
@@ -242,7 +248,7 @@ export default function ExploreScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets>
+      <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets>
         <PageHero title="Discover" subtitle={tab === 'browse' ? 'Find your next adventure' : 'Your saved places'} gradient={GRADIENTS.explore} imageCodes={HERO_CODES.explore} motion minHeight={HERO_HEIGHT} />
 
         {/* segmented control */}
@@ -283,45 +289,46 @@ export default function ExploreScreen() {
               </View>
             ) : (
               <>
-                {/* "around the world" facts — a denser 2-up grid that rotates daily */}
-                <Text style={H}>AROUND THE WORLD</Text>
-                <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, gap: 12 }}>
-                  {factCards.map((f) => (
-                    <Superlative key={f.key} code={f.code} icon={f.icon} label={f.label} value={f.value} width={gridW} />
-                  ))}
-                </View>
-
-                {/* trusted city guides — verdicts from you + your circle */}
-                {guides.length > 0 ? (
-                  <>
-                    <Text style={H}>GUIDES FROM YOUR WORLD</Text>
-                    <FlatList
-                      horizontal
-                      data={guides}
-                      keyExtractor={(g) => g.key}
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
-                      renderItem={({ item: g }) => (
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel={`${g.city} guide — ${g.entries.length} places`}
-                          onPress={() => router.push(`/guide/${encodeURIComponent(g.key)}`)}
-                          className="bg-white dark:bg-card rounded-3xl"
-                          style={{ width: 168, padding: 14 }}
-                        >
-                          <Text style={{ fontSize: 26 }}>{flagEmoji(g.countryCode)}</Text>
-                          <Text numberOfLines={1} style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy, marginTop: 8 }}>{g.city}</Text>
-                          <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2 }}>
-                            {g.entries.length} place{g.entries.length === 1 ? '' : 's'}{g.gems ? ` · ${g.gems} gem${g.gems === 1 ? '' : 's'}` : ''}
-                          </Text>
-                          <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.coral, marginTop: 6 }}>
-                            {g.contributors.length === 1 && g.contributors[0] === 'You' ? 'Your picks' : `From ${g.contributors.slice(0, 2).join(' & ')}${g.contributors.length > 2 ? ' +' : ''}`}
-                          </Text>
-                        </Pressable>
-                      )}
-                    />
-                  </>
-                ) : null}
+                {/* Personal first: what your circle loved, then your own guides —
+                    the app's value is your world, so it leads; world trivia follows. */}
+                {([
+                  ['LOVED BY YOUR CIRCLE', guides.filter((g) => g.contributors.some((c) => c !== 'You'))],
+                  ['GUIDES FROM YOUR WORLD', guides.filter((g) => g.contributors.every((c) => c === 'You'))],
+                ] as const).map(([heading, list]) =>
+                  list.length > 0 ? (
+                    <View key={heading}>
+                      <Text style={H}>{heading}</Text>
+                      <FlatList
+                        horizontal
+                        data={list}
+                        keyExtractor={(g) => g.key}
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+                        renderItem={({ item: g }) => (
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`${g.city} guide — ${g.entries.length} places`}
+                            onPress={() => router.push(`/guide/${encodeURIComponent(g.key)}`)}
+                            className="bg-white dark:bg-card rounded-3xl"
+                            style={{ width: 178, overflow: 'hidden' }}
+                          >
+                            <DestinationImage code={g.countryCode} scrim style={{ height: 92, padding: 12, justifyContent: 'flex-end' }}>
+                              <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 18 }}>{flagEmoji(g.countryCode)} {g.city}</Text>
+                            </DestinationImage>
+                            <View style={{ paddingHorizontal: 12, paddingVertical: 10 }}>
+                              <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>
+                                {g.entries.length} place{g.entries.length === 1 ? '' : 's'}{g.gems ? ` · ${g.gems} gem${g.gems === 1 ? '' : 's'}` : ''}
+                              </Text>
+                              <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 11.5, fontWeight: '700', color: COLORS.coral, marginTop: 4 }}>
+                                {g.contributors.length === 1 && g.contributors[0] === 'You' ? 'Your picks' : `From ${g.contributors.slice(0, 2).join(' & ')}${g.contributors.length > 2 ? ' +' : ''}`}
+                              </Text>
+                            </View>
+                          </Pressable>
+                        )}
+                      />
+                    </View>
+                  ) : null,
+                )}
 
                 {/* wishlist */}
                 {wishlist.size > 0 ? (
@@ -339,6 +346,15 @@ export default function ExploreScreen() {
                     />
                   </>
                 ) : null}
+
+                {/* "around the world" facts — a denser 2-up grid that rotates daily */}
+                <Text style={H}>AROUND THE WORLD</Text>
+                <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, gap: 12 }}>
+                  {factCards.map((f) => (
+                    <Superlative key={f.key} code={f.code} icon={f.icon} label={f.label} value={f.value} width={gridW} />
+                  ))}
+                </View>
+
 
                 {/* continent carousels */}
                 {continents.map((section) => (
@@ -396,7 +412,7 @@ export default function ExploreScreen() {
                     const count = c === 'all' ? discoveryStats.total : discoveryStats.byCategory[c];
                     const tint = c === 'all' ? COLORS.lavender : DISCOVERY_CATEGORY_COLOR[c];
                     return (
-                      <Pressable key={c} onPress={() => setDiscCat(c)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 8, gap: 6, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
+                      <Pressable key={c} onPress={() => setDiscCat(c)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 8, gap: 6, backgroundColor: active ? COLORS.navySolid : COLORS.card }}>
                         <Icon size={14} color={active ? '#fff' : tint} />
                         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink2 }}>{label}</Text>
                         <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? 'rgba(255,255,255,0.7)' : COLORS.ink3 }}>{count}</Text>
@@ -411,7 +427,7 @@ export default function ExploreScreen() {
                     {[{ code: 'all', count: discoveryStats.total }, ...discCountries].map(({ code, count }) => {
                       const active = discCountry === code;
                       return (
-                        <Pressable key={code} onPress={() => setDiscCountry(code)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 8, gap: 6, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
+                        <Pressable key={code} onPress={() => setDiscCountry(code)} className="flex-row items-center rounded-full" style={{ paddingHorizontal: 13, paddingVertical: 8, gap: 6, backgroundColor: active ? COLORS.navySolid : COLORS.card }}>
                           <Text style={{ fontSize: 13 }}>{code === 'all' ? '🌍' : flagEmoji(code)}</Text>
                           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.ink2 }}>{code === 'all' ? 'All countries' : countryName(code)}</Text>
                           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: active ? 'rgba(255,255,255,0.8)' : COLORS.ink3 }}>{count}</Text>

@@ -15,13 +15,18 @@ import type { AlmanacBookInput } from '../src/lib/almanacBook';
 export const BOOK_W = 720;
 export const BOOK_H = 1018;
 
+// Print palette (R6). Ink tones are anchored to the app's brand tokens so the
+// printed keepsake reads unmistakably as Worldly, not a near-miss:
+//   INK  = COLORS.navySolid, MUTED = COLORS.ink2, FAINT = COLORS.ink3 (pre-R19),
+//   CORAL/STAT_COLORS = the exact brand hues.
+// NAVY/PAPER stay deliberately print-tuned (a deeper ground, a warm paper white).
 const NAVY = '#0D1428';
 const PAPER = '#FBF7F2';
-const INK = '#16203A';
-const MUTED = '#6B7280';
-const FAINT = '#9AA1B2';
+const INK = '#14213D';
+const MUTED = '#48506B';
+const FAINT = '#6B7185';
 const CORAL = '#FF6B9A';
-const CORAL_DEEP = '#E2497F';
+const CORAL_DEEP = '#F2557D';
 const STAT_COLORS = ['#FF6B9A', '#24D1C3', '#9B7CFF', '#FFB84D', '#4DA6FF', '#F2557D'];
 
 export type BookPageSpec =

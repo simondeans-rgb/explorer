@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Share, Modal } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useConfirm } from '../../src/store/confirm';
-import { useLocalSearchParams } from 'expo-router';
-import { Plus, X, UserPlus, LogOut, FileDown, FileText, MessageSquareShare, Navigation, Trash2 } from 'lucide-react-native';
+import { useLocalSearchParams, router } from 'expo-router';
+import { Image } from 'expo-image';
+import { Plus, X, UserPlus, LogOut, FileDown, Navigation, Trash2, Plane, ChevronRight } from 'lucide-react-native';
 import { BackButton } from '../../components/BackButton';
 import { DestinationImage } from '../../components/DestinationImage';
 import { AddItinerarySheet } from '../../components/AddItinerarySheet';
@@ -14,12 +15,12 @@ import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { countryFacts } from '../../src/data/countryFacts';
 import { landmarkCity } from '../../src/data/landmarkCities';
-import { ITINERARY_SLOTS, type RecommendationVerdict } from '../../src/types';
-import { buildItineraryHtml, saveItineraryDoc } from '../../src/lib/itineraryDoc';
-import { shareItineraryPdf, buildItineraryText } from '../../src/lib/itineraryPdf';
+import { ITINERARY_SLOTS, DISCOVERY_CATEGORY_META, subcategoryLabel, type RecommendationVerdict, type ItineraryItem } from '../../src/types';
+import { shareItineraryPdf } from '../../src/lib/itineraryPdf';
 import { track } from '../../src/lib/analytics';
 import { detectLocation } from '../../src/lib/checkIn';
 import { useData } from '../../src/store/data';
+import { primaryCode, daysToGo, tripPhase } from '../../src/lib/tripPhase';
 import { useToast } from '../../src/store/toast';
 import { useAuth } from '../../src/store/auth';
 import { useFriends } from '../../src/hooks/useFriends';
@@ -28,27 +29,29 @@ import { DetailSkeleton } from '../../components/DetailSkeleton';
 
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { trips, places, loaded, addPlace, addItineraryItem, removeItineraryItem, reorderItinerary, setDayNote, addTripCollaborator, removeTripCollaborator, removeTrip } = useData();
+  const { unifiedTrips, places, captures, loaded, addPlace, addItineraryItem, removeItineraryItem, reorderItinerary, setDayNote, addTripCollaborator, removeTripCollaborator, removeTrip } = useData();
+  const tripPhotos = useMemo(() => captures.filter((c) => c.expeditionId === id), [captures, id]);
   const { toast } = useToast();
   const confirm = useConfirm();
   const { user } = useAuth();
   const myName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
   const { friends, friendsData } = useFriends(user?.uid, myName);
   const [addOpen, setAddOpen] = useState(false);
+  // When adding from a planner slot, drop the new item straight into it.
+  const [addTarget, setAddTarget] = useState<{ day: number; slot: import('../../src/types').ItinerarySlot } | null>(null);
   const [crewOpen, setCrewOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
   const [checking, setChecking] = useState(false);
   const [detail, setDetail] = useState<{ name: string; city?: string; photo?: string; own?: { verdict?: RecommendationVerdict; note?: string } | null; friends: LandmarkPerson[] } | null>(null);
 
-  const trip = trips.find((t) => t.id === id);
+  const trip = unifiedTrips.find((t) => t.id === id);
 
   // Friends' discoveries in this trip's country.
   const friendDiscoveries = useMemo(() => {
     if (!trip) return [];
     const nameByUid = new Map(friends.map((f) => [f.uid, f.name]));
     return friendsData.discoveries
-      .filter((d) => d.countryCode === trip.countryCode)
+      .filter((d) => d.countryCode === primaryCode(trip))
       .map((d) => ({ id: d.id, name: d.name, city: d.city, verdict: d.verdict, category: d.category, subcategory: d.subcategory, note: d.note, photo: d.photo, friend: nameByUid.get(d.userId) ?? 'Friend' }));
   }, [trip, friends, friendsData.discoveries]);
 
@@ -109,8 +112,12 @@ export default function TripScreen() {
     );
   }
 
-  const days = Math.max(0, Math.ceil((Date.parse(trip.startDate) - Date.now()) / 86_400_000));
-  const itineraryNames = new Set(trip.itinerary.map((i) => i.name.toLowerCase()));
+  const tCode = primaryCode(trip);
+  const tItinerary = trip.itinerary ?? [];
+  const tMembers = trip.memberIds ?? [trip.userId];
+  const days = daysToGo(trip, new Date().toISOString().slice(0, 10));
+  const phase = tripPhase(trip, new Date().toISOString().slice(0, 10));
+  const itineraryNames = new Set(tItinerary.map((i) => i.name.toLowerCase()));
 
   // Number of days in the trip (defaults to 3 when no end date is set).
   const dayCount = (() => {
@@ -127,7 +134,7 @@ export default function TripScreen() {
       .filter((d) => !itineraryNames.has(d.name.toLowerCase()))
       .map((d) => ({ id: d.id, name: d.name, city: d.city, category: d.category, subcategory: d.subcategory, verdict: d.verdict, friend: d.friend, note: d.note, photo: d.photo }));
     const friendNames = new Set(friendPicks.map((s) => s.name.toLowerCase()));
-    const landmarks: Suggestion[] = (countryFacts(trip.countryCode)?.landmarks ?? [])
+    const landmarks: Suggestion[] = (countryFacts(tCode)?.landmarks ?? [])
       .filter((l) => !itineraryNames.has(l.toLowerCase()) && !friendNames.has(l.toLowerCase()))
       .map((l) => ({ id: `lm:${l}`, name: l, city: landmarkCity(l), category: 'culture', subcategory: 'landmark', landmark: true }));
     return [...friendPicks, ...landmarks];
@@ -145,50 +152,98 @@ export default function TripScreen() {
 
   function buildDocInput() {
     if (!trip) return null;
+    // A friend's note/photo lives on their Discovery — join by name (the same
+    // connection-gated data already shown in the in-app detail sheet).
+    const recByName = new Map<string, { note?: string; photo?: string; friend?: string }>();
+    for (const d of friendDiscoveries) {
+      const k = d.name.toLowerCase();
+      if (!recByName.has(k)) recByName.set(k, { note: d.note, photo: d.photo, friend: d.friend });
+    }
+    const mapItem = (it: ItineraryItem) => {
+      const rec = recByName.get(it.name.toLowerCase());
+      const friend = it.fromFriend ?? rec?.friend;
+      const categoryLabel = it.category ? subcategoryLabel(it.category, it.subcategory) ?? DISCOVERY_CATEGORY_META[it.category].label : undefined;
+      return {
+        name: it.name,
+        city: it.city,
+        category: it.category,
+        categoryLabel,
+        fromFriend: friend,
+        verdict: it.verdict,
+        // Only surface a note when it's an attributed recommendation.
+        note: friend ? rec?.note : undefined,
+        photo: rec?.photo,
+        meta: itineraryMeta(it),
+      };
+    };
+
     const fmt = (n: number) => {
       if (!trip.startDate) return `Day ${n}`;
       const d = new Date(trip.startDate);
       d.setDate(d.getDate() + (n - 1));
-      return d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+      return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
     };
-    const days = Array.from({ length: dayCount }, (_, i) => i + 1).map((n) => ({
-      label: `Day ${n} — ${fmt(n)}`,
-      note: trip.dayNotes?.[String(n)],
-      slots: ITINERARY_SLOTS.map((s) => ({
-        label: s.label,
-        items: trip.itinerary.filter((it) => it.day === n && (it.slot ?? 'allday') === s.id).map((it) => ({ name: it.name, meta: itineraryMeta(it) })),
-      })),
-    }));
-    const unscheduled = trip.itinerary.filter((it) => !it.day);
+    // Distinct cities visited on a day → a reliable descriptive subtitle.
+    const daySubtitle = (items: ItineraryItem[]) => {
+      const cities = [...new Set(items.map((i) => i.city).filter((c): c is string => !!c))];
+      const list = cities.slice(0, 3).join(' · ');
+      return list && list.toLowerCase() !== (countryName(tCode) || '').toLowerCase() ? list : undefined;
+    };
+
+    const days = Array.from({ length: dayCount }, (_, i) => i + 1).map((n) => {
+      const dayItems = tItinerary.filter((it) => it.day === n);
+      return {
+        badge: String(n),
+        label: fmt(n),
+        subtitle: daySubtitle(dayItems),
+        note: trip.dayNotes?.[String(n)],
+        slots: ITINERARY_SLOTS.map((s) => ({
+          label: s.label,
+          items: dayItems.filter((it) => (it.slot ?? 'allday') === s.id).map(mapItem),
+        })),
+      };
+    });
+    const unscheduled = tItinerary.filter((it) => !it.day);
     if (unscheduled.length) {
-      days.push({ label: 'Ideas (unscheduled)', note: undefined, slots: [{ label: 'Ideas', items: unscheduled.map((it) => ({ name: it.name, meta: itineraryMeta(it) })) }] });
+      days.push({ badge: '·', label: 'Ideas & wishlist', subtitle: undefined, note: undefined, slots: [{ label: 'Ideas', items: unscheduled.map(mapItem) }] });
     }
-    const crew = trip.memberIds.map((m) => (m === user?.uid ? myName : trip.memberNames?.[m] ?? 'Friend'));
+    const crew = tMembers.map((m) => (m === user?.uid ? myName : trip.memberNames?.[m] ?? 'Friend'));
+    // Full dates like "8–10 August 2026".
+    const fmtDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+    const dateLabel = trip.startDate ? `${fmtDate(trip.startDate)}${trip.endDate ? ` – ${fmtDate(trip.endDate)}` : ''}` : undefined;
+    const cityCount = new Set(tItinerary.map((it) => it.city).filter(Boolean)).size;
+
+    // Offer destination ideas only when there are empty days to fill — never to
+    // pad a full itinerary, and only Worldly's own landmark suggestions.
+    const hasEmptyDay = Array.from({ length: dayCount }, (_, i) => i + 1).some((n) => !tItinerary.some((it) => it.day === n));
+    const inspiration = hasEmptyDay
+      ? (countryFacts(tCode)?.landmarks ?? []).filter((l) => !itineraryNames.has(l.toLowerCase())).slice(0, 3)
+      : undefined;
+
     return {
       title: trip.title,
-      subtitle: `${countryName(trip.countryCode)}${trip.startDate ? ` · ${trip.startDate}${trip.endDate ? ` – ${trip.endDate}` : ''}` : ''}`,
-      crew: trip.memberIds.length > 1 ? crew : undefined,
+      destination: countryName(tCode),
+      flag: flagEmoji(tCode),
+      dateLabel,
+      heroCode: tCode,
+      userHeroUrl: tripPhotos[0]?.dataUrl,
+      dayCount,
+      cityCount: cityCount || undefined,
+      crew: tMembers.length > 1 ? crew : undefined,
+      inspiration,
       days,
     };
   }
 
-  async function exportPlan(kind: 'pdf' | 'text' | 'doc') {
+  async function exportPdf() {
     if (exporting || !trip) return;
-    setExportOpen(false);
     setExporting(true);
     try {
       const input = buildDocInput();
       if (!input) return;
-      if (kind === 'pdf') {
-        const ok = await shareItineraryPdf(input);
-        if (!ok) toast.error('Sharing is unavailable on this device.');
-      } else if (kind === 'text') {
-        await Share.share({ message: buildItineraryText(input) });
-      } else {
-        const ok = await saveItineraryDoc(`${trip.title} itinerary`, buildItineraryHtml(input));
-        if (!ok) toast.error('Sharing is unavailable on this device.');
-      }
-      track('itinerary_exported', { kind });
+      const ok = await shareItineraryPdf(input);
+      if (!ok) toast.error('Sharing is unavailable on this device.');
+      else track('itinerary_exported', { kind: 'pdf' });
     } catch {
       toast.error("Couldn't export the plan.");
     } finally {
@@ -210,7 +265,7 @@ export default function TripScreen() {
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 112 }}>
         {/* Hero */}
-        <DestinationImage code={trip.countryCode} scrim motion style={{ position: 'relative', paddingTop: 60, paddingBottom: 52, minHeight: 230, justifyContent: 'flex-end' }}>
+        <DestinationImage code={tCode} scrim motion style={{ position: 'relative', paddingTop: 60, paddingBottom: 52, minHeight: 230, justifyContent: 'flex-end' }}>
           <BackButton onPress={goBack} style={{ position: 'absolute', top: 60, left: 20, zIndex: 20 }} />
           {canDelete ? (
             <Pressable accessibilityRole="button" accessibilityLabel="Delete trip" onPress={confirmDelete} hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, right: 20, zIndex: 20 }}>
@@ -224,11 +279,15 @@ export default function TripScreen() {
                 <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 15, letterSpacing: 2, opacity: 0.92, marginBottom: 8, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 7 }}>{days === 1 ? 'DAY TO GO' : 'DAYS TO GO'}</Text>
               </View>
             ) : (
-              <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13, letterSpacing: 2, opacity: 0.92, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 7 }}>HAPPENING NOW</Text>
+              <Text className="text-white" style={{ fontFamily: 'PlusJakarta-Bold', fontSize: 13, letterSpacing: 2, opacity: 0.92, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 7 }}>
+                {/* Only a trip that's actually underway is "happening now" — a
+                    finished one says when it was. */}
+                {phase === 'past' ? 'TRAVELLED' : 'HAPPENING NOW'}
+              </Text>
             )}
             <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 34, marginTop: 8 }}>{trip.title}</Text>
             <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95, marginTop: 2 }}>
-              {flagEmoji(trip.countryCode)} {countryName(trip.countryCode)}
+              {flagEmoji(tCode)} {countryName(tCode)}
               {trip.startDate ? ` · ${trip.startDate.slice(0, 7)}` : ''}
             </Text>
           </View>
@@ -246,7 +305,7 @@ export default function TripScreen() {
         {/* Trip crew — collaborate on the itinerary */}
         {user ? (() => {
           const isOwner = trip.userId === user.uid;
-          const available = friends.filter((f) => !trip.memberIds.includes(f.uid));
+          const available = friends.filter((f) => !tMembers.includes(f.uid));
           const nameOf = (m: string) => (m === user.uid ? 'You' : trip.memberNames?.[m] ?? friends.find((f) => f.uid === m)?.name ?? 'Friend');
           return (
             <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
@@ -261,7 +320,7 @@ export default function TripScreen() {
               </View>
 
               <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14, gap: 12 }}>
-                {trip.memberIds.map((m) => {
+                {tMembers.map((m) => {
                   const owner = m === trip.userId;
                   const label = nameOf(m);
                   return (
@@ -279,7 +338,7 @@ export default function TripScreen() {
                   );
                 })}
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, lineHeight: 17 }}>
-                  {trip.memberIds.length === 1
+                  {tMembers.length === 1
                     ? 'Add a friend and you can build this itinerary together — everyone on the trip can edit it.'
                     : 'Everyone here can view and edit the itinerary together.'}
                 </Text>
@@ -308,6 +367,39 @@ export default function TripScreen() {
             </View>
           );
         })() : null}
+
+        {/* Photos — every memory tagged to this trip (tap to view/edit) */}
+        {tripPhotos.length > 0 ? (
+          <View style={{ marginTop: 22 }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, paddingHorizontal: 20 }}>
+              Photos <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink3 }}>{tripPhotos.length}</Text>
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12, gap: 12 }}>
+              {tripPhotos.map((c) => (
+                <Pressable key={c.id} onPress={() => router.push(`/memory/${c.id}`)} accessibilityRole="button" accessibilityLabel={`Memory${c.caption ? `: ${c.caption}` : ''} — tap to edit`}>
+                  <Image source={{ uri: c.dataUrl }} style={{ width: 128, height: 160, borderRadius: 18 }} contentFit="cover" transition={200} />
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
+        {/* Flights & transport — the legs editor for this same trip record */}
+        <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
+          <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy, marginBottom: 12 }}>Flights &amp; transport</Text>
+          <Pressable onPress={() => router.push(`/journey/${trip.id}`)} accessibilityRole="button" accessibilityLabel="Add or edit flights and transport for this trip" className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 16, gap: 12 }}>
+            <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(30,107,255,0.12)' }}>
+              <Plane size={19} color="#1E6BFF" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>
+                {(trip.journeys?.length ?? 0) > 0 ? `${trip.journeys.length} ${trip.journeys.length === 1 ? 'leg' : 'legs'}` : 'Add flights, rail & more'}
+              </Text>
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>How you’ll travel — upcoming or already flown</Text>
+            </View>
+            <ChevronRight size={18} color={COLORS.ink3} />
+          </Pressable>
+        </View>
 
         {/* Travel log — auto-add the places you visit (foreground check-in) */}
         <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
@@ -352,17 +444,17 @@ export default function TripScreen() {
         <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
           <View className="flex-row items-center justify-between" style={{ marginBottom: 6 }}>
             <Text style={{ fontFamily: 'Fraunces', fontSize: 22, color: COLORS.navy }}>Plan your days</Text>
-            <Pressable onPress={() => setAddOpen(true)} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 12, paddingVertical: 7, gap: 5 }}>
+            <Pressable onPress={() => { setAddTarget(null); setAddOpen(true); }} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.12)', paddingHorizontal: 12, paddingVertical: 7, gap: 5 }}>
               <Plus size={14} color={COLORS.coral} />
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>Add idea</Text>
             </Pressable>
           </View>
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginBottom: 14, lineHeight: 17 }}>Long-press a card and drag it onto a day &amp; time. Tap to see details.</Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginBottom: 14, lineHeight: 17 }}>Tap ＋ on any part of the day to add to it, or long-press a card and drag it where it belongs.</Text>
 
           <ItineraryPlanner
             startDate={trip.startDate}
             dayCount={dayCount}
-            itinerary={trip.itinerary}
+            itinerary={tItinerary}
             suggestions={suggestions}
             dayNotes={trip.dayNotes ?? {}}
             onReorder={(items) => reorderItinerary(trip.id, items)}
@@ -371,56 +463,30 @@ export default function TripScreen() {
             onDayNote={(d, t) => setDayNote(trip.id, d, t)}
             onOpenItem={(i) => openDetail(i.name, undefined, i.city)}
             onOpenSuggestion={(s) => openDetail(s.name, s.photo, s.city)}
+            onAddToSlot={(d, slot) => { setAddTarget({ day: d, slot }); setAddOpen(true); }}
           />
 
-          <Pressable onPress={() => setExportOpen(true)} disabled={exporting} className="flex-row items-center justify-center rounded-full" style={{ alignSelf: 'center', marginTop: 18, paddingHorizontal: 18, paddingVertical: 10, gap: 7, backgroundColor: 'rgba(20,33,61,0.05)', opacity: exporting ? 0.6 : 1 }}>
-            <FileDown size={16} color={COLORS.navy} />
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '700', color: COLORS.navy }}>{exporting ? 'Preparing…' : 'Export your plan'}</Text>
+          <Pressable onPress={exportPdf} disabled={exporting} accessibilityRole="button" accessibilityLabel="Export itinerary as PDF" className="flex-row items-center justify-center rounded-full" style={{ alignSelf: 'center', marginTop: 18, paddingHorizontal: 18, paddingVertical: 10, gap: 7, backgroundColor: 'rgba(20,33,61,0.05)', opacity: exporting ? 0.6 : 1 }}>
+            {exporting ? <ActivityIndicator size="small" color={COLORS.navy} /> : <FileDown size={16} color={COLORS.navy} />}
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '700', color: COLORS.navy }}>{exporting ? 'Preparing your PDF…' : 'Export as PDF'}</Text>
           </Pressable>
         </View>
       </ScrollView>
-
-      {/* Export chooser */}
-      <Modal visible={exportOpen} transparent animationType="slide" onRequestClose={() => setExportOpen(false)}>
-        <Pressable onPress={() => setExportOpen(false)} style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-          <Pressable onPress={(e) => e.stopPropagation()} style={{ backgroundColor: COLORS.warmwhite, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 14, paddingBottom: 36, paddingHorizontal: 20 }}>
-            <View style={{ alignSelf: 'center', height: 5, width: 44, borderRadius: 3, backgroundColor: 'rgba(20,33,61,0.15)', marginBottom: 10 }} />
-            <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, marginBottom: 12 }}>Export your plan</Text>
-            {(
-              [
-                { k: 'pdf' as const, Icon: FileDown, title: 'Download as PDF', sub: 'A clean, printable copy to share or keep' },
-                { k: 'text' as const, Icon: MessageSquareShare, title: 'Share as text', sub: 'Compact plan for Messages or WhatsApp' },
-                { k: 'doc' as const, Icon: FileText, title: 'Word & Docs copy', sub: 'Opens in Word, Pages or Google Docs' },
-              ]
-            ).map(({ k, Icon, title, sub }) => (
-              <Pressable key={k} accessibilityRole="button" accessibilityLabel={title} onPress={() => exportPlan(k)} className="bg-white dark:bg-card flex-row items-center rounded-2xl" style={{ padding: 14, gap: 13, marginBottom: 9 }}>
-                <View className="rounded-2xl items-center justify-center" style={{ height: 42, width: 42, backgroundColor: 'rgba(255,106,85,0.12)' }}>
-                  <Icon size={20} color={COLORS.coral} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>{title}</Text>
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>{sub}</Text>
-                </View>
-              </Pressable>
-            ))}
-          </Pressable>
-        </Pressable>
-      </Modal>
 
       {/* Place / landmark detail */}
       <LandmarkDetailSheet
         visible={!!detail}
         onClose={() => setDetail(null)}
         name={detail?.name}
-        countryCode={trip.countryCode}
-        placeLabel={[detail?.city, countryName(trip.countryCode)].filter(Boolean).join(' · ')}
-        hint={countryName(trip.countryCode)}
+        countryCode={tCode}
+        placeLabel={[detail?.city, countryName(tCode)].filter(Boolean).join(' · ')}
+        hint={countryName(tCode)}
         photo={detail?.photo}
         own={detail?.own}
         friends={detail?.friends ?? []}
       />
 
-      <AddItinerarySheet tripId={trip.id} visible={addOpen} onClose={() => setAddOpen(false)} />
+      <AddItinerarySheet tripId={trip.id} visible={addOpen} onClose={() => setAddOpen(false)} day={addTarget?.day} slot={addTarget?.slot} />
     </View>
   );
 }

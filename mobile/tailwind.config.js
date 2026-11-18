@@ -33,7 +33,9 @@ module.exports = {
           cartridge: '#FAFAFC',
           ink: '#14213D',
           ink2: '#48506B',
-          ink3: '#8A90A6',
+          // Matches theme.ts: #8A90A6 was only ~3.16:1 on white (failed WCAG AA);
+          // darkened to #6B7185 (4.5:1) so this token can never reintroduce the gap.
+          ink3: '#6B7185',
           brass: '#24D1C3',
           amber: '#FFB84D',
           night: '#0E1018',

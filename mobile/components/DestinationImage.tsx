@@ -10,6 +10,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { destinationImage } from '../src/lib/destinationImage';
+import { useReduceMotion } from '../src/lib/useReduceMotion';
 
 /** The slow Ken-Burns drift — only mounted when `motion` is on, so static
  *  tiles pay none of the reanimated cost (Explore can show dozens at once). */
@@ -26,8 +27,8 @@ function KenBurnsImage({ photo, transition = 280 }: { photo: string; transition?
     ],
   }));
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, style]}>
-      <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" transition={transition} cachePolicy="memory-disk" />
+    <Animated.View style={[StyleSheet.absoluteFill, style]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" transition={transition} cachePolicy="memory-disk" accessible={false} />
     </Animated.View>
   );
 }
@@ -57,6 +58,7 @@ export const DestinationImage = memo(function DestinationImage({
   onActiveCode?: (code: string) => void;
   children?: ReactNode;
 }) {
+  const reduceMotion = useReduceMotion();
   const rotate = !!codes && codes.length > 1;
   const list = rotate ? (codes as string[]) : [code];
   const [idx, setIdx] = useState(0);
@@ -85,10 +87,11 @@ export const DestinationImage = memo(function DestinationImage({
         style={StyleSheet.absoluteFill}
       />
       {photo ? (
-        motion ? (
+        // Ken-Burns drift is disabled under Reduce Motion (hold a still frame).
+        motion && !reduceMotion ? (
           <KenBurnsImage photo={photo} transition={transition} />
         ) : (
-          <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" transition={transition} cachePolicy="memory-disk" />
+          <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" transition={transition} cachePolicy="memory-disk" accessible={false} />
         )
       ) : null}
       {scrim ? (

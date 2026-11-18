@@ -14,6 +14,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { assertClean } from './textFilter';
 
 export const REPLY_MAX_LEN = 280;
 
@@ -68,6 +69,9 @@ export async function addReply(captureId: string, ownerUid: string, myUid: strin
   if (!db) return;
   const clean = text.trim().slice(0, REPLY_MAX_LEN);
   if (!clean) return;
+  // Backstop the UI check (Guideline 1.2): never persist objectionable text,
+  // whatever the call path. Throws on a match; callers already surface errors.
+  assertClean(clean);
   await addDoc(collection(db, 'replies'), {
     captureId,
     ownerUid,

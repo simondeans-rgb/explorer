@@ -1,6 +1,9 @@
+import { useEffect } from 'react';
 import { View, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
+import Animated, { useSharedValue, useAnimatedProps, withTiming, Easing } from 'react-native-reanimated';
+import { useReduceMotion } from '../src/lib/motion';
 import {
   Footprints, Compass, Globe2, Globe, Waves, Building2, Building, UtensilsCrossed,
   Landmark, Mountain, Plane, Images, Image as ImageIcon, Gem, Coffee, PartyPopper,
@@ -22,16 +25,27 @@ const ICONS: Record<string, LucideIcon> = {
 /** A thin progress ring orbiting a locked tile: a faint full track (so partial
  *  progress reads as a ring, not a floating arc) with the coral arc on top,
  *  centred on the tile with a 2px breathing gap. */
-function Ring({ progress, size }: { progress: number; size: number }) {
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+function Ring({ progress, size, animate }: { progress: number; size: number; animate?: boolean }) {
   const stroke = 3;
   const r = size / 2 + 2 + stroke / 2;
   const dim = Math.ceil(2 * r + stroke);
   const pad = (dim - size) / 2;
   const c = 2 * Math.PI * r;
+  const reduce = useReduceMotion();
+  const target = c * (1 - Math.max(0, Math.min(1, progress)));
+  // Draw the arc in from empty when asked (detail / "next up" views), instantly
+  // otherwise — the grid stays static to keep many tiles cheap.
+  const offset = useSharedValue(animate && !reduce ? c : target);
+  useEffect(() => {
+    offset.value = animate && !reduce ? withTiming(target, { duration: 850, easing: Easing.out(Easing.cubic) }) : target;
+  }, [target, animate, reduce, offset, c]);
+  const arcProps = useAnimatedProps(() => ({ strokeDashoffset: offset.value }));
   return (
     <Svg width={dim} height={dim} style={{ position: 'absolute', top: -pad, left: -pad }}>
       <Circle cx={dim / 2} cy={dim / 2} r={r} stroke="rgba(142,151,184,0.28)" strokeWidth={stroke} fill="none" />
-      <Circle
+      <AnimatedCircle
         cx={dim / 2}
         cy={dim / 2}
         r={r}
@@ -39,7 +53,7 @@ function Ring({ progress, size }: { progress: number; size: number }) {
         strokeWidth={stroke}
         fill="none"
         strokeDasharray={c}
-        strokeDashoffset={c * (1 - Math.max(0, Math.min(1, progress)))}
+        animatedProps={arcProps}
         strokeLinecap="round"
         transform={`rotate(-90 ${dim / 2} ${dim / 2})`}
       />
@@ -51,7 +65,7 @@ function Ring({ progress, size }: { progress: number; size: number }) {
  *  full-colour when earned, muted with a progress ring while locked.
  *  `labeled={false}` renders the tile alone, for cards that carry their own
  *  title/progress text next to it. */
-export function AchievementBadge({ badge, tile = 64, labeled = true }: { badge: Badge; tile?: number; labeled?: boolean }) {
+export function AchievementBadge({ badge, tile = 64, labeled = true, animate = false }: { badge: Badge; tile?: number; labeled?: boolean; animate?: boolean }) {
   const Icon = ICONS[badge.icon] ?? Award;
   const earned = badge.earned;
 
@@ -77,7 +91,7 @@ export function AchievementBadge({ badge, tile = 64, labeled = true }: { badge: 
                 </View>
               ) : null}
             </View>
-            {badge.progress > 0 ? <Ring progress={badge.progress} size={tile} /> : null}
+            {badge.progress > 0 ? <Ring progress={badge.progress} size={tile} animate={animate} /> : null}
           </>
         )}
       </View>

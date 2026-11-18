@@ -137,7 +137,10 @@ function parseFlights(text: string): Flight[] {
     const to = diverted || extractIata(cells[iTo] ?? '');
     const flightNo = iFlight >= 0 ? (cells[iFlight] ?? '').trim() : '';
     const canceled = iCanceled >= 0 ? /^(yes|true|1)$/i.test((cells[iCanceled] ?? '').trim()) : false;
-    if (!date || !from || !to) continue;
+    // Drop rows whose date cell didn't parse to a real date — otherwise a
+    // garbage value ("n/a") sorts arbitrarily and, since the trip-splitter keys
+    // off day gaps, collapses every flight into one mis-titled "trip".
+    if (!date || !Number.isFinite(Date.parse(date)) || !from || !to) continue;
     flights.push({ date, from, to, flightNo, canceled });
   }
   flights.sort((a, b) => a.date.localeCompare(b.date));

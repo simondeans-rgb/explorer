@@ -1,6 +1,6 @@
 {
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/add/:code", "destination": "/add.html" }
+    { "source": "/add/:code", "destination": "/add" }
   ]
 }

@@ -6,9 +6,12 @@ import { router, usePathname } from 'expo-router';
 import { Plus } from 'lucide-react-native';
 import { useEffect, type ComponentType } from 'react';
 import { useColorScheme } from 'react-native';
+import Animated, { ZoomIn, ZoomOut } from 'react-native-reanimated';
 import { COLORS, SECTION } from '../src/lib/theme';
+import { useReduceMotion } from '../src/lib/motion';
 import { track } from '../src/lib/analytics';
 import { hSelection, hImpact } from '../src/lib/haptics';
+import { emitScrollToTop } from '../src/lib/scrollTop';
 
 const ICONS = {
   story: require('../assets/images/nav/story.png') as ImageSource,
@@ -35,9 +38,9 @@ try {
   liquidGlass = false;
 }
 
-// Adjusted brand palette (Coral, Aqua, Sunburst, Lavender, Sky) — the icons are
-// tinted to these exact colours so the nav matches the design system, and each
-// matches its section's hero wave line.
+// Adjusted brand palette (Coral, Aqua, Sunburst, Lavender, Sky) — the ACTIVE
+// tab is tinted to its section's colour (matching that section's hero wave
+// line); inactive tabs stay neutral.
 const TABS: TabDef[] = [
   { path: '/', label: 'Story', icon: ICONS.story, accent: SECTION.story },
   { path: '/atlas', label: 'Atlas', icon: ICONS.atlas, accent: SECTION.atlas },
@@ -52,9 +55,12 @@ const HIDDEN = new Set(['/wrapped', '/search']);
 /** A floating, frosted-glass navigation bar rendered globally so it stays fixed
  *  and visible on every screen, with the action button floated to the bottom
  *  right within easy thumb reach. */
-export function GlobalTabBar({ onFab }: { onFab: () => void }) {
+export function GlobalTabBar({ onFab, onFabLongPress }: { onFab: () => void; onFabLongPress?: () => void }) {
   const pathname = usePathname();
   const darkUI = useColorScheme() === 'dark';
+  const reduce = useReduceMotion();
+  // Neutral ink for inactive tabs (static hexes — the image tint needs a plain colour).
+  const idle = darkUI ? '#A6ACC2' : '#5E6377';
 
   // This bar renders on every screen, so it's the one cheap place to observe
   // navigation for analytics without touching each route.
@@ -72,7 +78,12 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
         accessibilityLabel={def.label}
         accessibilityState={{ selected: active }}
         onPress={() => {
-          if (active) return;
+          if (active) {
+            // Re-tapping the current tab scrolls that screen back to the top.
+            hSelection();
+            emitScrollToTop(def.path);
+            return;
+          }
           hSelection();
           // Pop any pushed screen (country/import/etc.) before switching tab.
           if (router.canDismiss()) router.dismissAll();
@@ -81,14 +92,15 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
         className="items-center justify-center"
         style={{ flex: 1 }}
       >
-        {/* Icons always full-colour (tinted to their palette hue); the active
-            tab is marked by a soft coloured pill behind it. */}
+        {/* A calm resting bar: inactive tabs sit in neutral ink, and only the
+            current tab takes its section colour (icon, label and soft pill) —
+            one accent on screen at a time, so the active tab is unmistakable. */}
         <View
           className="items-center justify-center"
           style={{ gap: 3, paddingVertical: 6, paddingHorizontal: 6, borderRadius: 18, backgroundColor: active ? def.accent + '26' : 'transparent' }}
         >
-          <Image source={def.icon} style={{ width: 32, height: 32 }} contentFit="contain" tintColor={def.accent} />
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: def.accent }}>{def.label}</Text>
+          <Image source={def.icon} style={{ width: 32, height: 32 }} contentFit="contain" tintColor={active ? def.accent : idle} />
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: active ? '800' : '600', color: active ? def.accent : idle }}>{def.label}</Text>
         </View>
       </Pressable>
     );
@@ -138,31 +150,38 @@ export function GlobalTabBar({ onFab }: { onFab: () => void }) {
 
       {/* Action button — floated to the bottom right, raised above the bar.
           Hidden on Passport: that tab is settings-heavy with right-edge
-          toggles the button would cover, and there's nothing to add from it. */}
+          toggles the button would cover, and there's nothing to add from it.
+          It scales/fades out gracefully on that tab (R20) rather than hard-cutting,
+          so its absence reads as intentional, not a glitch. */}
       {pathname === '/you' ? null : (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Add to your world"
-          onPress={() => { hImpact('light'); onFab(); }}
-          className="items-center justify-center rounded-full"
-          style={{
-            position: 'absolute',
-            right: 2,
-            bottom: 80,
-            height: 58,
-            width: 58,
-            backgroundColor: COLORS.coral,
-            borderWidth: 4,
-            borderColor: 'rgba(255,255,255,0.85)',
-            shadowColor: COLORS.coral,
-            shadowOpacity: 0.4,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: 6 },
-            elevation: 10,
-          }}
+        <Animated.View
+          entering={reduce ? undefined : ZoomIn.springify().damping(14)}
+          exiting={reduce ? undefined : ZoomOut.duration(160)}
+          style={{ position: 'absolute', right: 2, bottom: 80 }}
         >
-          <Plus size={28} color="#fff" strokeWidth={2.6} />
-        </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Add to your world"
+            accessibilityHint="Long press to add a photo"
+            onPress={() => { hImpact('light'); onFab(); }}
+            onLongPress={onFabLongPress ? () => { hImpact('medium'); onFabLongPress(); } : undefined}
+            className="items-center justify-center rounded-full"
+            style={{
+              height: 58,
+              width: 58,
+              backgroundColor: COLORS.coral,
+              borderWidth: 4,
+              borderColor: 'rgba(255,255,255,0.85)',
+              shadowColor: COLORS.coral,
+              shadowOpacity: 0.4,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 6 },
+              elevation: 10,
+            }}
+          >
+            <Plus size={28} color="#fff" strokeWidth={2.6} />
+          </Pressable>
+        </Animated.View>
       )}
     </View>
   );

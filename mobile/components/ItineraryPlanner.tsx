@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { View, Text, Pressable, ScrollView, TextInput } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, runOnJS } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { X, GripVertical, Sparkles } from 'lucide-react-native';
+import { X, GripVertical, Sparkles, Plus, CalendarDays, Coffee, Sunrise, Utensils, Sun, Wine, Moon } from 'lucide-react-native';
 import { COLORS } from '../src/lib/theme';
 import {
   ITINERARY_SLOTS,
@@ -31,6 +31,17 @@ export interface Suggestion {
 }
 
 type Rect = { x: number; y: number; w: number; h: number };
+// A colour + glyph per part of the day, so the plan reads at a glance.
+const SLOT_STYLE: Record<ItinerarySlot, { Icon: ComponentType<{ size?: number; color?: string }>; color: string }> = {
+  allday: { Icon: CalendarDays, color: '#9B7CFF' },
+  breakfast: { Icon: Coffee, color: '#FFB84D' },
+  morning: { Icon: Sunrise, color: '#FF8A5B' },
+  lunch: { Icon: Utensils, color: '#34C77B' },
+  afternoon: { Icon: Sun, color: '#F5A623' },
+  dinner: { Icon: Wine, color: '#FF6B9A' },
+  evening: { Icon: Moon, color: '#5B6CFF' },
+};
+
 type DropKey = `slot:${ItinerarySlot}` | 'ideas';
 
 export const itineraryMeta = (i: { city?: string; category?: DiscoveryCategory; subcategory?: string; fromFriend?: string }) =>
@@ -80,7 +91,7 @@ function DragCard({
   const style = useAnimatedStyle(() => ({
     transform: [{ translateX: tx.value }, { translateY: ty.value }, { scale: 1 + lifted.value * 0.04 }],
     zIndex: lifted.value > 0 ? 1000 : 0,
-    shadowColor: '#000',
+    shadowColor: '#14213D',
     shadowOpacity: lifted.value * 0.22,
     shadowRadius: lifted.value * 12,
     shadowOffset: { width: 0, height: lifted.value * 6 },
@@ -105,6 +116,7 @@ export function ItineraryPlanner({
   onDayNote,
   onOpenItem,
   onOpenSuggestion,
+  onAddToSlot,
 }: {
   startDate?: string;
   dayCount: number;
@@ -117,6 +129,8 @@ export function ItineraryPlanner({
   onDayNote: (day: number, text: string) => void;
   onOpenItem: (i: ItineraryItem) => void;
   onOpenSuggestion: (s: Suggestion) => void;
+  /** Tap a slot's + (or its empty state) to add something straight into it. */
+  onAddToSlot?: (day: number, slot: ItinerarySlot) => void;
 }) {
   const [day, setDay] = useState(1);
   const [hover, setHover] = useState<DropKey | null>(null);
@@ -208,7 +222,7 @@ export function ItineraryPlanner({
         {Array.from({ length: dayCount }, (_, i) => i + 1).map((n) => {
           const active = day === n;
           return (
-            <Pressable key={n} onPress={() => setDay(n)} className="rounded-2xl items-center" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : '#fff' }}>
+            <Pressable key={n} onPress={() => setDay(n)} className="rounded-2xl items-center" style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: active ? COLORS.navySolid : COLORS.card }}>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: active ? 'rgba(255,255,255,0.7)' : COLORS.ink3 }}>DAY {n}</Text>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: active ? '#fff' : COLORS.navy }}>{dayLabel(n)}</Text>
             </Pressable>
@@ -227,9 +241,25 @@ export function ItineraryPlanner({
               key={s.id}
               ref={(r) => { zoneRefs.current[key] = r; }}
               collapsable={false}
-              style={{ backgroundColor: hot ? 'rgba(255,107,154,0.10)' : 'rgba(20,33,61,0.03)', borderRadius: 18, padding: 10, borderWidth: 1.5, borderColor: hot ? COLORS.coral : 'transparent' }}
+              className={hot ? undefined : 'bg-white dark:bg-card'}
+              style={{ backgroundColor: hot ? 'rgba(255,107,154,0.10)' : undefined, borderRadius: 20, padding: 12, borderWidth: 1.5, borderColor: hot ? COLORS.coral : 'transparent' }}
             >
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, marginBottom: items.length ? 8 : 0, paddingHorizontal: 2 }}>{s.label.toUpperCase()}</Text>
+              {/* Each part of the day gets its own colour + icon, and a tap
+                  target to add to it — dragging is no longer the only way in. */}
+              <View className="flex-row items-center" style={{ gap: 9, marginBottom: items.length ? 10 : 0 }}>
+                <View className="rounded-full items-center justify-center" style={{ height: 28, width: 28, backgroundColor: SLOT_STYLE[s.id].color + '26' }}>
+                  {(() => { const Icon = SLOT_STYLE[s.id].Icon; return <Icon size={14} color={SLOT_STYLE[s.id].color} />; })()}
+                </View>
+                <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 13.5, fontWeight: '700', color: COLORS.navy }}>{s.label}</Text>
+                {items.length === 0 && onAddToSlot ? (
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>Nothing planned</Text>
+                ) : null}
+                {onAddToSlot ? (
+                  <Pressable onPress={() => onAddToSlot(day, s.id)} accessibilityRole="button" accessibilityLabel={`Add to ${s.label}`} hitSlop={10} className="rounded-full items-center justify-center" style={{ height: 28, width: 28, backgroundColor: 'rgba(255,107,154,0.12)' }}>
+                    <Plus size={15} color={COLORS.coral} />
+                  </Pressable>
+                ) : null}
+              </View>
               <View style={{ gap: 8 }}>
                 {items.map((it) => (
                   <View key={it.id} ref={(r) => { cardRefs.current[it.id] = r; }} collapsable={false}>
@@ -276,7 +306,7 @@ export function ItineraryPlanner({
       <View
         ref={(r) => { zoneRefs.current['ideas'] = r; }}
         collapsable={false}
-        style={{ marginTop: 16, backgroundColor: hover === 'ideas' ? 'rgba(155,124,255,0.10)' : '#fff', borderRadius: 20, padding: 12, borderWidth: 1.5, borderColor: hover === 'ideas' ? COLORS.lavender : 'rgba(20,33,61,0.05)' }}
+        style={{ marginTop: 16, backgroundColor: hover === 'ideas' ? 'rgba(155,124,255,0.10)' : COLORS.card, borderRadius: 20, padding: 12, borderWidth: 1.5, borderColor: hover === 'ideas' ? COLORS.lavender : 'rgba(20,33,61,0.05)' }}
       >
         <View className="flex-row items-center" style={{ gap: 6, marginBottom: 10 }}>
           <Sparkles size={15} color={COLORS.lavender} />

@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import {
   Cloud, CloudOff, LogOut, Download, Merge, Plane, RotateCcw, FileDown, CircleCheck, ChevronRight,
   BellRing, Sparkles, Users, MapPinned, Sun, Moon, SunMoon, Ruler, Thermometer,
-  ShieldCheck, FileText, Mail, Trash2, Gem,
+  ShieldCheck, ShieldOff, FileText, Mail, Trash2, Gem,
 } from 'lucide-react-native';
 import { BackButton } from '../components/BackButton';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
@@ -74,7 +74,7 @@ function Row({ icon: Icon, tint, label, sub, right, onPress, first }: {
 export default function SettingsScreen() {
   const { aggregates } = useWorldly();
   const { configured, user, signOutUser } = useAuth();
-  const { places, discoveries, expeditions, captures, trips, recalculateJourneys, updateExpedition } = useData();
+  const { places, discoveries, expeditions, captures, trips, unifiedTrips, recalculateJourneys, updateExpedition } = useData();
   const { toast } = useToast();
   const confirm = useConfirm();
   const { replay } = useOnboarding();
@@ -139,13 +139,13 @@ export default function SettingsScreen() {
       await setAnniversariesEnabled(true);
       setNotifOn(true);
       track('notification_toggled', { type: 'anniversaries', on: true });
-      await rescheduleNotifications(expeditions, places, trips);
+      await rescheduleNotifications(expeditions, places, unifiedTrips);
       toast.success('Anniversary reminders on ✈️');
     } else {
       await setAnniversariesEnabled(false);
       setNotifOn(false);
       track('notification_toggled', { type: 'anniversaries', on: false });
-      await rescheduleNotifications(expeditions, places, trips);
+      await rescheduleNotifications(expeditions, places, unifiedTrips);
     }
   }
 
@@ -158,13 +158,13 @@ export default function SettingsScreen() {
       await setPostTripRemindersEnabled(true);
       setPostTripOn(true);
       track('notification_toggled', { type: 'post_trip', on: true });
-      await rescheduleNotifications(expeditions, places, trips);
+      await rescheduleNotifications(expeditions, places, unifiedTrips);
       toast.success('Trip discovery reminders on ✨');
     } else {
       await setPostTripRemindersEnabled(false);
       setPostTripOn(false);
       track('notification_toggled', { type: 'post_trip', on: false });
-      await rescheduleNotifications(expeditions, places, trips);
+      await rescheduleNotifications(expeditions, places, unifiedTrips);
     }
   }
 
@@ -504,6 +504,16 @@ export default function SettingsScreen() {
           </Text>
         </View>
 
+        {/* Safety — manage the people you've blocked (Guideline 1.2). */}
+        {user ? (
+          <View style={{ paddingHorizontal: 20, marginTop: 26 }}>
+            <Text style={LABEL}>SAFETY</Text>
+            <View className="bg-white dark:bg-card rounded-3xl" style={{ paddingHorizontal: 16 }}>
+              <Row first icon={ShieldOff} label="Blocked accounts" sub="Review and unblock people you've blocked." onPress={() => router.push('/blocked')} />
+            </View>
+          </View>
+        ) : null}
+
         {/* 4 — ACCOUNT: last, separated, destructive. Never adjacent to Export. */}
         {user ? (
           <View style={{ paddingHorizontal: 20, marginTop: 34 }}>
@@ -516,13 +526,13 @@ export default function SettingsScreen() {
               style={{ padding: 16, gap: 12, borderWidth: 1, borderColor: 'rgba(224,36,94,0.25)' }}
             >
               <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(224,36,94,0.10)' }}>
-                <Trash2 size={19} color="#E0245E" />
+                <Trash2 size={19} color={COLORS.errorText} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#E0245E' }}>Delete my account</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.errorText }}>Delete my account</Text>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Permanently removes your account and synced data.</Text>
               </View>
-              <ChevronRight size={18} color="#E0245E" />
+              <ChevronRight size={18} color={COLORS.errorText} />
             </Pressable>
           </View>
         ) : null}

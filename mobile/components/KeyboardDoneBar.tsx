@@ -44,7 +44,7 @@ export function KeyboardDoneBar() {
         paddingHorizontal: 14,
         paddingVertical: 9,
         gap: 5,
-        shadowColor: '#14213d',
+        shadowColor: '#14213D',
         shadowOpacity: 0.3,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 4 },

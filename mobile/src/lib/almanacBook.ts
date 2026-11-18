@@ -14,6 +14,7 @@
 //   every page and leaving blank half-sheets.
 import { flagEmoji } from './flags';
 import { destinationImage, hasDestinationPhoto } from './destinationImage';
+import { fetchWithTimeout } from './net';
 
 const PAGE_W = 720;
 const PAGE_H = 1018;
@@ -72,7 +73,7 @@ export interface AlmanacBookInput {
 /** Fetch an image and return it as a data URI (null on any failure). */
 async function toDataUri(url: string): Promise<string | null> {
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) return null;
     const blob = await res.blob();
     return await new Promise<string | null>((resolve) => {

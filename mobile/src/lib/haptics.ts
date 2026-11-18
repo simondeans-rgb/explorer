@@ -41,6 +41,17 @@ export function hSuccess(): void {
   }
 }
 
+/** A warning buzz — for destructive confirmations (delete/sign-out). */
+export function hWarning(): void {
+  const m = get();
+  if (!m) return;
+  try {
+    void m.notificationAsync(m.NotificationFeedbackType.Warning);
+  } catch {
+    /* non-critical */
+  }
+}
+
 /** A crisp selection tick — for tab switches, toggles and chips. */
 export function hSelection(): void {
   const m = get();

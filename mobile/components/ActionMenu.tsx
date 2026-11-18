@@ -1,16 +1,18 @@
 import { Modal, View, Text, Pressable } from 'react-native';
 import { MapPin, Plane, Camera, Gem } from 'lucide-react-native';
 import type { ComponentType } from 'react';
-import { COLORS } from '../src/lib/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BRAND_GRADIENT, COLORS, SHADOW, tint } from '../src/lib/theme';
 
 export type ActionKind = 'quicklog' | 'place' | 'discovery' | 'journey' | 'photo' | 'trip' | 'tripentry';
 
 // Kept tight on purpose: the full discovery editor isn't a separate menu item —
-// it's reached from Quick Log ("Add full details") and from country pages —
-// and past + future trips share one "Add a trip" entry with a chooser.
+// it's reached from Quick Log ("Add full details") and from country pages. One
+// "Add a trip" opens the unified sheet for both past and upcoming trips; the app
+// works out which from the dates.
 const OPTIONS: { kind: ActionKind; label: string; hint: string; icon: ComponentType<{ size?: number; color?: string }> }[] = [
   { kind: 'place', label: 'Add a place', hint: 'A country or city you’ve been to', icon: MapPin },
-  { kind: 'tripentry', label: 'Add a trip', hint: 'One you’ve taken, or one coming up', icon: Plane },
+  { kind: 'journey', label: 'Add a trip', hint: 'Past or upcoming — flights, plans and more', icon: Plane },
   { kind: 'photo', label: 'Add a photo', hint: 'A memory from your travels', icon: Camera },
 ];
 
@@ -32,7 +34,8 @@ export function ActionMenu({
           <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, paddingHorizontal: 20, marginBottom: 10 }}>What would you like to add?</Text>
 
           {/* Quick Log — the hero: rate a place in seconds. */}
-          <Pressable accessibilityRole="button" accessibilityLabel="Leave a verdict — rate a place in seconds" onPress={() => onPick('quicklog')} className="flex-row items-center" style={{ marginHorizontal: 20, marginBottom: 6, borderRadius: 22, gap: 14, paddingHorizontal: 16, paddingVertical: 15, backgroundColor: COLORS.coral }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Leave a verdict — rate a place in seconds" onPress={() => onPick('quicklog')} style={[{ marginHorizontal: 20, marginBottom: 6, borderRadius: 22 }, SHADOW.glow(COLORS.coral)]}>
+            <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 22, gap: 14, paddingHorizontal: 16, paddingVertical: 15 }}>
             <View className="rounded-2xl items-center justify-center" style={{ height: 46, width: 46, backgroundColor: 'rgba(255,255,255,0.22)' }}>
               <Gem size={22} color="#fff" />
             </View>
@@ -40,13 +43,14 @@ export function ActionMenu({
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 16, fontWeight: '800', color: '#fff' }}>Leave a verdict</Text>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: 'rgba(255,255,255,0.92)', marginTop: 1 }}>Rate a place in seconds</Text>
             </View>
+            </LinearGradient>
           </Pressable>
 
           {OPTIONS.map((o) => {
             const Icon = o.icon;
             return (
               <Pressable key={o.kind} accessibilityRole="button" accessibilityLabel={`${o.label} — ${o.hint}`} onPress={() => onPick(o.kind)} className="flex-row items-center" style={{ paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
-                <View className="rounded-2xl items-center justify-center" style={{ height: 46, width: 46, backgroundColor: COLORS.card }}>
+                <View className="rounded-2xl items-center justify-center" style={{ height: 46, width: 46, backgroundColor: tint(COLORS.coral, 0.1) }}>
                   <Icon size={20} color={COLORS.coral} />
                 </View>
                 <View style={{ flex: 1 }}>

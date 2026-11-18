@@ -26,18 +26,51 @@ export const COLORS = {
   card: dyn('#FFFFFF', '#1A2138'),
   ink: dyn('#14213D', '#E6E9F2'),
   ink2: dyn('#48506B', '#AEB5CC'),
-  ink3: dyn('#8A90A6', '#9298B0'),
+  // Meta/caption text. Darkened again (R19) to ~5.5:1 on white for comfortable
+  // headroom above the 4.5:1 AA floor — the previous #6B7185 sat right on it, so
+  // the app's most common secondary text had no margin. (#8A90A6 was ~3.16:1.)
+  ink3: dyn('#5E6377', '#9BA1B8'),
   white: '#FFFFFF',
   danger: '#F2557D', // brand-aligned destructive (coral-red, not finance red)
+  /** Small error / success TEXT on a light surface. Deeper than `danger`/`aqua`
+   *  so 12–13px copy clears 4.5:1 — use these for inline messages, and
+   *  `danger`/`aqua` for fills, icons and large type. */
+  errorText: dyn('#E0245E', '#FF7C9C'),
+  successText: dyn('#0E9F8F', '#3FDCCB'),
   /** Muted tile surface (locked badges etc.) + its glyph colour — a step off
    *  the card surface in both themes. */
   tileMuted: dyn('#EEF0F6', '#242C4B'),
   tileMutedIcon: dyn('#C2C7D6', '#6F79A1'),
 } as const;
 
-/** Shared scales so new/edited components stop hardcoding ad-hoc values. */
+/** Corner-radius scale (R3). Convention so radii stop drifting across screens:
+ *    • pill  (999) — pills, chips, circular buttons/avatars
+ *    • xl   (28)  — bottom sheets and the largest "hero" cards
+ *    • lg   (24)  — standard cards / surfaces (the default card radius)
+ *    • md   (16)  — inner tiles (icon chips inside a card), inputs
+ *    • sm   (12)  — small inset elements
+ *  Rule of thumb when nesting: outer card = lg/xl, inner chip/tile = md, and a
+ *  chip is always `pill`. Prefer these tokens (or Tailwind rounded-2xl/3xl) over
+ *  raw borderRadius literals in new/edited code. */
 export const RADIUS = { sm: 12, md: 16, lg: 24, xl: 28, pill: 999 } as const;
 export const SPACE = { xs: 8, sm: 12, md: 16, lg: 20, xl: 24 } as const;
+
+/** Build an `rgba()` tint from a solid hex colour + alpha (R2). Use this instead
+ *  of hand-typing `rgba(...)` literals so the same brand hue can't drift across
+ *  opacities. Pass SOLID hex tokens (coral, navySolid, sunburst…) — not the
+ *  DynamicColorIOS `dyn()` tokens, which aren't plain strings. */
+export function tint(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/** The neutral "muted chip/divider" tint at the app's standard strength — the
+ *  one hand-typed at ten different alphas across the codebase. */
+export const MUTED_TINT = tint('#14213D', 0.06);
 
 /** Soft, premium elevation — spread into a `style`. `glow(color)` tints the shadow. */
 export const SHADOW = {
@@ -62,7 +95,10 @@ export const GRADIENTS = {
 export type Gradient = readonly [string, string, ...string[]];
 
 /** Adjusted brand palette (improved colour-vision distinction) mapped to each
- *  main section. Drives the nav-bar icon tints and each hero's wave line. */
+ *  main section. Drives the nav-bar icon tints and each hero's wave line.
+ *  NOTE: these intentionally differ from the same-named COLORS.* entries — the
+ *  section accents are tuned for separation in the tab bar, so do NOT "unify"
+ *  them with COLORS. Use SECTION.* for section-identity tints, COLORS.* elsewhere. */
 export const SECTION = {
   story: '#FF6B9A', // Coral
   atlas: '#00CFAE', // Aqua

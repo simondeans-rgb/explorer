@@ -164,7 +164,7 @@ export function FlightSummaryCard(p: FlightSummaryProps) {
           <View className="flex-row items-center" style={{ paddingHorizontal: 16, paddingVertical: 11, gap: 6 }}>
             <Plane size={12} color={COLORS.ink3} style={{ transform: [{ rotate: '45deg' }] }} />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink2 }}>
-              <Text style={{ fontWeight: '700', color: COLORS.navy }}>{dist}</Text> flown
+              <Text style={{ fontWeight: '700', color: COLORS.navy }}>{dist}</Text> {p.arriveActual ? 'flown' : 'to fly'}
             </Text>
           </View>
         </>

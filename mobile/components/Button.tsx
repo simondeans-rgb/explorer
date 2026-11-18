@@ -2,6 +2,7 @@ import { Pressable, Text, ActivityIndicator, View, type StyleProp, type ViewStyl
 import { LinearGradient } from 'expo-linear-gradient';
 import type { ComponentType } from 'react';
 import { COLORS, RADIUS, SHADOW, BRAND_GRADIENT } from '../src/lib/theme';
+import { hImpact } from '../src/lib/haptics';
 
 type Variant = 'primary' | 'gradient' | 'secondary' | 'ghost';
 type IconCmp = ComponentType<{ size?: number; color?: string }>;
@@ -27,7 +28,20 @@ export function Button({
   full?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
-  const fg = variant === 'secondary' ? COLORS.navySolid : variant === 'ghost' ? COLORS.ink2 : '#fff';
+  const fg = variant === 'secondary' ? COLORS.navySolid : variant === 'ghost' ? COLORS.ink2 : COLORS.white;
+  // Light tactile confirmation on every CTA (fail-silent on older binaries).
+  const handlePress = onPress
+    ? () => {
+        hImpact('light');
+        onPress();
+      }
+    : undefined;
+  // Shared accessibility semantics so VoiceOver announces role + disabled/busy.
+  const a11y = {
+    accessibilityRole: 'button' as const,
+    accessibilityLabel: label,
+    accessibilityState: { disabled: disabled || loading, busy: loading },
+  };
   const base: ViewStyle = {
     borderRadius: RADIUS.pill,
     paddingVertical: 14,
@@ -51,7 +65,7 @@ export function Button({
 
   if (variant === 'gradient') {
     return (
-      <Pressable onPress={onPress} disabled={disabled || loading} style={[{ alignSelf: full ? 'stretch' : 'flex-start' }, SHADOW.glow(COLORS.coral), style]}>
+      <Pressable {...a11y} onPress={handlePress} disabled={disabled || loading} style={[{ alignSelf: full ? 'stretch' : 'flex-start' }, SHADOW.glow(COLORS.coral), style]}>
         <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={base}>
           {inner}
         </LinearGradient>
@@ -59,10 +73,10 @@ export function Button({
     );
   }
 
-  const bg = variant === 'primary' ? COLORS.coral : variant === 'secondary' ? '#fff' : 'rgba(20,33,61,0.06)';
+  const bg = variant === 'primary' ? COLORS.coral : variant === 'secondary' ? COLORS.white : 'rgba(20,33,61,0.06)';
   const shadow = variant === 'primary' ? SHADOW.glow(COLORS.coral) : variant === 'secondary' ? SHADOW.card : undefined;
   return (
-    <Pressable onPress={onPress} disabled={disabled || loading} style={[base, { backgroundColor: bg }, shadow as ViewStyle, style]}>
+    <Pressable {...a11y} onPress={handlePress} disabled={disabled || loading} style={[base, { backgroundColor: bg }, shadow as ViewStyle, style]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>{inner}</View>
     </Pressable>
   );

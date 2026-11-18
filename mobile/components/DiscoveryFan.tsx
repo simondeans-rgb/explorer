@@ -104,7 +104,7 @@ const FanCard = memo(function FanCard({
     <View style={{ width: step, alignItems: 'center' }}>
       <Animated.View style={[{ width: cardW, transformOrigin: 'center bottom' }, animated]}>
         <Pressable onPress={() => onPress(d)}>
-          <View style={{ width: cardW, height: cardH, borderRadius: 26, overflow: 'hidden', backgroundColor: COLORS.warmwhite, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 10 } }}>
+          <View style={{ width: cardW, height: cardH, borderRadius: 26, overflow: 'hidden', backgroundColor: COLORS.warmwhite, shadowColor: '#14213D', shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 10 } }}>
             {d.photo ? (
               <>
                 <Image source={{ uri: d.photo }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} cachePolicy="memory-disk" />

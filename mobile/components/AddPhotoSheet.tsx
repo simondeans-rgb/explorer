@@ -1,18 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import { CtaGradient } from './CtaGradient';
+import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, Linking } from 'react-native';
 import { Image } from 'expo-image';
-import { Camera, ImagePlus, Check, Search, X, MapPin } from 'lucide-react-native';
+import { Camera, ImagePlus, Check, X, MapPin } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
 import { COLORS } from '../src/lib/theme';
 import { flagEmoji } from '../src/lib/flags';
-import { COUNTRIES, countryName } from '../src/data/countries';
+import { countryName } from '../src/data/countries';
 import { useData } from '../src/store/data';
 import { useToast } from '../src/store/toast';
-import { pickPhotoWithMeta, pickMultiplePhotosWithMeta } from '../src/lib/photo';
+import { useConfirm } from '../src/store/confirm';
+import { pickPhotoWithMeta, pickMultiplePhotosWithMeta, mediaPermissionDenied } from '../src/lib/photo';
 import { countryAt } from '../src/lib/geoLookup';
 import { matchExpedition, expeditionLabel } from '../src/lib/tripMatch';
 import { TripPickerField } from './TripPickerField';
+import { CountryPickerField } from './CountryPickerField';
 import { track } from '../src/lib/analytics';
+import { isObjectionable } from '../src/lib/textFilter';
 
 export function AddPhotoSheet({
   visible,
@@ -28,9 +32,22 @@ export function AddPhotoSheet({
 }) {
   const { addCapture, expeditions } = useData();
   const { toast } = useToast();
+  const confirm = useConfirm();
+
+  // When a picker returns nothing because the permission is off (not a cancel),
+  // explain it and offer a route to Settings — iOS won't re-prompt after a hard
+  // denial, so without this the button just appears to do nothing.
+  async function offerSettingsIfDenied(source: 'camera' | 'library') {
+    if (!(await mediaPermissionDenied(source))) return;
+    const what = source === 'camera' ? 'camera' : 'photo';
+    if (await confirm({
+      title: `Allow ${what} access`,
+      message: `To ${source === 'camera' ? 'take a photo' : 'add photos'}, turn on ${what} access for Worldly in Settings.`,
+      confirmLabel: 'Open Settings',
+    })) Linking.openSettings();
+  }
   const [photo, setPhoto] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
-  const [query, setQuery] = useState('');
   const [code, setCode] = useState('');
   const [picking, setPicking] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -45,12 +62,6 @@ export function AddPhotoSheet({
     if (visible && initialExpeditionId) setExpId(initialExpeditionId);
   }, [visible, initialCountryCode, initialExpeditionId]);
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const list = q ? COUNTRIES.filter((c) => c.name.toLowerCase().includes(q)) : COUNTRIES;
-    return list.slice(0, 24);
-  }, [query]);
-
   // The trip this photo most plausibly belongs to, from its geotag + timestamp.
   const suggested = useMemo(
     () => (photo ? matchExpedition(expeditions, { countryCode: detectedCode || code || undefined, takenAt }) : undefined),
@@ -62,7 +73,6 @@ export function AddPhotoSheet({
   function reset() {
     setPhoto(null);
     setCaption('');
-    setQuery('');
     setCode('');
     setPicking(false);
     setSaving(false);
@@ -78,7 +88,10 @@ export function AddPhotoSheet({
     setPicking(true);
     try {
       const picked = await pickPhotoWithMeta(source);
-      if (!picked) return;
+      if (!picked) {
+        await offerSettingsIfDenied(source);
+        return;
+      }
       setPhoto(picked.dataUrl);
       setTakenAt(picked.takenAt);
       // Geotag → country, pre-filled but always changeable below.
@@ -99,7 +112,10 @@ export function AddPhotoSheet({
     setPicking(true);
     try {
       const picks = await pickMultiplePhotosWithMeta();
-      if (!picks.length) return;
+      if (!picks.length) {
+        await offerSettingsIfDenied('library');
+        return;
+      }
       let saved = 0;
       for (const p of picks) {
         const cc = (p.latitude !== undefined && p.longitude !== undefined ? countryAt(p.longitude, p.latitude) : undefined) || undefined;
@@ -118,18 +134,24 @@ export function AddPhotoSheet({
       setPicking(false);
     }
   }
-  async function save() {
+  function save() {
     if (!photo || saving) return;
-    setSaving(true);
-    try {
-      await addCapture({ dataUrl: photo, countryCode: code || undefined, caption, expeditionId: selectedExpId, takenAt });
-      track('photo_added', { geotagged: Boolean(detectedCode), trip_linked: Boolean(selectedExpId), trip_auto: Boolean(selectedExpId && expId === undefined) });
-      toast.success(selectedExp ? `Memory saved to ${expeditionLabel(selectedExp)}` : 'Memory saved');
-      close();
-    } catch {
-      setSaving(false);
-      toast.error("Couldn't save — check your connection and try again.");
+    // A caption can appear in friends' feeds — filter objectionable text (1.2).
+    if (caption.trim() && isObjectionable(caption)) {
+      toast.error('Please remove offensive language from the caption.');
+      return;
     }
+    // Snapshot everything the upload needs, then dismiss the sheet immediately.
+    // The upload can take several seconds; awaiting it here would freeze the UI
+    // and read as "unresponsive" (App Store 2.1a). Instead we run it in the
+    // background and confirm the result with a toast.
+    const payload = { dataUrl: photo, countryCode: code || undefined, caption, expeditionId: selectedExpId, takenAt };
+    const exp = selectedExp;
+    track('photo_added', { geotagged: Boolean(detectedCode), trip_linked: Boolean(selectedExpId), trip_auto: Boolean(selectedExpId && expId === undefined) });
+    close();
+    void addCapture(payload)
+      .then(() => toast.success(exp ? `Memory saved to ${expeditionLabel(exp)}` : 'Memory saved'))
+      .catch(() => toast.error("Couldn't save — check your connection and try again."));
   }
 
   const takenLabel = takenAt
@@ -218,36 +240,11 @@ export function AddPhotoSheet({
         </View>
 
         {/* country */}
-        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', letterSpacing: 1, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 16 }}>
-          {detectedCode ? 'WHERE (FROM THE PHOTO — TAP TO CHANGE)' : 'WHERE (OPTIONAL)'}
-        </Text>
-        <View className="flex-row items-center bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8, marginTop: 8 }}>
-          <Search size={18} color={COLORS.ink3} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search countries"
-            placeholderTextColor={COLORS.ink3}
-            style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }}
-          />
-        </View>
-        <ScrollView style={{ maxHeight: 160, marginTop: 6 }} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
-          {results.map((c) => {
-            const active = code === c.code;
-            return (
-              <Pressable
-                key={c.code}
-                onPress={() => setCode(active ? '' : c.code)}
-                className="flex-row items-center"
-                style={{ paddingHorizontal: 20, paddingVertical: 10, gap: 12, backgroundColor: active ? 'rgba(255,107,154,0.10)' : 'transparent' }}
-              >
-                <Text style={{ fontSize: 22 }}>{flagEmoji(c.code)}</Text>
-                <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.navy }}>{c.name}</Text>
-                {active ? <Check size={18} color={COLORS.coral} /> : null}
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        <CountryPickerField
+          code={code}
+          onChange={setCode}
+          label={detectedCode ? 'WHERE (FROM THE PHOTO — TAP TO CHANGE)' : 'WHERE (OPTIONAL)'}
+        />
 
         <Pressable
           accessibilityRole="button"
@@ -255,8 +252,9 @@ export function AddPhotoSheet({
           onPress={save}
           disabled={!photo || saving}
           className="rounded-2xl items-center justify-center flex-row"
-          style={{ marginHorizontal: 20, marginTop: 18, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: photo && !saving ? 1 : 0.4, gap: 8 }}
+          style={{ marginHorizontal: 20, marginTop: 18, paddingVertical: 15, backgroundColor: COLORS.coral, overflow: 'hidden', opacity: photo && !saving ? 1 : 0.4, gap: 8 }}
         >
+          <CtaGradient />
           {saving ? (
             <ActivityIndicator color="#fff" />
           ) : (

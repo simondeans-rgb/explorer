@@ -9,10 +9,10 @@ import {
   PlusJakartaSans_700Bold,
 } from '@expo-google-fonts/plus-jakarta-sans';
 import { Caveat_600SemiBold } from '@expo-google-fonts/caveat';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import { AuthProvider, useAuth } from '../src/store/auth';
 import { DataProvider } from '../src/store/data';
@@ -23,11 +23,13 @@ import { OnboardingProvider, useOnboarding } from '../src/store/onboarding';
 import { UnitsProvider } from '../src/store/units';
 import { Onboarding } from '../components/Onboarding';
 import { AchievementWatcher } from '../components/AchievementWatcher';
+import { CoverUnlockWatcher } from '../components/CoverUnlockWatcher';
 import { LocationSync } from '../components/LocationSync';
 import { NotificationScheduler } from '../components/NotificationScheduler';
 import { WidgetSync } from '../components/WidgetSync';
 import { CircleRequestPrompt } from '../components/CircleRequestPrompt';
 import { onOpenAddMenu } from '../src/lib/addMenu';
+import { takePendingRoute } from '../src/lib/nav';
 import { GlobalTabBar } from '../components/GlobalTabBar';
 import { SyncBanner } from '../components/SyncBanner';
 import { ActionMenu, type ActionKind } from '../components/ActionMenu';
@@ -36,8 +38,6 @@ import { AddDiscoverySheet } from '../components/AddDiscoverySheet';
 import { QuickLogSheet } from '../components/QuickLogSheet';
 import { AddTripSheet } from '../components/AddTripSheet';
 import { AddPhotoSheet } from '../components/AddPhotoSheet';
-import { AddTripPlanSheet } from '../components/AddTripPlanSheet';
-import { TripEntryChooser } from '../components/TripEntryChooser';
 import { AuthGate } from '../components/AuthGate';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { initSentry, wrapWithSentry } from '../src/lib/sentry';
@@ -90,6 +90,19 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
   const appReady = fontsLoaded && ready && !authLoading;
   const [menuOpen, setMenuOpen] = useState(false);
   const [sheet, setSheet] = useState<ActionKind | null>(null);
+  // iOS can't present a modal while another is still dismissing, so handing off
+  // from the action menu (or the "Add a trip" chooser) straight to a sheet in the
+  // same render silently drops the new sheet — most visibly on "Add a trip →
+  // Already been", which made logging a journey look impossible. Sequence the
+  // handoff: close what's open, let it slide away, then present the next sheet.
+  const sheetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const goToSheet = (kind: ActionKind) => {
+    if (sheetTimer.current) clearTimeout(sheetTimer.current);
+    setMenuOpen(false);
+    setSheet(null);
+    sheetTimer.current = setTimeout(() => setSheet(kind), 320);
+  };
+  useEffect(() => () => { if (sheetTimer.current) clearTimeout(sheetTimer.current); }, []);
   // Lets people explore on-device (offline) without signing in. Session-scoped:
   // the welcome screen returns on the next cold start until they sign in.
   const [guest, setGuest] = useState(false);
@@ -116,31 +129,45 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
     if (user?.uid) identify(user.uid);
   }, [user?.uid]);
 
+  // Replay a route an onboarding QuickStart button chose while the sign-in wall
+  // was up, once the user has authenticated (or continued as guest) — so those
+  // buttons honour what they say instead of being silently swallowed.
+  useEffect(() => {
+    if (needsAuth || !appReady) return;
+    const route = takePendingRoute();
+    if (route) router.push(route);
+  }, [needsAuth, appReady]);
+
   if (!appReady) return null;
 
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="light" />
-      {/* gestureEnabled + fullScreenGestureEnabled: swipe left-to-right anywhere
-          on a pushed screen (not just the edge) to go back. iOS native-stack. */}
-      <Stack screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true }}>
+      {/* Edge-swipe back only (not full-screen): a full-screen back gesture
+          fights vertical scrolling — a slightly diagonal scroll would trigger a
+          back navigation. gestureEnabled keeps the standard left-edge swipe. */}
+      <Stack screenOptions={{ headerShown: false, gestureEnabled: true }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="country/[code]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="trip/[id]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="discovery/[id]" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="memory/[id]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="guide/[key]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="friends" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="friend/[uid]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="invite-contacts" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="blocked" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="scan" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
         <Stack.Screen name="add/[code]" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
         <Stack.Screen name="import" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="almanac" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="search" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
         <Stack.Screen name="wrapped" options={{ animation: 'fade', presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="wrapped-lifetime" options={{ animation: 'fade', presentation: 'fullScreenModal' }} />
       </Stack>
 
       <AchievementWatcher />
+      <CoverUnlockWatcher />
       <LocationSync />
       <NotificationScheduler />
       <WidgetSync />
@@ -150,27 +177,30 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
       <SyncBanner />
 
       {/* Global, always-visible navigation bar + its action menu / sheets. */}
-      <GlobalTabBar onFab={() => setMenuOpen(true)} />
+      <GlobalTabBar
+        onFab={() => setMenuOpen(true)}
+        onFabLongPress={() => {
+          setSheet('photo');
+          track('fab_action', { kind: 'photo', via: 'longpress' });
+        }}
+      />
       <ActionMenu
         visible={menuOpen}
         onClose={() => setMenuOpen(false)}
         onPick={(kind) => {
-          setMenuOpen(false);
-          setSheet(kind);
+          goToSheet(kind);
           track('fab_action', { kind });
         }}
       />
-      <QuickLogSheet visible={sheet === 'quicklog'} onClose={() => setSheet(null)} onExpand={() => setSheet('discovery')} />
+      <QuickLogSheet visible={sheet === 'quicklog'} onClose={() => setSheet(null)} onExpand={() => goToSheet('discovery')} />
       <AddPlaceSheet visible={sheet === 'place'} onClose={() => setSheet(null)} />
       <AddDiscoverySheet visible={sheet === 'discovery'} onClose={() => setSheet(null)} startExpanded />
       <AddTripSheet visible={sheet === 'journey'} onClose={() => setSheet(null)} />
       <AddPhotoSheet visible={sheet === 'photo'} onClose={() => setSheet(null)} />
-      <AddTripPlanSheet visible={sheet === 'trip'} onClose={() => setSheet(null)} />
-      <TripEntryChooser visible={sheet === 'tripentry'} onClose={() => setSheet(null)} onPick={(kind) => setSheet(kind)} />
 
       {/* Sign-in gate sits above the app; onboarding (first run) sits above that. */}
       {needsAuth ? <AuthGate onContinueWithout={() => setGuest(true)} /> : null}
-      {visible ? <Onboarding onDone={finish} /> : null}
+      {visible ? <Onboarding onDone={finish} blockRoute={needsAuth} /> : null}
     </View>
   );
 }

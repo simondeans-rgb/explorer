@@ -2,7 +2,6 @@
 // native imports so the trip-status, world-percentage, level and achievement
 // logic is unit-testable (see scripts/run-tests.ts). WidgetSync.tsx wires these
 // into the payload it pushes across the app group; the Swift widget renders it.
-import type { Trip } from '../types';
 import type { ExplorerLevel, Badge } from './explorer';
 
 /** The "world" denominator — sovereign UN member + observer states. The widget
@@ -30,9 +29,18 @@ export function isoDaysBetween(a: string, b: string): number {
   return Math.round((Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / 86_400_000);
 }
 
+/** Minimal trip shape the widget needs (a structural subset of both the legacy
+ *  Trip and the unified Expedition, via primaryCode). */
+export interface WidgetTripInput {
+  title: string;
+  countryCode: string;
+  startDate: string;
+  endDate?: string;
+}
+
 /** The trip to feature: one that's happening now (today / underway) wins over
  *  the soonest upcoming trip. `today` is an ISO `yyyy-mm-dd`. Pure. */
-export function pickWidgetTrip(trips: Trip[], today: string): WidgetTrip | null {
+export function pickWidgetTrip(trips: WidgetTripInput[], today: string): WidgetTrip | null {
   const dated = trips.filter((t) => t.startDate && ISO_DATE.test(t.startDate));
 
   // Happening now: started on/before today and either open-ended-through-today

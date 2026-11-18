@@ -50,7 +50,7 @@ export function SyncBanner() {
           paddingVertical: 9,
           gap: 8,
           backgroundColor: 'rgba(20,33,61,0.92)',
-          shadowColor: '#000',
+          shadowColor: '#14213D',
           shadowOpacity: 0.2,
           shadowRadius: 10,
           shadowOffset: { width: 0, height: 4 },

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { MapPin, Star, Gem, Users, MoreVertical } from 'lucide-react-native';
 import { blockUser, reportContent } from '../../src/lib/moderation';
@@ -17,6 +17,8 @@ import { computeJourneyStats } from '../../src/lib/journeyStats';
 import { computeExplorerLevel, computeBadges } from '../../src/lib/explorer';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
 import { useAuth } from '../../src/store/auth';
+import { useToast } from '../../src/store/toast';
+import { ModerationSheet } from '../../components/ModerationSheet';
 import { useFriendsData } from '../../src/hooks/useFriendsData';
 import { HERO_CODES } from '../../src/lib/heroImages';
 import type { ComponentType } from 'react';
@@ -35,6 +37,7 @@ const VERDICT_STYLE: Partial<Record<RecommendationVerdict, { label: string; colo
  *  Explorer level, achievements and their latest recommendations. */
 export default function FriendProfileScreen() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const params = useLocalSearchParams<{ uid: string; name?: string }>();
   const uid = (Array.isArray(params.uid) ? params.uid[0] : params.uid) ?? '';
   const name = ((Array.isArray(params.name) ? params.name[0] : params.name) || 'Traveller').trim();
@@ -44,30 +47,23 @@ export default function FriendProfileScreen() {
 
   // Report or block this member (Guideline 1.2). Blocking severs the friendship
   // (their content becomes inaccessible), records the block, and returns you to
-  // the Circle. Both actions notify the moderation team.
-  function moderate() {
+  // the Circle. Both actions notify the moderation team. Presented via the
+  // branded ModerationSheet (R23).
+  const [modOpen, setModOpen] = useState(false);
+  function reportMember() {
     const me = user?.uid;
     if (!me) return;
-    Alert.alert(name, 'Report or block this member.', [
-      {
-        text: `Report ${name}`,
-        style: 'destructive',
-        onPress: () => {
-          reportContent({ reporterUid: me, type: 'user', targetId: uid, ownerUid: uid, reason: 'reported member' }).catch(() => {});
-          Alert.alert('Thanks — reported', 'Our moderation team will review this within 24 hours.');
-        },
-      },
-      {
-        text: `Block ${name}`,
-        style: 'destructive',
-        onPress: () => {
-          reportContent({ reporterUid: me, type: 'user', targetId: uid, ownerUid: uid, reason: 'blocked member' }).catch(() => {});
-          blockUser(me, uid).catch(() => {});
-          router.back();
-        },
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    reportContent({ reporterUid: me, type: 'user', targetId: uid, ownerUid: uid, reason: 'reported member' }).catch(() => {});
+    setModOpen(false);
+    toast.success('Thanks — reported. Our team will review it within 24 hours.');
+  }
+  function blockMember() {
+    const me = user?.uid;
+    if (!me) return;
+    reportContent({ reporterUid: me, type: 'user', targetId: uid, ownerUid: uid, reason: 'blocked member' }).catch(() => {});
+    blockUser(me, uid, name).catch(() => {});
+    setModOpen(false);
+    router.back();
   }
 
   const data = useFriendsData(uid ? [uid] : []);
@@ -143,7 +139,8 @@ export default function FriendProfileScreen() {
           <BackButton onPress={() => router.back()} style={{ position: 'absolute', top: 58, left: 18, zIndex: 20 }} />
           {!isSelf ? (
             <Pressable
-              onPress={moderate}
+              onPress={() => setModOpen(true)}
+              accessibilityRole="button"
               accessibilityLabel={`Report or block ${name}`}
               hitSlop={8}
               className="absolute items-center justify-center rounded-full"
@@ -155,7 +152,7 @@ export default function FriendProfileScreen() {
           <View className="rounded-full items-center justify-center bg-white/20" style={{ height: 88, width: 88, borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)' }}>
             <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38 }}>{initial}</Text>
           </View>
-          <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 28, marginTop: 12 }} numberOfLines={1}>{name}</Text>
+          <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 28, marginTop: 12, textAlign: 'center' }} numberOfLines={2}>{name}</Text>
           <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 13, opacity: 0.92, marginTop: 2 }}>
             {hasAnything ? `Level ${level.level} · ${level.title}` : 'In your Circle'}
           </Text>
@@ -290,6 +287,13 @@ export default function FriendProfileScreen() {
         code={selected}
         photos={selPhotos}
         discoveries={selDiscoveries}
+      />
+      <ModerationSheet
+        visible={modOpen}
+        name={name}
+        onClose={() => setModOpen(false)}
+        onReport={reportMember}
+        onBlock={blockMember}
       />
     </View>
   );

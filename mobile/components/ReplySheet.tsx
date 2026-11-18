@@ -73,7 +73,7 @@ export function ReplySheet({
         style: 'destructive',
         onPress: () => {
           reportContent({ reporterUid: myUid, type: 'user', targetId: r.uid, ownerUid: r.uid, reason: 'blocked from reply' }).catch(() => {});
-          blockUser(myUid, r.uid).catch(() => {});
+          blockUser(myUid, r.uid, r.name).catch(() => {});
           setHidden((h) => new Set(h).add(r.id));
         },
       },
@@ -142,8 +142,11 @@ export function ReplySheet({
             />
             <Pressable
               accessibilityLabel="Send reply"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: sending || !text.trim(), busy: sending }}
               onPress={send}
               disabled={sending || !text.trim()}
+              hitSlop={8}
               className="items-center justify-center rounded-full"
               style={{ height: 38, width: 38, backgroundColor: COLORS.coral, opacity: sending || !text.trim() ? 0.4 : 1 }}
             >

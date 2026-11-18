@@ -210,7 +210,7 @@ export function aggregateByCountry(places: Place[]): CountryAggregate[] {
       autoRegions,
       countryPlace,
       note,
-      firstYear: years.length ? Math.min(...years) : undefined,
+      firstYear: years.length ? years.reduce((m, y) => Math.min(m, y), Infinity) : undefined,
       discovered,
       aspiring: !discovered && rels.has('aspiring'),
       discoveryScore: computeScore(rels, discoveredCities.length, Boolean(note)),

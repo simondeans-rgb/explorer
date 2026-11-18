@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, Lock, Sparkles } from 'lucide-react-native';
 import { BackButton } from '../components/BackButton';
-import { COLORS } from '../src/lib/theme';
+import { COLORS, tint } from '../src/lib/theme';
+import { useReduceMotion } from '../src/lib/motion';
+import { hImpact, hSuccess, hSelection } from '../src/lib/haptics';
 import { goBack } from '../src/lib/nav';
 import { useWorldly } from '../src/hooks/useWorldly';
 import { getCoverState, applyCover, lockReason, lockProgress, seasonActive, COVER_SECTIONS, RARITY_META, type CoverDef, type CoverState } from '../src/lib/covers';
@@ -19,6 +22,7 @@ import { CoverParticles } from '../components/CoverParticles';
  *  All native access is async and off the render path. */
 export default function CoversScreen() {
   const { width } = useWindowDimensions();
+  const reduce = useReduceMotion();
   const { stats, level } = useWorldly();
   const [state, setState] = useState<CoverState | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -36,7 +40,6 @@ export default function CoversScreen() {
 
   const available = state != null;
   const current = state?.current ?? null;
-  const cell = (width - 40 - 24) / 3;
   // The active cover themes this screen: header gradient + ambient particles.
   const theme = COVER_THEMES[current ?? 'Classic'] ?? COVER_THEMES.Classic;
   const HEADER_H = 148;
@@ -45,8 +48,10 @@ export default function CoversScreen() {
 
   async function pick(cover: CoverDef, inSeason: boolean) {
     if (busy) return;
+    hImpact('light'); // tactile confirmation on every tap
     const locked = lockReason(cover, stats.countriesDiscovered, level.level);
     if (locked) {
+      hSelection();
       setNote(`${cover.title} is still locked — ${locked.toLowerCase()}.`);
       return;
     }
@@ -66,6 +71,7 @@ export default function CoversScreen() {
       await applyCover(cover.name);
       setState({ current: cover.name });
       setNote(null);
+      hSuccess(); // equipping your cover should feel like equipping something
       track('cover_changed', { cover: cover.name ?? 'classic' });
     } catch {
       // Most common cause: a newly added cover on a binary whose icon
@@ -100,7 +106,7 @@ export default function CoversScreen() {
         ) : null}
 
         {note ? (
-          <View className="rounded-2xl" style={{ marginHorizontal: 20, marginTop: 14, padding: 12, backgroundColor: 'rgba(255,107,154,0.12)' }}>
+          <View className="rounded-2xl" style={{ marginHorizontal: 20, marginTop: 14, padding: 12, backgroundColor: tint(COLORS.coral, 0.12) }}>
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '600', color: COLORS.coral, textAlign: 'center' }}>{note}</Text>
           </View>
         ) : null}
@@ -121,16 +127,16 @@ export default function CoversScreen() {
                   <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.5, color: '#3D4CC9' }}>PACK {COVER_PRICE_PACK} · FREE WITH EXPLORER</Text>
                 </View>
               ) : null}
-              {section.access === 'premium' ? (
+              {billingEnabled() && section.access === 'premium' ? (
                 <View className="rounded-full" style={{ paddingHorizontal: 9, paddingVertical: 3, backgroundColor: 'rgba(240,160,32,0.16)' }}>
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.5, color: '#9A6410' }}>{billingEnabled() ? 'PREMIUM' : 'PREMIUM · FREE FOR NOW'}</Text>
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.5, color: '#9A6410' }}>PREMIUM</Text>
                 </View>
               ) : null}
             </View>
             {section.tagline ? (
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 2 }}>{section.tagline}</Text>
             ) : null}
-            <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 14, gap: 12, opacity: inSeason ? 1 : 0.5 }}>
+            <View className="flex-row flex-wrap" style={{ paddingHorizontal: 20, marginTop: 14, columnGap: 8, rowGap: 14, opacity: inSeason ? 1 : 0.5 }}>
               {section.covers.map((cover) => {
                 const locked = lockReason(cover, stats.countriesDiscovered, level.level);
                 const progress = lockProgress(cover, stats.countriesDiscovered, level.level);
@@ -142,7 +148,7 @@ export default function CoversScreen() {
                     accessibilityLabel={locked ? `${cover.title}, locked — ${locked}` : `Use the ${cover.title} cover`}
                     accessibilityState={{ selected }}
                     onPress={() => pick(cover, inSeason)}
-                    style={{ width: cell, opacity: busy ? 0.7 : 1 }}
+                    style={({ pressed }) => ({ width: '31.5%', opacity: busy ? 0.7 : 1, transform: [{ scale: pressed && !reduce ? 0.95 : 1 }] })}
                   >
                     <View style={{ borderRadius: 28, padding: 3, borderWidth: 2.5, borderColor: selected ? theme.accent : 'transparent', backgroundColor: selected ? `${theme.accent}14` : 'transparent', shadowColor: '#14213D', shadowOpacity: selected ? 0.22 : 0.1, shadowRadius: selected ? 12 : 8, shadowOffset: { width: 0, height: 5 } }}>
                       <View style={{ borderRadius: 24, overflow: 'hidden' }}>
@@ -171,9 +177,9 @@ export default function CoversScreen() {
                         ) : null}
                       </View>
                       {selected ? (
-                        <View className="items-center justify-center rounded-full" style={{ position: 'absolute', top: -5, right: -5, height: 26, width: 26, backgroundColor: theme.accent, borderWidth: 2, borderColor: '#fff' }}>
+                        <Animated.View entering={reduce ? undefined : ZoomIn.springify().damping(12)} className="items-center justify-center rounded-full" style={{ position: 'absolute', top: -5, right: -5, height: 26, width: 26, backgroundColor: theme.accent, borderWidth: 2, borderColor: '#fff' }}>
                           <Check size={14} color="#fff" strokeWidth={3} />
-                        </View>
+                        </Animated.View>
                       ) : null}
                     </View>
                     <Text numberOfLines={1} style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '700', color: COLORS.navy, textAlign: 'center', marginTop: 7 }}>{cover.title}</Text>

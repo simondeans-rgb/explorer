@@ -20,16 +20,13 @@ import {
   onSnapshot,
   query,
   serverTimestamp,
+  Timestamp,
   updateDoc,
   where,
   type DocumentData,
 } from 'firebase/firestore';
-import {
-  ref,
-  uploadString,
-  getDownloadURL,
-  deleteObject,
-} from 'firebase/storage';
+import { ref, deleteObject } from 'firebase/storage';
+import { uploadImageDataUrl } from '../lib/uploadImage';
 import type {
   Place,
   Discovery,
@@ -47,13 +44,6 @@ import type {
 } from '../types';
 import { countryName } from '../data/countries';
 import { repairImportedExpeditions } from '../lib/flightyImport';
-import {
-  SEED_PLACES,
-  SEED_DISCOVERIES,
-  SEED_EXPEDITIONS,
-  SEED_CAPTURES,
-  SEED_TRIPS,
-} from '../lib/seed';
 import { db, storage } from '../lib/firebase';
 import { useAuth } from './auth';
 
@@ -74,6 +64,11 @@ interface DataApi extends DataShape {
    *  (we're offline or still connecting) — surface a "showing saved data" hint
    *  rather than an empty state. Always true in guest mode. */
   synced: boolean;
+  /** The unified trip list: all expeditions PLUS any legacy `trips` not yet
+   *  migrated (mapped to the Expedition shape). Read this wherever you need
+   *  "all trips, past and upcoming" — Home countdown, widget, notifications,
+   *  the trip detail. Past vs upcoming is derived via src/lib/tripPhase.ts. */
+  unifiedTrips: Expedition[];
   addPlace: (input: {
     kind: PlaceKind;
     countryCode: string;
@@ -170,6 +165,12 @@ interface DataApi extends DataShape {
     takenAt?: number;
   }) => Promise<void>;
   removeCapture: (id: string) => void;
+  /** Edit a memory's caption, place or linked trip. Pass a field as null to
+   *  clear it, omit it to leave it unchanged. */
+  updateCapture: (
+    id: string,
+    patch: { countryCode?: string | null; city?: string | null; caption?: string | null; expeditionId?: string | null },
+  ) => void;
   addTrip: (input: {
     title: string;
     countryCode: string;
@@ -222,6 +223,7 @@ const DataContext = createContext<DataApi>({
   loaded: false,
   cloud: false,
   synced: false,
+  unifiedTrips: [],
   addPlace: noop,
   removePlace: noop,
   updatePlace: async () => {},
@@ -235,6 +237,7 @@ const DataContext = createContext<DataApi>({
   recalculateJourneys: async () => 0,
   addCapture: async () => {},
   removeCapture: noop,
+  updateCapture: noop,
   addTrip: noop,
   removeTrip: noop,
   addTripCollaborator: noop,
@@ -321,8 +324,38 @@ function expeditionFromDoc(id: string, d: DocumentData): Expedition {
     countryCodes: (d.countryCodes ?? []) as string[],
     journeys: (d.journeys ?? []) as Journey[],
     note: d.note || undefined,
+    // merged-in planning fields — backfilled so pre-merge expeditions stay valid
+    itinerary: Array.isArray(d.itinerary) ? (d.itinerary as ItineraryItem[]) : [],
+    memberIds: Array.isArray(d.memberIds) ? (d.memberIds as string[]) : [d.userId],
+    memberNames: (d.memberNames as Record<string, string>) ?? {},
+    dayNotes: (d.dayNotes as Record<string, string>) ?? {},
+    autoTrack: !!d.autoTrack,
+    sourceTripId: d.sourceTripId || undefined,
     createdAt: millis(d.createdAt),
     updatedAt: millis(d.updatedAt),
+  };
+}
+
+/** Map a legacy `trips` doc into the unified Expedition shape (no transport
+ *  legs) so both collections can be read through one array during migration. */
+function tripToExpedition(t: Trip): Expedition {
+  return {
+    id: t.id,
+    userId: t.userId,
+    title: t.title,
+    startDate: t.startDate || undefined,
+    endDate: t.endDate || undefined,
+    countryCodes: t.countryCode ? [t.countryCode] : [],
+    journeys: [],
+    note: t.note,
+    itinerary: t.itinerary ?? [],
+    memberIds: t.memberIds ?? [t.userId],
+    memberNames: t.memberNames ?? {},
+    dayNotes: t.dayNotes ?? {},
+    autoTrack: !!t.autoTrack,
+    sourceTripId: t.id,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt,
   };
 }
 function captureFromDoc(id: string, d: DocumentData): Capture {
@@ -359,14 +392,6 @@ function tripFromDoc(id: string, d: DocumentData): Trip {
   };
 }
 
-const SEED: DataShape = {
-  places: SEED_PLACES,
-  discoveries: SEED_DISCOVERIES,
-  expeditions: SEED_EXPEDITIONS,
-  captures: SEED_CAPTURES,
-  trips: SEED_TRIPS,
-};
-
 const EMPTY: DataShape = {
   places: [],
   discoveries: [],
@@ -380,13 +405,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const uid = user?.uid ?? null;
   const cloud = Boolean(uid && db);
 
-  const [data, setData] = useState<DataShape>(SEED);
+  const [data, setData] = useState<DataShape>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   // Cloud: false until the server confirms the live data this session. Guest
   // mode has no server, so it's forced true below.
   const [synced, setSynced] = useState(false);
   // Keep the latest local snapshot for functional updates without re-subscribing.
-  const localRef = useRef<DataShape>(SEED);
+  const localRef = useRef<DataShape>(EMPTY);
 
   // --- Local (demo / signed-out) persistence -------------------------------
   useEffect(() => {
@@ -401,22 +426,33 @@ export function DataProvider({ children }: { children: ReactNode }) {
           // Backfill arrays added in later versions so older persisted data
           // (e.g. saved before `captures` existed) still loads cleanly.
           const parsed = JSON.parse(raw) as Partial<DataShape>;
+          // Guest fold: legacy local trips become expeditions (unified model),
+          // deduped by sourceTripId so re-runs never double. One-way; persisted.
+          const hadTrips = (parsed.trips ?? []).length > 0;
+          const mirrored = new Set((parsed.expeditions ?? []).map((e) => e.sourceTripId).filter(Boolean) as string[]);
           const merged: DataShape = {
             places: parsed.places ?? [],
             discoveries: parsed.discoveries ?? [],
-            expeditions: parsed.expeditions ?? [],
+            expeditions: [
+              ...(parsed.expeditions ?? []),
+              ...(parsed.trips ?? []).filter((t) => !mirrored.has(t.id)).map(tripToExpedition),
+            ],
             captures: parsed.captures ?? [],
-            trips: parsed.trips ?? [],
+            trips: [],
           };
           localRef.current = merged;
           setData(merged);
+          // Persist the fold once so it doesn't re-run every launch.
+          if (hadTrips) AsyncStorage.setItem(KEY, JSON.stringify(merged)).catch(() => {});
         } else {
-          localRef.current = SEED;
-          setData(SEED);
-          await AsyncStorage.setItem(KEY, JSON.stringify(SEED));
+          // A brand-new guest starts with a genuinely empty archive (the app's
+          // empty states guide them to add their first place/trip) — never a
+          // fabricated demo, which reads as fake content to App Review.
+          localRef.current = EMPTY;
+          setData(EMPTY);
         }
       } catch {
-        /* keep seed */
+        /* keep empty */
       } finally {
         if (active) setLoaded(true);
       }
@@ -494,10 +530,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
       localRef.current = { ...localRef.current, trips: merged };
       setData((p) => ({ ...p, trips: merged }));
     };
+    // Expeditions are now the unified trip collection, so — like trips — they
+    // come from two queries (your own + ones a friend added you to as crew),
+    // merged and deduped by id.
+    const ownExps = { current: [] as Expedition[] };
+    const crewExps = { current: [] as Expedition[] };
+    const mergeExps = () => {
+      const m = new Map<string, Expedition>();
+      for (const e of ownExps.current) m.set(e.id, e);
+      for (const e of crewExps.current) if (!m.has(e.id)) m.set(e.id, e);
+      const merged = [...m.values()];
+      localRef.current = { ...localRef.current, expeditions: merged };
+      setData((p) => ({ ...p, expeditions: merged }));
+    };
     // Keep localRef in step with the live cloud data so functional readers
-    // (e.g. importPlaces' dedup) see the real state, not the empty SEED.
+    // (e.g. importPlaces' dedup) see the real state, not the empty initial data.
     const syncRef = (patch: Partial<DataShape>) => {
       localRef.current = { ...localRef.current, ...patch };
+    };
+    // A listener that errors (permission-denied before rules deploy, or a
+    // dropped connection) detaches silently. Without this, markReady() would
+    // never fire for that collection and `loaded` would latch false forever —
+    // leaving detail screens stuck on a skeleton. Treat an error as "answered"
+    // (we keep whatever cache we have) so the UI always resolves.
+    const onErr = (c: Coll) => (e: unknown) => {
+      logWriteError(e);
+      markReady(c);
     };
     const subs = [
       onSnapshot(q('places'), (snap) => {
@@ -505,36 +563,47 @@ export function DataProvider({ children }: { children: ReactNode }) {
         syncRef({ places });
         setData((p) => ({ ...p, places }));
         markReady('places');
-      }),
+      }, onErr('places')),
       onSnapshot(q('discoveries'), (snap) => {
         const discoveries = snap.docs.map((d) => discoveryFromDoc(d.id, d.data()));
         syncRef({ discoveries });
         setData((p) => ({ ...p, discoveries }));
         markReady('discoveries');
-      }),
+      }, onErr('discoveries')),
       onSnapshot(q('expeditions'), (snap) => {
-        const expeditions = snap.docs.map((d) => expeditionFromDoc(d.id, d.data()));
-        syncRef({ expeditions });
-        setData((p) => ({ ...p, expeditions }));
+        ownExps.current = snap.docs.map((d) => expeditionFromDoc(d.id, d.data()));
+        mergeExps();
         markReady('expeditions');
-      }),
+      }, onErr('expeditions')),
+      onSnapshot(
+        query(collection(fdb, 'expeditions'), where('memberIds', 'array-contains', uid)),
+        (snap) => {
+          crewExps.current = snap.docs.map((d) => expeditionFromDoc(d.id, d.data()));
+          mergeExps();
+        },
+        () => {
+          // permission-denied until the widened expeditions rule is deployed — ignore.
+        },
+      ),
       onSnapshot(q('captures'), (snap) => {
         const captures = snap.docs.map((d) => captureFromDoc(d.id, d.data()));
         syncRef({ captures });
         setData((p) => ({ ...p, captures }));
         markReady('captures');
-      }),
+      }, onErr('captures')),
       // Trips: your own + trips friends have invited you to collaborate on.
       // Two queries merged (Firestore can't OR), deduped by id.
       onSnapshot(q('trips'), (snap) => {
-        ownTrips.current = snap.docs.map((d) => tripFromDoc(d.id, d.data()));
+        // Legacy collection during the merge: a trip stamped `migratedTo` has
+        // become an expedition — drop it here so it isn't read twice.
+        ownTrips.current = snap.docs.filter((d) => !d.data().migratedTo).map((d) => tripFromDoc(d.id, d.data()));
         mergeTrips();
         markReady('trips');
-      }),
+      }, onErr('trips')),
       onSnapshot(
         query(collection(fdb, 'trips'), where('memberIds', 'array-contains', uid)),
         (snap) => {
-          sharedTrips.current = snap.docs.map((d) => tripFromDoc(d.id, d.data()));
+          sharedTrips.current = snap.docs.filter((d) => !d.data().migratedTo).map((d) => tripFromDoc(d.id, d.data()));
           mergeTrips();
         },
         () => {
@@ -590,6 +659,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistLocal({ ...cur, [coll]: list.filter((x) => x.id !== id) } as DataShape);
       }
     }
+    // A unified trip lives in `expeditions` once migrated; only a not-yet-migrated
+    // foreign shared trip is still in the legacy `trips` collection. Trip edits
+    // target whichever collection currently holds the doc.
+    const tripCollOf = (id: string): Coll =>
+      data.expeditions.some((e) => e.id === id) ? 'expeditions' : 'trips';
+    const tripItinerary = (id: string): ItineraryItem[] =>
+      data.expeditions.find((e) => e.id === id)?.itinerary
+      ?? data.trips.find((t) => t.id === id)?.itinerary
+      ?? [];
+    // Guest/local trip edits operate on expeditions[] (the guest fold migrates
+    // any local trips into expeditions on load, so that's where they live).
+    const patchExpLocal = (id: string, patch: (e: Expedition) => Expedition) => {
+      const cur = localRef.current;
+      persistLocal({ ...cur, expeditions: cur.expeditions.map((e) => (e.id === id ? patch(e) : e)) });
+    };
     // Bound a network promise so an offline upload fails fast instead of hanging
     // the UI forever (Storage has no offline queue, unlike Firestore writes).
     function withTimeout<T>(p: Promise<T>, ms = 12000): Promise<T> {
@@ -604,6 +688,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
       loaded,
       cloud,
       synced,
+      unifiedTrips: (() => {
+        // All expeditions + legacy trips not yet mirrored as an expedition
+        // (deduped by sourceTripId so a mid-migration record never doubles).
+        const mirrored = new Set(
+          data.expeditions.map((e) => e.sourceTripId).filter(Boolean) as string[],
+        );
+        return [...data.expeditions, ...data.trips.filter((t) => !mirrored.has(t.id)).map(tripToExpedition)];
+      })(),
       addPlace: (input) => {
         const name =
           input.kind === 'country'
@@ -678,15 +770,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
           let photoPath: string | null = null;
           if (storage && input.photo?.startsWith('data:')) {
             const path = `users/${uid}/discoveries/${newId()}.jpg`;
-            const r = ref(storage, path);
             // Best-effort photo: if the upload can't complete (offline), still save
             // the discovery without it rather than hanging the save.
             try {
-              await withTimeout(uploadString(r, input.photo, 'data_url', {
-                contentType: 'image/jpeg',
-                cacheControl: 'public, max-age=31536000, immutable',
-              }));
-              photoUrl = await withTimeout(getDownloadURL(r));
+              photoUrl = await withTimeout(uploadImageDataUrl(storage, path, input.photo));
               photoPath = path;
             } catch {
               photoUrl = null;
@@ -737,9 +824,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           let photoPath: string | null | undefined; // undefined = leave doc field untouched
           if (storage && input.photo && input.photo.startsWith('data:')) {
             const path = `users/${uid}/discoveries/${newId()}.jpg`;
-            const r = ref(storage, path);
-            await uploadString(r, input.photo, 'data_url', { contentType: 'image/jpeg', cacheControl: 'public, max-age=31536000, immutable' });
-            photo = await getDownloadURL(r);
+            photo = await uploadImageDataUrl(storage, path, input.photo);
             photoPath = path;
           } else if (input.photo === null) {
             photoPath = null;
@@ -903,12 +988,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           let storagePath: string | null = null;
           if (storage && input.dataUrl.startsWith('data:')) {
             const path = `users/${uid}/captures/${newId()}.jpg`;
-            const r = ref(storage, path);
-            await withTimeout(uploadString(r, input.dataUrl, 'data_url', {
-              contentType: 'image/jpeg',
-              cacheControl: 'public, max-age=31536000, immutable',
-            }));
-            url = await withTimeout(getDownloadURL(r));
+            url = await withTimeout(uploadImageDataUrl(storage, path, input.dataUrl));
             storagePath = path;
           }
           addDoc(collection(fdb, 'captures'), {
@@ -956,13 +1036,42 @@ export function DataProvider({ children }: { children: ReactNode }) {
           persistLocal({ ...cur, captures: cur.captures.filter((c) => c.id !== id) });
         }
       },
-      addTrip: (input) => {
+      updateCapture: (id, patch) => {
         if (cloud && fdb && uid) {
-          cloudCreate('trips', {
+          const fields: Record<string, unknown> = {};
+          if ('countryCode' in patch) fields.countryCode = patch.countryCode || null;
+          if ('city' in patch) fields.city = patch.city?.trim() || null;
+          if ('caption' in patch) fields.caption = patch.caption?.trim() || null;
+          if ('expeditionId' in patch) fields.expeditionId = patch.expeditionId || null;
+          updateDoc(doc(fdb, 'captures', id), fields).catch(logWriteError);
+        } else {
+          const cur = localRef.current;
+          persistLocal({
+            ...cur,
+            captures: cur.captures.map((c) =>
+              c.id === id
+                ? {
+                    ...c,
+                    countryCode: 'countryCode' in patch ? patch.countryCode || undefined : c.countryCode,
+                    city: 'city' in patch ? patch.city?.trim() || undefined : c.city,
+                    caption: 'caption' in patch ? patch.caption?.trim() || undefined : c.caption,
+                    expeditionId: 'expeditionId' in patch ? patch.expeditionId || undefined : c.expeditionId,
+                  }
+                : c,
+            ),
+          });
+        }
+      },
+      addTrip: (input) => {
+        // Creates a unified trip — an expedition with no legs yet (the planner
+        // path). Transport legs are added later on the detail screen.
+        if (cloud && fdb && uid) {
+          cloudCreate('expeditions', {
             title: input.title.trim(),
-            countryCode: input.countryCode,
-            startDate: input.startDate,
+            countryCodes: input.countryCode ? [input.countryCode] : [],
+            startDate: input.startDate || null,
             endDate: input.endDate || null,
+            journeys: [],
             itinerary: [],
             note: input.note?.trim() || null,
             memberIds: [uid],
@@ -972,13 +1081,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         } else {
           const now = Date.now();
           const me = uid ?? 'me';
-          const trip: Trip = {
+          const exp: Expedition = {
             id: newId(),
             userId: me,
             title: input.title.trim(),
-            countryCode: input.countryCode,
-            startDate: input.startDate,
+            countryCodes: input.countryCode ? [input.countryCode] : [],
+            startDate: input.startDate || undefined,
             endDate: input.endDate || undefined,
+            journeys: [],
             itinerary: [],
             note: input.note?.trim() || undefined,
             memberIds: [me],
@@ -988,120 +1098,90 @@ export function DataProvider({ children }: { children: ReactNode }) {
             updatedAt: now,
           };
           const cur = localRef.current;
-          persistLocal({ ...cur, trips: [trip, ...cur.trips] });
+          persistLocal({ ...cur, expeditions: [exp, ...cur.expeditions] });
         }
       },
       addTripCollaborator: (tripId, owner, friend) => {
         if (cloud && fdb && uid) {
-          updateDoc(doc(fdb, 'trips', tripId), {
+          updateDoc(doc(fdb, tripCollOf(tripId), tripId), {
             memberIds: arrayUnion(friend.uid),
             [`memberNames.${friend.uid}`]: friend.name,
             [`memberNames.${owner.uid}`]: owner.name,
             updatedAt: serverTimestamp(),
           }).catch(logWriteError);
         } else {
-          const cur = localRef.current;
-          persistLocal({
-            ...cur,
-            trips: cur.trips.map((t) =>
-              t.id === tripId
-                ? {
-                    ...t,
-                    memberIds: t.memberIds.includes(friend.uid) ? t.memberIds : [...t.memberIds, friend.uid],
-                    memberNames: { ...t.memberNames, [friend.uid]: friend.name, [owner.uid]: owner.name },
-                    updatedAt: Date.now(),
-                  }
-                : t,
-            ),
+          patchExpLocal(tripId, (e) => {
+            const ids = e.memberIds ?? [e.userId];
+            return {
+              ...e,
+              memberIds: ids.includes(friend.uid) ? ids : [...ids, friend.uid],
+              memberNames: { ...(e.memberNames ?? {}), [friend.uid]: friend.name, [owner.uid]: owner.name },
+              updatedAt: Date.now(),
+            };
           });
         }
       },
       setDayNote: (tripId, day, note) => {
         const text = note.trim();
         if (cloud && fdb && uid) {
-          updateDoc(doc(fdb, 'trips', tripId), { [`dayNotes.${day}`]: text || null, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(logWriteError);
+          updateDoc(doc(fdb, tripCollOf(tripId), tripId), { [`dayNotes.${day}`]: text || null, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(logWriteError);
         } else {
-          const cur = localRef.current;
-          persistLocal({
-            ...cur,
-            trips: cur.trips.map((t) => {
-              if (t.id !== tripId) return t;
-              const dayNotes = { ...(t.dayNotes ?? {}) };
-              if (text) dayNotes[String(day)] = text;
-              else delete dayNotes[String(day)];
-              return { ...t, dayNotes, updatedAt: Date.now() };
-            }),
+          patchExpLocal(tripId, (e) => {
+            const dayNotes = { ...(e.dayNotes ?? {}) };
+            if (text) dayNotes[String(day)] = text;
+            else delete dayNotes[String(day)];
+            return { ...e, dayNotes, updatedAt: Date.now() };
           });
         }
       },
       setTripTracking: (tripId, on) => {
         if (cloud && fdb && uid) {
-          updateDoc(doc(fdb, 'trips', tripId), { autoTrack: on, updatedAt: serverTimestamp() }).catch(logWriteError);
+          updateDoc(doc(fdb, tripCollOf(tripId), tripId), { autoTrack: on, updatedAt: serverTimestamp() }).catch(logWriteError);
         } else {
-          const cur = localRef.current;
-          persistLocal({
-            ...cur,
-            trips: cur.trips.map((t) => (t.id === tripId ? { ...t, autoTrack: on, updatedAt: Date.now() } : t)),
-          });
+          patchExpLocal(tripId, (e) => ({ ...e, autoTrack: on, updatedAt: Date.now() }));
         }
       },
       removeTripCollaborator: (tripId, memberUid) => {
         if (cloud && fdb && uid) {
-          updateDoc(doc(fdb, 'trips', tripId), {
+          updateDoc(doc(fdb, tripCollOf(tripId), tripId), {
             memberIds: arrayRemove(memberUid),
             updatedAt: serverTimestamp(),
           }).catch(logWriteError);
         } else {
-          const cur = localRef.current;
-          persistLocal({
-            ...cur,
-            trips: cur.trips.map((t) =>
-              t.id === tripId ? { ...t, memberIds: t.memberIds.filter((m) => m !== memberUid), updatedAt: Date.now() } : t,
-            ),
-          });
+          patchExpLocal(tripId, (e) => ({ ...e, memberIds: (e.memberIds ?? [e.userId]).filter((m) => m !== memberUid), updatedAt: Date.now() }));
         }
       },
-      removeTrip: (id) => remove('trips', id),
+      removeTrip: (id) => remove(tripCollOf(id), id),
       addItineraryItem: (tripId, item) => {
-        const trip = data.trips.find((t) => t.id === tripId);
-        if (!trip) return;
-        const itinerary: ItineraryItem[] = [...trip.itinerary, clean({ id: newId(), ...item }) as ItineraryItem];
+        const itinerary: ItineraryItem[] = [...tripItinerary(tripId), clean({ id: newId(), ...item }) as ItineraryItem];
         if (cloud && fdb && uid) {
-          updateDoc(doc(fdb, 'trips', tripId), { itinerary, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(logWriteError);
+          updateDoc(doc(fdb, tripCollOf(tripId), tripId), { itinerary, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(logWriteError);
         } else {
-          const cur = localRef.current;
-          persistLocal({ ...cur, trips: cur.trips.map((t) => (t.id === tripId ? { ...t, itinerary, updatedAt: Date.now() } : t)) });
+          patchExpLocal(tripId, (e) => ({ ...e, itinerary, updatedAt: Date.now() }));
         }
       },
       removeItineraryItem: (tripId, itemId) => {
-        const trip = data.trips.find((t) => t.id === tripId);
-        if (!trip) return;
-        const itinerary = trip.itinerary.filter((i) => i.id !== itemId);
+        const itinerary = tripItinerary(tripId).filter((i) => i.id !== itemId);
         if (cloud && fdb && uid) {
-          updateDoc(doc(fdb, 'trips', tripId), { itinerary, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(logWriteError);
+          updateDoc(doc(fdb, tripCollOf(tripId), tripId), { itinerary, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(logWriteError);
         } else {
-          const cur = localRef.current;
-          persistLocal({ ...cur, trips: cur.trips.map((t) => (t.id === tripId ? { ...t, itinerary, updatedAt: Date.now() } : t)) });
+          patchExpLocal(tripId, (e) => ({ ...e, itinerary, updatedAt: Date.now() }));
         }
       },
       updateItineraryItem: (tripId, itemId, patch) => {
-        const trip = data.trips.find((t) => t.id === tripId);
-        if (!trip) return;
-        const itinerary = trip.itinerary.map((i) => (i.id === itemId ? clean({ ...i, ...patch }) as ItineraryItem : i));
+        const itinerary = tripItinerary(tripId).map((i) => (i.id === itemId ? clean({ ...i, ...patch }) as ItineraryItem : i));
         if (cloud && fdb && uid) {
-          updateDoc(doc(fdb, 'trips', tripId), { itinerary, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(logWriteError);
+          updateDoc(doc(fdb, tripCollOf(tripId), tripId), { itinerary, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(logWriteError);
         } else {
-          const cur = localRef.current;
-          persistLocal({ ...cur, trips: cur.trips.map((t) => (t.id === tripId ? { ...t, itinerary, updatedAt: Date.now() } : t)) });
+          patchExpLocal(tripId, (e) => ({ ...e, itinerary, updatedAt: Date.now() }));
         }
       },
       reorderItinerary: (tripId, items) => {
         const itinerary = items.map((i) => clean({ ...i }) as ItineraryItem);
         if (cloud && fdb && uid) {
-          updateDoc(doc(fdb, 'trips', tripId), { itinerary, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(logWriteError);
+          updateDoc(doc(fdb, tripCollOf(tripId), tripId), { itinerary, lastEditedBy: uid, updatedAt: serverTimestamp() }).catch(logWriteError);
         } else {
-          const cur = localRef.current;
-          persistLocal({ ...cur, trips: cur.trips.map((t) => (t.id === tripId ? { ...t, itinerary, updatedAt: Date.now() } : t)) });
+          patchExpLocal(tripId, (e) => ({ ...e, itinerary, updatedAt: Date.now() }));
         }
       },
       importPlaces: async (rows) => {
@@ -1272,12 +1352,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       for (const c of legacy) {
         try {
           const path = `users/${uid}/captures/${c.id}.jpg`;
-          const r = ref(storage, path);
-          await timeout(uploadString(r, c.dataUrl, 'data_url', {
-            contentType: 'image/jpeg',
-            cacheControl: 'public, max-age=31536000, immutable',
-          }));
-          const url = await timeout(getDownloadURL(r));
+          const url = await timeout(uploadImageDataUrl(storage, path, c.dataUrl));
           await updateDoc(doc(db, 'captures', c.id), { dataUrl: url, storagePath: path });
         } catch (e) {
           reportError(e, { where: 'capture-migration' });
@@ -1286,6 +1361,48 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     })();
   }, [cloud, uid, data.captures]);
+
+  // One-way migration of legacy `trips` → the unified `expeditions` collection.
+  // Only the user's OWN trips (a collaborator can't rewrite a friend's doc, so
+  // foreign shared trips wait for their owner's device). Create the expedition
+  // first, THEN stamp the trip `migratedTo` — a crash between the two re-shows
+  // the legacy trip and retries next launch, so data is never lost. Idempotent:
+  // trips already mirrored (matched by sourceTripId) are skipped.
+  const tripsMigratedRef = useRef(false);
+  useEffect(() => {
+    if (tripsMigratedRef.current || !cloud || !db || !uid) return;
+    const mirrored = new Set(data.expeditions.map((e) => e.sourceTripId).filter(Boolean) as string[]);
+    const own = data.trips.filter((t) => t.userId === uid && !mirrored.has(t.id)).slice(0, 25);
+    if (own.length === 0) return;
+    tripsMigratedRef.current = true; // one batch per launch
+    (async () => {
+      for (const t of own) {
+        try {
+          const created = await addDoc(collection(db, 'expeditions'), clean({
+            userId: uid,
+            title: t.title,
+            countryCodes: t.countryCode ? [t.countryCode] : [],
+            startDate: t.startDate || null,
+            endDate: t.endDate || null,
+            journeys: [],
+            itinerary: t.itinerary ?? [],
+            note: t.note || null,
+            memberIds: t.memberIds ?? [uid],
+            memberNames: t.memberNames ?? {},
+            dayNotes: t.dayNotes ?? {},
+            autoTrack: !!t.autoTrack,
+            sourceTripId: t.id,
+            createdAt: Timestamp.fromMillis(t.createdAt),
+            updatedAt: serverTimestamp(),
+          }));
+          await updateDoc(doc(db, 'trips', t.id), { migratedTo: created.id });
+        } catch (e) {
+          reportError(e, { where: 'trip-migration' });
+          return; // stop the batch; retry next launch
+        }
+      }
+    })();
+  }, [cloud, uid, data.trips, data.expeditions]);
 
   return <DataContext.Provider value={api}>{children}</DataContext.Provider>;
 }

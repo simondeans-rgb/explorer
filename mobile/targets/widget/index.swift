@@ -817,10 +817,12 @@ private struct AccessoryCircularView: View {
   let entry: WorldlyEntry
   var body: some View {
     let d = entry.data
-    Gauge(value: min(1, Double(d.countries) / Double(max(1, d.worldTotal)))) {
+    // Before the first sync (fresh install / signed out) show a neutral prompt
+    // gauge, not a real-looking "0 of N" that reads as broken.
+    Gauge(value: d.synced ? min(1, Double(d.countries) / Double(max(1, d.worldTotal))) : 0) {
       Image(systemName: "globe")
     } currentValueLabel: {
-      Text("\(d.countries)")
+      Text(d.synced ? "\(d.countries)" : "–")
     }
     .gaugeStyle(.accessoryCircular)
     .widgetAccentable()
@@ -832,18 +834,21 @@ private struct AccessoryRectangularView: View {
   var body: some View {
     let d = entry.data
     VStack(alignment: .leading, spacing: 1) {
-      if let t = d.trip, t.status == .upcoming {
+      if !d.synced {
+        Text("Worldly").font(.system(size: 11, weight: .semibold)).widgetAccentable()
+        Text("Open to sync").font(.system(size: 15, weight: .bold)).lineLimit(1)
+      } else if let t = d.trip, t.status == .upcoming {
         Text("Next trip").font(.system(size: 11, weight: .semibold)).widgetAccentable()
-        Text(t.days == 1 ? "\(t.country) tomorrow" : "\(t.country) in \(t.days) days").font(.system(size: 15, weight: .bold)).lineLimit(1)
+        Text(t.days == 1 ? "\(t.country) tomorrow" : "\(t.country) in \(t.days) days").font(.system(size: 15, weight: .bold)).lineLimit(1).privacySensitive()
       } else if let t = d.trip {
         Text(t.status == .today ? "Trip today" : "Trip underway").font(.system(size: 11, weight: .semibold)).widgetAccentable()
-        Text(t.country).font(.system(size: 15, weight: .bold)).lineLimit(1)
+        Text(t.country).font(.system(size: 15, weight: .bold)).lineLimit(1).privacySensitive()
       } else if let m = d.memory {
         Text(m.year != nil ? "This day in \(m.year!)" : "On this day").font(.system(size: 11, weight: .semibold)).widgetAccentable()
-        Text(m.label).font(.system(size: 15, weight: .bold)).lineLimit(1)
+        Text(m.label).font(.system(size: 15, weight: .bold)).lineLimit(1).privacySensitive()
       } else {
         Text("Worldly").font(.system(size: 11, weight: .semibold)).widgetAccentable()
-        Text("\(d.countries) countries · \(d.cities) cities").font(.system(size: 15, weight: .bold)).lineLimit(1)
+        Text("\(d.countries) countries · \(d.cities) cities").font(.system(size: 15, weight: .bold)).lineLimit(1).privacySensitive()
       }
     }
   }
@@ -853,10 +858,12 @@ private struct AccessoryInlineView: View {
   let entry: WorldlyEntry
   var body: some View {
     let d = entry.data
-    if let t = d.trip, t.status == .upcoming {
-      Label(t.days == 1 ? "\(t.country) tomorrow" : "\(t.country) in \(t.days)d", systemImage: "airplane")
+    if !d.synced {
+      Label("Open Worldly", systemImage: "globe")
+    } else if let t = d.trip, t.status == .upcoming {
+      Label(t.days == 1 ? "\(t.country) tomorrow" : "\(t.country) in \(t.days)d", systemImage: "airplane").privacySensitive()
     } else {
-      Label("\(d.countries) countries explored", systemImage: "globe")
+      Label("\(d.countries) countries explored", systemImage: "globe").privacySensitive()
     }
   }
 }
@@ -874,11 +881,20 @@ struct WorldlyWidgetEntryView: View {
     case .systemLarge:
       themed { LargeView(entry: entry) }.accessibilityElement(children: .ignore).accessibilityLabel(a11y)
     case .accessoryCircular:
-      AccessoryCircularView(entry: entry).containerBackground(.clear, for: .widget)
+      AccessoryCircularView(entry: entry)
+        .containerBackground(.clear, for: .widget)
+        .widgetURL(smallURL)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(a11y)
     case .accessoryRectangular:
-      AccessoryRectangularView(entry: entry).containerBackground(.clear, for: .widget)
+      AccessoryRectangularView(entry: entry)
+        .containerBackground(.clear, for: .widget)
+        .widgetURL(smallURL)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(a11y)
     case .accessoryInline:
       AccessoryInlineView(entry: entry)
+        .widgetURL(smallURL)
     default:
       themed { SmallView(entry: entry) }.widgetURL(smallURL).accessibilityElement(children: .ignore).accessibilityLabel(a11y)
     }

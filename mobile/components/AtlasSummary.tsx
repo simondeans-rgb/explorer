@@ -6,6 +6,7 @@ import { Globe2, Building2, MapPinned, Share2 } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { Button } from './Button';
 import { COLORS, SHADOW } from '../src/lib/theme';
+import { useReduceMotion } from '../src/lib/motion';
 import { CONTINENTS, type Continent } from '../src/types';
 import type { PassportStats } from '../src/lib/stats';
 
@@ -65,9 +66,12 @@ function StatRow({ icon: Icon, color, tint, value, label }: { icon: ComponentTyp
 
 function ContinentBar({ pct, color, on, index }: { pct: number; color: string; on: boolean; index: number }) {
   const w = useSharedValue(0);
+  const reduce = useReduceMotion();
   useEffect(() => {
-    w.value = withDelay(120 + index * 70, withTiming(on ? Math.max(pct, 0.06) : 0, { duration: 700, easing: Easing.out(Easing.cubic) }));
-  }, [pct, on, index, w]);
+    const target = on ? Math.max(pct, 0.06) : 0;
+    // Reduce Motion: set the fill immediately instead of the staggered sweep.
+    w.value = reduce ? target : withDelay(120 + index * 70, withTiming(target, { duration: 700, easing: Easing.out(Easing.cubic) }));
+  }, [pct, on, index, w, reduce]);
   const style = useAnimatedStyle(() => ({ width: `${w.value * 100}%` }));
   return (
     <View style={{ flex: 1, height: 9, borderRadius: 5, backgroundColor: on ? 'rgba(20,33,61,0.06)' : 'rgba(255,107,154,0.12)', overflow: 'hidden' }}>

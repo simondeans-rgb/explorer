@@ -39,6 +39,10 @@ export interface FlightExtreme {
   to: string;
   mi: number;
   date?: string;
+  /** Exact endpoint coordinates [lng, lat], so the route can be shown on the
+   *  globe without re-resolving the (cleaned, ambiguous) city labels. */
+  fromCoord?: [number, number];
+  toCoord?: [number, number];
 }
 
 export interface TravelStats {
@@ -186,7 +190,7 @@ export function computeTravelStats(expeditions: Expedition[]): TravelStats {
             timeInAirMin += Math.round(30 + (mi / 500) * 60);
             timeInAirEstimated = true;
           }
-          const extreme: FlightExtreme = { from: cleanLabel(j.from), to: cleanLabel(j.to), mi, date };
+          const extreme: FlightExtreme = { from: cleanLabel(j.from), to: cleanLabel(j.to), mi, date, fromCoord: from, toCoord: to };
           if (!longest || mi > longest.mi) longest = extreme;
           if (!shortest || mi < shortest.mi) shortest = extreme;
         }
@@ -214,10 +218,13 @@ export function computeTravelStats(expeditions: Expedition[]): TravelStats {
     }
   }
 
-  // Fill year gaps so the line chart has a continuous x-axis.
+  // Fill year gaps so the line chart has a continuous x-axis. Ignore
+  // out-of-range years (a corrupt import date can yield 0 or 9999) so one bad
+  // cell can't balloon the axis into thousands of empty points.
   const perYear: { label: string; count: number }[] = [];
-  if (yearCounts.size) {
-    const years = [...yearCounts.keys()].sort((a, b) => a - b);
+  const CUR_YEAR = new Date().getFullYear();
+  const years = [...yearCounts.keys()].filter((y) => y >= 1900 && y <= CUR_YEAR + 1).sort((a, b) => a - b);
+  if (years.length) {
     const min = years[0];
     const max = years[years.length - 1];
     for (let y = min; y <= max; y++) perYear.push({ label: String(y), count: yearCounts.get(y) ?? 0 });

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { CtaGradient } from '../components/CtaGradient';
 import { View, Text, ScrollView, Pressable, TextInput, Share, ActivityIndicator, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
@@ -12,6 +13,7 @@ import { flagEmoji } from '../src/lib/flags';
 import { router } from 'expo-router';
 import { useAuth } from '../src/store/auth';
 import { useConfirm } from '../src/store/confirm';
+import { useToast } from '../src/store/toast';
 import { useFriends } from '../src/hooks/useFriends';
 import { shouldGate } from '../src/lib/billing';
 import {
@@ -27,12 +29,24 @@ export default function FriendsScreen() {
     user?.displayName || (user?.email ? user.email.split('@')[0] : 'You');
   const { profile, connections, friends, friendsData } = useFriends(user?.uid, myName);
   const confirm = useConfirm();
+  const { toast } = useToast();
 
   async function removeFriend(uid: string, name: string) {
     if (!user) return;
     if (await confirm({ title: `Remove ${name}?`, message: `You'll stop following each other's travels. You can add ${name} again anytime with their code.`, confirmLabel: 'Remove', destructive: true })) {
-      removeConnection(uid < user.uid ? `${uid}__${user.uid}` : `${user.uid}__${uid}`);
+      removeConnection(uid < user.uid ? `${uid}__${user.uid}` : `${user.uid}__${uid}`)
+        .catch(() => toast.error("Couldn't remove — please try again."));
     }
+  }
+
+  // Accept / decline a request. These write to Firestore and can reject on a
+  // network/permission failure, so they must be caught (an uncaught rejection
+  // would otherwise surface with no feedback to the user).
+  function acceptRequest(id: string) {
+    acceptConnection(id).catch(() => toast.error("Couldn't accept — please try again."));
+  }
+  function declineRequest(id: string) {
+    removeConnection(id).catch(() => toast.error("Couldn't update — please try again."));
   }
 
   const [authOpen, setAuthOpen] = useState(false);
@@ -111,7 +125,7 @@ export default function FriendsScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
         <ScrollView contentContainerStyle={{ paddingBottom: 112 }}>
-          <PageHero eyebrow="Connect" title="Your Circle" subtitle="See where the people you travel with have been." gradient={GRADIENTS.atlas} imageCode="WW" onBack={goBack} />
+          <PageHero eyebrow="Connect" title="Add to your Circle" subtitle="Invite friends and swap the places you loved." gradient={GRADIENTS.atlas} imageCode="WW" onBack={goBack} />
           <View style={{ paddingHorizontal: 20, marginTop: 20, alignItems: 'center' }}>
             <View className="rounded-full items-center justify-center" style={{ height: 72, width: 72, backgroundColor: 'rgba(155,124,255,0.14)' }}>
               <Users size={30} color={COLORS.lavender} />
@@ -120,7 +134,8 @@ export default function FriendsScreen() {
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.ink3, marginTop: 6, textAlign: 'center', maxWidth: 300 }}>
               Sign in to get your share code, follow friends, and see their travels.
             </Text>
-            <Pressable onPress={() => setAuthOpen(true)} className="rounded-2xl items-center" style={{ marginTop: 20, paddingVertical: 14, paddingHorizontal: 28, backgroundColor: COLORS.coral }}>
+            <Pressable onPress={() => setAuthOpen(true)} className="rounded-2xl items-center" style={{ marginTop: 20, paddingVertical: 14, paddingHorizontal: 28, backgroundColor: COLORS.coral, overflow: 'hidden' }}>
+              <CtaGradient />
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Sign in</Text>
             </Pressable>
           </View>
@@ -133,7 +148,7 @@ export default function FriendsScreen() {
   // --- Signed in ------------------------------------------------------------
   return (
     <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 112 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag">
-      <PageHero eyebrow="Connect" title="Your Circle" subtitle="See where the people you travel with have been." gradient={GRADIENTS.atlas} imageCode="WW" onBack={goBack} />
+      <PageHero eyebrow="Connect" title="Add to your Circle" subtitle="Invite friends and swap the places you loved." gradient={GRADIENTS.atlas} imageCode="WW" onBack={goBack} />
 
       {/* Your code */}
       <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
@@ -217,7 +232,7 @@ export default function FriendsScreen() {
           </Pressable>
         </View>
         {message ? (
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: message.ok ? COLORS.aqua : '#E0245E', marginTop: 8 }}>{message.text}</Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: message.ok ? COLORS.successText : COLORS.errorText, marginTop: 8 }}>{message.text}</Text>
         ) : null}
       </View>
 
@@ -233,10 +248,10 @@ export default function FriendsScreen() {
                 <View key={c.id} className="bg-white dark:bg-card rounded-3xl flex-row items-center" style={{ padding: 14, gap: 12 }}>
                   <Avatar name={name} />
                   <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{name}</Text>
-                  <Pressable onPress={() => removeConnection(c.id)} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
+                  <Pressable onPress={() => declineRequest(c.id)} accessibilityRole="button" accessibilityLabel={`Decline request from ${name}`} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.warmwhite }}>
                     <X size={18} color={COLORS.ink3} />
                   </Pressable>
-                  <Pressable onPress={() => acceptConnection(c.id)} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.coral }}>
+                  <Pressable onPress={() => acceptRequest(c.id)} accessibilityRole="button" accessibilityLabel={`Accept request from ${name}`} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 38, width: 38, backgroundColor: COLORS.coral }}>
                     <Check size={18} color="#fff" />
                   </Pressable>
                 </View>
@@ -270,7 +285,7 @@ export default function FriendsScreen() {
                     </Text>
                   </View>
                 </Pressable>
-                <Pressable onPress={() => removeFriend(f.uid, f.name)} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 34, width: 34, backgroundColor: COLORS.warmwhite }}>
+                <Pressable onPress={() => removeFriend(f.uid, f.name)} accessibilityRole="button" accessibilityLabel={`Remove ${f.name}`} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 34, width: 34, backgroundColor: COLORS.warmwhite }}>
                   <X size={16} color={COLORS.ink3} />
                 </Pressable>
               </View>
@@ -284,7 +299,7 @@ export default function FriendsScreen() {
                 <Avatar name={name} />
                 <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '600', color: COLORS.navy }}>{name}</Text>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3 }}>Requested</Text>
-                <Pressable onPress={() => removeConnection(c.id)} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 34, width: 34, backgroundColor: COLORS.warmwhite }}>
+                <Pressable onPress={() => declineRequest(c.id)} accessibilityRole="button" accessibilityLabel={`Cancel request to ${name}`} hitSlop={6} className="rounded-full items-center justify-center" style={{ height: 34, width: 34, backgroundColor: COLORS.warmwhite }}>
                   <X size={16} color={COLORS.ink3} />
                 </Pressable>
               </View>

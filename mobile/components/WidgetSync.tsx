@@ -4,6 +4,8 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { useWorldly } from '../src/hooks/useWorldly';
 import { useData } from '../src/store/data';
+import { primaryCode } from '../src/lib/tripPhase';
+import { useAuth } from '../src/store/auth';
 import { useCoverTheme } from '../src/hooks/useCoverTheme';
 import { todaysMemories } from '../src/lib/memories';
 import { destinationImage, hasDestinationPhoto } from '../src/lib/destinationImage';
@@ -80,7 +82,8 @@ async function sourceToBase64(src: string, tag: string): Promise<string | null> 
  *  `widgetPayload`. Renders nothing. */
 export function WidgetSync() {
   const { stats, level, places, expeditions, badges } = useWorldly();
-  const { trips, captures } = useData();
+  const { unifiedTrips, captures } = useData();
+  const { user, loading: authLoading } = useAuth();
   const theme = useCoverTheme();
 
   // The user's own most-recent photo for a country, if they have one.
@@ -96,7 +99,10 @@ export function WidgetSync() {
     userPhotoFor(code) ?? destinationImage(code).photo ?? null;
 
   const today = new Date().toISOString().slice(0, 10);
-  const trip = pickWidgetTrip(trips, today);
+  const trip = pickWidgetTrip(
+    unifiedTrips.map((e) => ({ title: e.title, countryCode: primaryCode(e), startDate: e.startDate ?? '', endDate: e.endDate })),
+    today,
+  );
 
   // Recent countries — kept only to choose an ambient hero photo for the
   // stats-led focuses (the widget no longer shows a flag strip).
@@ -170,10 +176,23 @@ export function WidgetSync() {
     !trip &&
     !memory;
 
+  // Once auth has resolved to signed-out (sign-out or account deletion) with no
+  // local data, actively CLEAR the widget so it can never keep showing a
+  // previous account's travels on the home/Lock Screen (Guideline 5.1.1(v) /
+  // cross-account privacy). '' makes the native side fall back to the not-synced
+  // "Open Worldly" state — an empty {} would decode as real zeros. Gated on
+  // authLoading so a signed-in user's cold-start (briefly user=null while the
+  // cache hydrates) never blanks their widget.
+  const signedOut = !authLoading && !user;
   useEffect(() => {
-    if (Platform.OS !== 'ios' || !bridge || emptySnapshot) return;
+    if (Platform.OS !== 'ios' || !bridge) return;
+    if (signedOut && emptySnapshot) {
+      bridge.setWidgetData('').catch((e) => reportError(e, { where: 'widgetSync:clear' }));
+      return;
+    }
+    if (emptySnapshot) return; // still loading — don't blank good data
     bridge.setWidgetData(payload).catch((e) => reportError(e, { where: 'widgetSync' }));
-  }, [payload, emptySnapshot]);
+  }, [payload, emptySnapshot, signedOut]);
 
   // Push each keyed hero image only when its source changes (images are heavier
   // than the JSON). A user capture takes priority over stock, so adding your own

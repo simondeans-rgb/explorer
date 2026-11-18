@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
@@ -20,9 +20,14 @@ export default function ScanScreen() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
+  // The camera fires onBarcodeScanned every frame; `busy` state updates a tick
+  // later, so several frames can slip past a state-only guard and send duplicate
+  // requests. Latch synchronously with a ref to make the first scan win.
+  const scanning = useRef(false);
 
   async function onScan(data: string) {
-    if (busy || !user) return;
+    if (scanning.current || !user) return;
+    scanning.current = true;
     setBusy(true);
     const code = extractCode(data);
     const myName = user.displayName || (user.email ? user.email.split('@')[0] : 'Member');
@@ -32,7 +37,10 @@ export default function ScanScreen() {
       router.back();
     } else {
       toast.error(res.error ?? "That QR didn't work — try again.");
-      setTimeout(() => setBusy(false), 1200);
+      setTimeout(() => {
+        scanning.current = false;
+        setBusy(false);
+      }, 1200);
     }
   }
 

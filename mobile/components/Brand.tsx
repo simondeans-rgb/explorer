@@ -16,10 +16,12 @@ export function WorldlyMark({ size = 28 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64" accessible accessibilityRole="image" accessibilityLabel="Worldly">
       <Defs>
+        {/* Matches BRAND_GRADIENT (coral → lavender → aqua) so the mark can't
+            diverge from the brand gradient used everywhere else (R5). */}
         <LinearGradient id="wm" x1="8" y1="8" x2="56" y2="58" gradientUnits="userSpaceOnUse">
-          <Stop offset="0" stopColor="#FF6A55" />
-          <Stop offset="0.45" stopColor="#FF8B79" />
-          <Stop offset="1" stopColor="#5B6CFF" />
+          <Stop offset="0" stopColor="#FF6B9A" />
+          <Stop offset="0.5" stopColor="#9B7CFF" />
+          <Stop offset="1" stopColor="#24D1C3" />
         </LinearGradient>
       </Defs>
       <Rect x="4" y="4" width="56" height="56" rx="16" fill="url(#wm)" />

@@ -7,15 +7,15 @@ import { rescheduleNotifications } from '../src/lib/notifications';
  *  discovery nudges) on launch and whenever the app returns to the foreground,
  *  so they stay current as the user's trips and places change. Renders nothing. */
 export function NotificationScheduler() {
-  const { places, expeditions, trips } = useData();
+  const { places, expeditions, unifiedTrips } = useData();
 
   useEffect(() => {
-    rescheduleNotifications(expeditions, places, trips);
+    rescheduleNotifications(expeditions, places, unifiedTrips);
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') rescheduleNotifications(expeditions, places, trips);
+      if (s === 'active') rescheduleNotifications(expeditions, places, unifiedTrips);
     });
     return () => sub.remove();
-  }, [places, expeditions, trips]);
+  }, [places, expeditions, unifiedTrips]);
 
   return null;
 }

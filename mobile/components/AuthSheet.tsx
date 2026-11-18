@@ -1,80 +1,26 @@
-import { useState } from 'react';
 import { View, Text, TextInput, Pressable, ActivityIndicator, Linking } from 'react-native';
 import { Check } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SheetShell } from './SheetShell';
 import { SocialAuthButtons } from './SocialAuthButtons';
-import { COLORS } from '../src/lib/theme';
-import { useAuth } from '../src/store/auth';
+import { BRAND_GRADIENT, COLORS } from '../src/lib/theme';
+import { useAuthForm } from '../src/hooks/useAuthForm';
 
 const TERMS_URL = 'https://www.worldly-explorer.com/terms.html';
 const PRIVACY_URL = 'https://www.worldly-explorer.com/privacy.html';
 
-type Mode = 'in' | 'up';
-
 export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { signIn, signUp, resetPassword } = useAuth();
-  const [mode, setMode] = useState<Mode>('in');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [agreed, setAgreed] = useState(false);
+  // Shares all form logic with AuthGate via useAuthForm; this is just the sheet
+  // presentation. On success the hook calls onClose to dismiss the sheet.
+  const {
+    mode, name, email, password, busy, error, notice, agreed,
+    setName, setEmail, setPassword, setAgreed, setError, setBusy,
+    ensureAgreed, forgot, submit, switchMode, resetFields,
+  } = useAuthForm(onClose);
 
-  // Guideline 1.2: agreement (incl. zero-tolerance policy) required before sign-in.
-  function ensureAgreed(): boolean {
-    if (!agreed) {
-      setError('Please agree to the Terms & zero-tolerance policy to continue.');
-      return false;
-    }
-    return true;
-  }
-
-  async function forgot() {
-    setError(null);
-    setNotice(null);
-    if (!email.trim()) {
-      setError('Enter your email above, then tap “Forgot password”.');
-      return;
-    }
-    try {
-      await resetPassword(email);
-      setNotice('Check your inbox — we’ve sent a password reset link.');
-    } catch {
-      setNotice('If that email has an account, a reset link is on its way.');
-    }
-  }
-
-  function reset() {
-    setName('');
-    setEmail('');
-    setPassword('');
-    setError(null);
-    setNotice(null);
-    setBusy(false);
-  }
   function close() {
-    reset();
+    resetFields();
     onClose();
-  }
-  async function submit() {
-    setError(null);
-    if (!email.trim() || password.length < 6) {
-      setError('Enter an email and a password of at least 6 characters.');
-      return;
-    }
-    if (!ensureAgreed()) return;
-    setBusy(true);
-    try {
-      if (mode === 'in') await signIn(email, password);
-      else await signUp(email, password, name);
-      close();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Something went wrong.';
-      setError(msg.replace('Firebase: ', '').replace(/\(auth.*\)\.?/, '').trim());
-      setBusy(false);
-    }
   }
 
   const title = mode === 'in' ? 'Welcome back' : 'Create your account';
@@ -132,31 +78,11 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
         ) : null}
 
         {error ? (
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: '#E0245E', marginTop: 12 }}>{error}</Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.errorText, marginTop: 12 }}>{error}</Text>
         ) : null}
         {notice ? (
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.aqua, marginTop: 12 }}>{notice}</Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.successText, marginTop: 12 }}>{notice}</Text>
         ) : null}
-
-        <Pressable
-          onPress={submit}
-          disabled={busy}
-          className="rounded-2xl items-center justify-center flex-row"
-          style={{ marginTop: 18, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: busy ? 0.6 : 1, gap: 8 }}
-        >
-          {busy ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Check size={18} color="#fff" />
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>
-                {mode === 'in' ? 'Sign in' : 'Create account'}
-              </Text>
-            </>
-          )}
-        </Pressable>
-
-        <SocialAuthButtons onError={setError} onBusyChange={setBusy} guard={ensureAgreed} />
 
         {/* Guideline 1.2: terms + zero-tolerance agreement, required to proceed. */}
         <Pressable
@@ -182,12 +108,34 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
           </Text>
         </Pressable>
 
+        {/* Same gradient CTA as the full-screen gate, so the two sign-in surfaces
+            read as one. Dimmed until the terms above are agreed. */}
         <Pressable
-          onPress={() => {
-            setMode(mode === 'in' ? 'up' : 'in');
-            setError(null);
-            setNotice(null);
-          }}
+          onPress={submit}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel={mode === 'in' ? 'Sign in' : 'Create account'}
+          accessibilityState={{ disabled: busy, busy }}
+          style={{ marginTop: 16, borderRadius: 18, overflow: 'hidden', opacity: busy ? 0.7 : agreed ? 1 : 0.55 }}
+        >
+          <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, gap: 8 }}>
+            {busy ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Check size={18} color="#fff" />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>
+                  {mode === 'in' ? 'Sign in' : 'Create account'}
+                </Text>
+              </>
+            )}
+          </LinearGradient>
+        </Pressable>
+
+        <SocialAuthButtons onError={setError} onBusyChange={setBusy} guard={ensureAgreed} />
+
+        <Pressable
+          onPress={switchMode}
           style={{ marginTop: 14, alignItems: 'center' }}
         >
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2 }}>

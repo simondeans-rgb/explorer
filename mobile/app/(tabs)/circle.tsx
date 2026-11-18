@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { CtaGradient } from '../../components/CtaGradient';
+import { View, Text, ScrollView, Pressable } from 'react-native';
+import { useTabReselect } from '../../src/hooks/useTabReselect';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -9,9 +11,10 @@ import { loadBlockedUids, blockedUidsSync, blockUser, reportContent } from '../.
 import { useLikes } from '../../src/hooks/useLikes';
 import { useReplies } from '../../src/hooks/useReplies';
 import { ReplySheet } from '../../components/ReplySheet';
+import { ModerationSheet } from '../../components/ModerationSheet';
 import { PageHero } from '../../components/PageHero';
 import { LandmarkDetailSheet } from '../../components/LandmarkDetailSheet';
-import { COLORS, GRADIENTS, SHADOW, HERO_HEIGHT } from '../../src/lib/theme';
+import { COLORS, GRADIENTS, SHADOW, HERO_HEIGHT, tint, MUTED_TINT } from '../../src/lib/theme';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { aggregateByCountry, computeStats } from '../../src/lib/stats';
@@ -81,27 +84,51 @@ function GhostCircle() {
   );
 }
 
-function CirclePreview() {
+/** A small "Example" tag so the preview cards can never be mistaken for a real
+ *  friend's activity (they are illustrative — the user has no circle yet). */
+function ExampleTag() {
   return (
-    <View style={{ marginTop: 14 }}>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, textAlign: 'center', marginBottom: 4, paddingHorizontal: 16 }}>PREVIEW · HOW YOUR CIRCLE WILL LOOK</Text>
-      <Text style={{ fontFamily: 'Fraunces', fontSize: 12, fontStyle: 'italic', color: COLORS.ink3, textAlign: 'center', marginBottom: 10, paddingHorizontal: 24 }}>Invite friends to see their real activity.</Text>
-      <View style={{ gap: 10, opacity: 0.92 }}>
-        <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14 }}>
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      className="absolute rounded-full"
+      style={{ top: 10, right: 10, backgroundColor: MUTED_TINT, paddingHorizontal: 8, paddingVertical: 3 }}
+    >
+      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.8, color: COLORS.ink3 }}>EXAMPLE</Text>
+    </View>
+  );
+}
+
+// Illustrative only — clearly labelled sample cards shown before the user has any
+// friends, so the empty state can sell the feature without fabricating real
+// social proof (no card asserts a fact about the user's actual circle).
+function CirclePreview() {
+  const cardStyle = { padding: 14, borderWidth: 1, borderStyle: 'dashed' as const, borderColor: 'rgba(20,33,61,0.14)' };
+  return (
+    <View
+      accessibilityLabel="Example of how your Circle will look once you add friends"
+      style={{ marginTop: 14 }}
+    >
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1, color: COLORS.ink3, textAlign: 'center', marginBottom: 4, paddingHorizontal: 16 }}>FOR EXAMPLE · HOW YOUR CIRCLE WILL LOOK</Text>
+      <Text style={{ fontFamily: 'Fraunces', fontSize: 12, fontStyle: 'italic', color: COLORS.ink3, textAlign: 'center', marginBottom: 10, paddingHorizontal: 24 }}>Sample cards — invite friends to see their real trips here.</Text>
+      <View style={{ gap: 10, opacity: 0.7 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <View className="bg-white dark:bg-card rounded-3xl" style={cardStyle}>
+          <ExampleTag />
           <View className="flex-row items-center" style={{ gap: 10 }}>
-            <Avatar name="Maya" size={38} />
-            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.navy }}><Text style={{ fontWeight: '700' }}>Maya</Text> recently visited</Text>
+            <Avatar name="A friend" size={38} />
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, color: COLORS.navy }}><Text style={{ fontWeight: '700' }}>A friend</Text> recently visited</Text>
           </View>
           <View className="flex-row flex-wrap" style={{ gap: 6, marginTop: 10 }}>
             {['Porto', 'Braga', 'Aveiro'].map((c) => (
-              <View key={c} className="flex-row items-center rounded-full" style={{ backgroundColor: 'rgba(255,107,154,0.10)', paddingHorizontal: 10, paddingVertical: 5, gap: 4 }}>
+              <View key={c} className="flex-row items-center rounded-full" style={{ backgroundColor: tint(COLORS.coral, 0.1), paddingHorizontal: 10, paddingVertical: 5, gap: 4 }}>
                 <MapPin size={12} color={COLORS.coral} />
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '600', color: COLORS.coral }}>{c}</Text>
               </View>
             ))}
           </View>
         </View>
-        <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14 }}>
+        <View className="bg-white dark:bg-card rounded-3xl" style={cardStyle}>
+          <ExampleTag />
           <View className="flex-row items-center" style={{ gap: 8 }}>
             <View className="rounded-full items-center justify-center" style={{ height: 28, width: 28, backgroundColor: 'rgba(255,184,77,0.18)' }}>
               <Gem size={15} color="#C2871A" />
@@ -109,14 +136,15 @@ function CirclePreview() {
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '700', color: '#B5731A' }}>Hidden Gem</Text>
           </View>
           <Text style={{ fontFamily: 'Fraunces', fontSize: 17, color: COLORS.navy, marginTop: 8 }}>Sintra, Portugal</Text>
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 1 }}>4 people in your circle say it's worth the trip</Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 1 }}>The kind of place your friends will flag as worth the trip</Text>
         </View>
-        <View className="bg-white dark:bg-card rounded-3xl" style={{ padding: 14 }}>
+        <View className="bg-white dark:bg-card rounded-3xl" style={cardStyle}>
+          <ExampleTag />
           <View className="flex-row items-center" style={{ gap: 8 }}>
             <Sparkles size={15} color={COLORS.lavender} />
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, fontWeight: '700', color: COLORS.lavender }}>On their wishlists</Text>
           </View>
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2, marginTop: 8 }}>Colin wants to visit <Text style={{ fontWeight: '700' }}>Kyoto</Text>, <Text style={{ fontWeight: '700' }}>Buenos Aires</Text> & <Text style={{ fontWeight: '700' }}>Cape Town</Text></Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2, marginTop: 8 }}>See where friends dream of going — like <Text style={{ fontWeight: '700' }}>Kyoto</Text>, <Text style={{ fontWeight: '700' }}>Buenos Aires</Text> & <Text style={{ fontWeight: '700' }}>Cape Town</Text></Text>
         </View>
       </View>
     </View>
@@ -130,6 +158,8 @@ export default function CircleScreen() {
   const worldly = useWorldly();
   const { places: myPlaces, discoveries: myDiscoveries, addPlace } = useData();
   const { toast } = useToast();
+  const scrollRef = useRef<ScrollView>(null);
+  useTabReselect('/circle', () => scrollRef.current?.scrollTo({ y: 0, animated: true }));
   const [rec, setRec] = useState<CircleRec | null>(null);
 
   // People who added you — pending requests where someone else is the requester.
@@ -243,30 +273,24 @@ export default function CircleScreen() {
 
   // Report or block on a shared snap. Reporting hides it immediately and queues
   // it for moderation; blocking also severs the friendship and hides everything
-  // from that member.
-  function moderateSnap(s: { id: string; userId: string; friend: string }) {
-    if (!user?.uid) return;
-    const me = user.uid;
-    Alert.alert('Report this photo?', `Flag ${s.friend}'s photo for our moderation team, or block ${s.friend}.`, [
-      {
-        text: 'Report photo',
-        style: 'destructive',
-        onPress: () => {
-          reportContent({ reporterUid: me, type: 'capture', targetId: s.id, ownerUid: s.userId, reason: 'objectionable photo' }).catch(() => {});
-          setHiddenSnaps((h) => new Set(h).add(s.id));
-        },
-      },
-      {
-        text: `Block ${s.friend}`,
-        style: 'destructive',
-        onPress: () => {
-          reportContent({ reporterUid: me, type: 'user', targetId: s.userId, ownerUid: s.userId, reason: 'blocked from snap' }).catch(() => {});
-          blockUser(me, s.userId).catch(() => {});
-          setBlocked((b) => new Set(b).add(s.userId));
-        },
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+  // from that member. Presented via the branded ModerationSheet (R23).
+  const [modSnap, setModSnap] = useState<{ id: string; userId: string; friend: string } | null>(null);
+  function reportSnap() {
+    const s = modSnap;
+    if (!s || !user?.uid) return;
+    reportContent({ reporterUid: user.uid, type: 'capture', targetId: s.id, ownerUid: s.userId, reason: 'objectionable photo' }).catch(() => {});
+    setHiddenSnaps((h) => new Set(h).add(s.id));
+    setModSnap(null);
+    toast.success('Thanks — reported. Our team will review it within 24 hours.');
+  }
+  function blockSnapMember() {
+    const s = modSnap;
+    if (!s || !user?.uid) return;
+    reportContent({ reporterUid: user.uid, type: 'user', targetId: s.userId, ownerUid: s.userId, reason: 'blocked from snap' }).catch(() => {});
+    blockUser(user.uid, s.userId, s.friend).catch(() => {});
+    setBlocked((b) => new Set(b).add(s.userId));
+    setModSnap(null);
+    toast.success(`${s.friend} blocked`);
   }
 
   const hasContent = activity.length > 0 || snaps.length > 0 || recs.length > 0 || !!mostVisited || recents.length > 0 || wishes.length > 0 || compat.length > 0;
@@ -278,7 +302,7 @@ export default function CircleScreen() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 120 }}>
+    <ScrollView ref={scrollRef} style={{ flex: 1, backgroundColor: COLORS.warmwhite }} contentContainerStyle={{ paddingBottom: 120 }}>
       <PageHero
         title="Your Circle"
         subtitle="Discover what friends loved"
@@ -334,7 +358,8 @@ export default function CircleScreen() {
             <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14.5, color: COLORS.ink2, textAlign: 'center', marginTop: 8, lineHeight: 21, maxWidth: 330 }}>
               Your Circle turns your friends' real trips into your next discovery — the places they loved, their hidden gems, and where they're dreaming of going next.
             </Text>
-            <Pressable onPress={() => router.push('/friends')} className="flex-row items-center justify-center rounded-full" style={{ marginTop: 16, paddingHorizontal: 22, paddingVertical: 13, gap: 8, backgroundColor: COLORS.coral }}>
+            <Pressable onPress={() => router.push('/friends')} className="flex-row items-center justify-center rounded-full" style={{ marginTop: 16, paddingHorizontal: 22, paddingVertical: 13, gap: 8, backgroundColor: COLORS.coral, overflow: 'hidden' }}>
+              <CtaGradient />
               <UserPlus size={17} color="#fff" />
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14.5, fontWeight: '700', color: '#fff' }}>Invite someone</Text>
             </Pressable>
@@ -421,7 +446,7 @@ export default function CircleScreen() {
                             <Text numberOfLines={1} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, opacity: 0.9 }}>{s.city ?? (s.countryCode ? countryName(s.countryCode) : '')}</Text>
                           ) : null}
                         </LinearGradient>
-                        <Pressable onPress={() => toggle(s.id, s.userId)} hitSlop={8} className="absolute flex-row items-center rounded-full" style={{ top: 8, right: 8, gap: 4, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                        <Pressable onPress={() => toggle(s.id, s.userId)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`${st.likedByMe ? 'Unlike' : 'Like'} ${s.friend}'s photo`} className="absolute flex-row items-center rounded-full" style={{ top: 8, right: 8, gap: 4, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: 'rgba(0,0,0,0.4)' }}>
                           <Heart size={14} color={st.likedByMe ? COLORS.coral : '#fff'} fill={st.likedByMe ? COLORS.coral : 'transparent'} />
                           {st.count > 0 ? <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700' }}>{st.count}</Text> : null}
                         </Pressable>
@@ -429,7 +454,7 @@ export default function CircleScreen() {
                           <MessageCircle size={14} color="#fff" />
                           {(replies[s.id]?.length ?? 0) > 0 ? <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700' }}>{replies[s.id].length}</Text> : null}
                         </Pressable>
-                        <Pressable accessibilityLabel={`Report or block ${s.friend}`} onPress={() => moderateSnap(s)} hitSlop={8} className="absolute items-center justify-center rounded-full" style={{ bottom: 8, right: 8, padding: 6, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                        <Pressable accessibilityRole="button" accessibilityLabel={`Report or block ${s.friend}`} onPress={() => setModSnap({ id: s.id, userId: s.userId, friend: s.friend })} hitSlop={8} className="absolute items-center justify-center rounded-full" style={{ bottom: 8, right: 8, padding: 6, backgroundColor: 'rgba(0,0,0,0.4)' }}>
                           <Flag size={13} color="#fff" />
                         </Pressable>
                       </View>
@@ -674,6 +699,14 @@ export default function CircleScreen() {
         myUid={user?.uid}
         myName={myName}
         onClose={() => setReplySnap(null)}
+      />
+      <ModerationSheet
+        visible={!!modSnap}
+        name={modSnap?.friend ?? ''}
+        kind="photo"
+        onClose={() => setModSnap(null)}
+        onReport={reportSnap}
+        onBlock={blockSnapMember}
       />
       <LandmarkDetailSheet
         visible={!!rec}

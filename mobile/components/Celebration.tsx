@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
-import { View, Text, Pressable, useWindowDimensions } from 'react-native';
+import { View, Text, Pressable, useWindowDimensions, AccessibilityInfo } from 'react-native';
+import { useReduceMotion } from '../src/lib/useReduceMotion';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Ellipse, Path } from 'react-native-svg';
 import Animated, {
@@ -149,6 +150,7 @@ function Balloon({ index, width, height }: { index: number; width: number; heigh
  *  Tap (or auto-dismiss) closes. */
 export function Celebration({ item, onDismiss }: { item: CelebrationItem; onDismiss: () => void }) {
   const { width, height } = useWindowDimensions();
+  const reduceMotion = useReduceMotion();
   const variant = item.variant ?? 'confetti';
   // Scale piece count to the screen so it reads as full regardless of device.
   const pieces = useMemo(() => Math.min(300, Math.max(210, Math.round((width * height) / 1350))), [width, height]);
@@ -163,25 +165,50 @@ export function Celebration({ item, onDismiss }: { item: CelebrationItem; onDism
   const scrim = useSharedValue(0);
 
   useEffect(() => {
+    // Announce what was earned so VoiceOver users get the celebration too.
+    AccessibilityInfo.announceForAccessibility(
+      [item.title, item.subtitle].filter(Boolean).join('. '),
+    );
+    if (reduceMotion) {
+      // Reduce Motion: no confetti/balloons, no spring — just present the card.
+      scrim.value = 1;
+      scale.value = 1;
+      opacity.value = 1;
+      return;
+    }
     // Scrim fades in immediately; the card is held back so confetti leads.
     scrim.value = withTiming(1, { duration: 220 });
     scale.value = withDelay(CARD_REVEAL_MS, withSpring(1, { damping: 13, stiffness: 150 }));
     opacity.value = withDelay(CARD_REVEAL_MS, withTiming(1, { duration: 240 }));
-  }, [scale, opacity, scrim]);
+  }, [scale, opacity, scrim, reduceMotion, item.title, item.subtitle]);
 
   const cardStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }], opacity: opacity.value }));
   const scrimStyle = useAnimatedStyle(() => ({ opacity: scrim.value }));
 
   return (
-    <Pressable onPress={onDismiss} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+    <Pressable
+      onPress={onDismiss}
+      accessibilityRole="button"
+      accessibilityLabel="Dismiss celebration"
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+    >
       <Animated.View style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(14,16,24,0.55)' }, scrimStyle]} />
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        {/* Confetti bursts from *behind* the card (iMessage-style reveal). */}
-        {variant === 'confetti'
-          ? Array.from({ length: pieces }).map((_, i) => (
+        {/* Confetti bursts from *behind* the card (iMessage-style reveal).
+            Decorative (hidden from VoiceOver) + skipped under Reduce Motion.
+            One full-screen wrapper so each Piece keeps its screen-origin math. */}
+        {!reduceMotion && variant === 'confetti' ? (
+          <View
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          >
+            {Array.from({ length: pieces }).map((_, i) => (
               <Piece key={i} index={i} width={width} height={height} originY={originY} />
-            ))
-          : null}
+            ))}
+          </View>
+        ) : null}
         <Animated.View style={cardStyle}>
           <LinearGradient
             colors={BRAND_GRADIENT}
@@ -201,12 +228,20 @@ export function Celebration({ item, onDismiss }: { item: CelebrationItem; onDism
             </View>
           </LinearGradient>
         </Animated.View>
-        {/* Balloons drift up in *front* of the card, passing over it. */}
-        {variant === 'balloons'
-          ? Array.from({ length: balloons }).map((_, i) => (
+        {/* Balloons drift up in *front* of the card, passing over it.
+            Decorative (hidden from VoiceOver) + skipped under Reduce Motion. */}
+        {!reduceMotion && variant === 'balloons' ? (
+          <View
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          >
+            {Array.from({ length: balloons }).map((_, i) => (
               <Balloon key={i} index={i} width={width} height={height} />
-            ))
-          : null}
+            ))}
+          </View>
+        ) : null}
       </View>
     </Pressable>
   );

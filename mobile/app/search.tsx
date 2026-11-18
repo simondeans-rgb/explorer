@@ -83,7 +83,7 @@ export default function SearchScreen() {
       {/* Search bar */}
       <View style={{ paddingTop: 56, paddingHorizontal: 20, paddingBottom: 10, backgroundColor: COLORS.warmwhite }}>
         <View className="flex-row items-center" style={{ gap: 10 }}>
-          <View className="flex-row items-center bg-white dark:bg-card rounded-full" style={{ flex: 1, paddingHorizontal: 16, paddingVertical: 12, gap: 10, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } }}>
+          <View className="flex-row items-center bg-white dark:bg-card rounded-full" style={{ flex: 1, paddingHorizontal: 16, paddingVertical: 12, gap: 10, shadowColor: '#14213D', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } }}>
             <SearchIcon size={18} color={COLORS.coral} />
             <TextInput
               value={q}
@@ -94,7 +94,7 @@ export default function SearchScreen() {
               style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 16, color: COLORS.ink }}
             />
           </View>
-          <Pressable onPress={goBack} hitSlop={8} className="rounded-full items-center justify-center" style={{ height: 44, width: 44, backgroundColor: COLORS.card }}>
+          <Pressable onPress={goBack} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close search" className="rounded-full items-center justify-center" style={{ height: 44, width: 44, backgroundColor: COLORS.card }}>
             <X size={20} color={COLORS.ink2} />
           </Pressable>
         </View>

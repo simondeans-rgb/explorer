@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import type { ReactNode } from 'react';
 import {
   View,
   Text,
@@ -17,82 +17,21 @@ import { WorldlyLogo } from './WorldlyLogo';
 import { SocialAuthButtons } from './SocialAuthButtons';
 import { HERO_CODES } from '../src/lib/heroImages';
 import { COLORS, GRADIENTS } from '../src/lib/theme';
-import { useAuth } from '../src/store/auth';
+import { useAuthForm } from '../src/hooks/useAuthForm';
 
 const PRIVACY_URL = 'https://www.worldly-explorer.com/privacy.html';
 const TERMS_URL = 'https://www.worldly-explorer.com/terms.html';
 
-type Mode = 'in' | 'up';
-
 /** Full-screen welcome + sign in / create account screen, shown whenever cloud
  *  sync is configured but no one is signed in. The home for authentication. */
 export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void }) {
-  const { signIn, signUp, resetPassword } = useAuth();
-  const [mode, setMode] = useState<Mode>('in');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [show, setShow] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [agreed, setAgreed] = useState(false);
-
-  // Guideline 1.2: require agreement to the terms (incl. zero-tolerance for
-  // objectionable content and abusive behaviour) before any sign-in path.
-  function ensureAgreed(): boolean {
-    if (!agreed) {
-      setNotice(null);
-      setError('Please agree to the Terms & zero-tolerance policy to continue.');
-      return false;
-    }
-    return true;
-  }
-
-  async function forgot() {
-    setError(null);
-    setNotice(null);
-    if (!email.trim()) {
-      setError('Enter your email above, then tap “Forgot password”.');
-      return;
-    }
-    try {
-      await resetPassword(email);
-      setNotice('Check your inbox — we’ve sent a password reset link.');
-    } catch {
-      setNotice('If that email has an account, a reset link is on its way.');
-    }
-  }
-
-  async function submit() {
-    setError(null);
-    setNotice(null);
-    if (mode === 'up' && !name.trim()) {
-      setError('What should we call you? Add your name to continue.');
-      return;
-    }
-    if (!email.trim() || password.length < 6) {
-      setError('Enter an email and a password of at least 6 characters.');
-      return;
-    }
-    if (!ensureAgreed()) return;
-    setBusy(true);
-    try {
-      if (mode === 'in') await signIn(email, password);
-      else await signUp(email, password, name);
-      // On success the auth state changes and this gate unmounts itself.
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Something went wrong.';
-      setError(msg.replace('Firebase: ', '').replace(/\(auth.*\)\.?/, '').trim());
-      setBusy(false);
-    }
-  }
-
-  function switchMode() {
-    setMode(mode === 'in' ? 'up' : 'in');
-    setError(null);
-    setNotice(null);
-  }
+  // On success the auth state changes and this full-screen gate unmounts itself,
+  // so there's nothing extra to do here.
+  const {
+    mode, name, email, password, show, busy, error, notice, agreed,
+    setName, setEmail, setPassword, setShow, setAgreed, setError, setBusy,
+    ensureAgreed, forgot, submit, switchMode,
+  } = useAuthForm();
 
   return (
     <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: COLORS.night }}>
@@ -118,7 +57,7 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
             </View>
 
             {/* Form card */}
-            <View className="rounded-3xl" style={{ backgroundColor: COLORS.card, padding: 18, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } }}>
+            <View className="rounded-3xl" style={{ backgroundColor: COLORS.card, padding: 18, shadowColor: '#14213D', shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } }}>
               {mode === 'up' ? (
                 <Field>
                   <TextInput
@@ -170,13 +109,38 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
               ) : null}
 
               {error ? (
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: '#E0245E', marginTop: 14 }}>{error}</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.errorText, marginTop: 14 }}>{error}</Text>
               ) : null}
               {notice ? (
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: '#0E9F8F', marginTop: 14 }}>{notice}</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.successText, marginTop: 14 }}>{notice}</Text>
               ) : null}
 
-              <Pressable onPress={submit} disabled={busy} style={{ marginTop: error || notice || mode === 'in' ? 16 : 18, borderRadius: 18, overflow: 'hidden', opacity: busy ? 0.7 : 1 }}>
+              {/* Guideline 1.2: explicit terms + zero-tolerance agreement, shown
+                  before any sign-in path and required to proceed. */}
+              <Pressable
+                onPress={() => { setAgreed((a) => !a); setError(null); }}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: agreed }}
+                accessibilityLabel="Agree to the Terms of Use and zero-tolerance policy"
+                className="flex-row"
+                style={{ marginTop: 16, gap: 10, alignItems: 'flex-start' }}
+              >
+                <View
+                  className="items-center justify-center rounded-md"
+                  style={{ height: 22, width: 22, marginTop: 1, borderWidth: 1.5, borderColor: agreed ? COLORS.coral : COLORS.ink3, backgroundColor: agreed ? COLORS.coral : 'transparent' }}
+                >
+                  {agreed ? <Check size={15} color="#fff" /> : null}
+                </View>
+                <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 12, lineHeight: 17, color: COLORS.ink2 }}>
+                  I agree to the{' '}
+                  <Text style={{ fontWeight: '800', textDecorationLine: 'underline', color: COLORS.coral }} onPress={() => Linking.openURL(TERMS_URL)}>Terms of Use (EULA)</Text>
+                  {' '}and{' '}
+                  <Text style={{ fontWeight: '800', textDecorationLine: 'underline', color: COLORS.coral }} onPress={() => Linking.openURL(PRIVACY_URL)}>Privacy Policy</Text>
+                  , and understand that Worldly has zero tolerance for objectionable content or abusive behaviour.
+                </Text>
+              </Pressable>
+
+              <Pressable onPress={submit} disabled={busy} accessibilityRole="button" accessibilityLabel={mode === 'in' ? 'Sign in' : 'Create account'} accessibilityState={{ disabled: busy, busy }} style={{ marginTop: 16, borderRadius: 18, overflow: 'hidden', opacity: busy ? 0.7 : agreed ? 1 : 0.55 }}>
                 <LinearGradient colors={GRADIENTS.story} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 }}>
                   {busy ? (
                     <ActivityIndicator color="#fff" />
@@ -192,31 +156,6 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
               </Pressable>
 
               <SocialAuthButtons onError={setError} onBusyChange={setBusy} guard={ensureAgreed} />
-
-              {/* Guideline 1.2: explicit terms + zero-tolerance agreement, shown
-                  before any sign-in path and required to proceed. */}
-              <Pressable
-                onPress={() => { setAgreed((a) => !a); setError(null); }}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: agreed }}
-                accessibilityLabel="Agree to the Terms of Use and zero-tolerance policy"
-                className="flex-row"
-                style={{ marginTop: 18, gap: 10, alignItems: 'flex-start' }}
-              >
-                <View
-                  className="items-center justify-center rounded-md"
-                  style={{ height: 22, width: 22, marginTop: 1, borderWidth: 1.5, borderColor: agreed ? COLORS.coral : 'rgba(255,255,255,0.6)', backgroundColor: agreed ? COLORS.coral : 'transparent' }}
-                >
-                  {agreed ? <Check size={15} color="#fff" /> : null}
-                </View>
-                <Text style={{ flex: 1, fontFamily: 'PlusJakarta', fontSize: 12, lineHeight: 17, color: 'rgba(255,255,255,0.92)' }}>
-                  I agree to the{' '}
-                  <Text style={{ fontWeight: '800', textDecorationLine: 'underline' }} onPress={() => Linking.openURL(TERMS_URL)}>Terms of Use (EULA)</Text>
-                  {' '}and{' '}
-                  <Text style={{ fontWeight: '800', textDecorationLine: 'underline' }} onPress={() => Linking.openURL(PRIVACY_URL)}>Privacy Policy</Text>
-                  , and understand that Worldly has zero tolerance for objectionable content or abusive behaviour.
-                </Text>
-              </Pressable>
 
               <Pressable onPress={switchMode} style={{ marginTop: 16, alignItems: 'center' }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, color: COLORS.ink2 }}>
@@ -238,7 +177,7 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
   );
 }
 
-function Field({ children, last }: { children: React.ReactNode; last?: boolean }) {
+function Field({ children, last }: { children: ReactNode; last?: boolean }) {
   return (
     <View className="rounded-2xl" style={{ backgroundColor: COLORS.warmwhite, paddingHorizontal: 14, paddingVertical: 12, marginBottom: last ? 0 : 10 }}>
       {children}

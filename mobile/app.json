@@ -18,6 +18,19 @@
         "com.apple.security.application-groups": [
           "group.com.simmyd23.worldly"
         ]
+      },
+      "privacyManifests": {
+        "NSPrivacyTracking": false,
+        "NSPrivacyTrackingDomains": [],
+        "NSPrivacyCollectedDataTypes": [],
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "1C8F.1"
+            ]
+          }
+        ]
       }
     },
     "android": {
@@ -50,6 +63,8 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "Worldly uses your location to add the city and country you're visiting to your travel map.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
           "isIosBackgroundLocationEnabled": false,
           "isAndroidBackgroundLocationEnabled": false,
           "isAndroidForegroundServiceEnabled": false
@@ -82,7 +97,14 @@
           "cameraPermission": "Worldly uses your camera to scan a friend's Worldly QR code and connect with them."
         }
       ],
-      "@sentry/react-native",
+      [
+        "@sentry/react-native",
+        {
+          "url": "https://de.sentry.io/",
+          "organization": "simon-deans",
+          "project": "worldly"
+        }
+      ],
       "expo-apple-authentication",
       [
         "@react-native-google-signin/google-signin",
@@ -440,7 +462,8 @@
           }
         ]
       ],
-      "@bacons/apple-targets"
+      "@bacons/apple-targets",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true

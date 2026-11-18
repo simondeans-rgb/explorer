@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, ScrollView, Pressable, LayoutAnimation, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
@@ -19,12 +19,15 @@ import type { ComponentType } from 'react';
 import { AddDiscoverySheet } from '../../components/AddDiscoverySheet';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
 import { DestinationImage } from '../../components/DestinationImage';
+import { CountryMap, type CountryMapPin } from '../../components/CountryMap';
+import { cityCoord } from '../../src/lib/journeyGeo';
 import { BackButton } from '../../components/BackButton';
 import { PassportStamp } from '../../components/PassportStamp';
 import { DiscoveryCard } from '../../components/DiscoveryCard';
 import { EditCitySheet } from '../../components/EditCitySheet';
 import { LandmarkDetailSheet, type LandmarkPerson } from '../../components/LandmarkDetailSheet';
 import { COLORS, SHADOW } from '../../src/lib/theme';
+import { useReduceMotion } from '../../src/lib/motion';
 import { flagEmoji } from '../../src/lib/flags';
 import { buildCityGuides, guidesForCountry } from '../../src/lib/cityGuides';
 import { countryName, continentOf } from '../../src/data/countries';
@@ -96,6 +99,10 @@ function Fact({ icon: Icon, label, value, tint = COLORS.coral }: { icon: Compone
   );
 }
 
+// A warm→cool ramp that deliberately avoids brand coral, which is reserved for
+// actions — so a hot month never reads as a button.
+const TEMP_HOT = '#F0803C';
+
 function TempChart({ temps, tempUnit }: { temps: number[]; tempUnit: TempUnit }) {
   const max = Math.max(...temps, 1);
   const min = Math.min(...temps, 0);
@@ -109,7 +116,7 @@ function TempChart({ temps, tempUnit }: { temps: number[]; tempUnit: TempUnit })
           return (
             <View key={i} style={{ flex: 1, alignItems: 'center' }}>
               <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700', color: COLORS.ink2, marginBottom: 3 }}>{convertCelsius(t, tempUnit)}°</Text>
-              <View style={{ width: '100%', height: h, borderRadius: 4, backgroundColor: t >= 24 ? COLORS.coral : t >= 12 ? COLORS.sunburst : COLORS.aqua }} />
+              <View style={{ width: '100%', height: h, borderRadius: 4, backgroundColor: t >= 24 ? TEMP_HOT : t >= 12 ? COLORS.sunburst : COLORS.sky }} />
             </View>
           );
         })}
@@ -136,6 +143,33 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
       <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy, marginBottom: 10 }}>{title}</Text>
       {children}
+    </View>
+  );
+}
+
+/** A Section whose body can be collapsed behind its title (R31). Used to tuck the
+ *  reference material (facts, landmarks) away by default once a country is one
+ *  you've actually visited, so the screen leads with your own memories/picks. */
+function CollapsibleSection({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const reduce = useReduceMotion();
+  return (
+    <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
+      <Pressable
+        onPress={() => {
+          if (Platform.OS === 'ios' && !reduce) LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setOpen((o) => !o);
+        }}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={title}
+        accessibilityHint={open ? 'Collapse' : 'Expand'}
+        className="flex-row items-center justify-between"
+      >
+        <Text style={{ fontFamily: 'Fraunces', fontSize: 20, color: COLORS.navy }}>{title}</Text>
+        <ChevronRight size={20} color={COLORS.ink3} style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }} />
+      </Pressable>
+      {open ? <View style={{ marginTop: 10 }}>{children}</View> : null}
     </View>
   );
 }
@@ -233,6 +267,11 @@ export default function CountryScreen() {
     setDiscOpen(true);
   }
 
+  // Detail-loading convention (R33): stack routes that key off a possibly-not-yet
+  // -hydrated id show <DetailSkeleton/> until `loaded` (trip/discovery/journey/
+  // memory/guide). This screen deliberately shows none — `agg` is derived
+  // synchronously from the already-in-memory aggregates, so there's nothing to
+  // await and an unknown country simply renders its facts-only view.
   const agg = useMemo(() => aggregates.find((a) => a.code === code), [aggregates, code]);
   const facts = countryFacts(code);
   const myDiscoveries = useMemo(
@@ -297,6 +336,40 @@ export default function CountryScreen() {
   const rels = (agg?.relationships ?? []).filter((r) => r !== 'aspiring');
   const cities = agg?.cities ?? [];
 
+  // Your footprint here: each city you've been to (or have a memory from),
+  // placed on the map. A city with photos shows its latest as the marker.
+  const mapPins = useMemo<CountryMapPin[]>(() => {
+    const byCity = new Map<string, CountryMapPin>();
+    for (const c of cities) {
+      const co = cityCoord(code, c.name);
+      if (co) byCity.set(c.name.trim().toLowerCase(), { id: `city:${c.id}`, label: c.name, lon: co[0], lat: co[1] });
+    }
+    for (const ph of myPhotos) {
+      if (!ph.city) continue;
+      const key = ph.city.trim().toLowerCase();
+      let pin = byCity.get(key);
+      if (!pin) {
+        const co = cityCoord(code, ph.city);
+        if (!co) continue;
+        pin = { id: `photo:${key}`, label: ph.city, lon: co[0], lat: co[1] };
+        byCity.set(key, pin);
+      }
+      if (!pin.photo) pin.photo = ph.dataUrl;
+      pin.photoCount = (pin.photoCount ?? 0) + 1;
+    }
+    return [...byCity.values()];
+  }, [cities, myPhotos, code]);
+  function onMapPin(pin: CountryMapPin) {
+    const key = pin.label.trim().toLowerCase();
+    const photo = myPhotos.find((ph) => ph.city?.trim().toLowerCase() === key);
+    if (photo) {
+      router.push(`/memory/${photo.id}`);
+      return;
+    }
+    const city = cities.find((c) => c.name.trim().toLowerCase() === key);
+    if (city) setEditCity(city);
+  }
+
   // Open the rich detail sheet for a landmark — your saved note + any friends'.
   function openLandmarkDetail(landmark: string) {
     const recorded = myDiscoveries.find((d) => d.landmark === landmark || d.name.toLowerCase() === landmark.toLowerCase());
@@ -318,7 +391,7 @@ export default function CountryScreen() {
           <BackButton onPress={goBack} style={{ position: 'absolute', top: 60, left: 20, zIndex: 20 }} />
           <View style={{ paddingHorizontal: 20 }}>
             <Text style={{ fontSize: 52 }}>{flagEmoji(code)}</Text>
-            <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, marginTop: 6 }}>{name}</Text>
+            <Text numberOfLines={2} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 38, marginTop: 6 }}>{name}</Text>
             <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, opacity: 0.95, marginTop: 2 }}>
               {continent ?? 'Somewhere on Earth'}
               {agg?.firstYear ? ` · since ${agg.firstYear}` : ''}
@@ -342,9 +415,22 @@ export default function CountryScreen() {
           </Pressable>
         </View>
 
+        {/* Your footprint — the country on the globe, with your places pinned */}
+        <View style={{ paddingHorizontal: 20, marginTop: 14 }}>
+          <CountryMap code={code} pins={mapPins} discovered={rels.length > 0} onPressPin={onMapPin} />
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 8, paddingHorizontal: 4 }}>
+            {mapPins.length > 0
+              ? `${mapPins.length} ${mapPins.length === 1 ? 'place' : 'places'} on your map — tap a pin to open it`
+              : rels.length > 0
+                ? 'Add the cities you’ve been to and they’ll appear here as pins.'
+                : 'Not on your map yet — add it when you’ve been.'}
+          </Text>
+        </View>
+
         {/* About */}
         {facts ? (
-          <Section title={`About ${name}`}>
+          // Collapsed by default once you've visited, so your memories/picks lead (R31).
+          <CollapsibleSection title={`About ${name}`} defaultOpen={rels.length === 0}>
             <View className="flex-row flex-wrap" style={{ gap: 10 }}>
               <Fact icon={Building2} label="Capital" value={facts.capital} tint={COLORS.coral} />
               <Fact icon={Coins} label="Currency" value={facts.currency} tint={COLORS.sunburst} />
@@ -356,12 +442,12 @@ export default function CountryScreen() {
                 <TempChart temps={facts.temps} tempUnit={tempUnit} />
               </View>
             ) : null}
-          </Section>
+          </CollapsibleSection>
         ) : null}
 
         {/* Landmarks */}
         {facts?.landmarks && facts.landmarks.length > 0 ? (
-          <Section title="Landmarks & sights">
+          <CollapsibleSection title="Landmarks & sights" defaultOpen={rels.length === 0}>
             <View style={{ gap: 8 }}>
               {facts.landmarks.map((l) => {
                 const recorded = !!myDiscoveries.find((d) => d.landmark === l || d.name.toLowerCase() === l.toLowerCase());
@@ -380,7 +466,7 @@ export default function CountryScreen() {
                 );
               })}
             </View>
-          </Section>
+          </CollapsibleSection>
         ) : null}
 
         {/* Your relationship */}
@@ -421,14 +507,14 @@ export default function CountryScreen() {
             <View style={{ marginHorizontal: -20 }}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
                 {myPhotos.map((p) => (
-                  <View key={p.id} style={{ width: 150, borderRadius: 20, overflow: 'hidden' }}>
+                  <Pressable key={p.id} onPress={() => router.push(`/memory/${p.id}`)} accessibilityRole="button" accessibilityLabel={`Memory${p.caption ? `: ${p.caption}` : ''} — tap to edit`} style={{ width: 150, borderRadius: 20, overflow: 'hidden' }}>
                     <Image source={{ uri: p.dataUrl }} style={{ width: 150, height: 190 }} contentFit="cover" transition={200} />
                     {p.caption ? (
                       <LinearGradient colors={['transparent', 'rgba(0,0,0,0.55)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 10, paddingTop: 30 }}>
                         <Text numberOfLines={2} className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '600' }}>{p.caption}</Text>
                       </LinearGradient>
                     ) : null}
-                  </View>
+                  </Pressable>
                 ))}
               </ScrollView>
             </View>

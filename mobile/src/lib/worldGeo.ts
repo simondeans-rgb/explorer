@@ -3,7 +3,8 @@
 import { feature, merge, mesh } from 'topojson-client';
 import type { Feature, Geometry } from 'geojson';
 import worldRaw from 'world-atlas/countries-110m.json';
-import { COUNTRIES } from '../data/countries';
+import { COUNTRIES, continentOf } from '../data/countries';
+import type { Continent } from '../types';
 
 // world-atlas topology (numeric ISO ids + country names). Typed loosely — the
 // package ships no types and topojson consumes the raw object.
@@ -66,6 +67,28 @@ export const LAND_GEOMETRY: Geometry = (() => {
   const obj = (worldTopology as any).objects.countries;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return merge(worldTopology as any, obj.geometries) as Geometry;
+})();
+
+/** Each continent as ONE merged geometry (member countries fused, so there are
+ *  no internal country borders) — for a 2D map that colours continents in. */
+export const CONTINENT_GEOMETRY: Partial<Record<Continent, Geometry>> = (() => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const obj = (worldTopology as any).objects.countries;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const groups: Partial<Record<Continent, any[]>> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const g of obj.geometries as any[]) {
+    const code = geoAlpha2(g.properties?.name);
+    const cont = code ? continentOf(code) : undefined;
+    if (!cont) continue;
+    (groups[cont] ??= []).push(g);
+  }
+  const out: Partial<Record<Continent, Geometry>> = {};
+  for (const cont of Object.keys(groups) as Continent[]) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    out[cont] = merge(worldTopology as any, groups[cont] as any) as Geometry;
+  }
+  return out;
 })();
 
 /** The interior country borders as a single mesh — one path that outlines every

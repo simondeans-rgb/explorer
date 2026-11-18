@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
+import { useTabReselect } from '../../src/hooks/useTabReselect';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -19,7 +20,8 @@ import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
 import { PassportStamp } from '../../components/PassportStamp';
 import { useConfirm } from '../../src/store/confirm';
 import { circleStoryItems, type CircleStoryItem } from '../../src/lib/circle';
-import { COLORS, HERO_HEIGHT } from '../../src/lib/theme';
+import { COLORS, HERO_HEIGHT, BRAND_GRADIENT } from '../../src/lib/theme';
+import { hSelection } from '../../src/lib/haptics';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName } from '../../src/data/countries';
 import { hasDestinationPhoto } from '../../src/lib/destinationImage';
@@ -29,6 +31,7 @@ import { findTodaysFlight } from '../../src/lib/liveFlight';
 import { HERO_CODES } from '../../src/lib/heroImages';
 import { heroLogoIsWhite } from '../../src/lib/heroLuminance';
 import { useData } from '../../src/store/data';
+import { isUpcoming, daysToGo, primaryCode } from '../../src/lib/tripPhase';
 import { useAuth } from '../../src/store/auth';
 import { useFriends } from '../../src/hooks/useFriends';
 
@@ -41,7 +44,9 @@ const TILE_H = 150;
 
 export default function StoryScreen() {
   const { aggregates, stats, level } = useWorldly();
-  const { captures, removeCapture, trips, places, discoveries, expeditions } = useData();
+  const { captures, removeCapture, unifiedTrips, places, discoveries, expeditions } = useData();
+  const scrollRef = useRef<ScrollView>(null);
+  useTabReselect('/', () => scrollRef.current?.scrollTo({ y: 0, animated: true }));
   const confirm = useConfirm();
   const { width } = useWindowDimensions();
   const { user } = useAuth();
@@ -106,7 +111,7 @@ export default function StoryScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 110 }}>
+    <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 110 }}>
       {/* Hero */}
       <DestinationImage code={heroCodes[0]} codes={heroCodes} scrim motion onActiveCode={setActiveHero} style={{ position: 'relative', paddingTop: 64, paddingBottom: 40, minHeight: HERO_HEIGHT }}>
         {/* Glass search button — quick access to global search */}
@@ -185,9 +190,9 @@ export default function StoryScreen() {
       {/* Counting Down */}
       {(() => {
         const today = new Date().toISOString().slice(0, 10);
-        const upcoming = trips
-          .filter((t) => (t.startDate || '') >= today)
-          .sort((a, b) => a.startDate.localeCompare(b.startDate));
+        const upcoming = unifiedTrips
+          .filter((t) => isUpcoming(t, today))
+          .sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
         if (upcoming.length === 0) return null;
 
         const seasonLabel = (iso?: string) => {
@@ -197,16 +202,17 @@ export default function StoryScreen() {
           return `${season} ${iso.slice(0, 4)}`;
         };
         const TripCard = ({ t, cardW, height }: { t: (typeof upcoming)[number]; cardW: number; height: number }) => {
-          const days = Math.max(0, Math.ceil((Date.parse(t.startDate) - Date.now()) / 86_400_000));
+          const code = primaryCode(t);
+          const days = daysToGo(t, today);
           const numSize = height > 160 ? 58 : 46; // big, readable countdown number
           const shadow = { textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 7 };
           // Avoid "Iceland · Iceland": if the title is just the country, show the season instead.
-          const country = countryName(t.countryCode);
+          const country = countryName(code);
           const secondary = t.title.trim().toLowerCase() === country.toLowerCase() ? seasonLabel(t.startDate) || country : country;
           return (
             <Pressable onPress={() => router.push(`/trip/${t.id}`)} style={{ width: cardW }}>
-              <DestinationImage code={t.countryCode} scrim style={{ height, borderRadius: 24, padding: 18, justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 22, position: 'absolute', top: 14, right: 16 }}>{flagEmoji(t.countryCode)}</Text>
+              <DestinationImage code={code} scrim style={{ height, borderRadius: 24, padding: 18, justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 22, position: 'absolute', top: 14, right: 16 }}>{flagEmoji(code)}</Text>
                 {/* Top: days-to-go countdown (paddingRight clears the flag) */}
                 <View className="flex-row items-end" style={{ gap: 8, paddingRight: 36 }}>
                   <Text className="text-white" style={{ fontFamily: 'Fraunces', fontSize: numSize, lineHeight: numSize, ...shadow }}>{days === 0 ? '0' : days}</Text>
@@ -261,7 +267,14 @@ export default function StoryScreen() {
             {onThisDay.slice(0, 2).map((mem, i) => (
               <Pressable
                 key={`${mem.label}-${i}`}
-                onPress={() => (mem.countryCode ? router.push(`/country/${mem.countryCode}`) : undefined)}
+                onPress={() => {
+                  if (!mem.countryCode) return;
+                  hSelection();
+                  router.push(`/country/${mem.countryCode}`);
+                }}
+                disabled={!mem.countryCode}
+                accessibilityRole={mem.countryCode ? 'button' : undefined}
+                accessibilityLabel={`${mem.yearsAgo === 1 ? 'A year ago today' : `${mem.yearsAgo} years ago today`}, ${mem.kind === 'trip' ? 'you set off to' : 'you were in'} ${mem.label}. Relive it.`}
                 className="bg-white dark:bg-card rounded-3xl flex-row items-center"
                 style={{ padding: 12, gap: 12 }}
               >
@@ -272,9 +285,15 @@ export default function StoryScreen() {
                   <Text style={{ fontFamily: 'Fraunces', fontSize: 15.5, color: COLORS.navy, lineHeight: 21 }}>
                     {mem.yearsAgo === 1 ? 'A year ago today' : `${mem.yearsAgo} years ago today`}, {mem.kind === 'trip' ? 'you set off to' : 'you were in'} {mem.label}.
                   </Text>
-                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 2 }}>Do you remember it?</Text>
+                  {/* Handwritten accent (Caveat) — a warm, personal margin note (R7). */}
+                  <Text style={{ fontFamily: 'Caveat', fontSize: 17, color: COLORS.coral, marginTop: 1 }}>Do you remember it?</Text>
                 </View>
-                {mem.countryCode ? <ChevronRight size={17} color={COLORS.ink3} /> : null}
+                {mem.countryCode ? (
+                  <View className="flex-row items-center" style={{ gap: 2 }}>
+                    <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '700', color: COLORS.coral }}>Relive it</Text>
+                    <ChevronRight size={16} color={COLORS.coral} />
+                  </View>
+                ) : null}
               </Pressable>
             ))}
           </View>
@@ -285,7 +304,7 @@ export default function StoryScreen() {
       {isDecember ? (
         <View style={{ paddingHorizontal: 20, paddingTop: 18 }}>
           <Pressable onPress={() => { track('wrapped_card_tap'); router.push('/wrapped'); }} style={{ borderRadius: 26, overflow: 'hidden' }}>
-            <LinearGradient colors={['#FF6B9A', '#9B7CFF', '#24D1C3']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 18 }}>
+            <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 18 }}>
               <View className="flex-row items-center" style={{ gap: 8 }}>
                 <Sparkles size={16} color="#fff" />
                 <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, opacity: 0.95 }}>YEAR IN TRAVEL</Text>
@@ -309,7 +328,7 @@ export default function StoryScreen() {
             className="flex-row items-center bg-white dark:bg-card rounded-3xl"
             style={{ padding: 14, gap: 13 }}
           >
-            <LinearGradient colors={['#FF6B9A', '#9B7CFF', '#24D1C3']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="items-center justify-center rounded-2xl" style={{ height: 44, width: 44 }}>
+            <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="items-center justify-center rounded-2xl" style={{ height: 44, width: 44 }}>
               <Sparkles size={20} color="#fff" />
             </LinearGradient>
             <View style={{ flex: 1 }}>
@@ -329,7 +348,7 @@ export default function StoryScreen() {
         {captures.length > 0 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
             {captures.slice(0, 24).map((c) => (
-              <Pressable key={c.id} onLongPress={() => confirmRemoveCapture(c.id)} style={{ width: 168 }}>
+              <Pressable key={c.id} onPress={() => router.push(`/memory/${c.id}`)} onLongPress={() => confirmRemoveCapture(c.id)} accessibilityRole="button" accessibilityLabel={`Memory${c.caption ? `: ${c.caption}` : ''} — tap to edit`} style={{ width: 168 }}>
                 <View style={{ borderRadius: 22, overflow: 'hidden' }}>
                   <Image source={{ uri: c.dataUrl }} style={{ width: 168, height: TILE_H }} contentFit="cover" transition={200} />
                   <LinearGradient colors={['transparent', 'rgba(0,0,0,0.55)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 90, justifyContent: 'flex-end', padding: 12 }}>

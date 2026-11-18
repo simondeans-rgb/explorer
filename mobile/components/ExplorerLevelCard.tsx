@@ -102,6 +102,8 @@ export function ExplorerLevelCard({
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Explorer level ${level.level}, ${level.title}. ${pct}% to next. See achievements`}
       style={{
         height,
         borderRadius: 24,

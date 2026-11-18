@@ -132,7 +132,7 @@ interface PostTripPrompt { at: number; title: string; body: string }
 
 /** A one-shot "you just got back — log your discoveries" nudge ~36h after each
  *  planned trip ends, while the holiday glow is still fresh. Only future times. */
-export function computePostTripPrompts(trips: Trip[], limit = 24): PostTripPrompt[] {
+export function computePostTripPrompts(trips: Expedition[], limit = 24): PostTripPrompt[] {
   const now = Date.now();
   const horizon = now + 400 * 24 * 3600 * 1000; // don't schedule absurdly far out
   const out: PostTripPrompt[] = [];
@@ -141,7 +141,8 @@ export function computePostTripPrompts(trips: Trip[], limit = 24): PostTripPromp
     if (!end) continue;
     const at = new Date(end.y, end.m - 1, end.d, 10, 0, 0, 0).getTime() + 36 * 3600 * 1000;
     if (at <= now || at > horizon) continue;
-    const country = t.countryCode ? countryName(t.countryCode) : '';
+    const code = t.countryCodes[0];
+    const country = code ? countryName(code) : '';
     out.push({
       at,
       title: country ? `How was ${country}? ✨` : 'How was your trip? ✨',
@@ -154,7 +155,7 @@ export function computePostTripPrompts(trips: Trip[], limit = 24): PostTripPromp
 /** Cancel and reschedule every on-device reminder we own (anniversaries +
  *  post-trip discovery nudges), honouring each toggle. Called on launch, on
  *  foreground, and whenever a toggle changes. */
-export async function rescheduleNotifications(expeditions: Expedition[], places: Place[], trips: Trip[] = []): Promise<void> {
+export async function rescheduleNotifications(expeditions: Expedition[], places: Place[], trips: Expedition[] = []): Promise<void> {
   try {
     if (!(await Notifications.getPermissionsAsync()).granted) return;
     await Notifications.cancelAllScheduledNotificationsAsync();

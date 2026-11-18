@@ -126,6 +126,15 @@ export default function ImportScreen() {
     setPolarBusy(true);
     try {
       const isZip = /\.zip$/i.test(asset.name ?? '') || asset.mimeType === 'application/zip';
+      // A full Polarsteps export bundles every trip photo, so it can be many
+      // hundreds of MB. Reading that as one base64 string would exhaust memory
+      // and hard-crash the app (a native OOM try/catch can't catch). Refuse the
+      // oversized .zip and point the user at the small trip.json instead.
+      const MAX_ZIP_BYTES = 40 * 1024 * 1024;
+      if (isZip && typeof asset.size === 'number' && asset.size > MAX_ZIP_BYTES) {
+        setPolarMsg('That .zip is too large to open in the app. Unzip it on your computer and pick a trip.json from inside it instead.');
+        return;
+      }
       const result = isZip
         ? await parsePolarstepsZip(await readAsStringAsync(asset.uri, { encoding: 'base64' }))
         : parsePolarsteps(await readAsStringAsync(asset.uri));
