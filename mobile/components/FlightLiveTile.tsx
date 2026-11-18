@@ -7,6 +7,7 @@ import { COLORS, SHADOW, BRAND_GRADIENT } from '../src/lib/theme';
 import { iataFromLabel, formatDuration, airportTz, airportCountry, destinationClock, type TodaysFlight } from '../src/lib/liveFlight';
 import { useLiveFlight } from '../src/hooks/useLiveFlight';
 import { fetchWeather, type Weather } from '../src/lib/weather';
+import { flightActivitySignature, syncFlightActivity, type FlightActivityInput } from '../src/lib/liveActivity';
 import { DestinationImage } from './DestinationImage';
 import { FlightRouteMap } from './FlightRouteMap';
 
@@ -44,7 +45,7 @@ function Chip({ icon: Icon, label, tint, color }: { icon?: typeof Plane; label: 
  *  detail above and progress/ETA below. */
 export function FlightLiveTile({ flight }: { flight: TodaysFlight }) {
   const live = useLiveFlight(flight);
-  const { status, phase, progress, minutesLeft, departMs, now } = live;
+  const { status, phase, progress, minutesLeft, departMs, arriveMs, now } = live;
   const { width: screenW } = useWindowDimensions();
   const cardW = Math.max(260, screenW - 40); // full width within Story's 20pt padding
 
@@ -63,6 +64,20 @@ export function FlightLiveTile({ flight }: { flight: TodaysFlight }) {
     return () => { active = false; };
   }, [destLat, destLng]);
   const clock = useMemo(() => destinationClock(airportTz(toIata), new Date(now)), [toIata, now]);
+
+  // Mirror the flight onto the Lock Screen + Dynamic Island. Started from
+  // about six hours before departure (iOS caps an activity's lifetime), then
+  // updated only when something it shows changes; the native side ends it
+  // after landing. A no-op wherever Live Activities aren't available.
+  const activityInput: FlightActivityInput | null =
+    departMs && arriveMs && phase !== 'unknown' && (phase !== 'scheduled' || departMs - now < 6 * 3600_000)
+      ? { flight, phase, departMs, arriveMs, gate: status?.departGate, terminal: status?.departTerminal, delayMin: status?.departDelayMin }
+      : null;
+  const activitySig = activityInput ? flightActivitySignature(activityInput) : '';
+  useEffect(() => {
+    if (activityInput) syncFlightActivity(activityInput);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the visible signature
+  }, [activitySig]);
 
   const delay = phase === 'landed' ? (status?.arriveDelayMin ?? 0) : (status?.departDelayMin ?? 0);
   const delayText = delay > 3 ? `Delayed ${formatDuration(delay)}` : delay < -3 ? `${formatDuration(-delay)} early` : 'On time';

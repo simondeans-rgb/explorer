@@ -965,7 +965,7 @@ struct WorldlyWidgetEntryView: View {
 
 // MARK: - Widget
 
-@main
+// (The extension's @main entry point is the WidgetBundle in LiveActivity.swift.)
 struct WorldlyWidget: Widget {
   var body: some WidgetConfiguration {
     AppIntentConfiguration(kind: "WorldlyWidget", intent: WorldlyFocusIntent.self, provider: Provider()) { entry in
