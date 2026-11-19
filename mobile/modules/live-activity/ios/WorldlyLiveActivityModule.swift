@@ -31,6 +31,23 @@ struct WorldlyFlightAttributes: ActivityAttributes {
 
 @available(iOS 16.2, *)
 enum FlightActivityController {
+  /// Activities whose push-token stream we're already listening to.
+  private static var observed = Set<String>()
+
+  /// Each activity gets its own APNs token (and can be re-issued one). Forward
+  /// every token to JS, which registers it with the server so gate changes and
+  /// delays can be pushed to the Lock Screen while the app is closed.
+  static func observeToken(_ activity: Activity<WorldlyFlightAttributes>, emit: @escaping (String, String) -> Void) {
+    if observed.contains(activity.id) { return }
+    observed.insert(activity.id)
+    Task {
+      for await data in activity.pushTokenUpdates {
+        let hex = data.map { String(format: "%02x", $0) }.joined()
+        emit(activity.attributes.flightKey, hex)
+      }
+    }
+  }
+
   static func makeState(_ d: [String: Any]) -> WorldlyFlightAttributes.ContentState? {
     guard let phase = d["phase"] as? String,
           let departAt = d["departAt"] as? Double,
@@ -49,7 +66,7 @@ enum FlightActivityController {
 
   /// Start the activity for this flight, or update it if it's already running.
   /// Idempotent: JS calls this whenever the flight's state changes.
-  static func sync(attrs: [String: Any], state: [String: Any]) async -> Bool {
+  static func sync(attrs: [String: Any], state: [String: Any], emit: @escaping (String, String) -> Void) async -> Bool {
     guard ActivityAuthorizationInfo().areActivitiesEnabled else { return false }
     guard let st = makeState(state) else { return false }
     let key = attrs["flightKey"] as? String ?? ""
@@ -68,6 +85,7 @@ enum FlightActivityController {
         await existing.end(content, dismissalPolicy: .after(Date().addingTimeInterval(20 * 60)))
       } else {
         await existing.update(content)
+        observeToken(existing, emit: emit) // e.g. after an app relaunch
       }
       return true
     }
@@ -81,6 +99,12 @@ enum FlightActivityController {
       fromCity: attrs["fromCity"] as? String ?? "",
       toCity: attrs["toCity"] as? String ?? ""
     )
+    // Ask for a push token so the server can update it remotely; if that's
+    // refused (no push entitlement), fall back to a local-only activity.
+    if let activity = try? Activity<WorldlyFlightAttributes>.request(attributes: attributes, content: content, pushType: .token) {
+      observeToken(activity, emit: emit)
+      return true
+    }
     do {
       _ = try Activity<WorldlyFlightAttributes>.request(attributes: attributes, content: content, pushType: nil)
       return true
@@ -102,6 +126,9 @@ public class WorldlyLiveActivityModule: Module {
   public func definition() -> ModuleDefinition {
     Name("WorldlyLiveActivity")
 
+    // { flightKey, token } — the activity's APNs push token (hex).
+    Events("onPushToken")
+
     Function("isSupported") { () -> Bool in
       if #available(iOS 16.2, *) {
         return ActivityAuthorizationInfo().areActivitiesEnabled
@@ -111,8 +138,10 @@ public class WorldlyLiveActivityModule: Module {
 
     AsyncFunction("sync") { (attrs: [String: Any], state: [String: Any], promise: Promise) in
       if #available(iOS 16.2, *) {
-        Task {
-          let ok = await FlightActivityController.sync(attrs: attrs, state: state)
+        Task { [weak self] in
+          let ok = await FlightActivityController.sync(attrs: attrs, state: state) { flightKey, token in
+            self?.sendEvent("onPushToken", ["flightKey": flightKey, "token": token])
+          }
           promise.resolve(ok)
         }
       } else {

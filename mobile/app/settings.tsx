@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
   Cloud, CloudOff, LogOut, Download, Merge, Plane, RotateCcw, FileDown, CircleCheck, ChevronRight,
-  BellRing, Sparkles, Users, MapPinned, Sun, Moon, SunMoon, Ruler, Thermometer,
+  BellRing, PlaneLanding, Sparkles, Users, MapPinned, Sun, Moon, SunMoon, Ruler, Thermometer,
   ShieldCheck, ShieldOff, FileText, Mail, Trash2, Gem,
 } from 'lucide-react-native';
 import { BackButton } from '../components/BackButton';
@@ -21,7 +21,7 @@ import { useUnits } from '../src/store/units';
 import type { DistanceUnit, TempUnit } from '../src/lib/units';
 import { exportMyData } from '../src/lib/exportData';
 import { billingEnabled, useTier } from '../src/lib/billing';
-import { anniversariesEnabled, setAnniversariesEnabled, postTripRemindersEnabled, setPostTripRemindersEnabled, requestNotificationPermission, rescheduleNotifications } from '../src/lib/notifications';
+import { anniversariesEnabled, setAnniversariesEnabled, postTripRemindersEnabled, setPostTripRemindersEnabled, arrivalsEnabled, setArrivalsEnabled, requestNotificationPermission, rescheduleNotifications } from '../src/lib/notifications';
 import { friendActivityEnabled, enableFriendActivity, disableFriendActivity, tripActivityEnabled, enableTripActivity, disableTripActivity, refreshPushToken } from '../src/lib/push';
 import { getAppearanceMode, setAppearanceMode, type AppearanceMode } from '../src/lib/appearance';
 import { isEndpointResolved } from '../src/lib/airportSearch';
@@ -88,6 +88,7 @@ export default function SettingsScreen() {
   const [recalcing, setRecalcing] = useState(false);
   const [notifOn, setNotifOn] = useState(false);
   const [postTripOn, setPostTripOn] = useState(false);
+  const [arrivalsOn, setArrivalsOn] = useState(true);
   const [circleNotifOn, setCircleNotifOn] = useState(false);
   const [crewNotifOn, setCrewNotifOn] = useState(false);
   const [appearance, setAppearance] = useState<AppearanceMode>('system');
@@ -95,6 +96,7 @@ export default function SettingsScreen() {
   useEffect(() => {
     anniversariesEnabled().then(setNotifOn);
     postTripRemindersEnabled().then(setPostTripOn);
+    arrivalsEnabled().then(setArrivalsOn);
     friendActivityEnabled().then(setCircleNotifOn);
     tripActivityEnabled().then(setCrewNotifOn);
     getAppearanceMode().then(setAppearance);
@@ -147,6 +149,16 @@ export default function SettingsScreen() {
       track('notification_toggled', { type: 'anniversaries', on: false });
       await rescheduleNotifications(expeditions, places, unifiedTrips);
     }
+  }
+
+  async function onToggleArrivals(v: boolean) {
+    await setArrivalsEnabled(v);
+    setArrivalsOn(v);
+    track('notification_toggled', { type: 'arrivals', on: v });
+    // The landing "Welcome to …" needs notifications; the in-app welcome doesn't.
+    if (v) await requestNotificationPermission();
+    await rescheduleNotifications(expeditions, places, unifiedTrips);
+    if (v) toast.success('Arrival moments on 🛬');
   }
 
   async function onTogglePostTrip(v: boolean) {
@@ -396,6 +408,16 @@ export default function SettingsScreen() {
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>After a trip, a nudge to log what you found</Text>
               </View>
               <Switch accessibilityLabel="Trip discovery reminders" value={postTripOn} onValueChange={onTogglePostTrip} trackColor={{ false: 'rgba(20,33,61,0.12)', true: '#F5A623' }} thumbColor="#fff" />
+            </View>
+            <View className="flex-row items-center" style={{ gap: 12, paddingVertical: 14, borderTopWidth: 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
+              <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(36,209,195,0.14)' }}>
+                <PlaneLanding size={19} color="#12A594" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.navy }}>Arrival moments</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>A welcome when you land or open Worldly somewhere new</Text>
+              </View>
+              <Switch accessibilityLabel="Arrival moments" value={arrivalsOn} onValueChange={onToggleArrivals} trackColor={{ false: 'rgba(20,33,61,0.12)', true: '#12A594' }} thumbColor="#fff" />
             </View>
             <View className="flex-row items-center" style={{ gap: 12, paddingVertical: 14, borderTopWidth: 1, borderTopColor: 'rgba(20,33,61,0.06)' }}>
               <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(155,124,255,0.14)' }}>

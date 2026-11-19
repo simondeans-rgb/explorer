@@ -7,7 +7,8 @@ import { COLORS, SHADOW, BRAND_GRADIENT } from '../src/lib/theme';
 import { iataFromLabel, formatDuration, airportTz, airportCountry, destinationClock, type TodaysFlight } from '../src/lib/liveFlight';
 import { useLiveFlight } from '../src/hooks/useLiveFlight';
 import { fetchWeather, type Weather } from '../src/lib/weather';
-import { flightActivitySignature, syncFlightActivity, type FlightActivityInput } from '../src/lib/liveActivity';
+import { flightActivitySignature, syncFlightActivity, registerFlightPushToken, type FlightActivityInput } from '../src/lib/liveActivity';
+import { useAuth } from '../src/store/auth';
 import { DestinationImage } from './DestinationImage';
 import { FlightRouteMap } from './FlightRouteMap';
 
@@ -74,6 +75,11 @@ export function FlightLiveTile({ flight }: { flight: TodaysFlight }) {
       ? { flight, phase, departMs, arriveMs, gate: status?.departGate, terminal: status?.departTerminal, delayMin: status?.departDelayMin }
       : null;
   const activitySig = activityInput ? flightActivitySignature(activityInput) : '';
+  // Hand the activity's push token to the server (signed-in members), so it
+  // can keep the Lock Screen current with the app closed. Subscribed before
+  // the first sync so the token can't be missed.
+  const { user } = useAuth();
+  useEffect(() => registerFlightPushToken(user?.uid, flight), [user?.uid, flight.key]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (activityInput) syncFlightActivity(activityInput);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the visible signature

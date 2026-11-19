@@ -56,6 +56,7 @@ async function deleteFirestoreData(uid: string): Promise<void> {
   }
   // Stop push delivery to a deleted account (delete by known doc id).
   await deleteDoc(doc(db, 'pushTokens', uid)).catch(() => {});
+  await deleteDoc(doc(db, 'liveFlights', uid)).catch(() => {});
 }
 
 async function deleteStorageFolder(uid: string): Promise<void> {

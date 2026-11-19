@@ -6,9 +6,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { countryName } from '../data/countries';
 import type { Place, Expedition, Trip } from '../types';
+import { computeLandingWelcomes } from './liveFlight';
 
 const PREF_KEY = 'worldly.notif.anniversaries';
 const POSTTRIP_KEY = 'worldly.notif.posttrip';
+const ARRIVALS_KEY = 'worldly.notif.arrivals';
 
 // Present notifications (banner + sound) even while the app is in the
 // foreground. Without a handler, iOS silently drops foreground notifications —
@@ -48,6 +50,24 @@ export async function postTripRemindersEnabled(): Promise<boolean> {
 export async function setPostTripRemindersEnabled(on: boolean): Promise<void> {
   try {
     await AsyncStorage.setItem(POSTTRIP_KEY, on ? '1' : '0');
+  } catch {
+    /* ignore */
+  }
+}
+
+/** "Arrival moments": the welcome celebration when you open the app somewhere
+ *  new, and the "Welcome to …" notification timed to a flight's landing. On by
+ *  default — it uses only access you've already granted and never prompts. */
+export async function arrivalsEnabled(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(ARRIVALS_KEY)) !== '0';
+  } catch {
+    return true;
+  }
+}
+export async function setArrivalsEnabled(on: boolean): Promise<void> {
+  try {
+    await AsyncStorage.setItem(ARRIVALS_KEY, on ? '1' : '0');
   } catch {
     /* ignore */
   }
@@ -164,6 +184,14 @@ export async function rescheduleNotifications(expeditions: Expedition[], places:
         await Notifications.scheduleNotificationAsync({
           content: { title: a.title, body: a.body },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: a.next },
+        });
+      }
+    }
+    if (await arrivalsEnabled()) {
+      for (const w of computeLandingWelcomes(expeditions, Date.now())) {
+        await Notifications.scheduleNotificationAsync({
+          content: { title: w.title, body: w.body, sound: true },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: w.at },
         });
       }
     }

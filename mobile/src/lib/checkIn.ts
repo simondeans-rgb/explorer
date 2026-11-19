@@ -11,14 +11,19 @@ export type CheckInResult =
   | { status: 'unavailable' }
   | { status: 'error' };
 
-export async function detectLocation(): Promise<CheckInResult> {
+/** Where the device is right now. `prompt: false` never shows the system
+ *  permission dialog — it only reads the location when access was already
+ *  granted (used for the automatic arrival check, which must not ask for
+ *  permission out of the blue). */
+export async function detectLocation(opts: { prompt?: boolean } = {}): Promise<CheckInResult> {
+  const prompt = opts.prompt ?? true;
   try {
     const Location = await import('expo-location');
 
     const services = await Location.hasServicesEnabledAsync();
     if (!services) return { status: 'unavailable' };
 
-    const perm = await Location.requestForegroundPermissionsAsync();
+    const perm = prompt ? await Location.requestForegroundPermissionsAsync() : await Location.getForegroundPermissionsAsync();
     if (perm.status !== 'granted') return { status: 'denied' };
 
     const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });

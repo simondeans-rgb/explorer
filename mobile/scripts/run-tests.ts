@@ -742,4 +742,25 @@ test('primaryCode: first country code, WW fallback', () => {
   assert.equal(primaryCode({}), 'WW');
 });
 
+// ---- Landing welcomes (arrival notification timed to touchdown) --------------
+import { computeLandingWelcomes } from '../src/lib/liveFlight';
+
+test('computeLandingWelcomes: times the welcome to the landing, in airport time', () => {
+  const now = Date.parse('2026-07-28T05:00:00Z');
+  const exp = (journeys: unknown[]) => [{ id: 'e', userId: 'u', title: 'T', countryCodes: [], journeys, createdAt: 0, updatedAt: 0 }] as never;
+  // LHR 10:00 BST (09:00Z) + 8h → 17:00Z
+  const viaDuration = computeLandingWelcomes(exp([{ id: 'j', mode: 'flight', from: 'London (LHR)', to: 'New York (JFK)', date: '2026-07-28', departTime: '10:00', durationMin: 480 }]), now);
+  assert.equal(viaDuration.length, 1);
+  assert.equal(viaDuration[0].at.toISOString(), '2026-07-28T17:00:00.000Z');
+  assert.match(viaDuration[0].title, /Welcome to New York/);
+  // No duration: JFK 13:00 EDT → 17:00Z
+  const viaArrive = computeLandingWelcomes(exp([{ id: 'j', mode: 'flight', from: 'London (LHR)', to: 'New York (JFK)', date: '2026-07-28', departTime: '10:00', arriveTime: '13:00' }]), now);
+  assert.equal(viaArrive[0].at.toISOString(), '2026-07-28T17:00:00.000Z');
+  // Already landed, too far out, not a flight, or no times → nothing.
+  assert.equal(computeLandingWelcomes(exp([{ id: 'j', mode: 'flight', from: 'London (LHR)', to: 'New York (JFK)', date: '2026-07-27', departTime: '10:00', durationMin: 480 }]), now).length, 0);
+  assert.equal(computeLandingWelcomes(exp([{ id: 'j', mode: 'flight', from: 'London (LHR)', to: 'New York (JFK)', date: '2026-08-20', departTime: '10:00', durationMin: 480 }]), now).length, 0);
+  assert.equal(computeLandingWelcomes(exp([{ id: 'j', mode: 'rail', from: 'London', to: 'Paris', date: '2026-07-28', departTime: '10:00', durationMin: 140 }]), now).length, 0);
+  assert.equal(computeLandingWelcomes(exp([{ id: 'j', mode: 'flight', from: 'London (LHR)', to: 'New York (JFK)', date: '2026-07-28' }]), now).length, 0);
+});
+
 console.log(`✓ all ${passed} tests passed`);

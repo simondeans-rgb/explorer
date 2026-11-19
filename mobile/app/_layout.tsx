@@ -25,6 +25,7 @@ import { Onboarding } from '../components/Onboarding';
 import { AchievementWatcher } from '../components/AchievementWatcher';
 import { CoverUnlockWatcher } from '../components/CoverUnlockWatcher';
 import { LocationSync } from '../components/LocationSync';
+import { ArrivalWatcher } from '../components/ArrivalWatcher';
 import { NotificationScheduler } from '../components/NotificationScheduler';
 import { WidgetSync } from '../components/WidgetSync';
 import { CircleRequestPrompt } from '../components/CircleRequestPrompt';
@@ -169,6 +170,8 @@ function RootContent({ fontsLoaded }: { fontsLoaded: boolean }) {
       <AchievementWatcher />
       <CoverUnlockWatcher />
       <LocationSync />
+      {/* Arrival moments wait until the sign-in wall and onboarding are out of the way. */}
+      {!needsAuth && !visible ? <ArrivalWatcher /> : null}
       <NotificationScheduler />
       <WidgetSync />
       <CircleRequestPrompt />

@@ -224,6 +224,14 @@ service cloud.firestore {
       allow write: if signedIn() && request.auth.uid == uid;
     }
 
+    // The flight a member is tracking today + its Live Activity push token.
+    // Written (and removable) by its owner; read only by the scheduled Cloud
+    // Function that pushes gate changes / delays to the Lock Screen.
+    match /liveFlights/{uid} {
+      allow read: if false;
+      allow write: if signedIn() && request.auth.uid == uid;
+    }
+
     // Internal per-author notification cooldown — Cloud Functions only.
     match /activityThrottle/{uid} {
       allow read, write: if false;

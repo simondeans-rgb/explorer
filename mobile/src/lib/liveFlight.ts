@@ -198,3 +198,50 @@ export function derivePhase(
   }
   return 'unknown';
 }
+
+/** A wall-clock time at an airport ("2026-07-28", "08:05", tz) → epoch ms. */
+function localToEpoch(dateISO: string, hhmm: string | undefined, tz: string): number | undefined {
+  const d = dateISO.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const t = hhmm?.match(/^(\d{1,2}):(\d{2})/);
+  if (!d || !t || !tz) return undefined;
+  const guess = Date.UTC(+d[1], +d[2] - 1, +d[3], +t[1], +t[2]);
+  const off = tzOffsetMinutes(tz, new Date(guess));
+  return off == null ? undefined : guess - off * 60000;
+}
+
+export interface LandingWelcome {
+  at: Date;
+  title: string;
+  body: string;
+}
+
+/** A "Welcome to …" for each flight landing in the next week, timed to its
+ *  scheduled touchdown — an arrival moment that needs no location at all.
+ *  Skips flights without enough detail to place the landing in time. Pure. */
+export function computeLandingWelcomes(expeditions: Expedition[], nowMs: number, limit = 6): LandingWelcome[] {
+  const out: LandingWelcome[] = [];
+  const horizon = nowMs + 7 * 86400_000;
+  for (const e of expeditions) {
+    for (const j of e.journeys ?? []) {
+      if (j.mode !== 'flight' || !j.date || !j.to) continue;
+      const fromTz = airportTz(iataFromLabel(j.from));
+      const toTz = airportTz(iataFromLabel(j.to));
+      const depMs = localToEpoch(j.date, j.departTime, fromTz);
+      let arrMs: number | undefined;
+      if (depMs && j.durationMin) arrMs = depMs + j.durationMin * 60000;
+      else {
+        arrMs = localToEpoch(j.date, j.arriveTime, toTz);
+        // An arrival "before" departure means it lands the next day.
+        if (arrMs && depMs && arrMs <= depMs) arrMs += 86400_000;
+      }
+      if (!arrMs || arrMs <= nowMs || arrMs > horizon) continue;
+      const city = j.to.split('(')[0].split(',')[0].trim() || 'your destination';
+      out.push({
+        at: new Date(arrMs),
+        title: `Welcome to ${city} 🛬`,
+        body: 'You’ve landed. Open Worldly to add it to your map and start the story.',
+      });
+    }
+  }
+  return out.sort((a, b) => a.at.getTime() - b.at.getTime()).slice(0, limit);
+}

@@ -184,3 +184,6 @@ export const onConnectionAccepted = onDocumentUpdated('connections/{id}', async 
   if (!accepter) return;
   await notifyUser(after.requestedBy, '🎉 You’re connected', `${await nameOf(accepter)} accepted — see where they’ve been.`);
 });
+
+// Live-flight Live Activity pushes (gate changes, delays, landing).
+export { pollLiveFlights } from './liveFlight';

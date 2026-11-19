@@ -12,7 +12,8 @@
       "bundleIdentifier": "com.simmyd23.worldly",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSSupportsLiveActivities": true
+        "NSSupportsLiveActivities": true,
+        "NSSupportsLiveActivitiesFrequentUpdates": true
       },
       "appleTeamId": "PR99YSXB7G",
       "entitlements": {

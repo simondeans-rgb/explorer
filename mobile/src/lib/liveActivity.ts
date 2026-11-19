@@ -4,6 +4,8 @@
 // Go, on Android and in binaries built before it existed, and Live Activities
 // can be switched off in iOS Settings. Every call here is a safe no-op then.
 import { requireOptionalNativeModule } from 'expo-modules-core';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from './firebase';
 import { iataFromLabel, airportTz, tzLocalTime, type TodaysFlight } from './liveFlight';
 import type { FlightPhase } from './liveFlight';
 
@@ -11,6 +13,7 @@ interface LiveActivityNative {
   isSupported(): boolean;
   sync(attrs: Record<string, unknown>, state: Record<string, unknown>): Promise<boolean>;
   endAll(): Promise<boolean>;
+  addListener(event: 'onPushToken', cb: (e: { flightKey: string; token: string }) => void): { remove(): void };
 }
 
 const native = requireOptionalNativeModule<LiveActivityNative>('WorldlyLiveActivity');
@@ -99,4 +102,36 @@ export async function endFlightActivities(): Promise<void> {
   } catch {
     // nothing to end
   }
+}
+
+/** Listen for the running activity's APNs push token and register it with the
+ *  server (`liveFlights/{uid}`), so a scheduled Cloud Function can push gate
+ *  changes, delays and landing to the Lock Screen while the app is closed.
+ *  Signed-in members only — a guest's activity stays local. One tracked flight
+ *  per member; a new flight simply replaces the document. Returns an
+ *  unsubscribe function. */
+export function registerFlightPushToken(uid: string | undefined, flight: TodaysFlight): () => void {
+  if (!native || !uid || !db) return () => {};
+  const firestore = db;
+  let sub: { remove(): void } | undefined;
+  try {
+    sub = native.addListener('onPushToken', (e) => {
+      if (e.flightKey !== flight.key || !e.token) return;
+      const toCode = iataFromLabel(flight.toLabel) ?? '';
+      setDoc(doc(firestore, 'liveFlights', uid), {
+        uid,
+        flightKey: flight.key,
+        flightNumber: flight.flightNumber,
+        date: flight.date,
+        pushToken: e.token,
+        toCity: cityOf(flight.toLabel) || toCode,
+        updatedAt: Date.now(),
+        // The server stops polling after this even if it never sees a landing.
+        expiresAt: Date.now() + 30 * 3600_000,
+      }).catch(() => {});
+    });
+  } catch {
+    return () => {};
+  }
+  return () => sub?.remove();
 }
