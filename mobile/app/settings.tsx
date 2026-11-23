@@ -526,13 +526,13 @@ export default function SettingsScreen() {
               style={{ padding: 16, gap: 12, borderWidth: 1, borderColor: 'rgba(224,36,94,0.25)' }}
             >
               <View className="rounded-2xl items-center justify-center" style={{ height: 40, width: 40, backgroundColor: 'rgba(224,36,94,0.10)' }}>
-                <Trash2 size={19} color="#E0245E" />
+                <Trash2 size={19} color={COLORS.errorText} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#E0245E' }}>Delete my account</Text>
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: COLORS.errorText }}>Delete my account</Text>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, marginTop: 1 }}>Permanently removes your account and synced data.</Text>
               </View>
-              <ChevronRight size={18} color="#E0245E" />
+              <ChevronRight size={18} color={COLORS.errorText} />
             </Pressable>
           </View>
         ) : null}

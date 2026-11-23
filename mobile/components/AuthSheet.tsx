@@ -1,8 +1,9 @@
 import { View, Text, TextInput, Pressable, ActivityIndicator, Linking } from 'react-native';
 import { Check } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SheetShell } from './SheetShell';
 import { SocialAuthButtons } from './SocialAuthButtons';
-import { COLORS } from '../src/lib/theme';
+import { BRAND_GRADIENT, COLORS } from '../src/lib/theme';
 import { useAuthForm } from '../src/hooks/useAuthForm';
 
 const TERMS_URL = 'https://www.worldly-explorer.com/terms.html';
@@ -12,7 +13,7 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
   // Shares all form logic with AuthGate via useAuthForm; this is just the sheet
   // presentation. On success the hook calls onClose to dismiss the sheet.
   const {
-    mode, name, email, password, busy, error, notice, agreed,
+    mode, name, email, password, busy, error, notice, agreed, agreeHint,
     setName, setEmail, setPassword, setAgreed, setError, setBusy,
     ensureAgreed, forgot, submit, switchMode, resetFields,
   } = useAuthForm(onClose);
@@ -77,31 +78,11 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
         ) : null}
 
         {error ? (
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: '#E0245E', marginTop: 12 }}>{error}</Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.errorText, marginTop: 12 }}>{error}</Text>
         ) : null}
         {notice ? (
-          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.aqua, marginTop: 12 }}>{notice}</Text>
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.successText, marginTop: 12 }}>{notice}</Text>
         ) : null}
-
-        <Pressable
-          onPress={submit}
-          disabled={busy}
-          className="rounded-2xl items-center justify-center flex-row"
-          style={{ marginTop: 18, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: busy ? 0.6 : 1, gap: 8 }}
-        >
-          {busy ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Check size={18} color="#fff" />
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>
-                {mode === 'in' ? 'Sign in' : 'Create account'}
-              </Text>
-            </>
-          )}
-        </Pressable>
-
-        <SocialAuthButtons onError={setError} onBusyChange={setBusy} guard={ensureAgreed} />
 
         {/* Guideline 1.2: terms + zero-tolerance agreement, required to proceed. */}
         <Pressable
@@ -110,7 +91,7 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
           accessibilityState={{ checked: agreed }}
           accessibilityLabel="Agree to the Terms of Use and zero-tolerance policy"
           className="flex-row"
-          style={{ marginTop: 16, gap: 10, alignItems: 'flex-start' }}
+          style={{ marginTop: 16, gap: 10, alignItems: 'flex-start', borderRadius: 14, padding: agreeHint ? 10 : 0, borderWidth: agreeHint ? 1.5 : 0, borderColor: COLORS.coral, backgroundColor: agreeHint ? 'rgba(255,107,154,0.10)' : 'transparent' }}
         >
           <View
             className="items-center justify-center rounded-md"
@@ -126,6 +107,32 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
             , and understand Worldly has zero tolerance for objectionable content or abusive behaviour.
           </Text>
         </Pressable>
+
+        {/* Same gradient CTA as the full-screen gate, so the two sign-in surfaces
+            read as one. Dimmed until the terms above are agreed. */}
+        <Pressable
+          onPress={submit}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel={mode === 'in' ? 'Sign in' : 'Create account'}
+          accessibilityState={{ disabled: busy, busy }}
+          style={{ marginTop: 16, borderRadius: 18, overflow: 'hidden', opacity: busy ? 0.7 : agreed ? 1 : 0.55 }}
+        >
+          <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, gap: 8 }}>
+            {busy ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Check size={18} color="#fff" />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>
+                  {mode === 'in' ? 'Sign in' : 'Create account'}
+                </Text>
+              </>
+            )}
+          </LinearGradient>
+        </Pressable>
+
+        <SocialAuthButtons onError={setError} onBusyChange={setBusy} guard={ensureAgreed} dimmed={!agreed} />
 
         <Pressable
           onPress={switchMode}

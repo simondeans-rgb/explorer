@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type RefObject, memo } from 'reac
 import { View, Text, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Compass, ArrowRight } from 'lucide-react-native';
-import Svg, { Path, Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
+import Svg, { Path, Circle, Defs, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { geoOrthographic, geoPath, geoInterpolate, geoDistance, geoGraticule, geoCentroid, geoContains } from 'd3-geo';
@@ -23,10 +23,10 @@ const OCEAN_DEEP = '#0D1B2E'; // dark navy (not pure black) — within brand pal
 const LAND = '#37836B';
 const LAND_STROKE = '#5FC0A2';
 const GRAT = 'rgba(150,180,255,0.10)';
-const ROUTE = '#FF6A8E';
+const ROUTE = '#FF6B9A'; // brand coral (COLORS.coral) — one coral across globe, charts and CTAs
 const ROUTE_EDGE = '#FFC2D2';
 // Choropleth fills for the Places globe (match the old flat map).
-const PLACE_VISITED = '#FF6A8E';
+const PLACE_VISITED = '#FF6B9A';
 const PLACE_VISITED_EDGE = '#FFC2D2';
 const PLACE_WISHLIST = '#A48BFF';
 
@@ -40,6 +40,36 @@ export interface PlacesLayer {
    *  omitted, visited countries use the default coral. Wishlist is unaffected. */
   fillFor?: (code: string) => string | undefined;
 }
+
+/** A point of interest drawn on the near hemisphere (e.g. a city you've been to). */
+export interface GlobePin {
+  lon: number;
+  lat: number;
+  label?: string;
+}
+/** Ask the globe to fly to a point. Change `key` to trigger the move. */
+export interface GlobeFocus {
+  lon: number;
+  lat: number;
+  key: string | number;
+}
+/** Something to spotlight: a country (pulsing outline) and/or one route. While
+ *  set, the idle auto-spin pauses so the subject stays in view. */
+export interface GlobeHighlight {
+  code?: string;
+  segment?: Pick<Segment, 'from' | 'to'>;
+}
+
+// A sparse, fixed star-field behind the sphere (deterministic, so it never
+// shimmers between renders). Purely decorative depth.
+const STARS: { x: number; y: number; r: number; o: number }[] = (() => {
+  let seed = 20260115;
+  const rnd = () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+  return Array.from({ length: 64 }, () => ({ x: rnd() * 320, y: rnd() * 320, r: 0.25 + rnd() * 0.55, o: 0.25 + rnd() * 0.55 }));
+})();
 
 // A coarse 30° graticule reads as a globe without flooding the per-frame path.
 const GRATICULE = geoGraticule().step([30, 30])();
@@ -71,6 +101,10 @@ function JourneyGlobeInner({
   resetKey,
   scrollRef,
   places,
+  pins,
+  focus,
+  highlight,
+  onPressSegment,
 }: {
   segments: Segment[];
   maxSize?: number;
@@ -79,6 +113,14 @@ function JourneyGlobeInner({
   /** When set, the globe colours visited/wishlist countries instead of (or as
    *  well as) drawing journey arcs — turning it into the Places map. */
   places?: PlacesLayer;
+  /** Small markers (cities) drawn on the near side; labelled once zoomed in. */
+  pins?: GlobePin[];
+  /** Fly the camera to a point (search, a tapped stat, a selected country). */
+  focus?: GlobeFocus;
+  /** Spotlight a country and/or a route. */
+  highlight?: GlobeHighlight;
+  /** Tap a route arc (Journeys mode). */
+  onPressSegment?: (segment: Segment) => void;
 }) {
   // The country polygons to fill, paired with their colour and a reveal index
   // (`ord`) so they colour in one-by-one in visit order (Places mode only).
@@ -126,7 +168,9 @@ function JourneyGlobeInner({
       }
       maxR = Math.max(maxR, Math.sin(th));
     }
-    const scale = maxR < 1e-3 ? MAX_R : Math.max(R, Math.min(MAX_R, (0.72 * R) / maxR));
+    // A lone point: a route map zooms right in, but a single visited country
+    // reads better as a gently enlarged globe than a wall of ocean.
+    const scale = maxR < 1e-3 ? (places ? R * 1.25 : MAX_R) : Math.max(R, Math.min(MAX_R, (0.72 * R) / maxR));
     const lat = Math.max(-72, Math.min(72, c[1]));
     // With zero pitch, screen-y depends only on latitude; this lands the centroid
     // at frame centre while keeping the axis vertical. Then clamp so the disc
@@ -136,7 +180,8 @@ function JourneyGlobeInner({
     const maxTY = scale;
     const translateY = minTY <= maxTY ? Math.max(minTY, Math.min(maxTY, desiredTY)) : CENTER;
     return { lon0: -c[0], globeR: scale, translateY, zoomed: scale > R + 1 };
-  }, [framePts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `places` only toggles the lone-point zoom
+  }, [framePts, !!places]);
 
   const [lon, setLon] = useState(lon0);
   const [lat, setLat] = useState(0); // pitch — 0 keeps north up; user drag tilts it
@@ -148,8 +193,6 @@ function JourneyGlobeInner({
   latRef.current = lat;
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
-  const lon0Ref = useRef(lon0);
-  lon0Ref.current = lon0;
   // For tapping a country: the live projection, on-screen layout, the country
   // polygons and the press handler — all read through a ref so the memoised tap
   // gesture never sees a stale closure.
@@ -160,7 +203,13 @@ function JourneyGlobeInner({
     w: number;
     features: { code: string; feature: GeoJSON.Feature; fill: string; ord: number }[];
     onPress?: (code: string) => void;
-  }>({ project: null, size: 0, frameH: 0, w: 0, features: [] });
+    segments: Segment[];
+    onPressSegment?: (segment: Segment) => void;
+  }>({ project: null, size: 0, frameH: 0, w: 0, features: [], segments: [] });
+  const [pulse, setPulse] = useState(0); // 0→1 loop while something is highlighted
+  const highlightOn = !!(highlight && (highlight.code || highlight.segment));
+  const highlightRef = useRef(highlightOn);
+  highlightRef.current = highlightOn;
   const animStart = useRef(Date.now());
   const dragging = useRef(false);
   const lastInteract = useRef(0); // when the user last let go (for idle auto-spin)
@@ -168,7 +217,8 @@ function JourneyGlobeInner({
   const dragStartLat = useRef(0);
   const pinchStartZoom = useRef(1);
   // Snap-back animation toward (lon0, lat 0, zoom 1) when the network changes.
-  const reset = useRef({ active: false, start: 0, fromLon: lon0, fromLat: 0, fromZoom: 1 });
+  // Also reused for fly-to-focus, which targets an arbitrary point instead.
+  const reset = useRef({ active: false, start: 0, fromLon: lon0, fromLat: 0, fromZoom: 1, toLon: lon0, toLat: 0, toZoom: 1 });
 
   const rEff = Math.min(MAX_R, globeR * zoom);
 
@@ -182,11 +232,30 @@ function JourneyGlobeInner({
   // Reframe (animated snap to north-up over the region) + replay the draw-on
   // whenever the network changes — e.g. when a year filter is toggled.
   useEffect(() => {
-    reset.current = { active: true, start: Date.now(), fromLon: lonRef.current, fromLat: latRef.current, fromZoom: zoomRef.current };
+    reset.current = { active: true, start: Date.now(), fromLon: lonRef.current, fromLat: latRef.current, fromZoom: zoomRef.current, toLon: lon0, toLat: 0, toZoom: 1 };
     setAnim(0);
     animStart.current = Date.now();
     lastInteract.current = Date.now();
   }, [lon0, globeR, resetKey]);
+
+  // Fly to a requested point (without replaying the draw-on). The projection
+  // rotates by the negative of the point it centres on.
+  const focusKey = focus?.key;
+  useEffect(() => {
+    if (!focus) return;
+    reset.current = {
+      active: true,
+      start: Date.now(),
+      fromLon: lonRef.current,
+      fromLat: latRef.current,
+      fromZoom: zoomRef.current,
+      toLon: -focus.lon,
+      toLat: Math.max(-LAT_LIMIT, Math.min(LAT_LIMIT, -focus.lat)),
+      toZoom: Math.max(1, zoomRef.current),
+    };
+    lastInteract.current = Date.now();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on focus.key by design
+  }, [focusKey]);
 
   // One loop drives the intro draw-on, the snap-back, and the idle auto-spin.
   useEffect(() => {
@@ -198,13 +267,15 @@ function JourneyGlobeInner({
         const k = Math.min(1, (now - reset.current.start) / RESET_MS);
         const e = 1 - Math.pow(1 - k, 3); // ease-out cubic
         const r = reset.current;
-        setLon(r.fromLon + shortLonDelta(r.fromLon, lon0Ref.current) * e);
-        setLat(r.fromLat * (1 - e));
-        setZoom(r.fromZoom + (1 - r.fromZoom) * e);
+        setLon(r.fromLon + shortLonDelta(r.fromLon, r.toLon) * e);
+        setLat(r.fromLat + (r.toLat - r.fromLat) * e);
+        setZoom(r.fromZoom + (r.toZoom - r.fromZoom) * e);
         if (k >= 1) reset.current.active = false;
-      } else if (!dragging.current && now - lastInteract.current > IDLE_MS) {
+      } else if (!dragging.current && !highlightRef.current && now - lastInteract.current > IDLE_MS) {
         setLon((l) => (l + 0.3) % 360); // gentle idle spin around the current tilt
       }
+      // A slow breathing pulse for the spotlighted country/route.
+      if (highlightRef.current) setPulse((now % 1600) / 1600);
     }, 1000 / 30);
     return () => clearInterval(t);
   }, [duration]);
@@ -230,11 +301,37 @@ function JourneyGlobeInner({
   // Tap a country on the Places globe: invert the tap pixel to lon/lat (via the
   // live projection), then hit-test it against the visited/wishlist polygons.
   function handleTap(x: number, y: number) {
-    const { project, size: s, onPress } = hitRef.current;
-    if (!onPress || !project || !s) return;
+    const { project, size: s, onPress, segments: segs, onPressSegment: onSeg } = hitRef.current;
+    if (!project || !s) return;
     // x/y are relative to the Svg view (size×size), so they map straight into
     // the viewBox — no container-centring offset.
     const vb: [number, number] = [(x * VIEW) / s, (y * VIEW) / s];
+    // Routes first: the nearest arc within a fingertip of the tap wins.
+    if (onSeg && segs.length) {
+      const rot = project.rotate();
+      const centre: [number, number] = [-rot[0], -rot[1]];
+      let best: Segment | null = null;
+      let bestD = 11; // viewBox units (~a fingertip at typical sizes)
+      for (const seg of segs) {
+        const interp = geoInterpolate(seg.from, seg.to);
+        for (let i = 0; i <= 24; i++) {
+          const lp = interp(i / 24) as [number, number];
+          if (!onNearSide(lp, centre)) continue;
+          const xy = project(lp);
+          if (!xy) continue;
+          const d = Math.hypot(xy[0] - vb[0], xy[1] - vb[1]);
+          if (d < bestD) {
+            bestD = d;
+            best = seg;
+          }
+        }
+      }
+      if (best) {
+        onSeg(best);
+        return;
+      }
+    }
+    if (!onPress) return;
     const ll = project.invert?.(vb);
     if (!ll || Number.isNaN(ll[0])) return;
     // Hit-test every country (not just the coloured ones) so any country opens.
@@ -264,11 +361,39 @@ function JourneyGlobeInner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollRef]);
 
-  const { landPath, borderPath, gratPath, arcs, dots, countryFills, projection } = useMemo(() => {
+  // Static-per-camera geometry: only re-projected when the camera moves (not on
+  // every tick of the draw-on / pulse), which keeps a busy map smooth.
+  const { landPath, borderPath, gratPath, countryFills, pinPts, hlCountry, projection, center } = useMemo(() => {
     const projection = geoOrthographic().translate([CENTER, translateY]).scale(rEff).rotate([lon, lat, 0]).clipAngle(90);
     const path = geoPath(projection);
     const center: [number, number] = [-lon, -lat];
 
+    // Places mode: fill visited/wishlist countries on the near hemisphere.
+    const countryFills = placeFeatures
+      .map((f) => ({ code: f.code, d: path(f.feature) ?? '', fill: f.fill, ord: f.ord, visited: f.visited }))
+      .filter((f) => f.d);
+
+    const pinPts: { x: number; y: number; label?: string }[] = [];
+    for (const p of pins ?? []) {
+      const ll: [number, number] = [p.lon, p.lat];
+      if (!onNearSide(ll, center)) continue;
+      const xy = projection(ll);
+      if (xy) pinPts.push({ x: xy[0], y: xy[1], label: p.label });
+    }
+
+    let hlCountry = '';
+    if (highlight?.code) {
+      const wf = WORLD_FEATURES.find((f) => f.alpha2 === highlight.code);
+      if (wf) hlCountry = path(wf.feature as unknown as GeoJSON.Feature) ?? '';
+    }
+
+    return { landPath: path(LAND_GEOMETRY) ?? '', borderPath: path(BORDERS_GEOMETRY) ?? '', gratPath: path(GRATICULE) ?? '', countryFills, pinPts, hlCountry, projection, center };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- highlight keyed by its code
+  }, [lon, lat, rEff, translateY, placeFeatures, pins, highlight?.code]);
+
+  // Routes: depend on the draw-on progress as well as the camera.
+  const hlSeg = highlight?.segment;
+  const { arcs, dots, hlArc } = useMemo(() => {
     const n = segments.length;
     const arcs: string[] = [];
     const dots: [number, number][] = [];
@@ -282,17 +407,12 @@ function JourneyGlobeInner({
       seen.add(k);
       dots.push([xy[0], xy[1]]);
     };
-
-    // Each route draws on within its own slice of the timeline, in date order.
-    segments.forEach((s, idx) => {
-      const startAt = n > 1 ? (idx / n) * 0.82 : 0;
-      const localP = Math.max(0, Math.min(1, (anim - startAt) / 0.2));
-      if (localP <= 0) return;
-      const interp = geoInterpolate(s.from, s.to);
+    const arcPath = (from: [number, number], to: [number, number], upTo: number) => {
+      const interp = geoInterpolate(from, to);
       let d = '';
       let started = false;
       for (let i = 0; i <= 40; i++) {
-        const lp = interp((i / 40) * localP) as [number, number]; // grow the head to localP
+        const lp = interp((i / 40) * upTo) as [number, number]; // grow the head to `upTo`
         const xy = onNearSide(lp, center) ? projection(lp) : null;
         if (!xy) {
           started = false;
@@ -301,18 +421,23 @@ function JourneyGlobeInner({
         d += `${started ? 'L' : 'M'}${xy[0].toFixed(1)} ${xy[1].toFixed(1)} `;
         started = true;
       }
+      return d;
+    };
+
+    // Each route draws on within its own slice of the timeline, in date order.
+    segments.forEach((s, idx) => {
+      const startAt = n > 1 ? (idx / n) * 0.82 : 0;
+      const localP = Math.max(0, Math.min(1, (anim - startAt) / 0.2));
+      if (localP <= 0) return;
+      const d = arcPath(s.from, s.to, localP);
       if (d) arcs.push(d);
       addDot(s.from); // origin lights up as its route starts…
       if (localP >= 0.999) addDot(s.to); // …destination when the route lands
     });
 
-    // Places mode: fill visited/wishlist countries on the near hemisphere.
-    const countryFills = placeFeatures
-      .map((f) => ({ code: f.code, d: path(f.feature) ?? '', fill: f.fill, ord: f.ord, visited: f.visited }))
-      .filter((f) => f.d);
-
-    return { landPath: path(LAND_GEOMETRY) ?? '', borderPath: path(BORDERS_GEOMETRY) ?? '', gratPath: path(GRATICULE) ?? '', arcs, dots, countryFills, projection };
-  }, [lon, lat, rEff, segments, anim, translateY, placeFeatures]);
+    const hlArc = hlSeg ? arcPath(hlSeg.from, hlSeg.to, 1) : '';
+    return { arcs, dots, hlArc };
+  }, [projection, center, segments, anim, hlSeg]);
 
   const [w, setW] = useState(0);
   const size = w > 0 ? Math.min(w, maxSize ?? w) : maxSize ?? VIEW;
@@ -321,7 +446,10 @@ function JourneyGlobeInner({
   // disc (the poles, which carry no content, are what gets clipped).
   const frameH = Math.round(size * 0.86);
   // Keep the projection + layout + country data fresh for tap hit-testing.
-  hitRef.current = { project: projection, size, frameH, w, features: placeFeatures, onPress: places?.onPressCountry };
+  hitRef.current = { project: projection, size, frameH, w, features: placeFeatures, onPress: places?.onPressCountry, segments, onPressSegment };
+  // Breathes between ~0.45 and 1 while a subject is spotlighted.
+  const glow = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(pulse * Math.PI * 2));
+  const showPinLabels = rEff >= R * 1.45;
 
   return (
     <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ backgroundColor: OCEAN_DEEP, height: frameH, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
@@ -341,6 +469,10 @@ function JourneyGlobeInner({
               <Stop offset="1" stopColor="#000010" stopOpacity="0.5" />
             </RadialGradient>
           </Defs>
+          {/* star-field backdrop (hidden behind the sphere when zoomed in) */}
+          {STARS.map((st, i) => (
+            <Circle key={`s-${i}`} cx={st.x} cy={st.y} r={st.r} fill="#DCE6FF" fillOpacity={st.o} />
+          ))}
           {/* atmospheric halo */}
           <Circle cx={CENTER} cy={translateY} r={rEff + 7} fill="url(#globe-atmo)" />
           {/* ocean sphere */}
@@ -374,6 +506,28 @@ function JourneyGlobeInner({
           {dots.map((p, i) => (
             <Circle key={`d-${i}`} cx={p[0]} cy={p[1]} r={2} fill={ROUTE} stroke={ROUTE_EDGE} strokeWidth={0.7} />
           ))}
+          {/* spotlighted route: a bright halo under a solid coral line */}
+          {hlArc ? (
+            <>
+              <Path d={hlArc} fill="none" stroke="#FFFFFF" strokeWidth={5} strokeOpacity={0.35 * glow} strokeLinecap="round" />
+              <Path d={hlArc} fill="none" stroke="#FFFFFF" strokeWidth={2.4} strokeOpacity={0.95} strokeLinecap="round" />
+            </>
+          ) : null}
+          {/* spotlighted country: a pulsing white outline + soft wash */}
+          {hlCountry ? <Path d={hlCountry} fill="#FFFFFF" fillOpacity={0.16 * glow} stroke="#FFFFFF" strokeWidth={1.3} strokeOpacity={glow} strokeLinejoin="round" /> : null}
+          {/* city pins (labelled once zoomed in far enough to read) */}
+          {pinPts.map((p, i) => (
+            <Circle key={`p-${i}`} cx={p.x} cy={p.y} r={1.7} fill="#FFFFFF" stroke="#14213D" strokeWidth={0.5} strokeOpacity={0.55} />
+          ))}
+          {showPinLabels
+            ? pinPts.map((p, i) =>
+                p.label ? (
+                  <SvgText key={`pl-${i}`} x={p.x + 3.4} y={p.y + 2} fontSize={6} fontWeight="700" fill="#FFFFFF" stroke="#0D1B2E" strokeWidth={0.25}>
+                    {p.label}
+                  </SvgText>
+                ) : null,
+              )
+            : null}
           {/* spherical shading for depth */}
           <Circle cx={CENTER} cy={translateY} r={rEff} fill="url(#globe-shade)" />
         </Svg>

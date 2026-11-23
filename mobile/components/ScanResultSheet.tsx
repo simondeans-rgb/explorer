@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { CtaGradient } from './CtaGradient';
 import { View, Text, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { Check } from 'lucide-react-native';
@@ -206,8 +207,9 @@ export function ScanResultSheet({
             onPress={savePhotos}
             disabled={savingPhotos || photoSel.size === 0}
             className="items-center justify-center rounded-2xl"
-            style={{ backgroundColor: COLORS.coral, paddingVertical: 15, opacity: savingPhotos || photoSel.size === 0 ? 0.5 : 1 }}
+            style={{ backgroundColor: COLORS.coral, overflow: 'hidden', paddingVertical: 15, opacity: savingPhotos || photoSel.size === 0 ? 0.5 : 1 }}
           >
+            <CtaGradient />
             {savingPhotos ? (
               <ActivityIndicator color="#fff" />
             ) : (
@@ -357,8 +359,9 @@ export function ScanResultSheet({
           onPress={confirm}
           disabled={busy || (selected.size === 0 && citySel.size === 0)}
           className="items-center justify-center rounded-2xl"
-          style={{ backgroundColor: COLORS.coral, paddingVertical: 15, opacity: busy || (selected.size === 0 && citySel.size === 0) ? 0.5 : 1 }}
+          style={{ backgroundColor: COLORS.coral, overflow: 'hidden', paddingVertical: 15, opacity: busy || (selected.size === 0 && citySel.size === 0) ? 0.5 : 1 }}
         >
+          <CtaGradient />
           {busy ? (
             <ActivityIndicator color="#fff" />
           ) : (

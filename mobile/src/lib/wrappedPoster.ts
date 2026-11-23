@@ -75,7 +75,7 @@ export function buildWrappedPosterHtml(input: WrappedPosterInput): string {
     <div class="level">Explorer Level ${input.levelNumber} &middot; <b>${esc(input.levelTitle)}</b></div>
     ${feature}
     <div class="flags">${flags}</div>
-    <div class="footer">worldly &middot; your travel story</div>
+    <div class="footer">worldly &middot; make yours at worldly-explorer.com</div>
   </div></body></html>`;
 }
 

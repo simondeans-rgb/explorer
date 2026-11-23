@@ -4,7 +4,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { CloudOff, Cloud, Sparkles, ChevronRight, Camera, ScrollText, Settings } from 'lucide-react-native';
+import { CloudOff, Cloud, Sparkles, ChevronRight, Camera, ScrollText, Settings, Share2 } from 'lucide-react-native';
+import { MapPoster } from '../../components/MapPoster';
+import { shareViewAsPng } from '../../src/lib/shareImage';
+import { shareMapPoster } from '../../src/lib/mapPoster';
+import { COUNTRIES } from '../../src/data/countries';
 import { COVER_SECTIONS } from '../../src/lib/covers';
 import { DestinationImage } from '../../components/DestinationImage';
 import { ExplorerLevelCard } from '../../components/ExplorerLevelCard';
@@ -84,6 +88,44 @@ export default function YouScreen() {
     .filter((b) => !b.earned && !(showGems && b.id === 'gem-hunter') && b.id !== nextDiscovery?.id)
     .sort((a, b) => b.progress - a.progress)[0];
 
+  // The hero is YOUR world: it cycles photos of the countries you know best
+  // (deepest Discovery Score first), falling back to the house set until
+  // you've added somewhere.
+  const heroCodes = useMemo(() => {
+    const top = aggregates
+      .filter((a) => a.discovered)
+      .sort((a, b) => b.discoveryScore - a.discoveryScore || (b.firstYear ?? 0) - (a.firstYear ?? 0))
+      .slice(0, 4)
+      .map((a) => a.code);
+    return top.length ? top : HERO_CODES.you;
+  }, [aggregates]);
+  const visitedCodes = useMemo(() => new Set(aggregates.filter((a) => a.discovered).map((a) => a.code)), [aggregates]);
+  const worldPct = (stats.countriesDiscovered / COUNTRIES.length) * 100;
+  const posterRef = useRef<View>(null);
+  const [sharing, setSharing] = useState(false);
+  // Share your passport: the globe-styled "my world" image (PDF poster on
+  // older binaries without view capture).
+  async function sharePassport() {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      if (posterRef.current && (await shareViewAsPng(posterRef.current, 'Share your world'))) return;
+      await shareMapPoster({
+        firstName: displayName,
+        countries: stats.countriesDiscovered,
+        cities: stats.citiesDiscovered,
+        continents: stats.continentsDiscovered,
+        pct: worldPct,
+        visited: visitedCodes,
+        flagCodes: stats.flagCodes,
+      });
+    } catch {
+      // cancelled or unavailable — no-op
+    } finally {
+      setSharing(false);
+    }
+  }
+
   const displayName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'Explorer');
   const initial = displayName.charAt(0).toUpperCase();
 
@@ -152,7 +194,7 @@ export default function YouScreen() {
       scrollEventThrottle={16}
     >
       {/* Identity hero */}
-      <DestinationImage code={HERO_CODES.you[0]} codes={HERO_CODES.you} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 56, minHeight: HERO_HEIGHT, alignItems: 'center' }}>
+      <DestinationImage code={heroCodes[0]} codes={heroCodes} scrim motion style={{ position: 'relative', paddingTop: 64, paddingBottom: 56, minHeight: HERO_HEIGHT, alignItems: 'center' }}>
         {/* Ambient whisper of the active cover's particles — half the usual
             density so it stays a subtle sparkle over the photo. */}
         <CoverParticles profile={coverTheme.particles} colors={coverTheme.particleColors} width={width} height={HERO_HEIGHT} />
@@ -167,6 +209,19 @@ export default function YouScreen() {
         >
           <Settings size={20} color="#fff" />
         </Pressable>
+        {stats.countriesDiscovered > 0 ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Share your world"
+            onPress={sharePassport}
+            disabled={sharing}
+            hitSlop={10}
+            className="h-10 w-10 rounded-full items-center justify-center"
+            style={{ position: 'absolute', top: 58, left: 18, zIndex: 20, backgroundColor: 'rgba(20,33,61,0.45)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)', opacity: sharing ? 0.6 : 1 }}
+          >
+            <Share2 size={18} color="#fff" />
+          </Pressable>
+        ) : null}
         <Pressable onPress={changeAvatar}>
           <View className="rounded-full items-center justify-center bg-white/20" style={{ height: 92, width: 92, borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)', overflow: 'hidden' }}>
             {avatar ? (
@@ -357,6 +412,13 @@ export default function YouScreen() {
 
       <XpDetailSheet visible={xpOpen} onClose={() => setXpOpen(false)} level={level} stats={stats} discovery={discoveryStats} journeys={journeyStats} />
     </Animated.ScrollView>
+
+    {/* Off-screen share poster, captured to a PNG by sharePassport(). */}
+    {stats.countriesDiscovered > 0 ? (
+      <View pointerEvents="none" style={{ position: 'absolute', left: -9999, top: 0 }}>
+        <MapPoster ref={posterRef} firstName={displayName} countries={stats.countriesDiscovered} cities={stats.citiesDiscovered} continents={stats.continentsDiscovered} pct={worldPct} visited={visitedCodes} flagCodes={stats.flagCodes} />
+      </View>
+    ) : null}
 
     {/* Status-bar scrim: fades in once the hero scrolls away so card content
         never collides with the clock. pointerEvents none — purely visual. */}

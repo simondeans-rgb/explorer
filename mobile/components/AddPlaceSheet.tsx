@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { CtaGradient } from './CtaGradient';
 import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { Check, Search } from 'lucide-react-native';
 import { SheetShell } from './SheetShell';
@@ -248,7 +249,8 @@ export function AddPlaceSheet({ visible, onClose }: { visible: boolean; onClose:
           </>
         ) : null}
 
-        <Pressable onPress={() => save(false)} disabled={!ready} className="rounded-2xl items-center justify-center flex-row" style={{ marginHorizontal: 20, marginTop: 18, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: ready ? 1 : 0.4, gap: 8 }}>
+        <Pressable onPress={() => save(false)} disabled={!ready} className="rounded-2xl items-center justify-center flex-row" style={{ marginHorizontal: 20, marginTop: 18, paddingVertical: 15, backgroundColor: COLORS.coral, overflow: 'hidden', opacity: ready ? 1 : 0.4, gap: 8 }}>
+          <CtaGradient />
           <Check size={18} color="#fff" />
           <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Add to your world</Text>
         </Pressable>

@@ -130,3 +130,22 @@ export function searchCities(query: string, countryCode?: string, limit = 8): Ci
   }
   return out;
 }
+
+let byName: Map<string, City> | null = null;
+/** Coordinates [lng, lat] for a city by exact name within a country, from the
+ *  bundled gazetteer (the largest match wins when names repeat). Used to pin
+ *  cities that have no airport of their own (Kyoto, Florence…). */
+export function cityCoordinates(name: string, countryCode: string): [number, number] | undefined {
+  const q = name.trim().toLowerCase();
+  if (!q) return undefined;
+  if (!byName) {
+    byName = new Map();
+    for (const c of allCities()) {
+      const key = `${c.country}|${c.name.toLowerCase()}`;
+      const prev = byName.get(key);
+      if (!prev || c.radiusKm > prev.radiusKm) byName.set(key, c);
+    }
+  }
+  const hit = byName.get(`${countryCode}|${q}`);
+  return hit ? [hit.lng, hit.lat] : undefined;
+}

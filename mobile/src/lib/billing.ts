@@ -97,3 +97,12 @@ export function shouldGate(trigger: PaywallTrigger, current?: number): boolean {
   if (metric && current != null) return !checkLimit(metric, current).allowed;
   return true; // feature-gated moments (charts, wrapped, covers, post-trip)
 }
+
+/** Restore a previous purchase (App Store requirement for any paywall). While
+ *  billing is dormant there is nothing to restore — everyone is already on
+ *  Explorer — so this reports that plainly. When RevenueCat is wired in, call
+ *  `Purchases.restorePurchases()` here and pass the result to applyEntitlement. */
+export async function restorePurchases(): Promise<'restored' | 'none' | 'not-needed'> {
+  if (!billingEnabled()) return 'not-needed';
+  return currentTier() === 'explorer' ? 'restored' : 'none';
+}

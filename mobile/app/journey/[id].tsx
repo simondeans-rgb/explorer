@@ -3,7 +3,9 @@ import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator } from 
 import Svg, { Path } from 'react-native-svg';
 import { useConfirm } from '../../src/store/confirm';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Trash2, Plus, Check, Search, Plane, TrainFront, Ship, Car, Anchor, ImagePlus, CalendarDays, ChevronRight } from 'lucide-react-native';
+import { Trash2, Plus, Check, Search, Plane, TrainFront, Ship, Car, Anchor, ImagePlus, CalendarDays, ChevronRight, Pencil } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { AddPhotoSheet } from '../../components/AddPhotoSheet';
 import { BackButton } from '../../components/BackButton';
@@ -20,7 +22,10 @@ import { CircleAlert } from 'lucide-react-native';
 import { DateField } from '../../components/DateField';
 import { FlightSummaryCard } from '../../components/FlightSummaryCard';
 import { journeyLegSegments, resolveEndpoint } from '../../src/lib/journeyGeo';
-import { COLORS } from '../../src/lib/theme';
+import { BRAND_GRADIENT, COLORS, SHADOW, tint } from '../../src/lib/theme';
+import { haversineMi } from '../../src/lib/travelStats';
+import { convertMiles, distanceUnitLabel, KM_PER_MI } from '../../src/lib/units';
+import { EARTH_CIRCUMFERENCE_MI } from '../../src/lib/travelStats';
 import { useUnits } from '../../src/store/units';
 import { flagEmoji } from '../../src/lib/flags';
 import { countryName, COUNTRIES } from '../../src/data/countries';
@@ -101,10 +106,46 @@ function Field({ value, onChange, placeholder, flex }: { value: string; onChange
   );
 }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** "2019-04-02" → "2 Apr 2019"; tolerates year-only / year-month dates. */
+function prettyDate(iso?: string): string {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  if (!m) return y;
+  const mon = MONTHS[Number(m) - 1] ?? '';
+  return d ? `${Number(d)} ${mon} ${y}` : `${mon} ${y}`;
+}
+function prettyRange(start?: string, end?: string): string {
+  if (!start) return '';
+  if (!end || end === start) return prettyDate(start);
+  // Same year: don't repeat it on the start ("2 Apr – 20 Apr 2019").
+  const sameYear = start.slice(0, 4) === end.slice(0, 4) && start.length > 4;
+  return `${sameYear ? prettyDate(start).replace(` ${start.slice(0, 4)}`, '') : prettyDate(start)} – ${prettyDate(end)}`;
+}
+const cleanStop = (label?: string) => (label ?? '').replace(/\s*\(.*?\)/g, '').replace(/,.*$/, '').trim();
+function fmtDuration(min: number): string {
+  const d = Math.floor(min / 1440);
+  const h = Math.floor((min % 1440) / 60);
+  const m = min % 60;
+  if (d > 0) return `${d}d ${h}h`;
+  return h > 0 ? `${h}h ${m ? `${m}m` : ''}`.trim() : `${m}m`;
+}
+
+/** One headline number in the journey recap. */
+function StatTile({ value, label }: { value: string; label: string }) {
+  return (
+    <View className="bg-white dark:bg-card rounded-3xl" style={{ flexGrow: 1, flexBasis: '45%', paddingVertical: 14, paddingHorizontal: 16, ...SHADOW.card }}>
+      <Text numberOfLines={1} style={{ fontFamily: 'Fraunces', fontSize: 26, color: COLORS.navy }}>{value}</Text>
+      <Text style={{ fontFamily: 'PlusJakarta', fontSize: 11.5, fontWeight: '700', letterSpacing: 0.4, color: COLORS.ink3, marginTop: 2 }}>{label.toUpperCase()}</Text>
+    </View>
+  );
+}
+
 const LBL = { fontFamily: 'PlusJakarta', fontSize: 11, fontWeight: '700' as const, letterSpacing: 1, color: COLORS.ink3, paddingHorizontal: 20, marginTop: 18 };
 
 export default function JourneyScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
+  const insets = useSafeAreaInsets();
   const { expeditions, updateExpedition, removeExpedition, captures, loaded } = useData();
   const { toast } = useToast();
   const { unit } = useUnits();
@@ -123,6 +164,9 @@ export default function JourneyScreen() {
   const [showRoute, setShowRoute] = useState(false);
   const [saving, setSaving] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  // Story first: a saved journey opens as a recap. The form sits behind Edit
+  // (or opens directly via ?edit=1, and for a journey with nothing in it yet).
+  const [editing, setEditing] = useState(edit === '1');
 
   useEffect(() => {
     if (expedition && !hydrated) {
@@ -133,6 +177,7 @@ export default function JourneyScreen() {
       setCodes(expedition.countryCodes ?? []);
       setLegs(expedition.journeys.length ? expedition.journeys.map(legFromJourney) : [emptyLeg()]);
       setHydrated(true);
+      if (expedition.journeys.length === 0 && !expedition.note) setEditing(true);
     }
   }, [expedition, hydrated]);
 
@@ -141,6 +186,31 @@ export default function JourneyScreen() {
     if (!q) return [];
     return COUNTRIES.filter((c) => c.name.toLowerCase().includes(q) && !codes.includes(c.code)).slice(0, 12);
   }, [query, codes]);
+
+  // The recap's numbers, from the saved record: distance (measured where a
+  // lookup gave one, great-circle otherwise), time on the move, legs and stops.
+  const recap = useMemo(() => {
+    const js = expedition?.journeys ?? [];
+    let mi = 0;
+    let min = 0;
+    const stops: string[] = [];
+    const pushStop = (label?: string) => {
+      const c = cleanStop(label);
+      if (c && stops[stops.length - 1] !== c) stops.push(c);
+    };
+    for (const j of js) {
+      if (j.distanceKm) mi += j.distanceKm / KM_PER_MI;
+      else {
+        const a = resolveEndpoint(j.from);
+        const b = resolveEndpoint(j.to);
+        if (a && b) mi += haversineMi(a, b);
+      }
+      if (j.durationMin) min += j.durationMin;
+      pushStop(j.from);
+      pushStop(j.to);
+    }
+    return { mi, min, legs: js.length, stops, places: new Set(stops).size };
+  }, [expedition]);
 
   // Flight legs (placeable on the globe) for the route you're building, live.
   const detailSegments = useMemo(() => journeyLegSegments(legs, startDate || undefined), [legs, startDate]);
@@ -252,7 +322,9 @@ export default function JourneyScreen() {
         note,
       });
       toast.success('Journey saved');
-      goBack();
+      // Back to the story you just updated, rather than out of the screen.
+      setSaving(false);
+      setEditing(false);
     } catch {
       setSaving(false);
       toast.error("Couldn't save — check your connection and try again.");
@@ -279,16 +351,30 @@ export default function JourneyScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.warmwhite }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag">
+      <ScrollView contentContainerStyle={{ paddingBottom: editing ? 220 : 120 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag">
         {/* Hero */}
-        <DestinationImage code={codes[0] ?? 'WW'} scrim style={{ position: 'relative', paddingTop: 60, paddingBottom: 46, minHeight: 180, justifyContent: 'flex-end' }}>
+        <DestinationImage code={codes[0] ?? 'WW'} scrim style={{ position: 'relative', paddingTop: 112, paddingBottom: 46, minHeight: 180, justifyContent: 'flex-end' }}>
           <BackButton onPress={goBack} style={{ position: 'absolute', top: 60, left: 20, zIndex: 20 }} />
-          <Pressable accessibilityRole="button" accessibilityLabel="Delete journey" onPress={confirmDelete} hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, right: 20, zIndex: 20 }}>
-            <Trash2 size={18} color="#fff" />
-          </Pressable>
+          {editing ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Delete journey" onPress={confirmDelete} hitSlop={12} className="h-9 w-9 rounded-full items-center justify-center bg-white/20" style={{ position: 'absolute', top: 60, right: 20, zIndex: 20 }}>
+              <Trash2 size={18} color="#fff" />
+            </Pressable>
+          ) : (
+            <Pressable accessibilityRole="button" accessibilityLabel="Edit journey" onPress={() => setEditing(true)} hitSlop={10} className="flex-row items-center rounded-full bg-white/20" style={{ position: 'absolute', top: 60, right: 20, zIndex: 20, paddingHorizontal: 13, paddingVertical: 8, gap: 6 }}>
+              <Pencil size={14} color="#fff" />
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: '#fff' }}>Edit</Text>
+            </Pressable>
+          )}
           <View style={{ paddingHorizontal: 20 }}>
-            <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1, opacity: 0.9 }}>EDIT JOURNEY</Text>
+            <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 12, fontWeight: '800', letterSpacing: 1, opacity: 0.9 }}>
+              {editing ? 'EDIT JOURNEY' : (prettyRange(expedition.startDate, expedition.endDate) || 'JOURNEY').toUpperCase()}
+            </Text>
             <Text numberOfLines={2} className="text-white" style={{ fontFamily: 'Fraunces', fontSize: 30, marginTop: 2 }}>{title || expedition.title}</Text>
+            {!editing && codes.length > 0 ? (
+              <Text className="text-white" style={{ fontFamily: 'PlusJakarta', fontSize: 14, marginTop: 4, opacity: 0.95 }}>
+                {codes.slice(0, 6).map((c) => `${flagEmoji(c)} ${countryName(c)}`).join('   ')}
+              </Text>
+            ) : null}
           </View>
           <Svg width="100%" height={42} viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -1 }}>
             <Path d="M0,72 C240,44 480,40 720,58 C960,76 1200,92 1440,72 L1440,121 L0,121 Z" fill={COLORS.warmwhite} />
@@ -299,6 +385,63 @@ export default function JourneyScreen() {
         {detailSegments.length > 0 ? (
           <View style={{ marginHorizontal: 20, marginTop: 16, borderRadius: 24, overflow: 'hidden' }}>
             <JourneyGlobe segments={detailSegments} maxSize={300} />
+          </View>
+        ) : null}
+
+        {/* The story: headline numbers, then the route stop by stop. */}
+        {!editing && recap.legs > 0 ? (
+          <>
+            <View className="flex-row" style={{ flexWrap: 'wrap', paddingHorizontal: 20, marginTop: 14, gap: 10 }}>
+              {recap.mi > 0 ? <StatTile value={Math.round(convertMiles(recap.mi, unit)).toLocaleString()} label={`${distanceUnitLabel(unit)} travelled`} /> : null}
+              {recap.min > 0 ? <StatTile value={fmtDuration(recap.min)} label="On the move" /> : null}
+              <StatTile value={String(recap.legs)} label={recap.legs === 1 ? 'Leg' : 'Legs'} />
+              {recap.places > 1 ? <StatTile value={String(recap.places)} label="Stops" /> : null}
+            </View>
+            {recap.mi >= EARTH_CIRCUMFERENCE_MI * 0.1 ? (
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, paddingHorizontal: 24, marginTop: 8 }}>
+                That’s <Text style={{ fontWeight: '800', color: COLORS.ink2 }}>{(recap.mi / EARTH_CIRCUMFERENCE_MI).toFixed(recap.mi >= EARTH_CIRCUMFERENCE_MI ? 1 : 2)}×</Text> around the Earth.
+              </Text>
+            ) : null}
+
+            <Text style={LBL}>THE ROUTE</Text>
+            <View className="bg-white dark:bg-card rounded-3xl" style={{ marginHorizontal: 20, marginTop: 8, paddingVertical: 6, paddingHorizontal: 16, ...SHADOW.card }}>
+              {/* In the order it happened; undated legs keep their place at the end. */}
+              {[...expedition.journeys].sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999')).map((j, i) => {
+                const Icon = MODE_ICON[j.mode] ?? Plane;
+                const km = j.distanceKm ?? (() => {
+                  const a = resolveEndpoint(j.from);
+                  const b = resolveEndpoint(j.to);
+                  return a && b ? haversineMi(a, b) * KM_PER_MI : 0;
+                })();
+                const meta = [
+                  prettyDate(j.date),
+                  [j.operator, j.reference].filter(Boolean).join(' '),
+                  j.durationMin ? fmtDuration(j.durationMin) : '',
+                  km > 0 ? `${Math.round(convertMiles(km / KM_PER_MI, unit)).toLocaleString()} ${distanceUnitLabel(unit)}` : '',
+                ].filter(Boolean);
+                return (
+                  <View key={j.id || i} className="flex-row" style={{ gap: 12, paddingVertical: 12, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: COLORS.tileMuted }}>
+                    <View className="rounded-full items-center justify-center" style={{ height: 36, width: 36, backgroundColor: tint(COLORS.coral, 0.12) }}>
+                      <Icon size={17} color={COLORS.coral} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontFamily: 'Fraunces', fontSize: 16.5, color: COLORS.navy }}>
+                        {cleanStop(j.from) || '—'}  →  {cleanStop(j.to) || '—'}
+                      </Text>
+                      {meta.length ? (
+                        <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12.5, color: COLORS.ink3, marginTop: 2, lineHeight: 18 }}>{meta.join('  ·  ')}</Text>
+                      ) : null}
+                      {j.note ? <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, color: COLORS.ink2, marginTop: 4, lineHeight: 19 }}>{j.note}</Text> : null}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        ) : null}
+        {!editing && expedition.note ? (
+          <View style={{ marginHorizontal: 20, marginTop: 16, paddingLeft: 14, borderLeftWidth: 3, borderLeftColor: COLORS.coral }}>
+            <Text style={{ fontFamily: 'Fraunces', fontSize: 17, lineHeight: 25, color: COLORS.ink2 }}>{expedition.note}</Text>
           </View>
         ) : null}
 
@@ -350,6 +493,15 @@ export default function JourneyScreen() {
           <ChevronRight size={18} color={COLORS.ink3} />
         </Pressable>
 
+        {!editing ? (
+          <Pressable onPress={() => setEditing(true)} accessibilityRole="button" accessibilityLabel="Edit this journey's details" className="flex-row items-center justify-center rounded-full" style={{ alignSelf: 'center', marginTop: 22, paddingHorizontal: 20, paddingVertical: 12, gap: 7, backgroundColor: COLORS.tileMuted }}>
+            <Pencil size={15} color={COLORS.ink2} />
+            <Text style={{ fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: '700', color: COLORS.ink2 }}>Edit details</Text>
+          </Pressable>
+        ) : null}
+
+        {editing ? (
+        <>
         {/* title */}
         <Text style={LBL}>TITLE</Text>
         <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 }}>
@@ -506,15 +658,26 @@ export default function JourneyScreen() {
           <TextInput value={note} onChangeText={setNote} placeholder="A note for this journey" placeholderTextColor={COLORS.ink3} multiline style={{ fontFamily: 'PlusJakarta', fontSize: 15, color: COLORS.ink, minHeight: 44 }} />
         </View>
 
-        <Pressable onPress={save} disabled={!title.trim() || saving} className="rounded-2xl items-center justify-center flex-row" style={{ marginHorizontal: 20, marginTop: 20, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: title.trim() && !saving ? 1 : 0.4, gap: 8 }}>
-          {saving ? <ActivityIndicator color="#fff" /> : (
-            <>
-              <Check size={18} color="#fff" />
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Save changes</Text>
-            </>
-          )}
-        </Pressable>
+        </>
+        ) : null}
       </ScrollView>
+
+      {/* Save stays pinned above the keyboard-safe bottom edge while editing, so
+          it can never scroll out of reach on a long list of legs. */}
+      {editing ? (
+        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingLeft: 20, paddingRight: 86, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 12) + 96, backgroundColor: COLORS.warmwhite, borderTopWidth: 1, borderTopColor: COLORS.tileMuted }}>
+          <Pressable onPress={save} disabled={!title.trim() || saving} accessibilityRole="button" accessibilityLabel="Save changes" accessibilityState={{ disabled: !title.trim() || saving, busy: saving }} style={{ borderRadius: 18, overflow: 'hidden', opacity: !title.trim() || saving ? 0.6 : 1 }}>
+            <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, gap: 8 }}>
+              {saving ? <ActivityIndicator color="#fff" /> : (
+                <>
+                  <Check size={18} color="#fff" />
+                  <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Save changes</Text>
+                </>
+              )}
+            </LinearGradient>
+          </Pressable>
+        </View>
+      ) : null}
 
       <AddPhotoSheet visible={photoOpen} onClose={() => setPhotoOpen(false)} initialCountryCode={codes[0]} initialExpeditionId={expedition.id} />
       <KeyboardDoneBar />

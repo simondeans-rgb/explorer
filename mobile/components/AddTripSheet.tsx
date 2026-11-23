@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator } from 'react-native';
-import { Check, Search, Plus, Trash2, Plane, TrainFront, Ship, Car, Anchor } from 'lucide-react-native';
+import { Check, Search, Plus, Trash2, Plane, TrainFront, Ship, Car, Anchor, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { ComponentType } from 'react';
 import { SheetShell } from './SheetShell';
 import { RouteBuilder } from './RouteBuilder';
@@ -11,7 +12,7 @@ import { resolveEndpoint } from '../src/lib/journeyGeo';
 import { router } from 'expo-router';
 import { lookupFlight, normaliseFlightNumber, flightLookupConfigured, lookupsUsedThisMonth } from '../src/lib/flightLookup';
 import { shouldGate } from '../src/lib/billing';
-import { COLORS } from '../src/lib/theme';
+import { BRAND_GRADIENT, COLORS } from '../src/lib/theme';
 import { useUnits } from '../src/store/units';
 import { flagEmoji } from '../src/lib/flags';
 import { COUNTRIES } from '../src/data/countries';
@@ -76,6 +77,16 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
   const [legs, setLegs] = useState<Leg[]>([emptyLeg()]);
   const [showRoute, setShowRoute] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Each leg leads with the essentials; the rest (airline, times, terminals,
+  // notes) waits behind “More details” so the sheet isn't a wall of fields.
+  const [moreOpen, setMoreOpen] = useState<Set<string>>(new Set());
+  const toggleMore = (legId: string) =>
+    setMoreOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(legId)) next.delete(legId);
+      else next.add(legId);
+      return next;
+    });
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -197,7 +208,7 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
 
   return (
     <SheetShell visible={visible} title="Add a trip" onClose={close}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 8 }}>
+      <ScrollView keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 12 }}>
         {/* title */}
         <View className="bg-white dark:bg-card rounded-2xl" style={{ marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, marginTop: 4 }}>
           <TextInput value={title} onChangeText={setTitle} placeholder="Name this trip, e.g. Japan in spring" placeholderTextColor={COLORS.ink3} style={inputStyle} />
@@ -245,6 +256,13 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
         <Text style={LBL}>FLIGHTS, RAIL &amp; MORE <Text style={{ color: COLORS.ink3, fontWeight: '400' }}>· optional</Text></Text>
         {legs.map((leg, i) => {
           const meta = JOURNEY_MODE_META[leg.mode];
+          const showMore = moreOpen.has(leg.id);
+          const moreToggle = (
+            <Pressable onPress={() => toggleMore(leg.id)} accessibilityRole="button" accessibilityState={{ expanded: showMore }} hitSlop={6} className="flex-row items-center self-start" style={{ gap: 4, paddingVertical: 4 }}>
+              {showMore ? <ChevronUp size={15} color={COLORS.ink2} /> : <ChevronDown size={15} color={COLORS.ink2} />}
+              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: '700', color: COLORS.ink2 }}>{showMore ? 'Fewer details' : 'More details'}</Text>
+            </Pressable>
+          );
           return (
             <View key={leg.id} className="bg-white dark:bg-card rounded-3xl" style={{ marginHorizontal: 20, marginTop: 10, padding: 14, gap: 10 }}>
               <View className="flex-row items-center justify-between">
@@ -290,18 +308,23 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
                     <AirportField placeholder={meta.from} value={leg.from} near={resolveEndpoint(leg.to)} onChangeText={(t) => patchLeg(leg.id, { from: t })} onPick={(m) => patchLeg(leg.id, { from: m.label })} />
                     <AirportField placeholder={meta.to} value={leg.to} near={resolveEndpoint(leg.from)} onChangeText={(t) => patchLeg(leg.id, { to: t })} onPick={(m) => patchLeg(leg.id, { to: m.label })} />
                   </View>
-                  <View className="flex-row" style={{ gap: 8 }}>
-                    <Field flex placeholder={meta.operator} value={leg.carrier} onChange={(t) => patchLeg(leg.id, { carrier: t })} />
-                    <Field flex placeholder="Aircraft" value={leg.vehicle} onChange={(t) => patchLeg(leg.id, { vehicle: t })} />
-                  </View>
-                  <View className="flex-row" style={{ gap: 8 }}>
-                    <Field flex placeholder="Depart (HH:MM)" value={leg.departTime} onChange={(t) => patchLeg(leg.id, { departTime: t })} />
-                    <Field flex placeholder="Arrive (HH:MM)" value={leg.arriveTime} onChange={(t) => patchLeg(leg.id, { arriveTime: t })} />
-                  </View>
-                  <View className="flex-row" style={{ gap: 8 }}>
-                    <Field flex placeholder="Depart terminal" value={leg.fromTerminal} onChange={(t) => patchLeg(leg.id, { fromTerminal: t })} />
-                    <Field flex placeholder="Arrive terminal" value={leg.toTerminal} onChange={(t) => patchLeg(leg.id, { toTerminal: t })} />
-                  </View>
+                  {moreToggle}
+                  {showMore ? (
+                    <>
+                      <View className="flex-row" style={{ gap: 8 }}>
+                        <Field flex placeholder={meta.operator} value={leg.carrier} onChange={(t) => patchLeg(leg.id, { carrier: t })} />
+                        <Field flex placeholder="Aircraft" value={leg.vehicle} onChange={(t) => patchLeg(leg.id, { vehicle: t })} />
+                      </View>
+                      <View className="flex-row" style={{ gap: 8 }}>
+                        <Field flex placeholder="Depart (HH:MM)" value={leg.departTime} onChange={(t) => patchLeg(leg.id, { departTime: t })} />
+                        <Field flex placeholder="Arrive (HH:MM)" value={leg.arriveTime} onChange={(t) => patchLeg(leg.id, { arriveTime: t })} />
+                      </View>
+                      <View className="flex-row" style={{ gap: 8 }}>
+                        <Field flex placeholder="Depart terminal" value={leg.fromTerminal} onChange={(t) => patchLeg(leg.id, { fromTerminal: t })} />
+                        <Field flex placeholder="Arrive terminal" value={leg.toTerminal} onChange={(t) => patchLeg(leg.id, { toTerminal: t })} />
+                      </View>
+                    </>
+                  ) : null}
                   <FlightSummaryCard from={leg.from} to={leg.to} airline={leg.carrier} flightNumber={leg.reference} aircraft={leg.vehicle} departTime={leg.departTime} arriveTime={leg.arriveTime} departActual={leg.departActual} arriveActual={leg.arriveActual} fromTerminal={leg.fromTerminal} toTerminal={leg.toTerminal} distanceKm={leg.distanceKm} durationMin={leg.durationMin} departDelayMin={leg.departDelayMin} arriveDelayMin={leg.arriveDelayMin} unit={unit} />
                 </>
               ) : (
@@ -311,18 +334,23 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
                     <Field flex placeholder={meta.to} value={leg.to} onChange={(t) => patchLeg(leg.id, { to: t })} />
                   </View>
                   <DateField value={leg.date} label="Date" onChange={(iso) => patchLeg(leg.id, { date: iso })} />
-                  <Field flex placeholder={meta.operator} value={leg.carrier} onChange={(t) => patchLeg(leg.id, { carrier: t })} />
-                  <View className="flex-row" style={{ gap: 8 }}>
-                    <Field flex placeholder={meta.reference} value={leg.reference} onChange={(t) => patchLeg(leg.id, { reference: t })} />
-                    <Field flex placeholder="Vehicle" value={leg.vehicle} onChange={(t) => patchLeg(leg.id, { vehicle: t })} />
-                  </View>
-                  <View className="flex-row" style={{ gap: 8 }}>
-                    <Field flex placeholder="Depart (HH:MM)" value={leg.departTime} onChange={(t) => patchLeg(leg.id, { departTime: t })} />
-                    <Field flex placeholder="Arrive (HH:MM)" value={leg.arriveTime} onChange={(t) => patchLeg(leg.id, { arriveTime: t })} />
-                  </View>
+                  {moreToggle}
+                  {showMore ? (
+                    <>
+                      <Field flex placeholder={meta.operator} value={leg.carrier} onChange={(t) => patchLeg(leg.id, { carrier: t })} />
+                      <View className="flex-row" style={{ gap: 8 }}>
+                        <Field flex placeholder={meta.reference} value={leg.reference} onChange={(t) => patchLeg(leg.id, { reference: t })} />
+                        <Field flex placeholder="Vehicle" value={leg.vehicle} onChange={(t) => patchLeg(leg.id, { vehicle: t })} />
+                      </View>
+                      <View className="flex-row" style={{ gap: 8 }}>
+                        <Field flex placeholder="Depart (HH:MM)" value={leg.departTime} onChange={(t) => patchLeg(leg.id, { departTime: t })} />
+                        <Field flex placeholder="Arrive (HH:MM)" value={leg.arriveTime} onChange={(t) => patchLeg(leg.id, { arriveTime: t })} />
+                      </View>
+                    </>
+                  ) : null}
                 </>
               )}
-              <Field placeholder="Notes" value={leg.note} onChange={(t) => patchLeg(leg.id, { note: t })} />
+              {showMore ? <Field placeholder="Notes" value={leg.note} onChange={(t) => patchLeg(leg.id, { note: t })} /> : null}
             </View>
           );
         })}
@@ -345,16 +373,26 @@ export function AddTripSheet({ visible, onClose }: { visible: boolean; onClose: 
         <View style={{ marginHorizontal: 20, marginTop: 8 }}>
           <Field placeholder="Anything to remember about this trip" value={tripNote} onChange={setTripNote} />
         </View>
-
-        <Pressable onPress={save} disabled={!ready || saving} className="rounded-2xl items-center justify-center flex-row" style={{ marginHorizontal: 20, marginTop: 16, paddingVertical: 15, backgroundColor: COLORS.coral, opacity: ready && !saving ? 1 : 0.4, gap: 8 }}>
-          {saving ? <ActivityIndicator color="#fff" /> : (
-            <>
-              <Check size={18} color="#fff" />
-              <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Save trip</Text>
-            </>
-          )}
-        </Pressable>
       </ScrollView>
+      {/* Save is pinned under the form — always in reach however many legs you
+          add — and says what's still needed rather than just sitting disabled. */}
+      <View style={{ paddingHorizontal: 20, paddingTop: 10, borderTopWidth: 1, borderTopColor: COLORS.tileMuted }}>
+        <Pressable onPress={save} disabled={!ready || saving} accessibilityRole="button" accessibilityLabel="Save trip" accessibilityState={{ disabled: !ready || saving, busy: saving }} style={{ borderRadius: 18, overflow: 'hidden', opacity: ready && !saving ? 1 : 0.5 }}>
+          <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, gap: 8 }}>
+            {saving ? <ActivityIndicator color="#fff" /> : (
+              <>
+                <Check size={18} color="#fff" />
+                <Text style={{ fontFamily: 'PlusJakarta', fontSize: 15, fontWeight: '700', color: '#fff' }}>Save trip</Text>
+              </>
+            )}
+          </LinearGradient>
+        </Pressable>
+        {!ready ? (
+          <Text style={{ fontFamily: 'PlusJakarta', fontSize: 12, color: COLORS.ink3, textAlign: 'center', marginTop: 6 }}>
+            {!title.trim() ? 'Give the trip a name to save it' : 'Add at least one country to save it'}
+          </Text>
+        ) : null}
+      </View>
     </SheetShell>
   );
 }
