@@ -28,7 +28,7 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
   // On success the auth state changes and this full-screen gate unmounts itself,
   // so there's nothing extra to do here.
   const {
-    mode, name, email, password, show, busy, error, notice, agreed,
+    mode, name, email, password, show, busy, error, notice, agreed, agreeHint,
     setName, setEmail, setPassword, setShow, setAgreed, setError, setBusy,
     ensureAgreed, forgot, submit, switchMode,
   } = useAuthForm();
@@ -123,7 +123,7 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
                 accessibilityState={{ checked: agreed }}
                 accessibilityLabel="Agree to the Terms of Use and zero-tolerance policy"
                 className="flex-row"
-                style={{ marginTop: 16, gap: 10, alignItems: 'flex-start' }}
+                style={{ marginTop: 16, gap: 10, alignItems: 'flex-start', borderRadius: 14, padding: agreeHint ? 10 : 0, borderWidth: agreeHint ? 1.5 : 0, borderColor: COLORS.coral, backgroundColor: agreeHint ? 'rgba(255,107,154,0.10)' : 'transparent' }}
               >
                 <View
                   className="items-center justify-center rounded-md"
@@ -155,7 +155,7 @@ export function AuthGate({ onContinueWithout }: { onContinueWithout: () => void 
                 </LinearGradient>
               </Pressable>
 
-              <SocialAuthButtons onError={setError} onBusyChange={setBusy} guard={ensureAgreed} />
+              <SocialAuthButtons onError={setError} onBusyChange={setBusy} guard={ensureAgreed} dimmed={!agreed} />
 
               <Pressable onPress={switchMode} style={{ marginTop: 16, alignItems: 'center' }}>
                 <Text style={{ fontFamily: 'PlusJakarta', fontSize: 13.5, color: COLORS.ink2 }}>

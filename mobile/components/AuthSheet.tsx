@@ -13,7 +13,7 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
   // Shares all form logic with AuthGate via useAuthForm; this is just the sheet
   // presentation. On success the hook calls onClose to dismiss the sheet.
   const {
-    mode, name, email, password, busy, error, notice, agreed,
+    mode, name, email, password, busy, error, notice, agreed, agreeHint,
     setName, setEmail, setPassword, setAgreed, setError, setBusy,
     ensureAgreed, forgot, submit, switchMode, resetFields,
   } = useAuthForm(onClose);
@@ -91,7 +91,7 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
           accessibilityState={{ checked: agreed }}
           accessibilityLabel="Agree to the Terms of Use and zero-tolerance policy"
           className="flex-row"
-          style={{ marginTop: 16, gap: 10, alignItems: 'flex-start' }}
+          style={{ marginTop: 16, gap: 10, alignItems: 'flex-start', borderRadius: 14, padding: agreeHint ? 10 : 0, borderWidth: agreeHint ? 1.5 : 0, borderColor: COLORS.coral, backgroundColor: agreeHint ? 'rgba(255,107,154,0.10)' : 'transparent' }}
         >
           <View
             className="items-center justify-center rounded-md"
@@ -132,7 +132,7 @@ export function AuthSheet({ visible, onClose }: { visible: boolean; onClose: () 
           </LinearGradient>
         </Pressable>
 
-        <SocialAuthButtons onError={setError} onBusyChange={setBusy} guard={ensureAgreed} />
+        <SocialAuthButtons onError={setError} onBusyChange={setBusy} guard={ensureAgreed} dimmed={!agreed} />
 
         <Pressable
           onPress={switchMode}

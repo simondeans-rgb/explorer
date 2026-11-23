@@ -46,12 +46,16 @@ export function SocialAuthButtons({
   onError,
   onBusyChange,
   guard,
+  dimmed = false,
 }: {
   onError: (msg: string | null) => void;
   onBusyChange?: (busy: boolean) => void;
   /** Called before a provider runs; return false to block (e.g. terms not yet
    *  agreed). The guard is responsible for messaging why. */
   guard?: () => boolean;
+  /** Show the buttons as not-yet-available (terms not agreed). They stay
+   *  tappable so the guard can explain what's needed. */
+  dimmed?: boolean;
 }) {
   const { signInWithGoogle, signInWithApple } = useAuth();
   const [busy, setBusy] = useState<Busy>(null);
@@ -97,7 +101,7 @@ export function SocialAuthButtons({
         onPress={() => run('apple', signInWithApple)}
         disabled={busy !== null}
         className="flex-row items-center justify-center rounded-2xl"
-        style={{ backgroundColor: '#000', paddingVertical: 14, gap: 9, opacity: busy ? 0.7 : 1, marginBottom: 10 }}
+        style={{ backgroundColor: '#000', paddingVertical: 14, gap: 9, opacity: busy ? 0.7 : dimmed ? 0.5 : 1, marginBottom: 10 }}
       >
         {busy === 'apple' ? (
           <ActivityIndicator color="#fff" />
@@ -115,7 +119,7 @@ export function SocialAuthButtons({
         onPress={() => run('google', signInWithGoogle)}
         disabled={busy !== null}
         className="flex-row items-center justify-center rounded-2xl"
-        style={{ backgroundColor: COLORS.card, borderWidth: 1, borderColor: 'rgba(20,33,61,0.14)', paddingVertical: 14, gap: 10, opacity: busy ? 0.7 : 1 }}
+        style={{ backgroundColor: COLORS.card, borderWidth: 1, borderColor: 'rgba(20,33,61,0.14)', paddingVertical: 14, gap: 10, opacity: busy ? 0.7 : dimmed ? 0.5 : 1 }}
       >
         {busy === 'google' ? (
           <ActivityIndicator color={COLORS.ink2} />

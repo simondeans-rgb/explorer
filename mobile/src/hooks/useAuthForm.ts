@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../store/auth';
+import { hWarning } from '../lib/haptics';
 
 export type AuthMode = 'in' | 'up';
 
@@ -17,14 +18,23 @@ export function useAuthForm(onSuccess?: () => void) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [agreed, setAgreed] = useState(false);
+  const [agreed, setAgreedState] = useState(false);
+  // Set when someone tries to sign in without agreeing, so the screen can point
+  // straight at the checkbox instead of leaving the buttons looking broken.
+  const [agreeHint, setAgreeHint] = useState(false);
+  const setAgreed: typeof setAgreedState = (v) => {
+    setAgreeHint(false);
+    setAgreedState(v);
+  };
 
   // Guideline 1.2: require agreement to the terms (incl. zero-tolerance for
   // objectionable content and abusive behaviour) before any sign-in path.
   function ensureAgreed(): boolean {
     if (!agreed) {
       setNotice(null);
-      setError('Please agree to the Terms & zero-tolerance policy to continue.');
+      setError('Tick the box to agree to the Terms before signing in.');
+      setAgreeHint(true);
+      hWarning();
       return false;
     }
     return true;
@@ -86,7 +96,7 @@ export function useAuthForm(onSuccess?: () => void) {
   }
 
   return {
-    mode, name, email, password, show, busy, error, notice, agreed,
+    mode, name, email, password, show, busy, error, notice, agreed, agreeHint,
     setName, setEmail, setPassword, setShow, setAgreed, setError, setBusy,
     ensureAgreed, forgot, submit, switchMode, resetFields,
   };
